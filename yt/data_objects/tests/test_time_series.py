@@ -1,6 +1,7 @@
 import tempfile
 from pathlib import Path
 
+import pytest
 from numpy.testing import assert_raises
 
 from yt.data_objects.static_output import Dataset
@@ -34,7 +35,48 @@ def test_no_match_pattern():
         )
 
 
-def test_init_fake_dataseries():
+@pytest.fixture
+def FakeDataset():
+    i = 0
+
+    class __FakeDataset(Dataset):
+        """A minimal loadable fake dataset subclass"""
+
+        def __init__(self, *args, **kwargs):
+            nonlocal i
+            super().__init__(*args, **kwargs)
+            self.current_time = i
+            self.current_opposite_time = -i
+            i += 1
+
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
+        def _parse_parameter_file(self):
+            return
+
+        def _set_code_unit_attributes(self):
+            return
+
+        def set_code_units(self):
+            self.current_time = 0
+            return
+
+        def _hash(self):
+            return
+
+        def _setup_classes(self):
+            return
+
+    try:
+        yield __FakeDataset
+    finally:
+        output_type_registry.pop("__FakeDataset")
+
+
+@pytest.fixture
+def fake_datasets():
     file_list = [f"fake_data_file_{str(i).zfill(4)}" for i in range(10)]
     with tempfile.TemporaryDirectory() as tmpdir:
         pfile_list = [Path(tmpdir) / file for file in file_list]
@@ -43,62 +85,59 @@ def test_init_fake_dataseries():
             file.touch()
         pattern = Path(tmpdir) / "fake_data_file_*"
 
-        # init from str pattern
-        ts = DatasetSeries(pattern)
-        assert ts._pre_outputs == sfile_list
+        yield file_list, pfile_list, sfile_list, pattern
 
-        # init from Path pattern
-        ppattern = Path(pattern)
-        ts = DatasetSeries(ppattern)
-        assert ts._pre_outputs == sfile_list
 
-        # init form str list
-        ts = DatasetSeries(sfile_list)
-        assert ts._pre_outputs == sfile_list
+def test_init_fake_dataseries(fake_datasets):
+    file_list, pfile_list, sfile_list, pattern = fake_datasets
 
-        # init form Path list
-        ts = DatasetSeries(pfile_list)
-        assert ts._pre_outputs == pfile_list
+    # init from str pattern
+    ts = DatasetSeries(pattern)
+    assert ts._pre_outputs == sfile_list
 
-        # rejected input type (str repr of a list) "[file1, file2, ...]"
-        assert_raises(FileNotFoundError, DatasetSeries, str(file_list))
+    # init from Path pattern
+    ppattern = Path(pattern)
+    ts = DatasetSeries(ppattern)
+    assert ts._pre_outputs == sfile_list
 
-        # finally, check that ts[0] fails to actually load
-        assert_raises(YTUnidentifiedDataType, ts.__getitem__, 0)
+    # init form str list
+    ts = DatasetSeries(sfile_list)
+    assert ts._pre_outputs == sfile_list
 
-        class FakeDataset(Dataset):
-            """A minimal loadable fake dataset subclass"""
+    # init form Path list
+    ts = DatasetSeries(pfile_list)
+    assert ts._pre_outputs == pfile_list
 
-            @classmethod
-            def _is_valid(cls, *args, **kwargs):
-                return True
+    # rejected input type (str repr of a list) "[file1, file2, ...]"
+    assert_raises(FileNotFoundError, DatasetSeries, str(file_list))
 
-            def _parse_parameter_file(self):
-                return
+    # finally, check that ts[0] fails to actually load
+    assert_raises(YTUnidentifiedDataType, ts.__getitem__, 0)
 
-            def _set_code_unit_attributes(self):
-                return
 
-            def set_code_units(self):
-                self.current_time = 0
-                return
+def test_init_fake_dataseries2(FakeDataset, fake_datasets):
+    _file_list, _pfile_list, _sfile_list, pattern = fake_datasets
+    ds = DatasetSeries(pattern)[0]
+    assert isinstance(ds, FakeDataset)
 
-            def _hash(self):
-                return
+    ts = DatasetSeries(pattern, my_unsupported_kwarg=None)
 
-            def _setup_classes(self):
-                return
+    assert_raises(TypeError, ts.__getitem__, 0)
 
-        try:
-            ds = DatasetSeries(pattern)[0]
-            assert isinstance(ds, FakeDataset)
 
-            ts = DatasetSeries(pattern, my_unsupported_kwarg=None)
+def test_get_by_key(FakeDataset, fake_datasets):
+    file_list, _pfile_list, _sfile_list, pattern = fake_datasets
+    ts = DatasetSeries(pattern)
 
-            assert_raises(TypeError, ts.__getitem__, 0)
-            # the exact error message is supposed to be this
-            # """__init__() got an unexpected keyword argument 'my_unsupported_kwarg'"""
-            # but it's hard to check for within the framework
-        finally:
-            # tear down to avoid possible breakage in following tests
-            output_type_registry.pop("FakeDataset")
+    Ntot = len(file_list)
+
+    assert ts[0] == ts.get_by_key("current_time", -1)
+    assert ts[0] == ts.get_by_key("current_time", 0)
+    assert ts[1] == ts.get_by_key("current_time", 0.8)
+    assert ts[1] == ts.get_by_key("current_time", 1.2)
+    assert ts[Ntot - 1] == ts.get_by_key("current_time", Ntot - 1)
+    assert ts[Ntot - 1] == ts.get_by_key("current_time", Ntot)
+
+    assert ts[1] == ts.get_by_key("current_opposite_time", -1.2)
+    assert ts[1] == ts.get_by_key("current_opposite_time", -1)
+    assert ts[1] == ts.get_by_key("current_opposite_time", -0.6)
