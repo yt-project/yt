@@ -2,6 +2,7 @@ import functools
 import glob
 import inspect
 import os
+import typing
 import weakref
 from abc import ABC, abstractmethod
 from functools import wraps
@@ -27,6 +28,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_objects,
     parallel_root_only,
 )
+
+if typing.TYPE_CHECKING:
+    from yt.data_objects.static_output import Dataset
 
 
 class AnalysisTaskProxy:
@@ -147,7 +151,7 @@ class DatasetSeries:
     # this annotation should really be Optional[Type[Dataset]]
     # but we cannot import the yt.data_objects.static_output.Dataset
     # class here without creating a circular import for now
-    _dataset_cls: Optional[type] = None
+    _dataset_cls: Optional[type["Dataset"]] = None
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -435,6 +439,85 @@ class DatasetSeries:
         return ParticleTrajectories(
             self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype
         )
+
+    def get_by_key(self, key: str, value, tolerance=None) -> "Dataset":
+        r"""
+        Get a dataset at or near to a given value.
+
+        Parameters
+        ----------
+        key : str
+            The key by which to retrieve an output, usually 'current_time' or
+            'current_redshift'. The key must be an attribute of the dataset
+            and monotonic.
+        value : float
+            The value to search for.
+        tolerance : float
+            If not None, do not return a dataset unless the value is
+            within the tolerance value. If None, simply return the
+            nearest dataset.
+            Default: None.
+
+        Examples
+        --------
+        >>> ds = ts.get_by_key("current_redshift", 0.0)
+        """
+
+        # Use a binary search to find the closest value
+        iL = 0
+        iH = len(self._pre_outputs) - 1
+
+        if iL == iH:
+            ds = self[0]
+            if tolerance is not None and abs(getattr(ds, key) - value) > tolerance:
+                raise ValueError(
+                    f"No dataset found with {key} within {tolerance} of {value}."
+                )
+            return ds
+
+        # Check signedness
+        dsL = self[iL]
+        dsH = self[iH]
+        vL = getattr(dsL, key)
+        vH = getattr(dsH, key)
+
+        if vL < vH:
+            sign = 1
+        elif vL > vH:
+            sign = -1
+        else:
+            raise ValueError(
+                f"{dsL} and {dsH} have both {key}={vL}, cannot perform search. "
+                "Try with another key."
+            )
+
+        if sign * value < sign * vL:
+            return dsL
+        elif sign * value > sign * vH:
+            return dsH
+
+        while iH - iL > 1:
+            iM = (iH + iL) // 2
+            dsM = self[iM]
+            vM = getattr(dsM, key)
+            if sign * value < sign * vM:
+                iH = iM
+                dsH = dsM
+            elif sign * value > sign * vM:
+                iL = iM
+                dsL = dsM
+
+        if abs(value - getattr(dsL, key)) < abs(value - getattr(dsH, key)):
+            ds_best = dsL
+        else:
+            ds_best = dsH
+
+        if tolerance is not None:
+            if abs(value - getattr(ds_best, key)) > tolerance:
+                raise ValueError(
+                    f"No dataset found with {key} within {tolerance} of {value}."
+                )
+        return ds_best
 
 
 class TimeSeriesQuantitiesContainer:
