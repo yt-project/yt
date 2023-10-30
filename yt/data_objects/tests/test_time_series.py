@@ -131,8 +131,8 @@ def test_get_by_key(FakeDataset, fake_datasets):
 
     assert sfile_list[0] == ts.get_by_time(-t).filename
     assert sfile_list[0] == ts.get_by_time(t - t).filename
-    assert sfile_list[1] == ts.get_by_time(0.8 * t).filename
-    assert sfile_list[1] == ts.get_by_time(1.2 * t).filename
+    assert sfile_list[1] == ts.get_by_time((0.8, "code_time")).filename
+    assert sfile_list[1] == ts.get_by_time((1.2, "code_time")).filename
     assert sfile_list[Ntot - 1] == ts.get_by_time(t * (Ntot - 1)).filename
     assert sfile_list[Ntot - 1] == ts.get_by_time(t * Ntot).filename
 
