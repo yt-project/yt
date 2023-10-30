@@ -37,17 +37,11 @@ def test_no_match_pattern():
 
 @pytest.fixture
 def FakeDataset():
-    i = 0
-
     class __FakeDataset(Dataset):
         """A minimal loadable fake dataset subclass"""
 
         def __init__(self, *args, **kwargs):
-            nonlocal i
             super().__init__(*args, **kwargs)
-            self.current_time = i
-            self.current_opposite_time = 1 / (i + 1)
-            i += 1
 
         @classmethod
         def _is_valid(cls, *args, **kwargs):
@@ -60,6 +54,9 @@ def FakeDataset():
             return
 
         def set_code_units(self):
+            i = int(Path(self.filename).name.split("_")[-1])
+            self.current_time = i
+            self.current_redshift = 1 / (i + 1)
             return
 
         def _hash(self):
@@ -76,7 +73,7 @@ def FakeDataset():
 
 @pytest.fixture
 def fake_datasets():
-    file_list = [f"fake_data_file_{str(i).zfill(4)}" for i in range(10)]
+    file_list = [f"fake_data_file_{i:04d}" for i in range(10)]
     with tempfile.TemporaryDirectory() as tmpdir:
         pfile_list = [Path(tmpdir) / file for file in file_list]
         sfile_list = [str(file) for file in pfile_list]
@@ -125,26 +122,28 @@ def test_init_fake_dataseries2(FakeDataset, fake_datasets):
 
 
 def test_get_by_key(FakeDataset, fake_datasets):
-    file_list, _pfile_list, _sfile_list, pattern = fake_datasets
+    _file_list, _pfile_list, sfile_list, pattern = fake_datasets
     ts = DatasetSeries(pattern)
 
-    Ntot = len(file_list)
+    Ntot = len(sfile_list)
 
-    assert ts[0] == ts.get_by_time(-1)
-    assert ts[0] == ts.get_by_time(0)
-    assert ts[1] == ts.get_by_time(0.8)
-    assert ts[1] == ts.get_by_time(1.2)
-    assert ts[Ntot - 1] == ts.get_by_time(Ntot - 1)
-    assert ts[Ntot - 1] == ts.get_by_time(Ntot)
+    t = ts[0].quan(1, "code_time")
+
+    assert sfile_list[0] == ts.get_by_time(-t).filename
+    assert sfile_list[0] == ts.get_by_time(t - t).filename
+    assert sfile_list[1] == ts.get_by_time(0.8 * t).filename
+    assert sfile_list[1] == ts.get_by_time(1.2 * t).filename
+    assert sfile_list[Ntot - 1] == ts.get_by_time(t * (Ntot - 1)).filename
+    assert sfile_list[Ntot - 1] == ts.get_by_time(t * Ntot).filename
 
     with pytest.raises(ValueError):
-        ts.get_by_time(-2, tolerance=0.1)
+        ts.get_by_time(-2 * t, tolerance=0.1 * t)
     with pytest.raises(ValueError):
-        ts.get_by_time(1000, tolerance=0.1)
+        ts.get_by_time(1000 * t, tolerance=0.1 * t)
 
-    assert ts[1] == ts.get_by_redshift(1 / 2.2)
-    assert ts[1] == ts.get_by_redshift(1 / 2)
-    assert ts[1] == ts.get_by_redshift(1 / 1.6)
+    assert sfile_list[1] == ts.get_by_redshift(1 / 2.2).filename
+    assert sfile_list[1] == ts.get_by_redshift(1 / 2).filename
+    assert sfile_list[1] == ts.get_by_redshift(1 / 1.6).filename
 
     with pytest.raises(ValueError):
         ts.get_by_redshift(1000, tolerance=0.1)
