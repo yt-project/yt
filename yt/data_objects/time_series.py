@@ -498,11 +498,12 @@ class DatasetSeries:
 
         if isinstance(value, tuple):
             value = dsL.quan(*value)
+        if isinstance(tolerance, tuple):
+            tolerance = dsL.quan(*tolerance)
 
-        if sign * value < sign * vL:
-            return dsL
-        elif sign * value > sign * vH:
-            return dsH
+        # Short-circuit if value is out-of-range
+        if not (vL * sign < value * sign < vH * sign):
+            iL = iH = 0
 
         while iH - iL > 1:
             iM = (iH + iL) // 2
@@ -514,6 +515,9 @@ class DatasetSeries:
             elif sign * value > sign * vM:
                 iL = iM
                 dsL = dsM
+            else:  # Exact match
+                dsL = dsH = dsM
+                break
 
         if abs(value - getattr(dsL, attribute)) < abs(value - getattr(dsH, attribute)):
             ds_best = dsL
