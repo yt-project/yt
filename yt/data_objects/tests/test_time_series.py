@@ -46,7 +46,7 @@ def FakeDataset():
             nonlocal i
             super().__init__(*args, **kwargs)
             self.current_time = i
-            self.current_opposite_time = -i
+            self.current_opposite_time = 1 / (i + 1)
             i += 1
 
         @classmethod
@@ -60,7 +60,6 @@ def FakeDataset():
             return
 
         def set_code_units(self):
-            self.current_time = 0
             return
 
         def _hash(self):
@@ -131,13 +130,21 @@ def test_get_by_key(FakeDataset, fake_datasets):
 
     Ntot = len(file_list)
 
-    assert ts[0] == ts.get_by_key("current_time", -1)
-    assert ts[0] == ts.get_by_key("current_time", 0)
-    assert ts[1] == ts.get_by_key("current_time", 0.8)
-    assert ts[1] == ts.get_by_key("current_time", 1.2)
-    assert ts[Ntot - 1] == ts.get_by_key("current_time", Ntot - 1)
-    assert ts[Ntot - 1] == ts.get_by_key("current_time", Ntot)
+    assert ts[0] == ts.get_by_time(-1)
+    assert ts[0] == ts.get_by_time(0)
+    assert ts[1] == ts.get_by_time(0.8)
+    assert ts[1] == ts.get_by_time(1.2)
+    assert ts[Ntot - 1] == ts.get_by_time(Ntot - 1)
+    assert ts[Ntot - 1] == ts.get_by_time(Ntot)
 
-    assert ts[1] == ts.get_by_key("current_opposite_time", -1.2)
-    assert ts[1] == ts.get_by_key("current_opposite_time", -1)
-    assert ts[1] == ts.get_by_key("current_opposite_time", -0.6)
+    with pytest.raises(ValueError):
+        ts.get_by_time(-2, tolerance=0.1)
+    with pytest.raises(ValueError):
+        ts.get_by_time(1000, tolerance=0.1)
+
+    assert ts[1] == ts.get_by_redshift(1 / 2.2)
+    assert ts[1] == ts.get_by_redshift(1 / 2)
+    assert ts[1] == ts.get_by_redshift(1 / 1.6)
+
+    with pytest.raises(ValueError):
+        ts.get_by_redshift(1000, tolerance=0.1)
