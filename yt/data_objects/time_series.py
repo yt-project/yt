@@ -559,17 +559,17 @@ class DatasetSeries:
 
         Parameters
         ----------
-        redshift : unyt_quantity or (value, unit)
+        redshift : float
             The redshift to search for.
-        tolerance : unyt_quantity or (value, unit)
-            If not None, do not return a dataset unless the time is
+        tolerance : float
+            If not None, do not return a dataset unless the redshift is
             within the tolerance value. If None, simply return the
             nearest dataset.
             Default: None.
 
         Examples
         --------
-        >>> ds = ts.get_redshift_time(0.0)
+        >>> ds = ts.get_by_redshift(0.0)
         """
         return self._get_by_attribute("current_redshift", redshift, tolerance=tolerance)
 
