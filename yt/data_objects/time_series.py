@@ -6,10 +6,11 @@ import typing
 import weakref
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from more_itertools import always_iterable
+from unyt import unyt_quantity
 
 from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
@@ -440,7 +441,12 @@ class DatasetSeries:
             self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype
         )
 
-    def get_by_key(self, key: str, value, tolerance=None) -> "Dataset":
+    def _get_by_attribute(
+        self,
+        attribute: str,
+        value: Union[unyt_quantity, tuple[float, str]],
+        tolerance: Union[None, unyt_quantity, tuple[float, str]] = None,
+    ) -> "Dataset":
         r"""
         Get a dataset at or near to a given value.
 
@@ -450,17 +456,13 @@ class DatasetSeries:
             The key by which to retrieve an output, usually 'current_time' or
             'current_redshift'. The key must be an attribute of the dataset
             and monotonic.
-        value : float
+        value : unyt_array or (value, unit)
             The value to search for.
-        tolerance : float
+        tolerance : unyt_array or (value, unit)
             If not None, do not return a dataset unless the value is
             within the tolerance value. If None, simply return the
             nearest dataset.
             Default: None.
-
-        Examples
-        --------
-        >>> ds = ts.get_by_key("current_redshift", 0.0)
         """
 
         # Use a binary search to find the closest value
@@ -469,17 +471,20 @@ class DatasetSeries:
 
         if iL == iH:
             ds = self[0]
-            if tolerance is not None and abs(getattr(ds, key) - value) > tolerance:
+            if (
+                tolerance is not None
+                and abs(getattr(ds, attribute) - value) > tolerance
+            ):
                 raise ValueError(
-                    f"No dataset found with {key} within {tolerance} of {value}."
+                    f"No dataset found with {attribute} within {tolerance} of {value}."
                 )
             return ds
 
         # Check signedness
         dsL = self[iL]
         dsH = self[iH]
-        vL = getattr(dsL, key)
-        vH = getattr(dsH, key)
+        vL = getattr(dsL, attribute)
+        vH = getattr(dsH, attribute)
 
         if vL < vH:
             sign = 1
@@ -487,9 +492,12 @@ class DatasetSeries:
             sign = -1
         else:
             raise ValueError(
-                f"{dsL} and {dsH} have both {key}={vL}, cannot perform search. "
+                f"{dsL} and {dsH} have both {attribute}={vL}, cannot perform search. "
                 "Try with another key."
             )
+
+        if isinstance(value, tuple):
+            value = dsL.quan(*value)
 
         if sign * value < sign * vL:
             return dsL
@@ -499,7 +507,7 @@ class DatasetSeries:
         while iH - iL > 1:
             iM = (iH + iL) // 2
             dsM = self[iM]
-            vM = getattr(dsM, key)
+            vM = getattr(dsM, attribute)
             if sign * value < sign * vM:
                 iH = iM
                 dsH = dsM
@@ -507,17 +515,63 @@ class DatasetSeries:
                 iL = iM
                 dsL = dsM
 
-        if abs(value - getattr(dsL, key)) < abs(value - getattr(dsH, key)):
+        if abs(value - getattr(dsL, attribute)) < abs(value - getattr(dsH, attribute)):
             ds_best = dsL
         else:
             ds_best = dsH
 
         if tolerance is not None:
-            if abs(value - getattr(ds_best, key)) > tolerance:
+            if abs(value - getattr(ds_best, attribute)) > tolerance:
                 raise ValueError(
-                    f"No dataset found with {key} within {tolerance} of {value}."
+                    f"No dataset found with {attribute} within {tolerance} of {value}."
                 )
         return ds_best
+
+    def get_by_time(
+        self,
+        time: Union[unyt_quantity, tuple],
+        tolerance: Union[None, unyt_quantity, tuple] = None,
+    ):
+        """
+        Get a dataset at or near to a given time.
+
+        Parameters
+        ----------
+        time : unyt_quantity or (value, unit)
+            The time to search for.
+        tolerance : unyt_quantity or (value, unit)
+            If not None, do not return a dataset unless the time is
+            within the tolerance value. If None, simply return the
+            nearest dataset.
+            Default: None.
+
+        Examples
+        --------
+        >>> ds = ts.get_by_time((12, "Gyr"))
+        >>> t = ts[0].quan(12, "Gyr")
+        ... ds = ts.get_by_time(t, tolerance=(100, "Myr"))
+        """
+        return self._get_by_attribute("current_time", time, tolerance=tolerance)
+
+    def get_by_redshift(self, redshift: float, tolerance: Optional[float] = None):
+        """
+        Get a dataset at or near to a given time.
+
+        Parameters
+        ----------
+        redshift : unyt_quantity or (value, unit)
+            The redshift to search for.
+        tolerance : unyt_quantity or (value, unit)
+            If not None, do not return a dataset unless the time is
+            within the tolerance value. If None, simply return the
+            nearest dataset.
+            Default: None.
+
+        Examples
+        --------
+        >>> ds = ts.get_redshift_time(0.0)
+        """
+        return self._get_by_attribute("current_redshift", redshift, tolerance=tolerance)
 
 
 class TimeSeriesQuantitiesContainer:
