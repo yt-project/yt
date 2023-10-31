@@ -12,6 +12,7 @@ from yt.testing import (
     assert_rel_equal,
     fake_octree_ds,
     fake_random_ds,
+    fake_sph_grid_ds,
 )
 from yt.visualization.api import OffAxisProjectionPlot, OffAxisSlicePlot
 from yt.visualization.image_writer import write_projection
@@ -246,3 +247,22 @@ def test_offaxis_moment():
         p2.frb["gas", "velocity_los"],
         10,
     )
+
+
+def test_off_axis_sph_depth():
+    ds = fake_sph_grid_ds()
+    p1 = OffAxisProjectionPlot(
+        ds,
+        [1, 1, 1],
+        ("io", "density"),
+        buff_size=(50, 50),
+    )
+    p2 = OffAxisProjectionPlot(
+        ds,
+        [1, 1, 1],
+        ("io", "density"),
+        buff_size=(50, 50),
+        depth=(0.1, "cm"),
+    )
+    # checks that fewer particles are picked up
+    assert p2.frb["io", "density"].sum() < p1.frb["io", "density"].sum()
