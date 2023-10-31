@@ -33,8 +33,8 @@ Fixed-resolution two-dimensional images generated from datasets using yt (such a
 slices or projections) and fixed-resolution three-dimensional grids can be written
 to FITS files using yt's :class:`~yt.visualization.fits_image.FITSImageData` class
 and its subclasses. Multiple images can be combined into a single file, operations
-can be performed on the images and their coordinates, etc. See :ref:`writing_fits_images`
-for more information.
+can be performed on the images and their coordinates, etc. See
+:doc:`../visualizing/FITSImageData` for more information.
 
 Converting Field Container and 1D Profile Data to AstroPy Tables
 ----------------------------------------------------------------

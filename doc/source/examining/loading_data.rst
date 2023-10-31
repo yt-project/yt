@@ -70,7 +70,8 @@ Simple HDF5 Data
 .. note::
 
    This wrapper takes advantage of the functionality described in
-   :ref:`loading-via-functions` but the basics of setting up function handlers,
+   :doc:`Loading_Data_via_Functions`
+   but the basics of setting up function handlers,
    guessing fields, etc, are handled by yt.
 
 Using the function :func:`yt.loaders.load_hdf5_file`, you can load a generic
@@ -1014,7 +1015,7 @@ FITS images are fully-describing in that unit, parameter, and coordinate
 information is passed from the original dataset. These can be created via the
 :class:`~yt.visualization.fits_image.FITSImageData` class and its subclasses.
 For information about how to use these special classes, see
-:ref:`writing_fits_images`.
+:doc:`../visualizing/FITSImageData`.
 
 Once you have produced a FITS file in this fashion, you can load it using
 yt and it will be detected as a ``YTFITSDataset`` object, and it can be analyzed
@@ -1056,7 +1057,7 @@ particle fields in yt, but a grid will be constructed from the WCS
 information in the FITS header. There is a helper function,
 ``setup_counts_fields``, which may be used to make deposited image fields
 from the event data for different energy bands (for an example see
-:ref:`xray_fits`).
+:doc:`../cookbook/fits_xray_images`).
 
 Generic FITS Images
 """""""""""""""""""
@@ -1296,9 +1297,9 @@ Examples of Using FITS Data
 The following Jupyter notebooks show examples of working with FITS data in yt,
 which we recommend you look at in the following order:
 
-* :ref:`radio_cubes`
-* :ref:`xray_fits`
-* :ref:`writing_fits_images`
+* :doc:`../cookbook/fits_radio_cubes`
+* :doc:`../cookbook/fits_xray_images`
+* :doc:`../visualizing/FITSImageData`
 
 .. _loading-flash-data:
 
@@ -1385,9 +1386,10 @@ yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
 and visualization. See :ref:`loading-sph-data` for more details and
-:ref:`gadget-notebook` for a detailed example of loading, analyzing, and
-visualizing a Gadget dataset.  An example which makes use of a Gadget snapshot
-from the OWLS project can be found at :ref:`owls-notebook`.
+:doc:`../cookbook/yt_gadget_analysis` for a detailed example
+of loading, analyzing, and visualizing a Gadget dataset.  An example which
+makes use of a Gadget snapshot from the OWLS project can be found in
+:doc:`../cookbook/yt_gadget_owls_analysis`.
 
 .. note::
 
@@ -1882,14 +1884,14 @@ to avoid catastrophic cancellations.
 Generic AMR Data
 ----------------
 
-See :ref:`loading-numpy-array` and
+See :doc:`Loading_Generic_Array_Data` and
 :func:`~yt.frontends.stream.data_structures.load_amr_grids` for more detail.
 
 .. note::
 
    It is now possible to load data using *only functions*, rather than using the
    fully-in-memory method presented here.  For more information and examples,
-   see :ref:`loading-via-functions`.
+   see :doc:`Loading_Data_via_Functions`.
 
 It is possible to create native yt dataset from Python's dictionary
 that describes set of rectangular patches of data of possibly varying
@@ -1946,7 +1948,7 @@ Particle fields are supported by adding 1-dimensional arrays to each
 Generic Array Data
 ------------------
 
-See :ref:`loading-numpy-array` and
+See :doc:`Loading_Generic_Array_Data` and
 :func:`~yt.frontends.stream.data_structures.load_uniform_grid` for more detail.
 
 Even if your data is not strictly related to fields commonly used in
@@ -2010,7 +2012,7 @@ Semi-Structured Grid Data
 
    See :ref:`loading-stretched-grids` for more information.
 
-See :ref:`loading-numpy-array`,
+See :doc:`Loading_Generic_Array_Data`,
 :func:`~yt.frontends.stream.data_structures.hexahedral_connectivity`,
 :func:`~yt.frontends.stream.data_structures.load_hexahedral_mesh` for
 more detail.
@@ -2124,7 +2126,7 @@ fewer) cells.
 Unstructured Grid Data
 ----------------------
 
-See :ref:`loading-numpy-array`,
+See :doc:`Loading_Generic_Array_Data`,
 :func:`~yt.frontends.stream.data_structures.load_unstructured_mesh` for
 more detail.
 
@@ -2250,7 +2252,7 @@ Generic Particle Data
    For more information about how yt indexes and reads particle data, set the
    section :ref:`demeshening`.
 
-See :ref:`generic-particle-data` and
+See :doc:`Loading_Generic_Particle_Data` and
 :func:`~yt.frontends.stream.data_structures.load_particles` for more detail.
 
 You can also load generic particle data using the same ``stream`` functionality
@@ -3202,7 +3204,7 @@ Tipsy Data
    For more information about how yt indexes and reads particle data, set the
    section :ref:`demeshening`.
 
-See :ref:`tipsy-notebook` and :ref:`loading-sph-data` for more details.
+See :doc:`../cookbook/tipsy_and_yt` and :ref:`loading-sph-data` for more details.
 
 yt also supports loading Tipsy data.  Many of its characteristics are similar
 to how Gadget data is loaded.
