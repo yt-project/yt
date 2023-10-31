@@ -272,7 +272,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 self.domain.domain_id,
                 self.parameters["nvar"],
                 self.domain.amr_header,
-                skip_len=nvars * 8,
+                Nskip=nvars * 8,
             )
 
         self._offset = offset

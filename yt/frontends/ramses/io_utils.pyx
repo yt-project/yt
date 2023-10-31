@@ -87,12 +87,16 @@ def read_amr(FortranFile f, dict headers,
 
     return max_level
 
+
+cdef inline int skip_len(int Nskip, int record_len) noexcept:
+    return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
+
 @cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.nonecheck(False)
-cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers, int skip_len):
+cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers, int Nskip):
 
     cdef np.ndarray[np.int64_t, ndim=2] offset, level_count
     cdef INT64_t ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
@@ -108,8 +112,8 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
     ncpu_and_bound = nboundary + ncpu
     twotondim = 2**ndim
 
-    if skip_len == -1:
-        skip_len = twotondim * nvar
+    if Nskip == -1:
+        Nskip = twotondim * nvar
 
     # It goes: level, CPU, 8-variable (1 oct)
     offset = np.full((ncpu_and_bound, n_levels), -1, dtype=np.int64)
@@ -134,12 +138,9 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
             if ilevel >= min_level:
                 offset_view[icpu, ilevel - min_level] = f.tell()
                 level_count_view[icpu, ilevel - min_level] = <INT64_t> file_ncache
-            f.skip(skip_len)
+            f.seek(skip_len(Nskip, file_ncache), 1)
 
     return offset, level_count
-
-cdef inline int skip_len(int Nskip, int record_len) noexcept:
-    return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
 
 @cython.cpow(True)
 @cython.boundscheck(False)
