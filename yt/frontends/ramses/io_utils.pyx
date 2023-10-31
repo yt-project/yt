@@ -138,7 +138,7 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
 
     return offset, level_count
 
-cdef inline int skip_len(int Nskip, int record_len):
+cdef inline int skip_len(int Nskip, int record_len) noexcept:
     return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
 
 @cython.cpow(True)
@@ -162,6 +162,7 @@ def fill_hydro(FortranFile f,
     cdef str field
     cdef INT64_t twotondim
     cdef int ilevel, icpu, nlevels, nc, ncpu_selected, nfields_selected
+    cdef int i, j
 
     twotondim = 2**ndim
     nfields_selected = len(fields)
@@ -171,6 +172,7 @@ def fill_hydro(FortranFile f,
 
     cdef np.int64_t[:] jumps = np.zeros(nfields_selected + 1, dtype=np.int64)
     cdef int jump_len
+    cdef np.ndarray[np.float64_t, ndim=3] buffer
 
     jump_len = 0
     j = 0
@@ -206,7 +208,7 @@ def fill_hydro(FortranFile f,
                     if jump_len > 0:
                         f.seek(skip_len(jump_len, nc), 1)
                         jump_len = 0
-                    buffer[:, i, j] = f.read_vector('d')
+                    f.read_vector_inplace('d', <void*> &buffer[0, i, j])
 
                 jump_len += jumps[nfields_selected]
 
