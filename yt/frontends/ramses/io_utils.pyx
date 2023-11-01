@@ -14,9 +14,9 @@ ctypedef np.int32_t INT32_t
 ctypedef np.int64_t INT64_t
 ctypedef np.float64_t DOUBLE_t
 
-cdef INT32_SIZE = sizeof(np.int32_t)
-cdef INT64_SIZE = sizeof(np.int64_t)
-cdef DOUBLE_SIZE = sizeof(np.float64_t)
+cdef int INT32_SIZE = sizeof(np.int32_t)
+cdef int INT64_SIZE = sizeof(np.int64_t)
+cdef int DOUBLE_SIZE = sizeof(np.float64_t)
 
 @cython.cpow(True)
 @cython.boundscheck(False)
@@ -163,7 +163,7 @@ def fill_hydro(FortranFile f,
     cdef str field
     cdef INT64_t twotondim
     cdef int ilevel, icpu, nlevels, nc, ncpu_selected, nfields_selected
-    cdef int i, j
+    cdef int i, j, ii
 
     twotondim = 2**ndim
     nfields_selected = len(fields)
@@ -171,7 +171,9 @@ def fill_hydro(FortranFile f,
     nlevels = offsets.shape[1]
     ncpu_selected = len(cpu_enumerator)
 
-    cdef np.int64_t[:] jumps = np.zeros(nfields_selected + 1, dtype=np.int64)
+    cdef np.int64_t[::1] cpu_list = np.asarray(cpu_enumerator, dtype=np.int64)
+
+    cdef np.int64_t[::1] jumps = np.zeros(nfields_selected + 1, dtype=np.int64)
     cdef int jump_len
     cdef np.ndarray[np.float64_t, ndim=3] buffer
 
@@ -186,10 +188,12 @@ def fill_hydro(FortranFile f,
             jump_len += 1
     jumps[j] = jump_len
 
+    cdef int nc_largest = 0
     # Loop over levels
     for ilevel in range(nlevels):
         # Loop over cpu domains
-        for icpu in cpu_enumerator:
+        for ii in range(ncpu_selected):
+            icpu = cpu_list[ii]
             nc = level_count[icpu, ilevel]
             if nc == 0:
                 continue
@@ -199,7 +203,9 @@ def fill_hydro(FortranFile f,
             f.seek(offset)
             # Initialize temporary data container for io
             # note: we use Fortran ordering to reflect the in-file ordering
-            buffer = np.empty((nc, twotondim, nfields_selected), dtype="float64", order='F')
+            if nc > nc_largest:
+                nc_largest = nc
+                buffer = np.empty((nc, twotondim, nfields_selected), dtype="float64", order='F')
 
             jump_len = 0
             for i in range(twotondim):
