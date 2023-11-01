@@ -143,15 +143,15 @@ cdef class FortranFile:
         return data
 
     cdef int read_vector_inplace(self, str dtype, void *data):
-        """Reads a record from the file and return it as numpy array.
+        """Reads a record from the file.
 
         Parameters
         ----------
         d : data type
             This is the datatype (from the struct module) that we should read.
         data : void*
-            The pointer to the data to be read.
-
+            The pointer where to store the data.
+            It should be preallocated and have the correct size.
         """
         cdef INT32_t s1, s2, size
 
