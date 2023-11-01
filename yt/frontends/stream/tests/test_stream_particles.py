@@ -206,6 +206,8 @@ def test_load_particles_types():
     ds2 = load_particles(data2)
     ds2.index
 
+    # We use set here because we don't care about the order and we just need
+    # the elements to be correct
     assert set(ds2.particle_types) == {"all", "star", "dm", "nbody"}
 
     dd = ds2.all_data()
@@ -216,6 +218,53 @@ def test_load_particles_types():
             npart += dd[ptype, f"particle_position_{ax}"].size
         assert npart == num_tot_particles
         assert dd["all", f"particle_position_{ax}"].size == num_tot_particles
+
+
+def test_load_particles_sph_types():
+    num_particles = 10000
+
+    data = {
+        ("gas", "particle_position_x"): np.random.random(size=num_particles),
+        ("gas", "particle_position_y"): np.random.random(size=num_particles),
+        ("gas", "particle_position_z"): np.random.random(size=num_particles),
+        ("gas", "particle_velocity_x"): np.random.random(size=num_particles),
+        ("gas", "particle_velocity_y"): np.random.random(size=num_particles),
+        ("gas", "particle_velocity_z"): np.random.random(size=num_particles),
+        ("gas", "particle_mass"): np.ones(num_particles),
+        ("gas", "density"): np.ones(num_particles),
+        ("gas", "smoothing_length"): np.ones(num_particles),
+        ("dm", "particle_position_x"): np.random.random(size=num_particles),
+        ("dm", "particle_position_y"): np.random.random(size=num_particles),
+        ("dm", "particle_position_z"): np.random.random(size=num_particles),
+        ("dm", "particle_velocity_x"): np.random.random(size=num_particles),
+        ("dm", "particle_velocity_y"): np.random.random(size=num_particles),
+        ("dm", "particle_velocity_z"): np.random.random(size=num_particles),
+        ("dm", "particle_mass"): np.ones(num_particles),
+    }
+
+    ds = load_particles(data)
+
+    assert set(ds.particle_types) == {"gas", "dm"}
+    assert ds._sph_ptypes == ("gas",)
+
+    data.update(
+        {
+            ("cr_gas", "particle_position_x"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_position_y"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_position_z"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_velocity_x"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_velocity_y"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_velocity_z"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_mass"): np.ones(num_particles),
+            ("cr_gas", "density"): np.ones(num_particles),
+            ("cr_gas", "smoothing_length"): np.ones(num_particles),
+        }
+    )
+
+    with pytest.raises(
+        ValueError, match="Multiple SPH particle types are currently not supported!"
+    ):
+        load_particles(data)
 
 
 def test_load_particles_with_data_source():
