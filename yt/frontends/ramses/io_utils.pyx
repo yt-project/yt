@@ -88,7 +88,7 @@ def read_amr(FortranFile f, dict headers,
     return max_level
 
 
-cdef inline int skip_len(int Nskip, int record_len) noexcept:
+cdef inline int skip_len(int Nskip, int record_len) noexcept nogil:
     return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
 
 @cython.cpow(True)
