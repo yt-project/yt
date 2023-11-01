@@ -6,7 +6,7 @@ import typing
 import weakref
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 import numpy as np
 from more_itertools import always_iterable
@@ -446,6 +446,9 @@ class DatasetSeries:
         attribute: str,
         value: Union[unyt_quantity, tuple[float, str]],
         tolerance: Union[None, unyt_quantity, tuple[float, str]] = None,
+        side: Union[
+            Literal["nearest"], Literal["smaller"], Literal["larger"]
+        ] = "nearest",
     ) -> "Dataset":
         r"""
         Get a dataset at or near to a given value.
@@ -463,7 +466,15 @@ class DatasetSeries:
             within the tolerance value. If None, simply return the
             nearest dataset.
             Default: None.
+        side : str
+            The side of the value to return. Can be 'nearest', 'smaller' or 'larger'.
+            Default: 'nearest'.
         """
+
+        if side not in ("nearest", "smaller", "larger"):
+            raise ValueError(
+                f"side must be 'nearest', 'smaller' or 'larger', got {side}"
+            )
 
         # Use a binary search to find the closest value
         iL = 0
@@ -519,7 +530,13 @@ class DatasetSeries:
                 dsL = dsH = dsM
                 break
 
-        if abs(value - getattr(dsL, attribute)) < abs(value - getattr(dsH, attribute)):
+        if side == "smaller":
+            ds_best = dsL if sign > 0 else dsH
+        elif side == "larger":
+            ds_best = dsH if sign > 0 else dsL
+        elif abs(value - getattr(dsL, attribute)) < abs(
+            value - getattr(dsH, attribute)
+        ):
             ds_best = dsL
         else:
             ds_best = dsH
@@ -535,6 +552,9 @@ class DatasetSeries:
         self,
         time: Union[unyt_quantity, tuple],
         tolerance: Union[None, unyt_quantity, tuple] = None,
+        side: Union[
+            Literal["nearest"], Literal["smaller"], Literal["larger"]
+        ] = "nearest",
     ):
         """
         Get a dataset at or near to a given time.
@@ -548,6 +568,9 @@ class DatasetSeries:
             within the tolerance value. If None, simply return the
             nearest dataset.
             Default: None.
+        side : str
+            The side of the value to return. Can be 'nearest', 'smaller' or 'larger'.
+            Default: 'nearest'.
 
         Examples
         --------
@@ -555,9 +578,18 @@ class DatasetSeries:
         >>> t = ts[0].quan(12, "Gyr")
         ... ds = ts.get_by_time(t, tolerance=(100, "Myr"))
         """
-        return self._get_by_attribute("current_time", time, tolerance=tolerance)
+        return self._get_by_attribute(
+            "current_time", time, tolerance=tolerance, side=side
+        )
 
-    def get_by_redshift(self, redshift: float, tolerance: Optional[float] = None):
+    def get_by_redshift(
+        self,
+        redshift: float,
+        tolerance: Optional[float] = None,
+        side: Union[
+            Literal["nearest"], Literal["smaller"], Literal["larger"]
+        ] = "nearest",
+    ):
         """
         Get a dataset at or near to a given time.
 
@@ -570,12 +602,17 @@ class DatasetSeries:
             within the tolerance value. If None, simply return the
             nearest dataset.
             Default: None.
+        side : str
+            The side of the value to return. Can be 'nearest', 'smaller' or 'larger'.
+            Default: 'nearest'.
 
         Examples
         --------
         >>> ds = ts.get_by_redshift(0.0)
         """
-        return self._get_by_attribute("current_redshift", redshift, tolerance=tolerance)
+        return self._get_by_attribute(
+            "current_redshift", redshift, tolerance=tolerance, side=side
+        )
 
 
 class TimeSeriesQuantitiesContainer:
