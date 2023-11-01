@@ -220,8 +220,8 @@ def fill_hydro(FortranFile f,
                 jump_len += jumps[nfields_selected]
 
             # In principle, we may be left with some fields to skip
-            # but since we're doing an absolute seek above,
-            # we don't need to do anything here
+            # but since we're doing an absolute seek at the beginning of
+            # the loop on CPUs, we can spare one seek here
             ## if jump_len > 0:
             ##     f.seek(skip_len(jump_len, nc), 1)
 
