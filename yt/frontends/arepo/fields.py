@@ -132,7 +132,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
             # try first to use the H_fraction, but otherwise we assume the
             # cosmic value for hydrogen to generate the H_number_density
             if (ptype, "NeutralHydrogenAbundance") not in self.field_list:
-                m_u = self.ds.units.physical_constants.amu_cgs
+                m_u = self.ds.quan(1.0, "amu").in_cgs()
                 A_H = ChemicalFormula("H").weight
                 if (ptype, "GFM_Metals_00") in self.field_list:
 
