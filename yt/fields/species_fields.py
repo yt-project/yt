@@ -44,7 +44,7 @@ def _create_number_density_func(ftype, species):
 
     def _number_density(field, data):
         weight = formula.weight  # This is in AMU
-        weight *= data.ds.units.physical_constants.amu_cgs
+        weight *= data.ds.quan(1.0, "amu").in_cgs()
         return data[ftype, f"{species}_density"] / weight
 
     return _number_density
@@ -252,7 +252,7 @@ def add_nuclei_density_fields(registry, ftype):
 def _default_nuclei_density(field, data):
     ftype = field.name[0]
     element = field.name[1][: field.name[1].find("_")]
-    amu_cgs = data.ds.units.physical_constants.amu_cgs
+    amu_cgs = data.ds.quan(1.0, "amu").in_cgs()
     if element == "El":
         # This is for determining the electron number density.
         # If we got here, this assumes full ionization!
@@ -273,7 +273,7 @@ def _nuclei_density(field, data):
         return (
             data[(ftype, nuclei_mass_field)]
             / ChemicalFormula(element).weight
-            / data.ds.units.physical_constants.amu_cgs
+            / data.ds.quan(1.0, "amu").in_cgs()
         )
     metal_field = f"{element}_metallicity"
     if (ftype, metal_field) in data.ds.field_info:
@@ -281,7 +281,7 @@ def _nuclei_density(field, data):
             data[ftype, "density"]
             * data[(ftype, metal_field)]
             / ChemicalFormula(element).weight
-            / data.ds.units.physical_constants.amu_cgs
+            / data.ds.quan(1.0, "amu").in_cgs()
         )
 
     field_data = np.zeros_like(
