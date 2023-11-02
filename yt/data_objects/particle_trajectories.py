@@ -99,9 +99,9 @@ class ParticleTrajectories:
         ):
             dd = ds.all_data()
             newtags = dd[fds["particle_index"]].d.astype("int64")
-            mask = np.in1d(newtags, indices, assume_unique=True)
+            mask = np.isin(newtags, indices, assume_unique=True)
             sort = np.argsort(newtags[mask])
-            array_indices = np.where(np.in1d(indices, newtags, assume_unique=True))[0]
+            array_indices = np.where(np.isin(indices, newtags, assume_unique=True))[0]
             self.array_indices.append(array_indices)
             self.masks.append(mask)
             self.sorts.append(sort)
@@ -333,7 +333,7 @@ class ParticleTrajectories:
         ... )
         >>> plt.savefig("orbit")
         """
-        mask = np.in1d(self.indices, (index,), assume_unique=True)
+        mask = np.isin(self.indices, (index,), assume_unique=True)
         if not np.any(mask):
             print("The particle index %d is not in the list!" % (index))
             raise IndexError
