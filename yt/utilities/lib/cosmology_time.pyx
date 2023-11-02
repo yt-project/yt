@@ -49,12 +49,11 @@ def t_frw(ds, z):
     om_l = ds.omega_lambda
     conv = ds.quan(0.01, "Mpc/km*s").to("Gyr")
 
-    if isinstance(z, float):
+    if isinstance(z, (int, float)):
         return ds.quan(
             quad(_a_dot_recip, 0, aexp, args=(h0, om_m, om_l))[0],
             units=conv,
         )
-
 
     return ds.arr(
         [quad(_a_dot_recip, 0, a, args=(h0, om_m, om_l))[0] for a in aexp],
@@ -69,7 +68,7 @@ def tau_frw(ds, z):
     om_m = ds.omega_matter
     om_l = ds.omega_lambda
 
-    if isinstance(z, float):
+    if isinstance(z, (int, float)):
         return quad(_da_dtau_recip, 1, aexp, args=(h0, om_m, om_l))[0]
 
     return np.asarray(
