@@ -191,12 +191,11 @@ class RAMSESFieldInfo(FieldInfoContainer):
             H0 = float(
                 data.ds.quan(data.ds.hubble_constant * 100, "km/s/Mpc").to("1/Gyr")
             )
-            times = data[ptype, "particle_birth_time"].value
-            time_tot = t_frw(data.ds, 0) * H0
-            birth_time = ((time_tot + times) / H0,)
-            return data.ds.apply_units(
-                data.ds.current_time.to("Gyr") - birth_time, "Gyr"
-            )
+            times = data[ptype, "conformal_birth_time"].value
+            time_tot = float(t_frw(data.ds, 0) * H0)
+            birth_time = (time_tot + times) / H0
+            t_out = float(data.ds.current_time.to("Gyr"))
+            return data.apply_units(t_out - birth_time, "Gyr")
 
         def star_age(field, data):
             formation_time = data[ptype, "particle_birth_time"]
