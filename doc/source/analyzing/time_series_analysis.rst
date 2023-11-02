@@ -77,6 +77,29 @@ see:
  * The cookbook recipe for :ref:`cookbook-time-series-analysis`
  * :class:`~yt.data_objects.time_series.DatasetSeries`
 
+In addition, the :class:`~yt.data_objects.time_series.DatasetSeries` object allows to
+select an output based on its time or by its redshift (if defined) as follows:
+
+.. code-block:: python
+
+   import yt
+
+   ts = yt.load("*/*.index")
+   # Get output at 3 Gyr
+   ds = ts.get_by_time((3, "Gyr"))
+   # This will fail if no output is found within 100 Myr
+   ds = ts.get_by_time((3, "Gyr"), tolerance=(100, "Myr"))
+   # Get the output at the time right before and after 3 Gyr
+   ds_before = ts.get_by_time((3, "Gyr"), side="smaller")
+   ds_after = ts.get_by_time((3, "Gyr"), side="larger")
+
+   # For cosmological simulations, you can also select an output by its redshift
+   # with the same options as above
+   ds = ts.get_by_redshift(0.5)
+
+For more information, see :meth:`~yt.data_objects.time_series.DatasetSeries.get_by_time` and
+:meth:`~yt.data_objects.time_series.DatasetSeries.get_by_redshift`.
+
 .. _analyzing-an-entire-simulation:
 
 Analyzing an Entire Simulation
