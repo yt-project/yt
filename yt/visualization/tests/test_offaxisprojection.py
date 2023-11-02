@@ -256,6 +256,7 @@ def test_off_axis_sph_depth():
         [1, 1, 1],
         ("io", "density"),
         buff_size=(50, 50),
+        depth=None,
     )
     p2 = OffAxisProjectionPlot(
         ds,

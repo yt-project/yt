@@ -2446,6 +2446,12 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
                 f"currently supported geometries: {self._supported_geometries!r}"
             )
 
+        depth_set = depth is not None
+        if not depth_set:
+            # need a valid depth for calculating bounds, but those
+            # bounds will not be used to limit particles.
+            depth = (1, "1")
+
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
         )
@@ -2469,7 +2475,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             method=method,
             data_source=data_source,
             moment=moment,
-            depth_set=depth is not None,
+            depth_set=depth_set,
         )
 
         validate_mesh_fields(OffAxisProj, fields)
