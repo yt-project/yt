@@ -1169,6 +1169,8 @@ class YTDataContainer(abc.ABC):
         accumulation=False,
         fractional=False,
         deposition="ngp",
+        *,
+        override_bins=None,
     ):
         r"""
         Create a 1, 2, or 3D profile object from this data_source.
@@ -1214,8 +1216,11 @@ class YTDataContainer(abc.ABC):
             distribution function.
         deposition : Controls the type of deposition used for ParticlePhasePlots.
             Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
-            ignored the if the input fields are not of particle type.
-
+            ignored if the input fields are not of particle type.
+        override_bins : dict of bins to profile plot with
+            If set, ignores n_bins and extrema settings and uses the
+            supplied bins to profile the field. If a units dict is provided,
+            bins are understood to be in the units specified in the dictionary.
 
         Examples
         --------
@@ -1246,6 +1251,7 @@ class YTDataContainer(abc.ABC):
             accumulation,
             fractional,
             deposition,
+            override_bins=override_bins,
         )
         return p
 
