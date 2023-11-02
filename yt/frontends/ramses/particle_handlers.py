@@ -315,13 +315,13 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             )
             self.ds._warned_extra_fields["io"] = True
 
-        if self.has_birth_file:
-            # Sentinel value: this will prevent birth times from being read from
-            # the partXXXXX.outYYYYY files
-            field_offsets[ptype, "particle_birth_time"] = -1
-            _pfields[ptype, "particle_birth_time"] = "d"
-            self.ds.use_conformal_time = False
-        elif (
+        # if self.has_birth_file:
+        #     # Sentinel value: this will prevent birth times from being read from
+        #     # the partXXXXX.outYYYYY files
+        #     field_offsets[ptype, "particle_birth_time"] = -1
+        #     _pfields[ptype, "particle_birth_time"] = "d"
+        #     self.ds.use_conformal_time = False
+        if (
             self.ds.use_conformal_time
             and (ptype, "particle_birth_time") in field_offsets
         ):

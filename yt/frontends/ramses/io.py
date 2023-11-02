@@ -50,6 +50,12 @@ def convert_ramses_conformal_time_to_physical_age(
     physical_age : np.ndarray
         The physical age in code units
     """
+    h0 = ds.hubble_constant
+    tau_bins = ds.tau_frw * h0
+    t_bins = ds.t_frw
+
+    return ds.arr(np.interp(conformal_time, tau_bins, t_bins, right=0.0), t_bins.units)
+
     tf = ds.t_frw
     dtau = ds.dtau
     tauf = ds.tau_frw

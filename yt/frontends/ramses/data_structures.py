@@ -16,10 +16,9 @@ from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.oct_container import RAMSESOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.cython_fortran_utils import FortranFile as fpu
-from yt.utilities.lib.cosmology_time import friedman
+from yt.utilities.lib.cosmology_time import t_frw, tau_frw
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.utilities.physical_constants import kb, mp
-from yt.utilities.physical_ratios import cm_per_mpc
 
 from .definitions import (
     OUTPUT_DIR_EXP,
@@ -830,10 +829,6 @@ class RAMSESDataset(Dataset):
         self._extra_particle_fields = extra_particle_fields
         self.force_cosmological = cosmological
         self._bbox = bbox
-        if use_conformal_time is not None:
-            self.use_conformal_time = use_conformal_time
-        else:
-            self.use_conformal_time = cosmological
 
         self._force_max_level = self._sanitize_max_level(
             max_level, max_level_convention
@@ -879,6 +874,16 @@ class RAMSESDataset(Dataset):
             FH.purge_detected_fields(self)
             if FH.any_exist(self):
                 self.fluid_types += (FH.ftype,)
+
+        if use_conformal_time is not None:
+            self.use_conformal_time = use_conformal_time
+        elif self.cosmological_simulation:
+            if "rt" in self.fluid_types:
+                self.use_conformal_time = False
+            else:
+                self.use_conformal_time = True
+        else:
+            self.use_conformal_time = False
 
         self.storage_filename = storage_filename
 
@@ -1056,15 +1061,14 @@ class RAMSESDataset(Dataset):
             is_cosmological = not (
                 rheader["time"] >= 0 and rheader["H0"] == 1 and rheader["aexp"] == 1
             )
-
         if not is_cosmological:
-            self.cosmological_simulation = 0
+            self.cosmological_simulation = False
             self.current_redshift = 0
             self.hubble_constant = 0
             self.omega_matter = 0
             self.omega_lambda = 0
         else:
-            self.cosmological_simulation = 1
+            self.cosmological_simulation = True
             self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
             self.omega_lambda = rheader["omega_l"]
             self.omega_matter = rheader["omega_m"]
@@ -1075,38 +1079,14 @@ class RAMSESDataset(Dataset):
             force_max_level += self.min_level + 1
         self.max_level = min(force_max_level, rheader["levelmax"]) - self.min_level - 1
 
-        if self.cosmological_simulation == 0:
+        if not self.cosmological_simulation:
             self.current_time = self.parameters["time"]
         else:
-            self.tau_frw, self.t_frw, self.dtau, self.n_frw, self.time_tot = friedman(
-                self.omega_matter,
-                self.omega_lambda,
-                1.0 - self.omega_matter - self.omega_lambda,
-            )
-
-            age = self.parameters["time"]
-            iage = 1 + int(10.0 * age / self.dtau)
-            iage = np.min([iage, self.n_frw // 2 + (iage - self.n_frw // 2) // 10])
-
-            try:
-                self.time_simu = self.t_frw[iage] * (age - self.tau_frw[iage - 1]) / (
-                    self.tau_frw[iage] - self.tau_frw[iage - 1]
-                ) + self.t_frw[iage - 1] * (age - self.tau_frw[iage]) / (
-                    self.tau_frw[iage - 1] - self.tau_frw[iage]
-                )
-
-                self.current_time = (
-                    (self.time_tot + self.time_simu)
-                    / (self.hubble_constant * 1e7 / cm_per_mpc)
-                    / self.parameters["unit_t"]
-                )
-            except IndexError:
-                mylog.warning(
-                    "Yt could not convert conformal time to physical time. "
-                    "Yt will assume the simulation is *not* cosmological."
-                )
-                self.cosmological_simulation = 0
-                self.current_time = self.parameters["time"]
+            aexp_grid = np.geomspace(1e-3, 1, 2_000, endpoint=False)
+            z_grid = 1 / aexp_grid - 1
+            self.tau_frw = tau_frw(self, z_grid)
+            self.t_frw = t_frw(self, z_grid)
+            self.current_time = t_frw(self, self.current_redshift).to("Gyr")
 
         if self.num_groups > 0:
             self.group_size = rheader["ncpu"] // self.num_groups
