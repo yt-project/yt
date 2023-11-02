@@ -15,8 +15,8 @@ processors are being actively developed.
 
 .. note::
 
-   There is a Jupyter notebook containing a volume rendering tutorial available
-   at :ref:`volume-rendering-tutorial`.
+   There is a Jupyter notebook containing a volume rendering tutorial:
+   :doc:`Volume_Rendering_Tutorial`.
 
 Volume Rendering Introduction
 -----------------------------
@@ -237,7 +237,7 @@ For fun, let's make the same volume_rendering, but this time setting
    sc.save("rendering.png", sigma_clip=4.0)
 
 To see a full example on how to use the ``TransferFunctionHelper`` interface,
-follow the annotated :ref:`transfer-function-helper-tutorial`.
+follow the annotated :doc:`TransferFunctionHelper_Tutorial`.
 
 Color Transfer Functions
 ++++++++++++++++++++++++
@@ -696,7 +696,7 @@ function. Example:
     sc.save("rendering.png")
 
 For an in-depth tutorial on how to create a Scene and modify its contents,
-see this annotated :ref:`volume-rendering-tutorial`.
+see this annotated :doc:`Volume_Rendering_Tutorial`.
 
 
 .. _volume-rendering-method:

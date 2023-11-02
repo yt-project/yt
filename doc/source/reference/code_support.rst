@@ -92,6 +92,6 @@ each supported output format using yt.
          CFRadial coordinates will be gridded on load, see :ref:`loading-cfradial-data`.
 
 If you have a dataset that uses an output format not yet supported by yt, you
-can either input your data following :ref:`loading-numpy-array` or
-:ref:`generic-particle-data`, or help us by :ref:`creating_frontend` for this
-new format.
+can either input your data following :doc:`../examining/Loading_Generic_Array_Data` or
+:doc:`../examining/Loading_Generic_Particle_Data`, or help us by :ref:`creating_frontend`
+for this new format.
