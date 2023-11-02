@@ -2480,8 +2480,8 @@ class TriangleFacetsCallback(PlotCallback):
             # more convenient to swap the x, y values here before final roll
             x0, y0 = l_cy[0]  # x, y values of start points
             x1, y1 = l_cy[1]  # x, y values of end points
-            l_cy[0] = np.row_stack([y0, x0])  # swap x, y for start points
-            l_cy[1] = np.row_stack([y1, x1])  # swap x, y for end points
+            l_cy[0] = np.vstack([y0, x0])  # swap x, y for start points
+            l_cy[1] = np.vstack([y1, x1])  # swap x, y for end points
         # convert back to shape (nlines, 2, 2)
         l_cy = np.rollaxis(l_cy, 2, 0)
         # create line collection and add it to the plot
