@@ -78,7 +78,7 @@ with this functionality.
 
 The next few examples will use a GEOS dataset accessible from the ``yt`` data
 downloads page. For details about loading this data, please
-see :ref:`cookbook-geographic_projections`.
+see :doc:`../cookbook/geographic_xforms_and_projections`.
 
 If a geographic dataset is loaded without any defined projection the default
 option of ``Mollweide`` will be displayed.
@@ -141,4 +141,4 @@ levels of customization:
     set_mpl_projection(cartopy.crs.PlateCarree())
 
 Further examples of using the geographic transforms with this dataset
-can be found in :ref:`cookbook-geographic_projections`.
+can be found in :doc:`../cookbook/geographic_xforms_and_projections`.

@@ -13,7 +13,7 @@ access to the raw data.
           the attendant properties.
 
 For a more basic introduction, see :ref:`quickstart` and more specifically
-:ref:`data_inspection`.
+:doc:`../quickstart/2)_Data_Inspection`.
 
 .. _examining-grid-hierarchies:
 

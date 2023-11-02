@@ -96,9 +96,7 @@ Cut Regions
 
 Cut regions are a more general solution to filtering mesh fields.  The output
 of a cut region is an entirely new data object, which can be treated like any
-other data object to generate images, examine its values, etc.
-
-.. notebook:: mesh_filter.ipynb
+other data object to generate images, examine its values, etc. See `this <mesh_filter>`_.
 
 In addition to inputting string parameters into cut_region to specify filters,
 wrapper functions exist that allow the user to use a simplified syntax for
@@ -252,7 +250,7 @@ to the dataset, it will also add ``stars`` filter to the dataset.
     ds.add_particle_filter("young_stars")
 
 
-.. notebook:: particle_filter.ipynb
+Additional example of particle filters can be found in the `notebook <particle_filter>`_.
 
 .. _particle-unions:
 
