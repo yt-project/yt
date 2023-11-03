@@ -18,6 +18,11 @@ cdef int INT32_SIZE = sizeof(np.int32_t)
 cdef int INT64_SIZE = sizeof(np.int64_t)
 cdef int DOUBLE_SIZE = sizeof(np.float64_t)
 
+
+cdef inline int skip_len(int Nskip, int record_len) noexcept nogil:
+    return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
+
+
 @cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -29,10 +34,13 @@ def read_amr(FortranFile f, dict headers,
 
     cdef INT64_t ncpu, nboundary, max_level, nlevelmax, ncpu_and_bound
     cdef DOUBLE_t nx, ny, nz
-    cdef INT64_t ilevel, icpu, n, ndim, skip_len
-    cdef INT32_t ng, buffer_size
+    cdef INT64_t ilevel, icpu, n, ndim, jump_len
+    cdef INT32_t ng
     cdef np.ndarray[np.int32_t, ndim=2] numbl
     cdef np.ndarray[np.float64_t, ndim=2] pos
+    cdef int i
+
+    cdef np.float64_t[::1, :] pos_view
 
     ndim = headers['ndim']
     numbl = headers['numbl']
@@ -43,10 +51,12 @@ def read_amr(FortranFile f, dict headers,
 
     ncpu_and_bound = nboundary + ncpu
 
-    pos = np.empty((0, 3), dtype=np.float64)
-    buffer_size = 0
+    # Allocate more memory if required
+    pos = np.empty((max(numbl.max(), ngridbound.max()), 3), dtype="d", order="F")
+    pos_view = pos
+
     # Compute number of fields to skip. This should be 31 in 3 dimensions
-    skip_len = (1          # father index
+    jump_len = (1          # father index
                 + 2*ndim   # neighbor index
                 + 2**ndim  # son index
                 + 2**ndim  # cpu map
@@ -54,6 +64,8 @@ def read_amr(FortranFile f, dict headers,
     )
     # Initialize values
     max_level = 0
+    cdef int record_len
+
     for ilevel in range(nlevelmax):
         for icpu in range(ncpu_and_bound):
             if icpu < ncpu:
@@ -63,21 +75,25 @@ def read_amr(FortranFile f, dict headers,
 
             if ng == 0:
                 continue
-            # Skip grid index, 'next' and 'prev' arrays (they are used
-            # to build the linked list in RAMSES)
-            f.skip(3)
+            # Skip grid index, 'next' and 'prev' arrays and possibly
+            # records from previous iterations
+            record_len = (ng * INT32_SIZE + INT64_SIZE)
+            f.seek(record_len * 3, 1)
 
-            # Allocate more memory if required
-            if ng > buffer_size:
-                pos = np.empty((ng, 3), dtype="d")
-                buffer_size = ng
+            f.read_vector_inplace("d", <void*> &pos_view[0, 0])
+            f.read_vector_inplace("d", <void*> &pos_view[0, 1])
+            f.read_vector_inplace("d", <void*> &pos_view[0, 2])
 
-            pos[:ng, 0] = f.read_vector("d") - nx
-            pos[:ng, 1] = f.read_vector("d") - ny
-            pos[:ng, 2] = f.read_vector("d") - nz
+            for i in range(ng):
+                pos_view[i, 0] -= nx
+            for i in range(ng):
+                pos_view[i, 1] -= ny
+            for i in range(ng):
+                pos_view[i, 2] -= nz
 
             # Skip father, neighbor, son, cpu map and refinement map
-            f.skip(skip_len)
+            f.seek(record_len * jump_len, 1)
+
             # Note that we're adding *grids*, not individual cells.
             if ilevel >= min_level:
                 n = oct_handler.add(icpu + 1, ilevel - min_level, pos[:ng, :],
@@ -86,10 +102,6 @@ def read_amr(FortranFile f, dict headers,
                     max_level = max(ilevel - min_level, max_level)
 
     return max_level
-
-
-cdef inline int skip_len(int Nskip, int record_len) noexcept nogil:
-    return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
 
 @cython.cpow(True)
 @cython.boundscheck(False)
