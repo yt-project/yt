@@ -625,7 +625,6 @@ class RAMSESIndex(OctreeIndex):
             RAMSESDomainFile(self.dataset, i + 1)
             for i in parallel_objects(cpu_list, method="sequential")
         ]
-        print(self.domains)
 
     @cached_property
     def max_level(self):
