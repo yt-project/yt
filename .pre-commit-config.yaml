@@ -44,12 +44,6 @@ repos:
   - id: ruff
     args: [--fix]
 
-- repo: https://github.com/nbQA-dev/nbQA
-  rev: 1.7.0
-  hooks:
-  - id: nbqa-ruff
-    args: [--fix, --extend-ignore=E402]
-
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
