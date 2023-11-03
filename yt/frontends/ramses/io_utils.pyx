@@ -187,6 +187,7 @@ def fill_hydro(FortranFile f,
         else:
             jump_len += 1
     jumps[j] = jump_len
+    cdef int first_field_index = jumps[0]
 
     buffer = np.empty((level_count.max(), twotondim, nfields_selected), dtype="float64", order='F')
     # Loop over levels
@@ -200,9 +201,11 @@ def fill_hydro(FortranFile f,
             offset = offsets[icpu, ilevel]
             if offset == -1:
                 continue
-            f.seek(offset)
+            f.seek(offset + skip_len(first_field_index, nc))
 
-            jump_len = 0
+            # We have already skipped the first fields (if any)
+            # so we "rewind" (this will cancel the first seek)
+            jump_len = -first_field_index
             for i in range(twotondim):
                 # Read the selected fields
                 for j in range(nfields_selected):
