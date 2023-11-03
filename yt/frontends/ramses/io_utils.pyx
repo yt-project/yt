@@ -188,7 +188,7 @@ def fill_hydro(FortranFile f,
             jump_len += 1
     jumps[j] = jump_len
 
-    cdef int nc_largest = 0
+    buffer = np.empty((level_count.max(), twotondim, nfields_selected), dtype="float64", order='F')
     # Loop over levels
     for ilevel in range(nlevels):
         # Loop over cpu domains
@@ -201,11 +201,6 @@ def fill_hydro(FortranFile f,
             if offset == -1:
                 continue
             f.seek(offset)
-            # Initialize temporary data container for io
-            # note: we use Fortran ordering to reflect the in-file ordering
-            if nc > nc_largest:
-                nc_largest = nc
-                buffer = np.empty((nc, twotondim, nfields_selected), dtype="float64", order='F')
 
             jump_len = 0
             for i in range(twotondim):
