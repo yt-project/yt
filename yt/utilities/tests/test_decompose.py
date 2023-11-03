@@ -25,7 +25,7 @@ def test_psize_3d():
 def test_decomposition_2d():
     array = np.ones((7, 5, 1))
     bbox = np.array([[-0.7, 0.0], [1.5, 2.0], [0.0, 0.7]])
-    ledge, redge, shapes, slices = dec.decompose_array(
+    ledge, redge, shapes, slices, _ = dec.decompose_array(
         array.shape, np.array([2, 3, 1]), bbox
     )
 
@@ -61,7 +61,7 @@ def test_decomposition_3d():
     array = np.ones((33, 35, 37))
     bbox = np.array([[0.0, 1.0], [-1.5, 1.5], [1.0, 2.5]])
 
-    ledge, redge, shapes, slices = dec.decompose_array(
+    ledge, redge, shapes, slices, _ = dec.decompose_array(
         array.shape, np.array([3, 2, 2]), bbox
     )
     data = [array[slice] for slice in slices]
@@ -103,3 +103,25 @@ def test_decomposition_3d():
         ]
     )
     assert_almost_equal(redge, gold_re, 5)
+
+
+def test_decomposition_with_cell_widths():
+    array = np.ones((33, 35, 37))
+    bbox = np.array([[0.0, 1.0], [-1.5, 1.5], [1.0, 2.5]])
+
+    # build some cell widths, rescale to match bounding box
+    cell_widths = []
+    for idim in range(3):
+        wid = bbox[idim][1] - bbox[idim][0]
+        cws = np.random.random((array.shape[idim],))
+        factor = wid / cws.sum()
+        cell_widths.append(factor * cws)
+
+    ledge, redge, _, _, widths_by_grid = dec.decompose_array(
+        array.shape, np.array([3, 2, 2]), bbox, cell_widths=cell_widths
+    )
+    for grid_id in range(len(ledge)):
+        grid_wid = redge[grid_id] - ledge[grid_id]
+        cws = widths_by_grid[grid_id]
+        cws_wid = np.array([np.sum(cws[dim]) for dim in range(3)])
+        assert_almost_equal(grid_wid, cws_wid, 5)

@@ -213,7 +213,7 @@ class FITSHierarchy(GridIndex):
         ).transpose()
         dims = self.ds.domain_dimensions
         psize = get_psize(dims, self.num_grids)
-        gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
+        gle, gre, shapes, slices, _ = decompose_array(dims, psize, bbox)
         self.grid_left_edge = self.ds.arr(gle, "code_length")
         self.grid_right_edge = self.ds.arr(gre, "code_length")
         self.grid_dimensions = np.array(shapes, dtype="int32")

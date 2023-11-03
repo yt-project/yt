@@ -110,15 +110,24 @@ def test_cell_width_dimensionality(data_cell_widths_N16):
 
 
 def test_cell_width_with_nproc(data_cell_widths_N16):
-    # nprocs != 1 should error
-
     data, cell_widths = data_cell_widths_N16
 
-    with pytest.raises(NotImplementedError, match="nprocs must equal 1"):
-        _ = load_uniform_grid(
-            data,
-            data["density"].shape,
-            bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
-            cell_widths=cell_widths,
-            nprocs=4,
-        )
+    ds = load_uniform_grid(
+        data,
+        data["density"].shape,
+        bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+        cell_widths=cell_widths,
+        nprocs=4,
+    )
+
+    assert ds.index.num_grids == 4
+
+    # check that it successfully decomposed
+    grid = ds.index.grids[0]
+    n_cells = np.prod(grid.shape)
+    assert n_cells == data["density"].size / 4
+
+    # and try a selection
+    c = (grid.RightEdge + grid.LeftEdge) / 2.0
+    reg = ds.region(c, grid.LeftEdge, grid.RightEdge)
+    assert reg[("gas", "density")].size == n_cells
