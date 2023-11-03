@@ -14,7 +14,6 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 
 
@@ -178,7 +177,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         # Set of field types
         ftypes = {f[0] for f in fields}
 
-        for chunk in parallel_objects(chunks):
+        for chunk in chunks:
             # Gather fields by type to minimize i/o operations
             for ft in ftypes:
                 # Get all the fields of the same type
@@ -266,7 +265,7 @@ class IOHandlerRAMSES(BaseIOHandler):
 
             else:
                 tr = defaultdict(list)
-                for chunk in parallel_objects(chunks):
+                for chunk in chunks:
                     for subset in chunk.objs:
                         rv = self._read_particle_subset(subset, fields)
                         for ptype, field_list in sorted(ptf.items()):
