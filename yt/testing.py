@@ -1441,7 +1441,9 @@ class ParticleSelectionComparison:
             # NULP should be OK.  This is mostly for stuff like Rockstar, where
             # the f32->f64 casting happens at different places depending on
             # which code path we use.
-            assert_array_almost_equal_nulp(sel_pos, obj_results, 5)
+            assert_array_almost_equal_nulp(
+                np.asarray(sel_pos), np.asarray(obj_results), 5
+            )
 
     def run_defaults(self):
         """
