@@ -566,7 +566,6 @@ class RAMSESIndex(OctreeIndex):
             RAMSESDomainFile(self.dataset, i + 1)
             for i in parallel_objects(cpu_list, method="sequential")
         ]
-        print(self.domains)
 
         total_octs = sum(
             dom.local_oct_count for dom in self.domains  # + dom.ngridbound.sum()
