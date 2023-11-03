@@ -5,6 +5,7 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
+from typing import Literal, Union
 
 import numpy as np
 from more_itertools import always_iterable
@@ -466,7 +467,14 @@ class ResultsStorage:
     result_id = None
 
 
-def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False):
+def parallel_objects(
+    objects,
+    njobs=0,
+    storage=None,
+    barrier=True,
+    dynamic=False,
+    method: Union[Literal["strided"], Literal["sequential"]] = "strided",
+):
     r"""This function dispatches components of an iterable to different
     processors.
 
@@ -503,6 +511,11 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
         This requires one dedicated processor; if this is enabled with a set of
         128 processors available, only 127 will be available to iterate over
         objects as one will be load balancing the rest.
+    method : str
+        This governs how the objects are distributed to processors.  The
+        default, "strided", will assign objects to processors in a round-robin
+        fashion. The other option, "sequential", will assign objects to
+        processors in a consecutive fashion.
 
 
     Examples
@@ -558,7 +571,20 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     to_share = {}
     # If our objects object is slice-aware, like time series data objects are,
     # this will prevent intermediate objects from being created.
-    oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
+    if method == "strided":
+        oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
+    elif method == "sequential":
+        chunk_size = len(objects) // njobs
+        remainder = len(objects) % njobs
+
+        if my_new_id < remainder:
+            istart = my_new_id * (chunk_size + 1)
+            iend = istart + chunk_size + 1
+        else:
+            istart = (chunk_size + 1) * remainder + (my_new_id - remainder) * chunk_size
+            iend = istart + chunk_size
+
+        oiter = itertools.islice(enumerate(objects), istart, iend, 1)
     for result_id, obj in oiter:
         if storage is not None:
             rstore = ResultsStorage()

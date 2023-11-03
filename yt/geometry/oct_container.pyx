@@ -575,12 +575,17 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def add(self, int curdom, int curlevel,
-            np.ndarray[np.float64_t, ndim=2] pos,
-            int skip_boundary = 1,
-            int count_boundary = 0,
-            np.ndarray[np.uint64_t, ndim=1, cast=True] levels = None
-            ):
+    cpdef int add(
+        self,
+        const int curdom,
+        const int curlevel,
+        const np.float64_t[:, ::1] pos,
+        int skip_boundary = 1,
+        int count_boundary = 0,
+        np.uint64_t[::1] levels = None,
+        np.int64_t[::1] file_inds = None,
+        np.uint8_t[::1] domain_inds = None
+     ):
         # In this function, if we specify curlevel = -1, then we query the
         # (optional) levels array for the oct level.
         cdef int no, p, i

@@ -82,6 +82,18 @@ cdef class OctreeContainer:
     cdef public object fill_style
     cdef public int max_level
 
+    cpdef int add(
+        self,
+        const int curdom,
+        const int curlevel,
+        const np.float64_t[:, ::1] pos,
+        int skip_boundary = ?,
+        int count_boundary = ?,
+        np.uint64_t[::1] levels = ?,
+        np.int64_t[::1] file_inds = ?,
+        np.uint8_t[::1] domain_inds = ?,
+     )
+
     cpdef void fill_level(
         self,
         const int level,

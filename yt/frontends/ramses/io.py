@@ -18,7 +18,6 @@ from yt.utilities.logger import ytLogger as mylog
 
 if TYPE_CHECKING:
     import os
-from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 
 
 def convert_ramses_ages(ds, conformal_ages):
@@ -170,7 +169,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         # Set of field types
         ftypes = {f[0] for f in fields}
 
-        for chunk in parallel_objects(chunks):
+        for chunk in chunks:
             # Gather fields by type to minimize i/o operations
             for ft in ftypes:
                 # Get all the fields of the same type
@@ -260,7 +259,7 @@ class IOHandlerRAMSES(BaseIOHandler):
 
             else:
                 tr = defaultdict(list)
-                for chunk in parallel_objects(chunks):
+                for chunk in chunks:
                     for subset in chunk.objs:
                         rv = self._read_particle_subset(subset, fields)
                         for ptype, field_list in sorted(ptf.items()):
