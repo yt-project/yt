@@ -297,8 +297,8 @@ ignore = [
     "B018",  # Found useless expression. # disabled because ds.index is idiomatic
 ]
 
-[tool.ruff.per-file-ignores] # tmp
-"test_*" = ["NPY"]
+[tool.ruff.per-file-ignores]
+"test_*" = ["NPY002"]
 
 [tool.ruff.isort]
 combine-as-imports = true

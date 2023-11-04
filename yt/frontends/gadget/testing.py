@@ -95,8 +95,9 @@ def fake_gadget_binary(
             dtype = endian + dtype
             # Generate and write field block
             data = []
+            rng = np.random.default_rng()
             for pt in ptype:
-                data += [np.random.rand(npart[pt], dim)]
+                data += [rng.random((npart[pt], dim))]
             data = np.concatenate(data).astype(dtype)
             if field in block_ids:
                 block_id = block_ids[field]

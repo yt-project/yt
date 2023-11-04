@@ -405,10 +405,11 @@ class WithDensityParticleGenerator(ParticleGenerator):
 
         pbar = get_pbar("Generating Particles", num_particles)
         tot_num_accepted = 0
+        rng = np.random.default_rng()
 
         while num_particles_left > 0:
-            m = np.random.uniform(high=1.01 * max_mass, size=num_particles_left)
-            idxs = np.random.randint(low=0, high=num_cells, size=num_particles_left)
+            m = rng.uniform(high=1.01 * max_mass, size=num_particles_left)
+            idxs = rng.integers(low=0, high=num_cells, size=num_particles_left)
             m_true = (
                 data_source[density_field] * data_source[("gas", "cell_volume")]
             ).flat[idxs]
@@ -418,17 +419,17 @@ class WithDensityParticleGenerator(ParticleGenerator):
 
             xpos = (
                 data_source[("index", "x")].flat[accepted_idxs]
-                + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
+                + rng.uniform(low=-0.5, high=0.5, size=num_accepted)
                 * data_source[("index", "dx")].flat[accepted_idxs]
             )
             ypos = (
                 data_source[("index", "y")].flat[accepted_idxs]
-                + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
+                + rng.uniform(low=-0.5, high=0.5, size=num_accepted)
                 * data_source[("index", "dy")].flat[accepted_idxs]
             )
             zpos = (
                 data_source[("index", "z")].flat[accepted_idxs]
-                + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
+                + rng.uniform(low=-0.5, high=0.5, size=num_accepted)
                 * data_source[("index", "dz")].flat[accepted_idxs]
             )
 
