@@ -1,5 +1,7 @@
 import abc
 import os
+import struct
+from itertools import chain, count
 from typing import Optional
 
 from yt._typing import FieldKey
@@ -138,13 +140,15 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             self.local_particle_count = 0
             return
 
-        fd = FortranFile(self.fname)
-        fd.seek(0, os.SEEK_END)
-        flen = fd.tell()
-        fd.seek(0)
-        hvals = {}
-        attrs = self.attrs
-        hvals.update(fd.read_attrs(attrs))
+        with FortranFile(self.fname) as fd:
+            fd.seek(0, os.SEEK_END)
+            flen = fd.tell()
+            fd.seek(0)
+            hvals = {}
+            attrs = self.attrs
+            hvals.update(fd.read_attrs(attrs))
+            ipos = fd.tell()
+
         self.header = hvals
         self.local_particle_count = hvals["npart"]
         extra_particle_fields = self.ds._extra_particle_fields
@@ -157,37 +161,36 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             if extra_particle_fields is not None:
                 particle_fields += extra_particle_fields
 
-        if hvals["nstar_tot"] > 0 and extra_particle_fields is not None:
+        if (
+            hvals["nstar_tot"] > 0
+            and extra_particle_fields is not None
+            and ("particle_birth_time", "d") not in particle_fields
+        ):
             particle_fields += [
                 ("particle_birth_time", "d"),
                 ("particle_metallicity", "d"),
             ]
 
+        particle_fields = chain(
+            particle_fields,
+            ((f"particle_extra_field_{i}", "d") for i in count()),
+        )
+
         field_offsets = {}
         _pfields = {}
-
         ptype = self.ptype
+        blockLen = struct.calcsize("i") * 2
 
-        # Read offsets
-        for field, vtype in particle_fields:
-            if fd.tell() >= flen:
-                break
-            field_offsets[ptype, field] = fd.tell()
+        while ipos < flen:
+            field, vtype = next(particle_fields)
+            field_offsets[ptype, field] = ipos
             _pfields[ptype, field] = vtype
-            fd.skip(1)
+            ipos += blockLen + struct.calcsize(vtype) * hvals["npart"]
 
-        iextra = 0
-        while fd.tell() < flen:
-            iextra += 1
-            field, vtype = ("particle_extra_field_%i" % iextra, "d")
-            particle_fields.append((field, vtype))
-
-            field_offsets[ptype, field] = fd.tell()
-            _pfields[ptype, field] = vtype
-            fd.skip(1)
-
-        fd.close()
-
+        if field.startswith("particle_extra_field_"):
+            iextra = int(field.split("_")[-1])
+        else:
+            iextra = 0
         if iextra > 0 and not self.ds._warned_extra_fields["io"]:
             mylog.warning(
                 "Detected %s extra particle fields assuming kind "
