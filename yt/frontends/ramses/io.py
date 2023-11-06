@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+from functools import lru_cache
 from typing import Union
 
 import numpy as np
@@ -306,6 +307,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         return tr
 
 
+@lru_cache(maxsize=32)
 def _read_part_binary_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read a file descriptor and returns the array of the fields found.
@@ -362,6 +364,7 @@ def _read_part_binary_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     return fields
 
 
+@lru_cache(maxsize=32)
 def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read the file from the csv sink particles output.
@@ -411,6 +414,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     return fields, local_particle_count
 
 
+@lru_cache(maxsize=32)
 def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"], *, prefix: str):
     """
     Read a file descriptor and returns the array of the fields found.
