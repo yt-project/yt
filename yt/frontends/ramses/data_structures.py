@@ -624,7 +624,19 @@ class RAMSESIndex(OctreeIndex):
             if use_fast_hilbert:
                 bbox = dobj.get_bbox()
                 idoms = {idom + 1 for idom in get_cpu_list(self.ds, bbox)}
-                domains = [dom for dom in self.domains if dom.domain_id in idoms]
+                # If the oct handler has been initialized, use it
+                domains = []
+                for dom in self.domains:
+                    # Hilbert indexing is conservative, so reject all those that
+                    # aren't in the bbox
+                    if dom.domain_id not in idoms:
+                        continue
+                    # If the domain has its oct handler, refine the selection
+                    if dom.oct_handler_initialized and not dom.included(dobj.selector):
+                        continue
+                    mylog.info("Identified domain %s", dom.domain_id)
+
+                    domains.append(dom)
             else:
                 domains = [dom for dom in self.domains if dom.included(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
