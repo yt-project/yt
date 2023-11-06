@@ -51,11 +51,16 @@ class OctreeSubset(YTSelectionContainer):
         self.domain_id = domain.domain_id
         self.ds = domain.ds
         self._index = self.ds.index
-        self.oct_handler = domain.oct_handler
         self._last_mask = None
         self._last_selector_id = None
         self.base_region = base_region
         self.base_selector = base_region.selector
+
+    @property
+    def oct_handler(self):
+        # Use an indirection so that oct_handler
+        # doesn't have to exist when we create the subset
+        return self.domain.oct_handler
 
     def __getitem__(self, key):
         tr = super().__getitem__(key)
