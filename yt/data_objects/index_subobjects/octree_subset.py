@@ -1,3 +1,4 @@
+import abc
 from contextlib import contextmanager
 from functools import cached_property
 from itertools import product, repeat
@@ -33,7 +34,7 @@ def cell_count_cache(func):
     return cc_cache_func
 
 
-class OctreeSubset(YTSelectionContainer):
+class OctreeSubset(YTSelectionContainer, abc.ABC):
     _spatial = True
     _num_ghost_zones = 0
     _type_name = "octree_subset"
@@ -57,10 +58,10 @@ class OctreeSubset(YTSelectionContainer):
         self.base_selector = base_region.selector
 
     @property
+    @abc.abstractmethod
     def oct_handler(self):
-        # Use an indirection so that oct_handler
-        # doesn't have to exist when we create the subset
-        return self.domain.oct_handler
+        # In charge of returning the oct_handler
+        pass
 
     def __getitem__(self, key):
         tr = super().__getitem__(key)

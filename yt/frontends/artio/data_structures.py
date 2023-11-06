@@ -34,7 +34,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.field_parameters = {}
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
-        self.oct_handler = oct_handler
+        self._oct_handler = oct_handler
         self.ds = ds
         self._last_mask = None
         self._last_selector_id = None
@@ -42,6 +42,10 @@ class ARTIOOctreeSubset(OctreeSubset):
         self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
+
+    @property
+    def oct_handler(self):
+        return self._oct_handler
 
     @property
     def min_ind(self):

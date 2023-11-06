@@ -766,7 +766,7 @@ class StreamOctreeSubset(OctreeSubset):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
-        self.oct_handler = oct_handler
+        self._oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = "io"
@@ -787,10 +787,6 @@ class StreamOctreeSubset(OctreeSubset):
     @property
     def oct_handler(self):
         return self._oct_handler
-
-    @oct_handler.setter
-    def oct_handler(self, oh):
-        self._oct_handler = oh
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         try:

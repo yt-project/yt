@@ -223,7 +223,6 @@ class RAMSESDomainFile:
                 "Detected particle type %s in domain_id=%s", ph.ptype, domain_id
             )
             ph.read_header()
-            # self._add_ptype(ph.ptype)
 
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
@@ -384,6 +383,10 @@ class RAMSESDomainSubset(OctreeSubset):
                 "Cannot initialize a domain subset with a negative number "
                 "of ghost zones, was called with num_ghost_zones=%s" % num_ghost_zones
             )
+
+    @property
+    def oct_handler(self):
+        return self.domain.oct_handler
 
     def _fill_no_ghostzones(self, fd, fields, selector, file_handler):
         ndim = self.ds.dimensionality
