@@ -1,6 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
+from functools import cached_property
 from itertools import product
 from pathlib import Path
 from typing import Optional
@@ -219,9 +220,6 @@ class RAMSESDomainFile:
             ph.read_header()
             # self._add_ptype(ph.ptype)
 
-        # Load the AMR structure
-        self._read_amr()
-
     _hydro_offset = None
     _level_count = None
 
@@ -241,7 +239,7 @@ class RAMSESDomainFile:
 
     @property
     def amr_file(self):
-        if hasattr(self, "_amr_file"):
+        if hasattr(self, "_amr_file") and not self._amr_file.close:
             self._amr_file.seek(0)
             return self._amr_file
 
@@ -252,31 +250,42 @@ class RAMSESDomainFile:
 
     def _read_amr_header(self):
         hvals = {}
-        f = self.amr_file
-        f.seek(0)
+        with self.amr_file as f:
+            f.seek(0)
 
-        for header in ramses_header(hvals):
-            hvals.update(f.read_attrs(header))
-        # For speedup, skip reading of 'headl' and 'taill'
-        f.skip(2)
-        hvals["numbl"] = f.read_vector("i")
-
-        # That's the header, now we skip a few.
-        hvals["numbl"] = np.array(hvals["numbl"]).reshape(
-            (hvals["nlevelmax"], hvals["ncpu"])
-        )
-        f.skip()
-        if hvals["nboundary"] > 0:
+            for header in ramses_header(hvals):
+                hvals.update(f.read_attrs(header))
+            # For speedup, skip reading of 'headl' and 'taill'
             f.skip(2)
-            self.ngridbound = f.read_vector("i").astype("int64")
-        else:
-            self.ngridbound = np.zeros(hvals["nlevelmax"], dtype="int64")
-        free_mem = f.read_attrs((("free_mem", 5, "i"),))  # NOQA
-        ordering = f.read_vector("c")  # NOQA
-        f.skip(4)
-        # Now we're at the tree itself
-        # Now we iterate over each level and each CPU.
+            hvals["numbl"] = f.read_vector("i")
+
+            # That's the header, now we skip a few.
+            hvals["numbl"] = np.array(hvals["numbl"]).reshape(
+                (hvals["nlevelmax"], hvals["ncpu"])
+            )
+            f.skip()
+            if hvals["nboundary"] > 0:
+                f.skip(2)
+                self.ngridbound = f.read_vector("i").astype("int64")
+            else:
+                self.ngridbound = np.zeros(hvals["nlevelmax"], dtype="int64")
+            _free_mem = f.read_attrs((("free_mem", 5, "i"),))
+            _ordering = f.read_vector("c")
+            f.skip(4)
+            # Now we're at the tree itself
+            # Now we iterate over each level and each CPU.
+            position = f.tell()
+
         self.amr_header = hvals
+        self.amr_offset = position
+
+        # The maximum effective level is the deepest level
+        # that has a non-zero number of octs
+        nocts_to_this_level = hvals["numbl"].sum(axis=1).cumsum()
+        self.max_level = np.argwhere(nocts_to_this_level == nocts_to_this_level[-1])[0][
+            0
+        ]
+
         # update levelmax
         force_max_level, convention = self.ds._force_max_level
         if convention == "yt":
@@ -284,26 +293,27 @@ class RAMSESDomainFile:
         self.amr_header["nlevelmax"] = min(
             force_max_level, self.amr_header["nlevelmax"]
         )
-        self.amr_offset = f.tell()
         self.local_oct_count = hvals["numbl"][
             self.ds.min_level :, self.domain_id - 1
         ].sum()
-        self.total_oct_count = hvals["numbl"][self.ds.min_level :, :].sum(axis=0)
+        imin, imax = self.ds.min_level, self.amr_header["nlevelmax"]
+        self.total_oct_count = hvals["numbl"][imin:imax, :].sum(axis=0)
 
-    def _read_amr(self):
+    @cached_property
+    def oct_handler(self):
         """Open the oct file, read in octs level-by-level.
         For each oct, only the position, index, level and domain
         are needed - its position in the octree is found automatically.
         The most important is finding all the information to feed
         oct_handler.add
         """
-        self.oct_handler = RAMSESOctreeContainer(
+        oct_handler = RAMSESOctreeContainer(
             self.ds.domain_dimensions / 2,
             self.ds.domain_left_edge,
             self.ds.domain_right_edge,
         )
         root_nodes = self.amr_header["numbl"][self.ds.min_level, :].sum()
-        self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
+        oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         mylog.debug(
             "Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id,
@@ -311,19 +321,24 @@ class RAMSESDomainFile:
             self.ngridbound.sum(),
         )
 
-        f = self.amr_file
-        f.seek(self.amr_offset)
+        with self.amr_file as f:
+            f.seek(self.amr_offset)
 
-        min_level = self.ds.min_level
-        max_level = read_amr(
-            f, self.amr_header, self.ngridbound, min_level, self.oct_handler
-        )
+            min_level = self.ds.min_level
+            max_level = read_amr(
+                f, self.amr_header, self.ngridbound, min_level, oct_handler
+            )
 
-        self.max_level = max_level
-        self.oct_handler.finalize()
+            oct_handler.finalize()
 
-        # Close AMR file
-        f.close()
+        new_max_level = max_level + self.ds.min_level
+        if new_max_level != self.max_level:
+            raise RuntimeError(
+                f"The maximum level detected in the AMR file ({new_max_level}) "
+                f" does not match the expected number {self.max_level}."
+            )
+
+        return oct_handler
 
     def included(self, selector):
         if getattr(selector, "domain_id", None) is not None:
@@ -548,7 +563,6 @@ class RAMSESIndex(OctreeIndex):
         self.dataset = weakref.proxy(ds)
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        self.max_level = None
 
         self.float_type = np.float64
         super().__init__(ds, dataset_type)
@@ -560,16 +574,19 @@ class RAMSESIndex(OctreeIndex):
             cpu_list = range(self.dataset["ncpu"])
 
         self.domains = [RAMSESDomainFile(self.dataset, i + 1) for i in cpu_list]
-        total_octs = sum(
-            dom.local_oct_count for dom in self.domains  # + dom.ngridbound.sum()
-        )
+
+    @cached_property
+    def max_level(self):
         force_max_level, convention = self.ds._force_max_level
         if convention == "yt":
             force_max_level += self.ds.min_level + 1
-        self.max_level = min(
-            force_max_level, max(dom.max_level for dom in self.domains)
+        return min(force_max_level, max(dom.max_level for dom in self.domains))
+
+    @cached_property
+    def num_grids(self):
+        return sum(
+            dom.local_oct_count for dom in self.domains  # + dom.ngridbound.sum()
         )
-        self.num_grids = total_octs
 
     def _detect_output_fields(self):
         dsl = set()
@@ -594,11 +611,23 @@ class RAMSESIndex(OctreeIndex):
         self.field_list = self.particle_field_list + self.fluid_field_list
 
     def _identify_base_chunk(self, dobj):
+        use_fast_hilbert = (
+            hasattr(dobj, "get_bbox")
+            and self.ds.parameters["ordering type"] == "hilbert"
+        )
         if getattr(dobj, "_chunk_info", None) is None:
-            domains = [dom for dom in self.domains if dom.included(dobj.selector)]
+            if use_fast_hilbert:
+                bbox = dobj.get_bbox()
+                idoms = {idom + 1 for idom in get_cpu_list(self.ds, bbox)}
+                candidate_domains = [
+                    dom for dom in self.domains if dom.domain_id in idoms
+                ]
+            else:
+                candidate_domains = self.domains
+            domains = [dom for dom in candidate_domains if dom.included(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
             if len(domains) > 1:
-                mylog.debug("Identified %s intersecting domains", len(domains))
+                mylog.info("Identified %s intersecting domains", len(domains))
             subsets = [
                 RAMSESDomainSubset(
                     base_region,
