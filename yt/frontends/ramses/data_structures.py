@@ -198,7 +198,7 @@ class RAMSESDomainFile:
         for t in ["grav", "amr"]:
             setattr(self, f"{t}_fn", basename % t)
         self._part_file_descriptor = part_file_descriptor
-        self._read_amr_header()
+        self.max_level = self.ds.parameters["levelmax"]
 
         # Autodetect field files
         field_handlers = [FH(self) for FH in get_field_handlers() if FH.any_exist(ds)]
@@ -307,6 +307,7 @@ class RAMSESDomainFile:
         The most important is finding all the information to feed
         oct_handler.add
         """
+        self._read_amr_header()
         oct_handler = RAMSESOctreeContainer(
             self.ds.domain_dimensions / 2,
             self.ds.domain_left_edge,

@@ -1,6 +1,7 @@
 import abc
 import glob
 import os
+from functools import cached_property
 from typing import Optional
 
 from yt.config import ytcfg
@@ -232,7 +233,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
 
         return self._level_count
 
-    @property
+    @cached_property
     def offset(self):
         """
         Compute the offsets of the fields.
@@ -243,10 +244,6 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         It should be generic enough for most of the cases, but if the
         *structure* of your fluid file is non-canonical, change this.
         """
-
-        if getattr(self, "_offset", None) is not None:
-            return self._offset
-
         nvars = len(self.field_list)
         with FortranFile(self.fname) as fd:
             # Skip headers
@@ -275,7 +272,6 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 Nskip=nvars * 8,
             )
 
-        self._offset = offset
         self._level_count = level_count
         return self._offset
 
