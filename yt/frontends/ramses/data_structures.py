@@ -620,12 +620,9 @@ class RAMSESIndex(OctreeIndex):
             if use_fast_hilbert:
                 bbox = dobj.get_bbox()
                 idoms = {idom + 1 for idom in get_cpu_list(self.ds, bbox)}
-                candidate_domains = [
-                    dom for dom in self.domains if dom.domain_id in idoms
-                ]
+                domains = [dom for dom in self.domains if dom.domain_id in idoms]
             else:
-                candidate_domains = self.domains
-            domains = [dom for dom in candidate_domains if dom.included(dobj.selector)]
+                domains = [dom for dom in self.domains if dom.included(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
             if len(domains) > 1:
                 mylog.info("Identified %s intersecting domains", len(domains))
