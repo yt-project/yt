@@ -140,10 +140,8 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             self.local_particle_count = 0
             return
 
+        flen = os.path.getsize(self.fname)
         with FortranFile(self.fname) as fd:
-            fd.seek(0, os.SEEK_END)
-            flen = fd.tell()
-            fd.seek(0)
             hvals = {}
             attrs = self.attrs
             hvals.update(fd.read_attrs(attrs))
@@ -246,9 +244,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
             self.local_particle_count = 0
             return
         fd = FortranFile(self.fname)
-        fd.seek(0, os.SEEK_END)
-        flen = fd.tell()
-        fd.seek(0)
+        flen = os.path.getsize(self.fname)
         hvals = {}
         # Read the header of the file
         attrs = self.attrs
