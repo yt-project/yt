@@ -103,7 +103,7 @@ def get_psize(n_d, pieces):
     return p_size
 
 
-def split_array(gle, gre, shape, psize, cell_widths=None):
+def split_array(gle, gre, shape, psize, *, cell_widths=None):
     """Split array into px*py*pz subarrays."""
     n_d = np.array(shape, dtype=np.int64)
     dds = (gre - gle) / shape
@@ -111,12 +111,11 @@ def split_array(gle, gre, shape, psize, cell_widths=None):
     right_edges = []
     shapes = []
     slices = []
+
     if cell_widths is None:
         cell_widths_by_grid = None
     else:
         cell_widths_by_grid = []
-    if isinstance(cell_widths, list) and len(cell_widths) == 0:
-        cell_widths = None
 
     for i in range(psize[0]):
         for j in range(psize[1]):
@@ -130,7 +129,6 @@ def split_array(gle, gre, shape, psize, cell_widths=None):
                     offset_le = []
                     offset_re = []
                     for idim in range(3):
-                        # round off error issues here maybe?
                         cws.append(cell_widths[idim][lei[idim] : rei[idim]])
                         offset_le.append(np.sum(cell_widths[idim][0 : lei[idim]]))
                         offset_re.append(offset_le[idim] + np.sum(cws[idim]))
