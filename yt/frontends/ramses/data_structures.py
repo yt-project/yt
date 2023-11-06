@@ -634,7 +634,7 @@ class RAMSESIndex(OctreeIndex):
                     # If the domain has its oct handler, refine the selection
                     if dom.oct_handler_initialized and not dom.included(dobj.selector):
                         continue
-                    mylog.info("Identified domain %s", dom.domain_id)
+                    mylog.debug("Identified domain %s", dom.domain_id)
 
                     domains.append(dom)
             else:
