@@ -1,6 +1,7 @@
 import abc
 import os
 import struct
+import warnings
 from itertools import chain, count
 from typing import Optional
 
@@ -145,7 +146,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             hvals = {}
             attrs = self.attrs
             hvals.update(fd.read_attrs(attrs))
-            ipos = fd.tell()
+            particle_field_pos = fd.tell()
 
         self.header = hvals
         self.local_particle_count = hvals["npart"]
@@ -169,21 +170,48 @@ class DefaultParticleFileHandler(ParticleFileHandler):
                 ("particle_metallicity", "d"),
             ]
 
-        particle_fields = chain(
-            particle_fields,
-            ((f"particle_extra_field_{i}", "d") for i in count()),
-        )
+        def build_iterator():
+            return chain(
+                particle_fields,
+                ((f"particle_extra_field_{i}", "d") for i in count(1)),
+            )
 
         field_offsets = {}
         _pfields = {}
         ptype = self.ptype
         blockLen = struct.calcsize("i") * 2
 
+        particle_fields_iterator = build_iterator()
+        ipos = particle_field_pos
         while ipos < flen:
-            field, vtype = next(particle_fields)
+            field, vtype = next(particle_fields_iterator)
             field_offsets[ptype, field] = ipos
             _pfields[ptype, field] = vtype
             ipos += blockLen + struct.calcsize(vtype) * hvals["npart"]
+
+        if ipos != flen:
+            particle_fields_iterator = build_iterator()
+            with FortranFile(self.fname) as fd:
+                fd.seek(particle_field_pos)
+                ipos = particle_field_pos
+                while ipos < flen:
+                    field, vtype = next(particle_fields_iterator)
+                    old_pos = fd.tell()
+                    field_offsets[ptype, field] = old_pos
+                    _pfields[ptype, field] = vtype
+                    fd.skip(1)
+                    ipos = fd.tell()
+
+                    record_len = ipos - old_pos - blockLen
+                    exp_len = struct.calcsize(vtype) * hvals["npart"]
+                    if record_len != exp_len:
+                        warnings.warn(
+                            f"Field {(ptype, field)} has a length {record_len}, but "
+                            f"expected a length of {exp_len}. "
+                            "Use yt.load(..., extra_particle_fields=[...]) to specify "
+                            "the right size.",
+                            stacklevel=1,
+                        )
 
         if field.startswith("particle_extra_field_"):
             iextra = int(field.split("_")[-1])

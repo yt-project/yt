@@ -152,6 +152,13 @@ def test_extra_fields_2():
     extra_fields = [f"particle_extra_field_{i + 1}" for i in range(2)]
     ds = yt.load(os.path.join(ramsesExtraFieldsSmall, "info_00001.txt"))
 
+    # When migrating to pytest, uncomment this
+    # with pytest.warns(
+    #     UserWarning,
+    #     match=r"Field (.*) has a length \d+, but expected a length of \d+.()",
+    # ):
+    #     ds.index
+
     # the dataset should contain the fields
     for field in extra_fields:
         assert ("io", field) in ds.field_list
