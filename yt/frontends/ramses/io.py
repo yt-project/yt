@@ -202,6 +202,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                         rv = subset.fill(fd, field_subs, selector, file_handler)
                     for ft, f in field_subs:
                         d = rv.pop(f)
+                        if d.size == 0:
+                            continue
                         mylog.debug(
                             "Filling %s with %s (%0.3e %0.3e) (%s zones)",
                             f,
@@ -213,7 +215,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                         tr[(ft, f)].append(d)
         d = {}
         for field in fields:
-            d[field] = np.concatenate(tr.pop(field))
+            tmp = tr.pop(field, None)
+            d[field] = np.concatenate(tmp) if tmp else np.empty(0, dtype="d")
 
         return d
 
