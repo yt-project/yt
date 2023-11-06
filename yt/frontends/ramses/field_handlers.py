@@ -273,7 +273,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
             )
 
         self._level_count = level_count
-        return self._offset
+        return offset
 
     @classmethod
     def load_fields_from_yt_config(cls) -> list[str]:
