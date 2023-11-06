@@ -176,6 +176,11 @@ class RAMSESDomainFile:
     _last_mask = None
     _last_selector_id = None
 
+    _hydro_offset = None
+    _level_count = None
+
+    oct_handler_initialized = False
+
     def __init__(self, ds, domain_id):
         self.ds = ds
         self.domain_id = domain_id
@@ -219,9 +224,6 @@ class RAMSESDomainFile:
             )
             ph.read_header()
             # self._add_ptype(ph.ptype)
-
-    _hydro_offset = None
-    _level_count = None
 
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
@@ -338,6 +340,8 @@ class RAMSESDomainFile:
                 f"The maximum level detected in the AMR file ({new_max_level}) "
                 f" does not match the expected number {self.max_level}."
             )
+
+        self.oct_handler_initialized = True
 
         return oct_handler
 

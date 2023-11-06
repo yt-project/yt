@@ -784,6 +784,14 @@ class StreamOctreeSubset(OctreeSubset):
             base_grid = StreamOctreeSubset(base_region, ds, oct_handler, num_zones)
             self._base_grid = base_grid
 
+    @property
+    def oct_handler(self):
+        return self._oct_handler
+
+    @oct_handler.setter
+    def oct_handler(self, oh):
+        self._oct_handler = oh
+
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         try:
             new_subset = self._subset_with_gz
