@@ -383,6 +383,9 @@ class RAMSESDomainSubset(OctreeSubset):
         for field in fields:
             data[field] = np.zeros(cell_count, "float64")
 
+        if cell_count == 0:
+            return data
+
         cpu_list = [self.domain_id - 1]
         fill_hydro(
             fd,
@@ -433,6 +436,10 @@ class RAMSESDomainSubset(OctreeSubset):
         # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, "float64")
+
+        if cell_count == 0:
+            return tr
+
         cpu_list = list(range(ncpu))
         fill_hydro(
             fd,
