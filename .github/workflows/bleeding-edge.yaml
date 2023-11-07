@@ -87,7 +87,6 @@ jobs:
         body: |
           The weekly build with future dependencies has failed. Check the logs
           https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-        labels: 'tests: running tests,'
         pinned: false
         close-previous: false
       env:
