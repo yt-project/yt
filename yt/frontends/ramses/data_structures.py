@@ -454,7 +454,7 @@ class RAMSESDomainSubset(OctreeSubset):
             fields,
             tr,
             oct_handler,
-            domains=domain_inds,
+            domain_inds=domain_inds,
         )
         return tr
 
