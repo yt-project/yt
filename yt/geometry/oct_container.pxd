@@ -85,9 +85,9 @@ cdef class OctreeContainer:
     cpdef void fill_level(
         self,
         const int level,
-        const np.uint8_t[:] levels,
-        const np.uint8_t[:] cell_inds,
-        const np.int64_t[:] file_inds,
+        const np.uint8_t[::1] level_inds,
+        const np.uint8_t[::1] cell_inds,
+        const np.int64_t[::1] file_inds,
         dict dest_fields,
         dict source_fields,
         np.int64_t offset = ?
@@ -95,10 +95,10 @@ cdef class OctreeContainer:
     cpdef int fill_level_with_domain(
         self,
         const int level,
-        const np.uint8_t[:] levels,
-        const np.uint8_t[:] cell_inds,
-        const np.int64_t[:] file_inds,
-        const np.int32_t[:] domains,
+        const np.uint8_t[::1] level_inds,
+        const np.uint8_t[::1] cell_inds,
+        const np.int64_t[::1] file_inds,
+        const np.int32_t[::1] domain_inds,
         dict dest_fields,
         dict source_fields,
         const np.int32_t domain,

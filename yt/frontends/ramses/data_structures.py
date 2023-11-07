@@ -375,7 +375,7 @@ class RAMSESDomainSubset(OctreeSubset):
         data = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
 
-        levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
+        level_inds, cell_inds, file_inds = self.oct_handler.file_index_octs(
             selector, self.domain_id, cell_count
         )
 
@@ -389,7 +389,7 @@ class RAMSESDomainSubset(OctreeSubset):
             file_handler.offset,
             file_handler.level_count,
             cpu_list,
-            levels,
+            level_inds,
             cell_inds,
             file_inds,
             ndim,
@@ -418,13 +418,13 @@ class RAMSESDomainSubset(OctreeSubset):
 
         gz_cache = getattr(self, "_ghost_zone_cache", None)
         if gz_cache:
-            levels, cell_inds, file_inds, domains = gz_cache
+            level_inds, cell_inds, file_inds, domain_inds = gz_cache
         else:
             gz_cache = (
-                levels,
+                level_inds,
                 cell_inds,
                 file_inds,
-                domains,
+                domain_inds,
             ) = self.oct_handler.file_index_octs_with_ghost_zones(
                 selector, self.domain_id, cell_count, self._num_ghost_zones
             )
@@ -439,7 +439,7 @@ class RAMSESDomainSubset(OctreeSubset):
             file_handler.offset,
             file_handler.level_count,
             cpu_list,
-            levels,
+            level_inds,
             cell_inds,
             file_inds,
             ndim,
@@ -447,7 +447,7 @@ class RAMSESDomainSubset(OctreeSubset):
             fields,
             tr,
             oct_handler,
-            domains=domains,
+            domains=domain_inds,
         )
         return tr
 

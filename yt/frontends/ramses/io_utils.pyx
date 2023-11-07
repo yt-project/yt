@@ -163,13 +163,13 @@ def fill_hydro(FortranFile f,
                np.ndarray[np.int64_t, ndim=2] offsets,
                np.ndarray[np.int64_t, ndim=2] level_count,
                list cpu_enumerator,
-               np.ndarray[np.uint8_t, ndim=1] levels,
+               np.ndarray[np.uint8_t, ndim=1] level_inds,
                np.ndarray[np.uint8_t, ndim=1] cell_inds,
                np.ndarray[np.int64_t, ndim=1] file_inds,
                INT64_t ndim, list all_fields, list fields,
                dict tr,
                RAMSESOctreeContainer oct_handler,
-               np.ndarray[np.int32_t, ndim=1] domains=np.array([], dtype='int32')):
+               np.ndarray[np.int32_t, ndim=1] domain_inds=np.array([], dtype='int32')):
     cdef INT64_t offset
     cdef dict tmp
     cdef str field
@@ -186,8 +186,9 @@ def fill_hydro(FortranFile f,
     cdef np.int64_t[::1] cpu_list = np.asarray(cpu_enumerator, dtype=np.int64)
 
     cdef np.int64_t[::1] jumps = np.zeros(nfields_selected + 1, dtype=np.int64)
-    cdef int jump_len
+    cdef int jump_len, Ncells
     cdef np.ndarray[np.float64_t, ndim=3] buffer
+    cdef np.uint8_t[::1] mask_level = np.zeros(nlevels, dtype=np.uint8)
 
     jump_len = 0
     j = 0
@@ -202,8 +203,18 @@ def fill_hydro(FortranFile f,
     cdef int first_field_index = jumps[0]
 
     buffer = np.empty((level_count.max(), twotondim, nfields_selected), dtype="float64", order='F')
+
+    Ncells = len(level_inds)
+    for i in range(Ncells):
+        mask_level[level_inds[i]] |= 1
+
+    # print("Reading hydro fields, unique levels=%s", np.asarray(levels_to_read))
+    # selected_levels = range(levels.min(), levels.max()+1)
+    # selected_cpus = range(cpu_list.min(), cpu_list.max()+1)
     # Loop over levels
     for ilevel in range(nlevels):
+        if mask_level[ilevel] == 0:
+            continue
         # Loop over cpu domains
         for ii in range(ncpu_selected):
             icpu = cpu_list[ii]
@@ -242,7 +253,7 @@ def fill_hydro(FortranFile f,
 
             if ncpu_selected > 1:
                 oct_handler.fill_level_with_domain(
-                    ilevel, levels, cell_inds, file_inds, domains, tr, tmp, domain=icpu+1)
+                    ilevel, level_inds, cell_inds, file_inds, domain_inds, tr, tmp, domain=icpu+1)
             else:
                 oct_handler.fill_level(
-                    ilevel, levels, cell_inds, file_inds, tr, tmp)
+                    ilevel, level_inds, cell_inds, file_inds, tr, tmp)
