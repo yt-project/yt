@@ -180,6 +180,7 @@ class RAMSESDomainFile:
     _level_count = None
 
     oct_handler_initialized = False
+    amr_header_initialized = False
 
     def __init__(self, ds, domain_id):
         self.ds = ds
@@ -203,7 +204,7 @@ class RAMSESDomainFile:
         for t in ["grav", "amr"]:
             setattr(self, f"{t}_fn", basename % t)
         self._part_file_descriptor = part_file_descriptor
-        self.max_level = self.ds.parameters["levelmax"]
+        self.max_level = self.ds.parameters["levelmax"] - self.ds.parameters["levelmin"]
 
         # Autodetect field files
         field_handlers = [FH(self) for FH in get_field_handlers() if FH.any_exist(ds)]
@@ -250,6 +251,8 @@ class RAMSESDomainFile:
         return f
 
     def _read_amr_header(self):
+        if self.amr_header_initialized:
+            return
         hvals = {}
         with self.amr_file as f:
             f.seek(0)
@@ -267,9 +270,9 @@ class RAMSESDomainFile:
             f.skip()
             if hvals["nboundary"] > 0:
                 f.skip(2)
-                self.ngridbound = f.read_vector("i").astype("int64")
+                self._ngridbound = f.read_vector("i").astype("int64")
             else:
-                self.ngridbound = np.zeros(hvals["nlevelmax"], dtype="int64")
+                self._ngridbound = np.zeros(hvals["nlevelmax"], dtype="int64")
             _free_mem = f.read_attrs((("free_mem", 5, "i"),))
             _ordering = f.read_vector("c")
             f.skip(4)
@@ -277,28 +280,67 @@ class RAMSESDomainFile:
             # Now we iterate over each level and each CPU.
             position = f.tell()
 
-        self.amr_header = hvals
-        self.amr_offset = position
+        self._amr_header = hvals
+        self._amr_offset = position
 
         # The maximum effective level is the deepest level
         # that has a non-zero number of octs
         nocts_to_this_level = hvals["numbl"].sum(axis=1).cumsum()
-        self.max_level = np.argwhere(nocts_to_this_level == nocts_to_this_level[-1])[0][
-            0
-        ]
+        self._max_level = (
+            np.argwhere(nocts_to_this_level == nocts_to_this_level[-1])[0][0]
+            - self.ds.parameters["levelmin"]
+            + 1
+        )
+        print(self._max_level, nocts_to_this_level)
 
         # update levelmax
         force_max_level, convention = self.ds._force_max_level
         if convention == "yt":
             force_max_level += self.ds.min_level + 1
-        self.amr_header["nlevelmax"] = min(
-            force_max_level, self.amr_header["nlevelmax"]
+        self._amr_header["nlevelmax"] = min(
+            force_max_level, self._amr_header["nlevelmax"]
         )
-        self.local_oct_count = hvals["numbl"][
+        self._local_oct_count = hvals["numbl"][
             self.ds.min_level :, self.domain_id - 1
         ].sum()
-        imin, imax = self.ds.min_level, self.amr_header["nlevelmax"]
-        self.total_oct_count = hvals["numbl"][imin:imax, :].sum(axis=0)
+        imin, imax = self.ds.min_level, self._amr_header["nlevelmax"]
+        self._total_oct_count = hvals["numbl"][imin:imax, :].sum(axis=0)
+
+        self.amr_header_initialized = True
+
+    @property
+    def ngridbound(self):
+        self._read_amr_header()
+        return self._ngridbound
+
+    @property
+    def amr_offset(self):
+        self._read_amr_header()
+        return self._amr_offset
+
+    @property
+    def max_level(self):
+        self._read_amr_header()
+        return self._max_level
+
+    @max_level.setter
+    def max_level(self, value):
+        self._max_level = value
+
+    @property
+    def total_oct_count(self):
+        self._read_amr_header()
+        return self._total_oct_count
+
+    @property
+    def local_oct_count(self):
+        self._read_amr_header()
+        return self._local_oct_count
+
+    @property
+    def amr_header(self):
+        self._read_amr_header()
+        return self._amr_header
 
     @cached_property
     def oct_handler(self):
@@ -333,7 +375,7 @@ class RAMSESDomainFile:
 
             oct_handler.finalize()
 
-        new_max_level = max_level + self.ds.min_level
+        new_max_level = max_level
         if new_max_level > self.max_level:
             raise RuntimeError(
                 f"The maximum level detected in the AMR file ({new_max_level}) "
@@ -686,10 +728,9 @@ class RAMSESIndex(OctreeIndex):
             self.level_stats[level + 1]["numcells"] = 2 ** (
                 level * self.dataset.dimensionality
             )
-        for level in range(self.max_level + 1):
-            self.level_stats[level + self.dataset.min_level + 1]["numcells"] = levels[
-                :, level
-            ].sum()
+        for level in range(levels.shape[1]):
+            ncell = levels[:, level].sum()
+            self.level_stats[level + self.dataset.min_level + 1]["numcells"] = ncell
 
     def _get_particle_type_counts(self):
         npart = 0
