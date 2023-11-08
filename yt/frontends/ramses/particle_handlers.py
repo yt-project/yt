@@ -1,9 +1,10 @@
 import abc
 import os
 import struct
-import warnings
 from itertools import chain, count
 from typing import Optional
+
+import numpy as np
 
 from yt._typing import FieldKey
 from yt.config import ytcfg
@@ -104,6 +105,15 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
         pass
 
 
+_default_dtypes: dict[int, str] = {
+    1: "c",  # char
+    2: "h",  # short,
+    4: "f",  # float
+    8: "d",  # double
+    # 16: np.float128,  # double double precision
+}
+
+
 class DefaultParticleFileHandler(ParticleFileHandler):
     ptype = "io"
     fname = "part_{iout:05d}.out{icpu:05d}"
@@ -198,20 +208,24 @@ class DefaultParticleFileHandler(ParticleFileHandler):
                     field, vtype = next(particle_fields_iterator)
                     old_pos = fd.tell()
                     field_offsets[ptype, field] = old_pos
-                    _pfields[ptype, field] = vtype
                     fd.skip(1)
                     ipos = fd.tell()
 
                     record_len = ipos - old_pos - blockLen
                     exp_len = struct.calcsize(vtype) * hvals["npart"]
+
                     if record_len != exp_len:
-                        warnings.warn(
-                            f"Field {(ptype, field)} has a length {record_len}, but "
-                            f"expected a length of {exp_len}. "
-                            "Use yt.load(..., extra_particle_fields=[...]) to specify "
-                            "the right size.",
-                            stacklevel=1,
+                        # Guess record vtype from length
+                        nbytes = record_len // hvals["npart"]
+                        vtype = _default_dtypes[nbytes]
+
+                        mylog.warning(
+                            "Supposed that `%s` has type %s given record size",
+                            field,
+                            np.dtype(vtype),
                         )
+
+                    _pfields[ptype, field] = vtype
 
         if field.startswith("particle_extra_field_"):
             iextra = int(field.split("_")[-1])
