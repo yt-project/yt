@@ -1,12 +1,17 @@
+from typing import Any, Optional
+
 import numpy as np
 
 from yt.data_objects.selection_objects.region import YTRegion
 from yt.geometry.selection_routines import (
+    bbox_intersects,
     fully_contains,
 )
 
 
-def hilbert3d(X, bit_length):
+def hilbert3d(
+    X: np.ndarray[Any, np.dtype[np.float64]], bit_length: int
+) -> np.ndarray[Any, np.dtype[np.float64]]:
     """Compute the order using Hilbert indexing.
 
     Arguments
@@ -103,9 +108,9 @@ def hilbert3d(X, bit_length):
 def get_cpu_list(
     ds,
     region: YTRegion,
-    LE: np.ndarray = None,
+    LE: Optional[np.ndarray[Any, np.dtype[np.float64]]] = None,
     dx: float = 1.0,
-    dx_cond: float = None,
+    dx_cond: Optional[float] = None,
     factor: float = 4.0,
 ) -> set[int]:
     """
@@ -113,8 +118,8 @@ def get_cpu_list(
     """
     if LE is None:
         LE = np.array([0, 0, 0], dtype="d")
-    bbox = region.get_bbox()
     if dx_cond is None:
+        bbox = region.get_bbox()
         dx_cond = float((bbox[1] - bbox[0]).min().to("code_length"))
 
     # If the current dx is smaller than the smallest size of the bbox
@@ -135,13 +140,12 @@ def get_cpu_list(
             for k in range(2):
                 LE_new = LE + np.array([i, j, k], dtype="d") * dx
 
-                # Compute AABB intersection between [LE_new, LE_new + dx] and bbox
-                if all(bbox[1] >= LE_new) and all(bbox[0] <= LE_new + dx):
+                if bbox_intersects(region.selector, LE_new, dx):
                     ret.update(get_cpu_list(ds, region, LE_new, dx, dx_cond, factor))
     return ret
 
 
-def get_cpu_list_cuboid(ds, X: np.ndarray) -> set[int]:
+def get_cpu_list_cuboid(ds, X: np.ndarray[Any, np.dtype[np.float64]]) -> set[int]:
     """
     Return the list of the CPU intersecting with the cuboid containing the positions.
     Note that it will be 0-indexed.
@@ -220,7 +224,7 @@ def get_cpu_list_cuboid(ds, X: np.ndarray) -> set[int]:
     cpu_min = np.searchsorted(bound_key, bounding_min, side="right") - 1
     cpu_max = np.searchsorted(bound_key, bounding_max, side="right")
 
-    cpu_read = set()
+    cpu_read: set[int] = set()
 
     for i in range(ndom):
         cpu_read.update(range(cpu_min[i], cpu_max[i]))
