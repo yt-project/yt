@@ -334,12 +334,12 @@ class RAMSESDomainFile:
             oct_handler.finalize()
 
         new_max_level = max_level + self.ds.min_level
-        if new_max_level != self.max_level:
+        if new_max_level > self.max_level:
             raise RuntimeError(
                 f"The maximum level detected in the AMR file ({new_max_level}) "
                 f" does not match the expected number {self.max_level}."
             )
-
+        self.max_level = new_max_level
         self.oct_handler_initialized = True
 
         return oct_handler
