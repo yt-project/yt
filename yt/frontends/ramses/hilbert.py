@@ -10,8 +10,8 @@ from yt.geometry.selection_routines import (
 
 
 def hilbert3d(
-    X: np.ndarray[Any, np.dtype[np.float64]], bit_length: int
-) -> np.ndarray[Any, np.dtype[np.float64]]:
+    X: "np.ndarray[Any, np.dtype[np.float64]]", bit_length: int
+) -> "np.ndarray[Any, np.dtype[np.float64]]":
     """Compute the order using Hilbert indexing.
 
     Arguments
@@ -108,7 +108,7 @@ def hilbert3d(
 def get_cpu_list(
     ds,
     region: YTRegion,
-    LE: Optional[np.ndarray[Any, np.dtype[np.float64]]] = None,
+    LE: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
     dx: float = 1.0,
     dx_cond: Optional[float] = None,
     factor: float = 4.0,
@@ -145,7 +145,7 @@ def get_cpu_list(
     return ret
 
 
-def get_cpu_list_cuboid(ds, X: np.ndarray[Any, np.dtype[np.float64]]) -> set[int]:
+def get_cpu_list_cuboid(ds, X: "np.ndarray[Any, np.dtype[np.float64]]") -> set[int]:
     """
     Return the list of the CPU intersecting with the cuboid containing the positions.
     Note that it will be 0-indexed.
