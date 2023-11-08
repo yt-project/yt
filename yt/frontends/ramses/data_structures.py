@@ -291,7 +291,6 @@ class RAMSESDomainFile:
             - self.ds.parameters["levelmin"]
             + 1
         )
-        print(self._max_level, nocts_to_this_level)
 
         # update levelmax
         force_max_level, convention = self.ds._force_max_level
