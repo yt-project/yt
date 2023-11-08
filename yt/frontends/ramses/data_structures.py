@@ -666,8 +666,7 @@ class RAMSESIndex(OctreeIndex):
         )
         if getattr(dobj, "_chunk_info", None) is None:
             if use_fast_hilbert:
-                bbox = dobj.get_bbox()
-                idoms = {idom + 1 for idom in get_cpu_list(self.ds, bbox)}
+                idoms = {idom + 1 for idom in get_cpu_list(self.ds, dobj, factor=3)}
                 # If the oct handler has been initialized, use it
                 domains = []
                 for dom in self.domains:

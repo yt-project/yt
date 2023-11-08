@@ -1,5 +1,10 @@
 import numpy as np
 
+from yt.data_objects.selection_objects.region import YTRegion
+from yt.geometry.selection_routines import (
+    fully_contains,
+)
+
 
 def hilbert3d(X, bit_length):
     """Compute the order using Hilbert indexing.
@@ -96,28 +101,29 @@ def hilbert3d(X, bit_length):
 
 
 def get_cpu_list(
-    ds, bbox: np.ndarray, LE: np.ndarray = None, dx: float = 1.0, dx_cond: float = None
+    ds,
+    region: YTRegion,
+    LE: np.ndarray = None,
+    dx: float = 1.0,
+    dx_cond: float = None,
+    factor: float = 4.0,
 ) -> set[int]:
     """
     Find the subset of CPUs that intersect the bbox in a recursive fashion.
     """
     if LE is None:
-        LE = np.array(
-            [
-                0,
-                0,
-                0,
-            ],
-            dtype="d",
-        )
-    if isinstance(bbox, (list, tuple)):
-        bbox = ds.arr(bbox, "code_length")
+        LE = np.array([0, 0, 0], dtype="d")
+    bbox = region.get_bbox()
     if dx_cond is None:
         dx_cond = float((bbox[1] - bbox[0]).min().to("code_length"))
 
     # If the current dx is smaller than the smallest size of the bbox
-    if dx < dx_cond:
+    if dx < dx_cond / factor:
         # Finish recursion
+        return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]))
+
+    # # If the current cell is fully within the selected region, stop recursion
+    if fully_contains(region.selector, LE, dx):
         return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]))
 
     dx /= 2
@@ -128,10 +134,10 @@ def get_cpu_list(
         for j in range(2):
             for k in range(2):
                 LE_new = LE + np.array([i, j, k], dtype="d") * dx
+
                 # Compute AABB intersection between [LE_new, LE_new + dx] and bbox
                 if all(bbox[1] >= LE_new) and all(bbox[0] <= LE_new + dx):
-                    # Recurse
-                    ret.update(get_cpu_list(ds, bbox, LE_new, dx, dx_cond))
+                    ret.update(get_cpu_list(ds, region, LE_new, dx, dx_cond, factor))
     return ret
 
 
