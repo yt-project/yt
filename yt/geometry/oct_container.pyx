@@ -742,12 +742,16 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_level(self, int level,
-                   np.ndarray[np.uint8_t, ndim=1] levels,
-                   np.ndarray[np.uint8_t, ndim=1] cell_inds,
-                   np.ndarray[np.int64_t, ndim=1] file_inds,
-                   dest_fields, source_fields,
-                   np.int64_t offset = 0):
+    cpdef void fill_level(
+        self,
+        const int level,
+        const np.uint8_t[:] levels,
+        const np.uint8_t[:] cell_inds,
+        const np.int64_t[:] file_inds,
+        dict dest_fields,
+        dict source_fields,
+        np.int64_t offset = 0
+    ):
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int i, lvl
@@ -824,17 +828,18 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_level_with_domain(
-                   self, int level,
-                   np.uint8_t[:] levels,
-                   np.uint8_t[:] cell_inds,
-                   np.int64_t[:] file_inds,
-                   np.int32_t[:] domains,
-                   dict dest_fields,
-                   dict source_fields,
-                   np.int32_t domain,
-                   np.int64_t offset = 0
-                   ):
+    cpdef int fill_level_with_domain(
+        self,
+        const int level,
+        const np.uint8_t[:] levels,
+        const np.uint8_t[:] cell_inds,
+        const np.int64_t[:] file_inds,
+        const np.int32_t[:] domains,
+        dict dest_fields,
+        dict source_fields,
+        const np.int32_t domain,
+        np.int64_t offset = 0
+    ):
         """Similar to fill_level but accepts a domain argument.
 
         This is particularly useful for frontends that have buffer zones at CPU boundaries.

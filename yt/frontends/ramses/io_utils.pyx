@@ -14,6 +14,10 @@ ctypedef np.int32_t INT32_t
 ctypedef np.int64_t INT64_t
 ctypedef np.float64_t DOUBLE_t
 
+cdef int INT32_SIZE = sizeof(np.int32_t)
+cdef int INT64_SIZE = sizeof(np.int64_t)
+cdef int DOUBLE_SIZE = sizeof(np.float64_t)
+
 @cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -83,12 +87,16 @@ def read_amr(FortranFile f, dict headers,
 
     return max_level
 
+
+cdef inline int skip_len(int Nskip, int record_len) noexcept nogil:
+    return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
+
 @cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.nonecheck(False)
-cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers, int skip_len):
+cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers, int Nskip):
 
     cdef np.ndarray[np.int64_t, ndim=2] offset, level_count
     cdef INT64_t ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
@@ -104,8 +112,8 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
     ncpu_and_bound = nboundary + ncpu
     twotondim = 2**ndim
 
-    if skip_len == -1:
-        skip_len = twotondim * nvar
+    if Nskip == -1:
+        Nskip = twotondim * nvar
 
     # It goes: level, CPU, 8-variable (1 oct)
     offset = np.full((ncpu_and_bound, n_levels), -1, dtype=np.int64)
@@ -130,7 +138,7 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
             if ilevel >= min_level:
                 offset_view[icpu, ilevel - min_level] = f.tell()
                 level_count_view[icpu, ilevel - min_level] = <INT64_t> file_ncache
-            f.skip(skip_len)
+            f.seek(skip_len(Nskip, file_ncache), 1)
 
     return offset, level_count
 
@@ -154,41 +162,72 @@ def fill_hydro(FortranFile f,
     cdef dict tmp
     cdef str field
     cdef INT64_t twotondim
-    cdef int ilevel, icpu, ifield, nfields, nlevels, nc, ncpu_selected
-    cdef np.ndarray[np.uint8_t, ndim=1] mask
+    cdef int ilevel, icpu, nlevels, nc, ncpu_selected, nfields_selected
+    cdef int i, j, ii
 
     twotondim = 2**ndim
-    nfields = len(all_fields)
+    nfields_selected = len(fields)
 
     nlevels = offsets.shape[1]
     ncpu_selected = len(cpu_enumerator)
 
-    mask = np.array([(field in fields) for field in all_fields], dtype=np.uint8)
+    cdef np.int64_t[::1] cpu_list = np.asarray(cpu_enumerator, dtype=np.int64)
 
+    cdef np.int64_t[::1] jumps = np.zeros(nfields_selected + 1, dtype=np.int64)
+    cdef int jump_len
+    cdef np.ndarray[np.float64_t, ndim=3] buffer
+
+    jump_len = 0
+    j = 0
+    for i, field in enumerate(all_fields):
+        if field in fields:
+            jumps[j] = jump_len
+            j += 1
+            jump_len = 0
+        else:
+            jump_len += 1
+    jumps[j] = jump_len
+    cdef int first_field_index = jumps[0]
+
+    buffer = np.empty((level_count.max(), twotondim, nfields_selected), dtype="float64", order='F')
     # Loop over levels
     for ilevel in range(nlevels):
         # Loop over cpu domains
-        for icpu in cpu_enumerator:
+        for ii in range(ncpu_selected):
+            icpu = cpu_list[ii]
             nc = level_count[icpu, ilevel]
             if nc == 0:
                 continue
             offset = offsets[icpu, ilevel]
             if offset == -1:
                 continue
-            f.seek(offset)
-            tmp = {}
-            # Initialize temporary data container for io
-            # note: we use Fortran ordering to reflect the in-file ordering
-            for field in all_fields:
-                tmp[field] = np.empty((nc, twotondim), dtype="float64", order='F')
+            f.seek(offset + skip_len(first_field_index, nc))
 
+            # We have already skipped the first fields (if any)
+            # so we "rewind" (this will cancel the first seek)
+            jump_len = -first_field_index
             for i in range(twotondim):
                 # Read the selected fields
-                for ifield in range(nfields):
-                    if not mask[ifield]:
-                        f.skip()
-                    else:
-                        tmp[all_fields[ifield]][:, i] = f.read_vector('d') # i-th cell
+                for j in range(nfields_selected):
+                    jump_len += jumps[j]
+                    if jump_len > 0:
+                        f.seek(skip_len(jump_len, nc), 1)
+                        jump_len = 0
+                    f.read_vector_inplace('d', <void*> &buffer[0, i, j])
+
+                jump_len += jumps[nfields_selected]
+
+            # In principle, we may be left with some fields to skip
+            # but since we're doing an absolute seek at the beginning of
+            # the loop on CPUs, we can spare one seek here
+            ## if jump_len > 0:
+            ##     f.seek(skip_len(jump_len, nc), 1)
+
+            # Alias buffer into dictionary
+            tmp = {}
+            for i, field in enumerate(fields):
+                tmp[field] = buffer[:, :, i]
+
             if ncpu_selected > 1:
                 oct_handler.fill_level_with_domain(
                     ilevel, levels, cell_inds, file_inds, domains, tr, tmp, domain=icpu+1)

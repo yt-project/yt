@@ -82,6 +82,29 @@ cdef class OctreeContainer:
     cdef public object fill_style
     cdef public int max_level
 
+    cpdef void fill_level(
+        self,
+        const int level,
+        const np.uint8_t[:] levels,
+        const np.uint8_t[:] cell_inds,
+        const np.int64_t[:] file_inds,
+        dict dest_fields,
+        dict source_fields,
+        np.int64_t offset = ?
+    )
+    cpdef int fill_level_with_domain(
+        self,
+        const int level,
+        const np.uint8_t[:] levels,
+        const np.uint8_t[:] cell_inds,
+        const np.int64_t[:] file_inds,
+        const np.int32_t[:] domains,
+        dict dest_fields,
+        dict source_fields,
+        const np.int32_t domain,
+        np.int64_t offset = ?
+    )
+
 cdef class SparseOctreeContainer(OctreeContainer):
     cdef OctKey *root_nodes
     cdef void *tree_root
