@@ -379,6 +379,7 @@ class RAMSESDomainSubset(OctreeSubset):
         for field in fields:
             data[field] = np.zeros(cell_count, "float64")
 
+        # Do an early exit if the cell count is null
         if cell_count == 0:
             return data
 
@@ -423,6 +424,7 @@ class RAMSESDomainSubset(OctreeSubset):
         for field in fields:
             tr[field] = np.zeros(cell_count, "float64")
 
+        # Do an early exit if the cell count is null
         if cell_count == 0:
             return tr
 

@@ -40,6 +40,8 @@ def read_amr(FortranFile f, dict headers,
     cdef np.ndarray[np.float64_t, ndim=2] pos
     cdef int i
 
+    # The ordering is very important here, as we'll write directly into the memory
+    # address the content of the files.
     cdef np.float64_t[::1, :] pos_view
 
     ndim = headers['ndim']
@@ -75,8 +77,7 @@ def read_amr(FortranFile f, dict headers,
 
             if ng == 0:
                 continue
-            # Skip grid index, 'next' and 'prev' arrays and possibly
-            # records from previous iterations
+            # Skip grid index, 'next' and 'prev' arrays
             record_len = (ng * INT32_SIZE + INT64_SIZE)
             f.seek(record_len * 3, 1)
 
@@ -187,8 +188,11 @@ def fill_hydro(FortranFile f,
 
     cdef np.int64_t[::1] jumps = np.zeros(nfields_selected + 1, dtype=np.int64)
     cdef int jump_len, Ncells
-    cdef np.ndarray[np.float64_t, ndim=3] buffer
     cdef np.uint8_t[::1] mask_level = np.zeros(nlevels, dtype=np.uint8)
+
+    # The ordering is very important here, as we'll write directly into the memory
+    # address the content of the files.
+    cdef np.float64_t[::1, :, :] buffer
 
     jump_len = 0
     j = 0
@@ -204,18 +208,16 @@ def fill_hydro(FortranFile f,
 
     buffer = np.empty((level_count.max(), twotondim, nfields_selected), dtype="float64", order='F')
 
+    # Precompute which levels we need to read
     Ncells = len(level_inds)
     for i in range(Ncells):
         mask_level[level_inds[i]] |= 1
 
-    # print("Reading hydro fields, unique levels=%s", np.asarray(levels_to_read))
-    # selected_levels = range(levels.min(), levels.max()+1)
-    # selected_cpus = range(cpu_list.min(), cpu_list.max()+1)
     # Loop over levels
     for ilevel in range(nlevels):
         if mask_level[ilevel] == 0:
             continue
-        # Loop over cpu domains
+        # Loop over cpu domains. In most cases, we'll only read the CPU corresponding to the domain.
         for ii in range(ncpu_selected):
             icpu = cpu_list[ii]
             nc = level_count[icpu, ilevel]
