@@ -265,6 +265,7 @@ exclude = '''
 '''
 
 [tool.ruff]
+extend-include = ["*.ipynb"]
 exclude = [
     "doc",
     "benchmarks",
