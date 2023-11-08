@@ -680,11 +680,19 @@ class RAMSESIndex(OctreeIndex):
                     mylog.debug("Identified domain %s", dom.domain_id)
 
                     domains.append(dom)
+                if len(domains) >= 1:
+                    mylog.info(
+                        "Identified % 5d/% 5d intersecting domains (% 5d through hilbert key indexing)",
+                        len(domains),
+                        len(self.domains),
+                        len(idoms),
+                    )
             else:
                 domains = [dom for dom in self.domains if dom.included(dobj.selector)]
+                if len(domains) >= 1:
+                    mylog.info("Identified %s intersecting domains", len(domains))
             base_region = getattr(dobj, "base_region", dobj)
-            if len(domains) > 1:
-                mylog.info("Identified %s intersecting domains", len(domains))
+
             subsets = [
                 RAMSESDomainSubset(
                     base_region,
