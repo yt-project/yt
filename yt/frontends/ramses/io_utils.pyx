@@ -1,6 +1,7 @@
 # distutils: libraries = STD_LIBS
 # distutils: include_dirs = LIB_DIR
 cimport cython
+from libc.stdio cimport SEEK_CUR, SEEK_SET
 cimport numpy as np
 
 import numpy as np
@@ -9,6 +10,7 @@ from yt.geometry.oct_container cimport RAMSESOctreeContainer
 from yt.utilities.cython_fortran_utils cimport FortranFile
 
 from yt.utilities.exceptions import YTIllDefinedAMRData
+
 
 ctypedef np.int32_t INT32_t
 ctypedef np.int64_t INT64_t
@@ -79,7 +81,7 @@ def read_amr(FortranFile f, dict headers,
                 continue
             # Skip grid index, 'next' and 'prev' arrays
             record_len = (ng * INT32_SIZE + INT64_SIZE)
-            f.seek(record_len * 3, 1)
+            f.seek(record_len * 3, SEEK_CUR)
 
             f.read_vector_inplace("d", <void*> &pos_view[0, 0])
             f.read_vector_inplace("d", <void*> &pos_view[0, 1])
@@ -93,7 +95,7 @@ def read_amr(FortranFile f, dict headers,
                 pos_view[i, 2] -= nz
 
             # Skip father, neighbor, son, cpu map and refinement map
-            f.seek(record_len * jump_len, 1)
+            f.seek(record_len * jump_len, SEEK_CUR)
 
             # Note that we're adding *grids*, not individual cells.
             if ilevel >= min_level:
@@ -151,7 +153,7 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
             if ilevel >= min_level:
                 offset_view[icpu, ilevel - min_level] = f.tell()
                 level_count_view[icpu, ilevel - min_level] = <INT64_t> file_ncache
-            f.seek(skip_len(Nskip, file_ncache), 1)
+            f.seek(skip_len(Nskip, file_ncache), SEEK_CUR)
 
     return offset, level_count
 
@@ -226,7 +228,7 @@ def fill_hydro(FortranFile f,
             offset = offsets[icpu, ilevel]
             if offset == -1:
                 continue
-            f.seek(offset + skip_len(first_field_index, nc))
+            f.seek(offset + skip_len(first_field_index, nc), SEEK_SET)
 
             # We have already skipped the first fields (if any)
             # so we "rewind" (this will cancel the first seek)
@@ -236,7 +238,7 @@ def fill_hydro(FortranFile f,
                 for j in range(nfields_selected):
                     jump_len += jumps[j]
                     if jump_len > 0:
-                        f.seek(skip_len(jump_len, nc), 1)
+                        f.seek(skip_len(jump_len, nc), SEEK_CUR)
                         jump_len = 0
                     f.read_vector_inplace('d', <void*> &buffer[0, i, j])
 
@@ -246,7 +248,7 @@ def fill_hydro(FortranFile f,
             # but since we're doing an absolute seek at the beginning of
             # the loop on CPUs, we can spare one seek here
             ## if jump_len > 0:
-            ##     f.seek(skip_len(jump_len, nc), 1)
+            ##     f.seek(skip_len(jump_len, nc), SEEK_CUR)
 
             # Alias buffer into dictionary
             tmp = {}
