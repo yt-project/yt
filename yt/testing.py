@@ -501,7 +501,7 @@ def small_fake_hexahedral_ds():
 def fake_stretched_ds(N=16):
     from yt.loaders import load_uniform_grid
 
-    np.random.seed(0x4D3D3D3)
+    np.random.RandomState().seed(0x4D3D3D3)
     data = {"density": np.random.random((N, N, N))}
 
     cell_widths = []

@@ -123,4 +123,5 @@ class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
         else:
             amp = self.bg_lvl
         npm, nqm = np.shape(buff)
-        return buff + np.random.randn(npm, nqm) * amp
+        rng = np.random.default_rng()
+        return buff + rng.standard_normal((npm, nqm)) * amp

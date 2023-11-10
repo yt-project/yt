@@ -118,7 +118,8 @@ class Keyframes:
         """
         # randomize tour
         self.tour = list(range(self.nframes))
-        np.random.shuffle(self.tour)
+        rng = np.random.default_rng()
+        rng.shuffle(self.tour)
         if fixed_start:
             first = self.tour.index(0)
             self.tour[0], self.tour[first] = self.tour[first], self.tour[0]
