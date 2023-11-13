@@ -7,7 +7,6 @@ import yt.utilities.lib.interpolators as lib
 
 class _LinearInterpolator(abc.ABC):
     _ndim: int
-    _dim_i_type = "int32"
 
     def __init__(self, table, field_names, truncate=False, *, store_table=True):
         if store_table:
@@ -42,7 +41,7 @@ class _LinearInterpolator(abc.ABC):
             dim_bins = getattr(self, f"{dim}_bins")
 
             dim_vals = data_object[dim_name].astype("float64").ravel()
-            dim_i = (np.digitize(dim_vals, dim_bins) - 1).astype(self._dim_i_type)
+            dim_i = (np.digitize(dim_vals, dim_bins) - 1).astype("int_")
             if np.any((dim_i == -1) | (dim_i == len(dim_bins) - 1)):
                 if not self.truncate:
                     msg = (
@@ -200,7 +199,6 @@ class BilinearFieldInterpolator(_LinearInterpolator):
 
 class TrilinearFieldInterpolator(_LinearInterpolator):
     _ndim = 3
-    _dim_i_type = "int_"
 
     def __init__(
         self, table, boundaries, field_names, truncate=False, *, store_table=True
@@ -284,7 +282,6 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
 
 class QuadrilinearFieldInterpolator(_LinearInterpolator):
     _ndim = 4
-    _dim_i_type = "int_"
 
     def __init__(
         self, table, boundaries, field_names, truncate=False, *, store_table=True

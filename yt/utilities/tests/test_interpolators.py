@@ -199,7 +199,7 @@ def test_table_override(ndim):
         interpolator(fv)
 
 
-@pytest.mark.parametrize("ndim", list(range(1, 5)))
+@pytest.mark.parametrize("ndim", list(_lin_interpolators_by_dim.keys()))
 def test_bin_validation(ndim):
     interp_class = _lin_interpolators_by_dim[ndim]
 
