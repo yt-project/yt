@@ -23,6 +23,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         ("MomY", (mom_units, ["momentum_density_y"], None)),
         ("MomZ", (mom_units, ["momentum_density_z"], None)),
         ("Engy", (erg_units, ["total_energy_density"], None)),
+        ("CRay", (erg_units, ["cosmic_ray_energy_density"], None)),
         ("Pote", (pot_units, ["gravitational_potential"], None)),
         # MHD fields on disk (CC=cell-centered)
         ("CCMagX", (b_units, [], "B_x")),
@@ -289,6 +290,9 @@ class GAMERFieldInfo(FieldInfoContainer):
                 if self.ds.mhd:
                     # magnetic_energy is a yt internal field
                     Et -= data["gas", "magnetic_energy_density"]
+                if self.ds.gamma_cr is not None:
+                    # cosmic rays are included in this dataset
+                    Et -= data["gas", "cosmic_ray_energy_density"]
                 return Et
 
             # thermal energy per mass (i.e., specific)
@@ -333,6 +337,20 @@ class GAMERFieldInfo(FieldInfoContainer):
             function=_pressure,
             units=unit_system["pressure"],
         )
+
+        if self.ds.gamma_cr is not None:
+
+            def _cr_pressure(field, data):
+                return (data.ds.gamma_cr - 1.0) * data[
+                    "gas", "cosmic_ray_energy_density"
+                ]
+
+            self.add_field(
+                ("gas", "cosmic_ray_pressure"),
+                _cr_pressure,
+                sampling_type="cell",
+                units=self.ds.unit_system["pressure"],
+            )
 
         # mean molecular weight
         if hasattr(self.ds, "mu"):

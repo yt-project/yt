@@ -356,6 +356,7 @@ class GAMERDataset(Dataset):
         # make aliases to some frequently used variables
         if parameters["Model"] == "Hydro":
             self.gamma = parameters["Gamma"]
+            self.gamma_cr = self.parameters.get("CR_Gamma", None)
             self.eos = parameters.get("EoS", 1)  # Assume gamma-law by default
             # default to 0.6 for old data format
             self.mu = parameters.get(
