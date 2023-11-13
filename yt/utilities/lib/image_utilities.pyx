@@ -92,8 +92,8 @@ cdef void _add_cell_to_image_offaxis(
         return
 
     depth = int(ceil(log2(dx * float(max(Nx, Ny)))))
-    if depth <= 0:
-        depth = 0
+    if depth < 1:
+        depth = 1
     if depth >= max_depth:
         depth = max_depth - 1
 
