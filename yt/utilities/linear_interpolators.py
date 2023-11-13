@@ -32,7 +32,7 @@ class _LinearInterpolator(abc.ABC):
             if self.table is None:
                 msg = (
                     f"You must either store the table used when initializing a new "
-                    f"{type(self).__name__} (set `store_table=True`) or you must provide a `table` when "
+                    f"{type(self).__name__} (set `store_table=True`) or you provide a `table` when "
                     f"calling {type(self).__name__}"
                 )
                 raise ValueError(msg)
@@ -50,7 +50,7 @@ class _LinearInterpolator(abc.ABC):
             dim_name = getattr(self, f"{dim}_name")
             dim_bins = getattr(self, f"{dim}_bins")
 
-            dim_vals = data_object[dim_name].ravel().astype("float64")
+            dim_vals = data_object[dim_name].astype("float64").ravel()
             dim_i = (np.digitize(dim_vals, dim_bins) - 1).astype(self._dim_i_type)
             if np.any((dim_i == -1) | (dim_i == len(dim_bins) - 1)):
                 if not self.truncate:

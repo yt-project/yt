@@ -165,7 +165,7 @@ _lin_interpolators_by_dim = {
 }
 
 
-@pytest.mark.parametrize("ndim", list(range(1, 5)))
+@pytest.mark.parametrize("ndim", list(_lin_interpolators_by_dim.keys()))
 def test_table_override(ndim):
     sz = 8
 
@@ -191,7 +191,7 @@ def test_table_override(ndim):
     with pytest.raises(
         ValueError, match="You must either store the table used when initializing"
     ):
-        _ = interpolator(fv)
+        interpolator(fv)
 
 
 @pytest.mark.parametrize("ndim", list(range(1, 5)))
@@ -214,4 +214,4 @@ def test_bin_validation(ndim):
         bounds = tuple(bounds)
 
     with pytest.raises(ValueError, match=f"{field_names[0]} bins array not"):
-        _ = interp_class(random_data, bounds, field_names)
+        interp_class(random_data, bounds, field_names)
