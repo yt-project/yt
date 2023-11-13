@@ -177,14 +177,17 @@ def test_table_override(ndim):
     boundaries = (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0)[: ndim * 2]
 
     interp_class = _lin_interpolators_by_dim[ndim]
-    interpolator = interp_class(random_data, boundaries, field_names, True)
+    # get interpolator with default behavior (a copy of the table is stored)
+    interpolator = interp_class(random_data, boundaries, field_names, truncate=True)
+    # evaluate at table grid nodes (should return the input table exactly)
     assert_array_almost_equal(interpolator(fv), random_data)
+    # check that we can change the table used after interpolator initialization
     table_2 = random_data * 2
     assert_array_almost_equal(interpolator(fv, table=table_2), table_2)
 
-    # check that we can do it without storing the initial table
+    # check that we can use an interpolator without storing the initial table
     interpolator = interp_class(
-        random_data, boundaries, field_names, True, store_table=False
+        random_data, boundaries, field_names, truncate=True, store_table=False
     )
     assert_array_almost_equal(interpolator(fv, table=table_2), table_2)
 

@@ -3,7 +3,6 @@ import abc
 import numpy as np
 
 import yt.utilities.lib.interpolators as lib
-from yt.funcs import mylog
 
 
 class _LinearInterpolator(abc.ABC):
@@ -18,14 +17,6 @@ class _LinearInterpolator(abc.ABC):
         self.table_shape = table.shape
         self.truncate = truncate
         self._field_names = field_names
-
-    def _raise_truncation_error(self, data_object):
-        mylog.error(
-            "Sorry, but your values are outside "
-            "the table!  Dunno what to do, so dying."
-        )
-        mylog.error("Error was in: %s", data_object)
-        raise ValueError
 
     def _validate_table(self, table_override):
         if table_override is None:
@@ -54,7 +45,13 @@ class _LinearInterpolator(abc.ABC):
             dim_i = (np.digitize(dim_vals, dim_bins) - 1).astype(self._dim_i_type)
             if np.any((dim_i == -1) | (dim_i == len(dim_bins) - 1)):
                 if not self.truncate:
-                    self._raise_truncation_error(data_object)
+                    msg = (
+                        f"The dimension values for {dim_name} and data object {data_object} are outside the bounds "
+                        f"of the table! You can avoid this error by providing truncate=True to the interpolator or "
+                        f"by adjusting the data object to remain inside the table bounds. But for now, dunno what "
+                        f"to do, so dying."
+                    )
+                    raise ValueError(msg)
                 else:
                     dim_i = np.minimum(np.maximum(dim_i, 0), len(dim_bins) - 2)
             return_arrays.append(dim_vals)
@@ -67,7 +64,6 @@ class _LinearInterpolator(abc.ABC):
         for idim in range(self._ndim):
             if boundaries[idim].size != self.table_shape[idim]:
                 msg = f"{self._field_names[idim]} bins array not the same length as the data."
-                mylog.error(msg)
                 raise ValueError(msg)
 
 
@@ -88,13 +84,15 @@ class UnilinearFieldInterpolator(_LinearInterpolator):
             explicitly.
         field_names: str
             Name of the field to be used as input data for interpolation.
-        truncate : bool
-            If False, an exception is raised if the input values are
+        truncate: bool
+            If False (default), an exception is raised if the input values are
             outside the bounds of the table.  If True, extrapolation is
             performed.
         store_table: bool
-            If False, only the shape of the input table is stored and
-            a full table must be provided when calling the interpolator.
+            If True (default), a copy of the full table is stored in
+            the interpolator. If False, only the shape of the input table
+            is stored and a full table must be provided when calling the
+            interpolator.
 
         Examples
         --------
@@ -148,13 +146,15 @@ class BilinearFieldInterpolator(_LinearInterpolator):
             x and y bins.
         field_names: list
             Names of the fields to be used as input data for interpolation.
-        truncate : bool
+        truncate: bool
             If False, an exception is raised if the input values are
             outside the bounds of the table.  If True, extrapolation is
             performed.
         store_table: bool
-            If False, only the shape of the input table is stored and
-            a full table must be provided when calling the interpolator.
+            If True (the default), a copy of the full table is stored in
+            the interpolator. If False, only the shape of the input table
+            is stored and a full table must be provided when calling the
+            interpolator.
 
         Examples
         --------
@@ -184,10 +184,8 @@ class BilinearFieldInterpolator(_LinearInterpolator):
             self._validate_bin_boundaries(boundaries)
             self.x_bins, self.y_bins = boundaries
         else:
-            mylog.error(
-                "Boundaries must be given as (x0, x1, y0, y1) or as (x_bins, y_bins)"
-            )
-            raise ValueError
+            msg = "Boundaries must be given as (x0, x1, y0, y1) or as (x_bins, y_bins)"
+            raise ValueError(msg)
 
     def __call__(self, data_object, *, table=None):
         table = self._validate_table(table)
@@ -219,13 +217,15 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
             containing the x, y, and z bins.
         field_names: list
             Names of the fields to be used as input data for interpolation.
-        truncate : bool
-            If False, an exception is raised if the input values are
+        truncate: bool
+            If False (default), an exception is raised if the input values are
             outside the bounds of the table.  If True, extrapolation is
             performed.
         store_table: bool
-            If False, only the shape of the input table is stored and
-            a full table must be provided when calling the interpolator.
+            If True (default), a copy of the full table is stored in
+            the interpolator. If False, only the shape of the input table
+            is stored and a full table must be provided when calling the
+            interpolator.
 
         Examples
         --------
@@ -257,11 +257,8 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
             self._validate_bin_boundaries(boundaries)
             self.x_bins, self.y_bins, self.z_bins = boundaries
         else:
-            mylog.error(
-                "Boundaries must be given as (x0, x1, y0, y1, z0, z1) "
-                "or as (x_bins, y_bins, z_bins)"
-            )
-            raise ValueError
+            msg = "Boundaries must be given as (x0, x1, y0, y1, z0, z1) or as (x_bins, y_bins, z_bins)"
+            raise ValueError(msg)
 
     def __call__(self, data_object, *, table=None):
         table = self._validate_table(table)
@@ -305,13 +302,15 @@ class QuadrilinearFieldInterpolator(_LinearInterpolator):
             containing the x, y, z, and w bins.
         field_names: list
             Names of the fields to be used as input data for interpolation.
-        truncate : bool
-            If False, an exception is raised if the input values are
+        truncate: bool
+            If False (default), an exception is raised if the input values are
             outside the bounds of the table.  If True, extrapolation is
             performed.
         store_table: bool
-            If False, only the shape of the input table is stored and
-            a full table must be provided when calling the interpolator.
+            If True (default), a copy of the full table is stored in
+            the interpolator. If False, only the shape of the input table
+            is stored and a full table must be provided when calling the
+            interpolator.
 
         Examples
         --------
@@ -343,11 +342,8 @@ class QuadrilinearFieldInterpolator(_LinearInterpolator):
             self._validate_bin_boundaries(boundaries)
             self.x_bins, self.y_bins, self.z_bins, self.w_bins = boundaries
         else:
-            mylog.error(
-                "Boundaries must be given as (x0, x1, y0, y1, z0, z1, w0, w1) "
-                "or as (x_bins, y_bins, z_bins, w_bins)"
-            )
-            raise ValueError
+            msg = "Boundaries must be given as (x0, x1, y0, y1, z0, z1, w0, w1) or as (x_bins, y_bins, z_bins, w_bins)"
+            raise ValueError(msg)
 
     def __call__(self, data_object, *, table=None):
         table = self._validate_table(table)
