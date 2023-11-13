@@ -11,7 +11,7 @@ def test_linear_interpolator_1d():
     random_data = np.random.random(64)
     fv = {"x": np.mgrid[0.0:1.0:64j]}
     # evenly spaced bins
-    ufi = lin.UnilinearFieldInterpolator(random_data, (0.0, 1.0), "x", True)
+    ufi = lin.UnilinearFieldInterpolator(random_data, (0.0, 1.0), "x", truncate=True)
     assert_array_equal(ufi(fv), random_data)
 
     # randomly spaced bins
@@ -19,7 +19,7 @@ def test_linear_interpolator_1d():
     shift = (1.0 / size) * np.random.random(size) - (0.5 / size)
     fv["x"] += shift
     ufi = lin.UnilinearFieldInterpolator(
-        random_data, np.linspace(0.0, 1.0, size) + shift, "x", True
+        random_data, np.linspace(0.0, 1.0, size) + shift, "x", truncate=True
     )
     assert_array_almost_equal(ufi(fv), random_data, 15)
 
@@ -28,7 +28,10 @@ def test_linear_interpolator_2d():
     random_data = np.random.random((64, 64))
     # evenly spaced bins
     fv = dict(zip("xy", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j], strict=True))
-    bfi = lin.BilinearFieldInterpolator(random_data, (0.0, 1.0, 0.0, 1.0), "xy", True)
+    fv = dict(zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j]))
+    bfi = lin.BilinearFieldInterpolator(
+        random_data, (0.0, 1.0, 0.0, 1.0), "xy", truncate=True
+    )
     assert_array_equal(bfi(fv), random_data)
 
     # randomly spaced bins
@@ -38,7 +41,7 @@ def test_linear_interpolator_2d():
     fv["x"] += shifts["x"][:, np.newaxis]
     fv["y"] += shifts["y"]
     bfi = lin.BilinearFieldInterpolator(
-        random_data, (bins + shifts["x"], bins + shifts["y"]), "xy", True
+        random_data, (bins + shifts["x"], bins + shifts["y"]), "xy", truncate=True
     )
     assert_array_almost_equal(bfi(fv), random_data, 15)
 
@@ -48,7 +51,7 @@ def test_linear_interpolator_3d():
     # evenly spaced bins
     fv = dict(zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j], strict=True))
     tfi = lin.TrilinearFieldInterpolator(
-        random_data, (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyz", True
+        random_data, (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyz", truncate=True
     )
     assert_array_almost_equal(tfi(fv), random_data)
 
@@ -69,22 +72,21 @@ def test_linear_interpolator_3d():
 
 
 def test_linear_interpolator_4d():
-    random_data = np.random.random((64, 64, 64, 64))
+    size = 32
+    random_data = np.random.random((size,) * 4)
     # evenly spaced bins
+    step = complex(0, size)
     fv = dict(
-        zip(
-            "xyzw",
-            np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j],
-            strict=True,
-        )
+        zip("xyzw", 
+            np.mgrid[0.0:1.0:step, 0.0:1.0:step, 0.0:1.0:step, 0.0:1.0:step],
+            strict=True,)
     )
     tfi = lin.QuadrilinearFieldInterpolator(
-        random_data, (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyzw", True
+        random_data, (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyzw", truncate=True
     )
     assert_array_almost_equal(tfi(fv), random_data)
 
     # randomly spaced bins
-    size = 64
     bins = np.linspace(0.0, 1.0, size)
     shifts = {ax: (1.0 / size) * np.random.random(size) - (0.5 / size) for ax in "xyzw"}
     fv["x"] += shifts["x"][:, np.newaxis, np.newaxis, np.newaxis]
@@ -100,7 +102,7 @@ def test_linear_interpolator_4d():
             bins + shifts["w"],
         ),
         "xyzw",
-        True,
+        truncate=True,
     )
     assert_array_almost_equal(tfi(fv), random_data, 15)
 
