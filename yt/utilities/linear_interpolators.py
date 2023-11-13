@@ -11,7 +11,7 @@ class _LinearInterpolator(abc.ABC):
 
     def __init__(self, table, field_names, truncate=False, *, store_table=True):
         if store_table:
-            self.table = table.astype("float64")
+            self.table = table.astype("float64", copy=False)
         else:
             self.table = None
         self.table_shape = table.shape
@@ -33,7 +33,7 @@ class _LinearInterpolator(abc.ABC):
             msg = f"The table_override shape, {table_override.shape}, must match the base table shape, {self.table_shape}"
             raise ValueError(msg)
 
-        return table_override.astype("float64")
+        return table_override.astype("float64", copy=False)
 
     def _get_digitized_arrays(self, data_object):
         return_arrays = []
@@ -89,10 +89,9 @@ class UnilinearFieldInterpolator(_LinearInterpolator):
             outside the bounds of the table.  If True, extrapolation is
             performed.
         store_table: bool
-            If True (default), a copy of the full table is stored in
-            the interpolator. If False, only the shape of the input table
-            is stored and a full table must be provided when calling the
-            interpolator.
+            If True (default), the full table is stored in the interpolator.
+            If False, only the shape of the input table is stored and a full
+            table must be provided when calling the interpolator.
 
         Examples
         --------
@@ -151,10 +150,9 @@ class BilinearFieldInterpolator(_LinearInterpolator):
             outside the bounds of the table.  If True, extrapolation is
             performed.
         store_table: bool
-            If True (the default), a copy of the full table is stored in
-            the interpolator. If False, only the shape of the input table
-            is stored and a full table must be provided when calling the
-            interpolator.
+            If True (default), the full table is stored in the interpolator.
+            If False, only the shape of the input table is stored and a full
+            table must be provided when calling the interpolator.
 
         Examples
         --------
@@ -222,10 +220,9 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
             outside the bounds of the table.  If True, extrapolation is
             performed.
         store_table: bool
-            If True (default), a copy of the full table is stored in
-            the interpolator. If False, only the shape of the input table
-            is stored and a full table must be provided when calling the
-            interpolator.
+            If True (default), the full table is stored in the interpolator.
+            If False, only the shape of the input table is stored and a full
+            table must be provided when calling the interpolator.
 
         Examples
         --------
@@ -307,10 +304,9 @@ class QuadrilinearFieldInterpolator(_LinearInterpolator):
             outside the bounds of the table.  If True, extrapolation is
             performed.
         store_table: bool
-            If True (default), a copy of the full table is stored in
-            the interpolator. If False, only the shape of the input table
-            is stored and a full table must be provided when calling the
-            interpolator.
+            If True (default), the full table is stored in the interpolator.
+            If False, only the shape of the input table is stored and a full
+            table must be provided when calling the interpolator.
 
         Examples
         --------
