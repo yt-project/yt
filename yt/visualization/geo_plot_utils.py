@@ -128,7 +128,7 @@ def _limit_to_geographic_bounds(bounds, transform, eps_val=1e-3):
     # of the transform bounds.
 
     transform_bounds = _geographic_bounds(transform)
-    valid_bounds = list(bounds)
+    valid_bounds = [b.d for b in bounds]
     changed = False
     if bounds[0].d == transform_bounds[0]:
         valid_bounds[0] = transform_bounds[0] + eps_val
@@ -136,11 +136,11 @@ def _limit_to_geographic_bounds(bounds, transform, eps_val=1e-3):
     if bounds[1].d == transform_bounds[1]:
         valid_bounds[1] = transform_bounds[1] - eps_val
         changed = True
-    if bounds[2].d == transform_bounds[0]:
-        valid_bounds[2] = transform_bounds[0] + eps_val
+    if bounds[2].d == transform_bounds[2]:
+        valid_bounds[2] = transform_bounds[2] + eps_val
         changed = True
-    if bounds[3].d == transform_bounds[1]:
-        valid_bounds[3] = transform_bounds[1] - eps_val
+    if bounds[3].d == transform_bounds[3]:
+        valid_bounds[3] = transform_bounds[3] - eps_val
         changed = True
-
+    valid_bounds = tuple(valid_bounds)
     return valid_bounds, changed
