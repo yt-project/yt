@@ -41,7 +41,6 @@ def add_points_to_greyscale_image(
         buffer_mask[i, j] = 1
     return
 
-# @cython.boundscheck(False)
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -64,9 +63,9 @@ cdef void _add_cell_to_image_offaxis(
 ) noexcept nogil:
     cdef np.float64_t lx, rx, ly, ry
     cdef int j, k, depth
-    cdef int jmin, jmax, kmin, kmax, jj, kk
+    cdef int jmin, jmax, kmin, kmax, jj1, jj2, kk1, kk2
     cdef np.float64_t cell_max_half_width = cell_max_width / 2
-    cdef np.float64_t xx, yy, dvx, dvy, sw, swq
+    cdef np.float64_t xx1, xx2, yy1, yy2, dvx, dvy, sw, swq, dx_loc, dy_loc
 
     lx = x - cell_max_half_width
     rx = x + cell_max_half_width
@@ -91,47 +90,64 @@ cdef void _add_cell_to_image_offaxis(
         buffer_weight[jmin][kmin] += w
         return
 
-    depth = int(ceil(log2(dx * float(max(Nx, Ny)))))
-    if depth < 1:
-        depth = 1
-    if depth >= max_depth:
-        depth = max_depth - 1
+    depth = int(ceil(log2(2 * sqrt(3) * dx * float(max(Nx, Ny)))))
+    if depth < 1: depth = 1
+    if depth >= max_depth: depth = max_depth - 1
 
     jmax = min(Nsx, 1 << depth)
     kmax = min(Nsy, 1 << depth)
-    for j in range(jmax):
-        xx = ((j + 0.5 - jmax / 2) / jmax * cell_max_width + x) * Nx
-        jj = int(xx)
-        if jj < 0 or jj >= Nx: continue
 
-        dvx = 1 - (xx - jj)
+    dx_loc = cell_max_width / jmax
+    dy_loc = cell_max_width / kmax
+
+    # with gil: print(jmax, kmax)
+
+    for j in range(jmax):
+        xx1 = ((j - jmax / 2.) * dx_loc + x) * Nx
+        xx2 = ((j + 1 - jmax / 2.) * dx_loc + x) * Nx
+
+        jj1 = int(xx1)
+        jj2 = int(xx2)
+        # The subcell is out of the projected area
+        if jj2 < 0 or jj1 >= Nx: continue
+
+        dvx = max(0, min(1, (jj2 - xx1) / (xx2 - xx1)))
+
         for k in range(kmax):
             if stamp_mask[depth, j, k] == 0:
                 continue
 
-            yy = ((k + 0.5 - kmax / 2) / kmax * cell_max_width + y) * Ny
-            kk = int(yy)
-            if kk < 0 or kk >= Ny: continue
+            yy1 = ((k - kmax / 2.) * dy_loc + y) * Ny
+            yy2 = ((k + 1 - kmax / 2.) * dy_loc + y) * Ny
 
-            dvy = 1 - (yy - kk)
+            kk1 = int(yy1)
+            kk2 = int(yy2)
+            # The subcell is out of the projected area
+            if kk2 < 0 or kk1 >= Ny: continue
 
-            swq = stamp[depth, j, k] * w * q
+            # with gil:
+            #     print(f"{j=} {k=} {xx1=} {xx2=} {yy1=} {yy2=} {jj1=} {jj2=} {kk1=} {kk2=}")
+
             sw =  stamp[depth, j, k] * w
+            swq = sw * q
 
-            buffer[jj][kk]        += swq * (dvx * dvy)
-            buffer_weight[jj][kk] +=  sw * (dvx * dvy)
+            dvy = max(0, min(1, (kk2 - yy1) / (yy2 - yy1)))
 
-            if jj < Nx - 1:
-                buffer[jj + 1][kk]        += swq * (1 - dvx) * dvy
-                buffer_weight[jj + 1][kk] +=  sw * (1 - dvx) * dvy
+            if jj1 >= 0 and kk1 >= 0:
+                buffer[jj1][kk1]        += swq * dvx * dvy
+                buffer_weight[jj1][kk1] +=  sw * dvx * dvy
 
-            if kk < Ny - 1:
-                buffer[jj][kk + 1]        += swq * dvx * (1 - dvy)
-                buffer_weight[jj][kk + 1] +=  sw * dvx * (1 - dvy)
-            if jj < Nx - 1 and kk < Ny - 1:
-                buffer[jj + 1][kk + 1]        += swq * (1 - dvx) * (1 - dvy)
-                buffer_weight[jj + 1][kk + 1] +=  sw * (1 - dvx) * (1 - dvy)
+            if jj1 >= 0 and kk2 < Ny:
+                buffer[jj1][kk2]        += swq * dvx * (1 - dvy)
+                buffer_weight[jj1][kk2] +=  sw * dvx * (1 - dvy)
 
+            if jj2 < Nx and kk1 >= 0:
+                buffer[jj2][kk1]        += swq * (1 - dvx) * dvy
+                buffer_weight[jj2][kk1] +=  sw * (1 - dvx) * dvy
+
+            if jj2 < Nx and kk2 < Ny:
+                buffer[jj2][kk2]        += swq * (1 - dvx) * (1 - dvy)
+                buffer_weight[jj2][kk2] +=  sw * (1 - dvx) * (1 - dvy)
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -170,8 +186,8 @@ def add_cells_to_image_offaxis(
     cdef int Nsx, Nsy
     cdef np.float64_t dx_max = np.max(dXp)
     # The largest cell needs to be resolved by at least this number of pixels
-    Nsx = max(Npix_min, int(ceil(dx_max * float(Nx))))
-    Nsy = max(Npix_min, int(ceil(dx_max * float(Ny))))
+    Nsx = max(Npix_min, int(ceil(2 * dx_max * sqrt(3) * Nx)))
+    Nsy = max(Npix_min, int(ceil(2 * dx_max * sqrt(3) * Ny)))
     cdef int max_depth = int(ceil(log2(max(Nsx, Nsy))))
     cdef int depth
 
