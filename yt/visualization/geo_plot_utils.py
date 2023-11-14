@@ -115,3 +115,32 @@ def get_mpl_transform(mpl_proj) -> Optional[FunctionType]:
     if key is None:
         instantiated_func = None
     return instantiated_func
+
+
+def _geographic_bounds(transform):
+    xlims = transform.x_limits
+    ylims = transform.y_limits
+    return xlims + ylims
+
+
+def _limit_to_geographic_bounds(bounds, transform, eps_val=1e-3):
+    # this takes a bounds tuple and limits the bounds to within a small distance
+    # of the transform bounds.
+
+    transform_bounds = _geographic_bounds(transform)
+    valid_bounds = list(bounds)
+    changed = False
+    if bounds[0].d == transform_bounds[0]:
+        valid_bounds[0] = transform_bounds[0] + eps_val
+        changed = True
+    if bounds[1].d == transform_bounds[1]:
+        valid_bounds[1] = transform_bounds[1] - eps_val
+        changed = True
+    if bounds[2].d == transform_bounds[0]:
+        valid_bounds[2] = transform_bounds[0] + eps_val
+        changed = True
+    if bounds[3].d == transform_bounds[1]:
+        valid_bounds[3] = transform_bounds[1] - eps_val
+        changed = True
+
+    return valid_bounds, changed
