@@ -745,15 +745,18 @@ class BaseQuiverCallback(PlotCallback, ABC):
             # in the coordinate reference system of the data and let cartopy
             # do the transformation. Also avoid the exact bounds of the transform
             # which can cause issues with projections.
-            geo_bounds, changed = _limit_to_geographic_bounds(bounds, plot._transform)
+            eps_val = plot.ds.quan(1e-3, "code_length")
+            bounds, changed = _limit_to_geographic_bounds(
+                bounds, plot._transform, eps_val
+            )
             if changed:
                 mylog.info(
                     "Limiting the bounds used for the quiver plot to avoid "
                     "exact transform bounds."
                 )
             X, Y = np.meshgrid(
-                np.linspace(geo_bounds[0], geo_bounds[1], nx, endpoint=True),
-                np.linspace(geo_bounds[2], geo_bounds[3], ny, endpoint=True),
+                np.linspace(bounds[0].d, bounds[1].d, nx, endpoint=True),
+                np.linspace(bounds[2].d, bounds[3].d, ny, endpoint=True),
             )
 
         pixX, pixY, pixC = self._get_quiver_data(plot, bounds, nx, ny)
