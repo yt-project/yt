@@ -2,12 +2,15 @@ import numpy as np
 
 from yt.data_objects.api import ImageArray
 from yt.funcs import is_sequence, mylog
+from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.units.unit_object import Unit  # type: ignore
+from yt.utilities.lib.image_utilities import add_cells_to_image_offaxis
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.lib.pixelization_routines import (
     normalization_2d_utility,
     off_axis_projection_SPH,
 )
+from yt.visualization.volume_rendering.lens import PlaneParallelLens
 
 from .render_source import KDTreeVolumeSource
 from .scene import Scene
@@ -381,31 +384,92 @@ def off_axis_projection(
 
     mylog.debug("Casting rays")
 
-    for grid, mask in data_source.blocks:
-        data = []
-        for f in fields:
-            # strip units before multiplying by mask for speed
-            grid_data = grid[f]
-            units = grid_data.units
-            data.append(data_source.ds.arr(grid_data.d * mask, units, dtype="float64"))
-        pg = PartitionedGrid(
-            grid.id,
-            data,
-            mask.astype("uint8"),
-            grid.LeftEdge,
-            grid.RightEdge,
-            grid.ActiveDimensions.astype("int64"),
+    if (
+        True
+        and isinstance(data_source.ds.index, OctreeIndex)
+        and isinstance(camera.lens, PlaneParallelLens)
+    ):
+        fields.extend(("index", k) for k in "xyz")
+        fields.append(("index", "dx"))
+
+        data_source.get_data(fields)
+        xyz = np.stack(
+            [
+                ((data_source["index", k] - center[i]) / width[i]).to("1").d
+                for i, k in enumerate("xyz")
+            ],
+            axis=-1,
         )
-        grid.clear_data()
-        vol.sampler(pg, num_threads=num_threads)
+        dx = (data_source["index", "dx"] / width.max()).to("1").d
 
-    image = vol.finalize_image(camera, vol.sampler.aimage)
-    image = ImageArray(
-        image, funits, registry=data_source.ds.unit_registry, info=image.info
-    )
+        if vol.weight_field is None:
+            weight_field = np.ones_like(dx)
+        else:
+            weight_field = data_source[vol.weight_field]
 
-    if weight is not None:
-        data_source.ds.field_info.pop(("index", "temp_weightfield"))
+        buffer = np.zeros(resolution)
+        dumpster = np.zeros(resolution)
+        buffer_weight = np.zeros(resolution)
+
+        add_cells_to_image_offaxis(
+            Xp=xyz,
+            dXp=dx,
+            qty=data_source[vol.field],
+            weight=np.ones_like(dx),
+            rotation=camera.inv_mat.T,
+            buffer=buffer,
+            buffer_weight=dumpster,
+            Nx=resolution[0],
+            Ny=resolution[1],
+        )
+        dumpster *= 0
+        add_cells_to_image_offaxis(
+            Xp=xyz,
+            dXp=dx,
+            qty=data_source[vol.field] * weight_field,
+            weight=np.ones_like(dx),
+            rotation=camera.inv_mat.T,
+            buffer=buffer_weight,
+            buffer_weight=dumpster,
+            Nx=resolution[0],
+            Ny=resolution[1],
+        )
+        image = ImageArray(
+            data_source.ds.arr(
+                np.stack([buffer_weight, buffer], axis=-1), "dimensionless"
+            ),
+            funits,
+            registry=data_source.ds.unit_registry,
+            info={"imtype": "rendering"},
+        )
+    else:
+        for grid, mask in data_source.blocks:
+            data = []
+            for f in fields:
+                # strip units before multiplying by mask for speed
+                grid_data = grid[f]
+                units = grid_data.units
+                data.append(
+                    data_source.ds.arr(grid_data.d * mask, units, dtype="float64")
+                )
+            pg = PartitionedGrid(
+                grid.id,
+                data,
+                mask.astype("uint8"),
+                grid.LeftEdge,
+                grid.RightEdge,
+                grid.ActiveDimensions.astype("int64"),
+            )
+            grid.clear_data()
+            vol.sampler(pg, num_threads=num_threads)
+
+        image = vol.finalize_image(camera, vol.sampler.aimage)
+        image = ImageArray(
+            image, funits, registry=data_source.ds.unit_registry, info=image.info
+        )
+
+        if weight is not None:
+            data_source.ds.field_info.pop(("index", "temp_weightfield"))
 
     if method == "integrate":
         if weight is None:

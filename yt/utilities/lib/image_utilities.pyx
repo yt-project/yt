@@ -11,7 +11,7 @@ import numpy as np
 
 cimport numpy as np
 cimport cython
-from libc.math cimport M_PI, M_PI_2, atan2, ceil, floor, log2, sqrt
+from libc.math cimport ceil, floor, log2, sqrt
 from libc.stdlib cimport free, malloc
 
 from yt.utilities.lib.fp_utils cimport iclip
@@ -86,8 +86,8 @@ cdef void _add_cell_to_image_offaxis(
 
     # If the cell is fully within one pixel
     if (jmax == jmin + 1) and (kmax == kmin + 1):
-        buffer[jmin][kmin] += w * q
-        buffer_weight[jmin][kmin] += w
+        buffer[jmin][kmin] += w * q * dx
+        buffer_weight[jmin][kmin] += w * dx
         return
 
     depth = int(ceil(log2(2 * sqrt(3) * dx * float(max(Nx, Ny)))))
@@ -128,7 +128,7 @@ cdef void _add_cell_to_image_offaxis(
             # with gil:
             #     print(f"{j=} {k=} {xx1=} {xx2=} {yy1=} {yy2=} {jj1=} {jj2=} {kk1=} {kk2=}")
 
-            sw =  stamp[depth, j, k] * w
+            sw =  stamp[depth, j, k] * w * dx
             swq = sw * q
 
             dvy = max(0, min(1, (kk2 - yy1) / (yy2 - yy1)))
@@ -158,16 +158,13 @@ def add_cells_to_image_offaxis(
     const np.float64_t[::1] dXp,
     const np.float64_t[::1] qty,
     const np.float64_t[::1] weight,
-    const float theta,
-    const float phi,
+    const np.float64_t[:, :] rotation,
     np.float64_t[:, ::1] buffer,
     np.float64_t[:, ::1] buffer_weight,
     const int Nx,
     const int Ny,
     const int Npix_min = 4,
 ):
-    from scipy.spatial.transform import Rotation
-
     cdef np.ndarray[np.float64_t, ndim=1] center = np.array([0.5, 0.5, 0.5])
     cdef np.float64_t w0 = 1 / sqrt(3.)
     cdef int i, j, k
@@ -175,11 +172,10 @@ def add_cells_to_image_offaxis(
     cdef np.ndarray[np.float64_t, ndim=1] a = np.array([1., 0, 0]) * w0
     cdef np.ndarray[np.float64_t, ndim=1] b = np.array([0, 1., 0]) * w0
     cdef np.ndarray[np.float64_t, ndim=1] c = np.array([0, 0, 1.]) * w0
-    cdef np.ndarray[np.float64_t, ndim=2] R = Rotation.from_euler('ZYX', [phi, theta, 0]).as_matrix()
 
-    a = np.dot(R, a)
-    b = np.dot(R, b)
-    c = np.dot(R, c)
+    a = np.dot(rotation, a)
+    b = np.dot(rotation, b)
+    c = np.dot(rotation, c)
 
     cdef np.ndarray[np.float64_t, ndim=1] o = center - (a + b + c) / 2
 
@@ -191,16 +187,10 @@ def add_cells_to_image_offaxis(
     cdef int max_depth = int(ceil(log2(max(Nsx, Nsy))))
     cdef int depth
 
-    print(f"{Nsx=} {Nsy=}")
-
     cdef np.ndarray[np.float64_t, ndim=3] stamp_arr = np.zeros((max_depth, Nsx, Nsy), dtype=float)
     cdef np.ndarray[np.uint8_t, ndim=3] stamp_mask_arr = np.zeros((max_depth, Nsx, Nsy), dtype=np.uint8)
     cdef np.float64_t[:, :, ::1] stamp = stamp_arr
     cdef np.uint8_t[:, :, ::1] stamp_mask = stamp_mask_arr
-
-    cdef np.float64_t[:, ::1] Xrot
-    Xp_center = np.array([0.5, 0.5, 0.5])
-    Xrot = np.dot(R, (Xp - Xp_center).T).T.copy() + Xp_center
 
     # Precompute the mip
     for depth in range(max_depth):
@@ -222,6 +212,7 @@ def add_cells_to_image_offaxis(
 
     # Iterate over all cells, applying the stamp
     cdef np.float64_t x, y, dx
+    cdef np.float64_t[:, ::1] rotation_view = np.ascontiguousarray(rotation)
 
     cdef np.float64_t w, q, cell_max_width, sq3
 
@@ -248,8 +239,16 @@ def add_cells_to_image_offaxis(
             w = weight[i]
             q = qty[i]
             cell_max_width = dx * sq3
-            x = Xrot[i, 0]
-            y = Xrot[i, 1]
+            x = (
+                rotation_view[0, 0] * Xp[i, 0] +
+                rotation_view[0, 1] * Xp[i, 1] +
+                rotation_view[0, 2] * Xp[i, 2]
+            ) + 0.5
+            y = (
+                rotation_view[1, 0] * Xp[i, 0] +
+                rotation_view[1, 1] * Xp[i, 1] +
+                rotation_view[1, 2] * Xp[i, 2]
+            ) + 0.5
 
             _add_cell_to_image_offaxis(
                 dx,
