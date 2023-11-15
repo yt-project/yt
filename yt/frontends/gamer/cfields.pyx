@@ -27,7 +27,7 @@ cdef np.float64_t gamma_eos_tb(np.float64_t kT, np.float64_t g) noexcept nogil:
 
 cdef np.float64_t cs_eos_tb(np.float64_t kT, np.float64_t c, np.float64_t g) noexcept nogil:
     cdef np.float64_t hp, cs2
-    hp = h_eos4(kT, 0.0) + 1.0
+    hp = h_eos_tb(kT, 0.0) + 1.0
     cs2 = kT / (3.0 * hp)
     cs2 *= (5.0 * hp - 8.0 * kT) / (hp - kT)
     return c * math.sqrt(cs2)
