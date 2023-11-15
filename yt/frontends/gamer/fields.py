@@ -62,10 +62,12 @@ class GAMERFieldInfo(FieldInfoContainer):
         if self.ds.srhd:
             c2 = pc.clight * pc.clight
             c = pc.clight.in_units("code_length / code_time")
-            if self.ds.eos == 4:
-                fgen = SRHDFields(self.ds.eos, 0.0, c.d)
-            else:
+            if self.ds.eos == 1:
+                # gamma-law EOS
                 fgen = SRHDFields(self.ds.eos, self.ds.gamma, c.d)
+            else:
+                # Taub-Mathews EOS
+                fgen = SRHDFields(self.ds.eos, 0.0, c.d)
 
             def _sound_speed(field, data):
                 out = fgen.sound_speed(data["gamer", "Temp"].d)
