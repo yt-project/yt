@@ -14,7 +14,7 @@ cimport cython
 from libc.math cimport ceil, floor, log2, sqrt
 from libc.stdlib cimport free, malloc
 
-from yt.utilities.lib.fp_utils cimport iclip
+from yt.utilities.lib.fp_utils cimport iclip, imin, imax, fclip, fmin, fmax
 from cython.parallel import prange, parallel
 
 @cython.wraparound(False)
@@ -41,6 +41,9 @@ def add_points_to_greyscale_image(
         buffer_mask[i, j] = 1
     return
 
+cdef inline int ij2idx(const int i, const int j, const int Nx) noexcept nogil:
+    return i * Nx + j
+
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -55,8 +58,8 @@ cdef void _add_cell_to_image_offaxis(
     const int Ny,
     const int Nsx,
     const int Nsy,
-    np.float64_t** buffer,
-    np.float64_t** buffer_weight,
+    np.float64_t* buffer,
+    np.float64_t* buffer_weight,
     const int max_depth,
     const np.float64_t[:, :, ::1] stamp,
     const np.uint8_t[:, :, ::1] stamp_mask,
@@ -74,28 +77,26 @@ cdef void _add_cell_to_image_offaxis(
     ry = y + cell_max_half_width
 
     # Compute the range of pixels that the cell may overlap
-    jmin = int(floor(lx * Nx))
-    if jmin < 0: jmin = 0
-    jmax = int(ceil(rx * Nx))
-    if jmax >= Nx: jmax = Nx - 1
+    jmin = imax(<int>floor(lx * Nx), 0)
+    jmax = imax(<int>ceil(rx * Nx), Nx - 1)
 
-    kmin = int(floor(ly * Ny))
-    if kmin < 0: kmin = 0
-    kmax = int(ceil(ry * Ny))
-    if kmax >= Ny: kmax = Ny - 1
+    kmin = imin(<int>floor(ly * Ny), 0)
+    kmax = imax(<int>ceil(ry * Ny), Ny - 1)
 
     # If the cell is fully within one pixel
     if (jmax == jmin + 1) and (kmax == kmin + 1):
-        buffer[jmin][kmin] += w * q * dx
-        buffer_weight[jmin][kmin] += w * dx
+        buffer[ij2idx(jmin, kmin, Nx)] += w * q * dx
+        buffer_weight[ij2idx(jmin, kmin, Nx)] += w * dx
         return
 
-    depth = int(ceil(log2(2 * sqrt(3) * dx * float(max(Nx, Ny)))))
-    if depth < 1: depth = 1
-    if depth >= max_depth: depth = max_depth - 1
+    depth = iclip(
+        <int> (ceil(log2(2 * sqrt(3) * dx * fmax(Nx, Ny)))),
+        1,
+        max_depth - 1,
+    )
 
-    jmax = min(Nsx, 1 << depth)
-    kmax = min(Nsy, 1 << depth)
+    jmax = imin(Nsx, 1 << depth)
+    kmax = imin(Nsy, 1 << depth)
 
     dx_loc = cell_max_width / jmax
     dy_loc = cell_max_width / kmax
@@ -106,12 +107,12 @@ cdef void _add_cell_to_image_offaxis(
         xx1 = ((j - jmax / 2.) * dx_loc + x) * Nx
         xx2 = ((j + 1 - jmax / 2.) * dx_loc + x) * Nx
 
-        jj1 = int(xx1)
-        jj2 = int(xx2)
+        jj1 = <int> xx1
+        jj2 = <int> xx2
         # The subcell is out of the projected area
         if jj2 < 0 or jj1 >= Nx: continue
 
-        dvx = max(0, min(1, (jj2 - xx1) / (xx2 - xx1)))
+        dvx = fclip((jj2 - xx1) / (xx2 - xx1), 0., 1.)
 
         for k in range(kmax):
             if stamp_mask[depth, j, k] == 0:
@@ -120,8 +121,8 @@ cdef void _add_cell_to_image_offaxis(
             yy1 = ((k - kmax / 2.) * dy_loc + y) * Ny
             yy2 = ((k + 1 - kmax / 2.) * dy_loc + y) * Ny
 
-            kk1 = int(yy1)
-            kk2 = int(yy2)
+            kk1 = <int> yy1
+            kk2 = <int> yy2
             # The subcell is out of the projected area
             if kk2 < 0 or kk1 >= Ny: continue
 
@@ -131,23 +132,23 @@ cdef void _add_cell_to_image_offaxis(
             sw =  stamp[depth, j, k] * w * dx
             swq = sw * q
 
-            dvy = max(0, min(1, (kk2 - yy1) / (yy2 - yy1)))
+            dvy = fclip((kk2 - yy1) / (yy2 - yy1), 0., 1.)
 
             if jj1 >= 0 and kk1 >= 0:
-                buffer[jj1][kk1]        += swq * dvx * dvy
-                buffer_weight[jj1][kk1] +=  sw * dvx * dvy
+                buffer[ij2idx(jj1, kk1, Nx)]        += swq * dvx * dvy
+                buffer_weight[ij2idx(jj1, kk1, Nx)] +=  sw * dvx * dvy
 
             if jj1 >= 0 and kk2 < Ny:
-                buffer[jj1][kk2]        += swq * dvx * (1 - dvy)
-                buffer_weight[jj1][kk2] +=  sw * dvx * (1 - dvy)
+                buffer[ij2idx(jj1, kk2, Nx)]        += swq * dvx * (1 - dvy)
+                buffer_weight[ij2idx(jj1, kk2, Nx)] +=  sw * dvx * (1 - dvy)
 
             if jj2 < Nx and kk1 >= 0:
-                buffer[jj2][kk1]        += swq * (1 - dvx) * dvy
-                buffer_weight[jj2][kk1] +=  sw * (1 - dvx) * dvy
+                buffer[ij2idx(jj2, kk1, Nx)]        += swq * (1 - dvx) * dvy
+                buffer_weight[ij2idx(jj2, kk1, Nx)] +=  sw * (1 - dvx) * dvy
 
             if jj2 < Nx and kk2 < Ny:
-                buffer[jj2][kk2]        += swq * (1 - dvx) * (1 - dvy)
-                buffer_weight[jj2][kk2] +=  sw * (1 - dvx) * (1 - dvy)
+                buffer[ij2idx(jj2, kk2, Nx)]        += swq * (1 - dvx) * (1 - dvy)
+                buffer_weight[ij2idx(jj2, kk2, Nx)] +=  sw * (1 - dvx) * (1 - dvy)
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -204,8 +205,8 @@ def add_cells_to_image_offaxis(
             c,
             stamp_arr[depth, :, :],
             stamp_mask_arr[depth, :, :],
-            min(1 << depth, Nsx),
-            min(1 << depth, Nsy),
+            imin(1 << depth, Nsx),
+            imin(1 << depth, Nsy),
         )
 
         stamp_arr[depth] /= np.sum(stamp[depth])
@@ -219,22 +220,19 @@ def add_cells_to_image_offaxis(
     sq3 = sqrt(3.)
 
     # Local buffers
-    cdef np.float64_t **lbuffer
-    cdef np.float64_t **lbuffer_weight
+    cdef np.float64_t *lbuffer
+    cdef np.float64_t *lbuffer_weight
 
     cdef int num_particles = len(Xp)
 
     with nogil, parallel():
-        lbuffer = <np.float64_t**> malloc(sizeof(np.float64_t*) * Nx)
-        lbuffer_weight = <np.float64_t**> malloc(sizeof(np.float64_t*) * Nx)
-        for j in range(Nx):
-            lbuffer[j] = <np.float64_t*> malloc(sizeof(np.float64_t) * Ny)
-            lbuffer_weight[j] = <np.float64_t*> malloc(sizeof(np.float64_t) * Ny)
-            for k in range(Ny):
-                lbuffer[j][k] = 0
-                lbuffer_weight[j][k] = 0
+        lbuffer = <np.float64_t*> malloc(sizeof(np.float64_t*) * Nx * Ny)
+        lbuffer_weight = <np.float64_t*> malloc(sizeof(np.float64_t*) * Nx * Ny)
+        for j in range(Nx * Ny):
+            lbuffer[j] = 0
+            lbuffer_weight[j] = 0
 
-        for i in prange(num_particles, schedule="static"):
+        for i in prange(num_particles, schedule="runtime"):
             dx = dXp[i]
             w = weight[i]
             q = qty[i]
@@ -272,12 +270,9 @@ def add_cells_to_image_offaxis(
         with gil:
             for j in range(Nx):
                 for k in range(Ny):
-                    buffer[j, k] += lbuffer[j][k]
-                    buffer_weight[j, k] += lbuffer_weight[j][k]
+                    buffer[j, k] += lbuffer[ij2idx(j, k, Nx)]
+                    buffer_weight[j, k] += lbuffer_weight[ij2idx(j, k, Nx)]
         # Free memory
-        for j in range(Nx):
-            free(lbuffer[j])
-            free(lbuffer_weight[j])
         free(lbuffer)
         free(lbuffer_weight)
 
@@ -287,6 +282,7 @@ cdef inline np.float64_t det2d(const np.float64_t[::1] a, const np.float64_t[::1
     return a[0] * b[1] - a[1] * b[0]
 
 @cython.cdivision(True)
+@cython.boundscheck(False)
 cdef bint check_in_parallelogram(
     const np.float64_t[::1] PA,
     const np.float64_t[::1] PQ,
@@ -335,8 +331,8 @@ cdef int direct_integrate_cube(
     cdef np.float64_t[::1] X = np.zeros(2)
     cdef np.float64_t[::1] OfrontA = np.zeros(2), ObackA = np.zeros(2)
 
-    cdef np.float64_t inv_dx = 1 / float(Nx)
-    cdef np.float64_t inv_dy = 1 / float(Ny)
+    cdef np.float64_t inv_dx = 1. / Nx
+    cdef np.float64_t inv_dy = 1. / Ny
     cdef np.float64_t[2] nm
     cdef bint within
     cdef np.float64_t[::1] all_z = np.empty(6)
@@ -356,22 +352,22 @@ cdef int direct_integrate_cube(
             within = check_in_parallelogram(OfrontA, v2d, u2d, 1, 1, nm)
             if within:
                 z = O[2] + nm[0] * u[2] + nm[1] * v[2]
-                zmin = min(z, zmin)
-                zmax = max(z, zmax)
+                zmin = fmin(z, zmin)
+                zmax = fmax(z, zmax)
                 Nhit += 1
 
             within = check_in_parallelogram(OfrontA, w2d, v2d, 1, 1, nm)
             if within:
                 z = O[2] + nm[0] * v[2] + nm[1] * w[2]
-                zmin = min(z, zmin)
-                zmax = max(z, zmax)
+                zmin = fmin(z, zmin)
+                zmax = fmax(z, zmax)
                 Nhit += 1
 
             within = check_in_parallelogram(OfrontA, w2d, u2d, 1, 1, nm)
             if within:
                 z = O[2] + nm[0] * u[2] + nm[1] * w[2]
-                zmin = min(z, zmin)
-                zmax = max(z, zmax)
+                zmin = fmin(z, zmin)
+                zmax = fmax(z, zmax)
                 Nhit += 1
 
             ObackA[0] = X[0] - Oback[0]
@@ -379,22 +375,22 @@ cdef int direct_integrate_cube(
             within = check_in_parallelogram(ObackA, v2d, u2d, -1, -1, nm)
             if within:
                 z = Oback[2] + nm[0] * u[2] + nm[1] * v[2]
-                zmin = min(z, zmin)
-                zmax = max(z, zmax)
+                zmin = fmin(z, zmin)
+                zmax = fmax(z, zmax)
                 Nhit += 1
 
             within = check_in_parallelogram(ObackA, w2d, v2d, -1, -1, nm)
             if within:
                 z = Oback[2] + nm[0] * v[2] + nm[1] * w[2]
-                zmin = min(z, zmin)
-                zmax = max(z, zmax)
+                zmin = fmin(z, zmin)
+                zmax = fmax(z, zmax)
                 Nhit += 1
 
             within = check_in_parallelogram(ObackA, w2d, u2d, -1, -1, nm)
             if within:
                 z = Oback[2] + nm[0] * u[2] + nm[1] * w[2]
-                zmin = min(z, zmin)
-                zmax = max(z, zmax)
+                zmin = fmin(z, zmin)
+                zmax = fmax(z, zmax)
                 Nhit += 1
 
             if Nhit == 0:
@@ -403,7 +399,7 @@ cdef int direct_integrate_cube(
                 raise RuntimeError("This should not happen")
             else:
                 buffer[i, j] += zmax - zmin
-                buffer_mask[i, j] |= 1
+                buffer_mask[i, j] = 1
 
 def add_points_to_image(
         np.ndarray[np.uint8_t, ndim=3] buffer,
