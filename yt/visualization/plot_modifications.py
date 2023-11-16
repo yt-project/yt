@@ -12,7 +12,7 @@ import numpy as np
 from unyt import unyt_quantity
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey, FieldKey
+from yt._typing import AnyFieldKey, FieldKey, Quantity
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
@@ -444,6 +444,9 @@ class VelocityCallback(PlotCallback):
         scale_units=None,
         normalize=False,
         plot_args=None,
+        threshold_field: Optional[FieldKey] = None,
+        lower_threshold: Optional[Quantity] = None,
+        upper_threshold: Optional[Quantity] = None,
         **kwargs,
     ):
         self.factor = _validate_factor_tuple(factor)
@@ -462,6 +465,14 @@ class VelocityCallback(PlotCallback):
             plot_args = kwargs
 
         self.plot_args = plot_args
+
+        if None not in (lower_threshold, upper_threshold):
+            threshold_field = self.field
+        else:
+            threshold_field = None  # Need to specify at least one value
+        self.threshold_field = threshold_field
+        self.lower_threshold = lower_threshold
+        self.upper_threshold = upper_threshold
 
     def __call__(self, plot) -> "BaseQuiverCallback":
         ftype = plot.data._current_fluid_type
@@ -553,6 +564,9 @@ class VelocityCallback(PlotCallback):
                 normalize=self.normalize,
                 bv_x=bv_x,
                 bv_y=bv_y,
+                threshold_field=self.threshold_field,
+                lower_threshold=self.lower_threshold,
+                upper_threshold=self.upper_threshold,
                 **self.plot_args,
             )
         return qcb(plot)
@@ -700,6 +714,9 @@ class BaseQuiverCallback(PlotCallback, ABC):
         scale_units=None,
         normalize=False,
         plot_args=None,
+        threshold_field: Optional[FieldKey] = None,
+        lower_threshold: Optional[Quantity] = None,
+        upper_threshold: Optional[Quantity] = None,
         **kwargs,
     ):
         self.field_x = field_x
@@ -721,6 +738,13 @@ class BaseQuiverCallback(PlotCallback, ABC):
             plot_args.update(kwargs)
 
         self.plot_args = plot_args
+        if upper_threshold is not None or lower_threshold is not None:
+            threshold_field = threshold_field or self.field
+        elif upper_threshold is None and lower_threshold is None:
+            threshold_field = None  # Need to specify at least one value
+        self.threshold_field = threshold_field
+        self.lower_threshold = lower_threshold
+        self.upper_threshold = upper_threshold
 
     @abstractmethod
     def _get_quiver_data(self, plot, bounds: tuple, nx: int, ny: int):
@@ -807,6 +831,9 @@ class QuiverCallback(BaseQuiverCallback):
         bv_x=0,
         bv_y=0,
         plot_args=None,
+        threshold_field: Optional[FieldKey] = None,
+        lower_threshold: Optional[Quantity] = None,
+        upper_threshold: Optional[Quantity] = None,
         **kwargs,
     ):
         super().__init__(
@@ -818,6 +845,9 @@ class QuiverCallback(BaseQuiverCallback):
             scale_units=scale_units,
             normalize=normalize,
             plot_args=plot_args,
+            threshold_field=threshold_field,
+            lower_threshold=lower_threshold,
+            upper_threshold=upper_threshold,
             **kwargs,
         )
         self.bv_x = bv_x
@@ -869,6 +899,25 @@ class QuiverCallback(BaseQuiverCallback):
             periodic,
         )
 
+        if self.threshold_field is not None:
+            pixT = plot.data.ds.coordinates.pixelize(
+                plot.data.axis,
+                plot.data,
+                self.threshold_field,
+                bounds,
+                (nx, ny),
+                False,  # antialias
+                periodic,
+            )
+            mask = np.ones(pixT.shape, dtype="bool")
+            if self.lower_threshold is not None:
+                np.logical_and(mask, pixT > self.lower_threshold, mask)
+            if self.upper_threshold is not None:
+                np.logical_and(mask, pixT < self.upper_threshold, mask)
+            mask = ~mask
+        else:
+            mask = None
+
         if self.field_c is not None:
             pixC = plot.data.ds.coordinates.pixelize(
                 plot.data.axis,
@@ -882,6 +931,11 @@ class QuiverCallback(BaseQuiverCallback):
         else:
             pixC = None
 
+        if mask is not None:
+            pixX[mask] = np.nan
+            pixY[mask] = np.nan
+            if pixC:
+                pixC[mask] = np.nan
         return pixX, pixY, pixC
 
 
