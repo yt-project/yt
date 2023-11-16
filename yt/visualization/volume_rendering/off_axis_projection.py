@@ -407,36 +407,24 @@ def off_axis_projection(
         else:
             weight_field = data_source[vol.weight_field]
 
-        buffer = np.zeros(resolution)
-        dumpster = np.zeros(resolution)
-        buffer_weight = np.zeros(resolution)
+        projected_weighted_qty = np.zeros(resolution)
+        projected_weight = np.zeros(resolution)
 
         add_cells_to_image_offaxis(
             Xp=xyz,
             dXp=dx,
             qty=data_source[vol.field],
-            weight=np.ones_like(dx),
+            weight=weight_field,
             rotation=camera.inv_mat.T,
-            buffer=buffer,
-            buffer_weight=dumpster,
-            Nx=resolution[0],
-            Ny=resolution[1],
-        )
-        dumpster *= 0
-        add_cells_to_image_offaxis(
-            Xp=xyz,
-            dXp=dx,
-            qty=data_source[vol.field] * weight_field,
-            weight=np.ones_like(dx),
-            rotation=camera.inv_mat.T,
-            buffer=buffer_weight,
-            buffer_weight=dumpster,
+            buffer=projected_weighted_qty,
+            buffer_weight=projected_weight,
             Nx=resolution[0],
             Ny=resolution[1],
         )
         image = ImageArray(
             data_source.ds.arr(
-                np.stack([buffer_weight, buffer], axis=-1), "dimensionless"
+                np.stack([projected_weighted_qty, projected_weight], axis=-1),
+                "dimensionless",
             ),
             funits,
             registry=data_source.ds.unit_registry,
