@@ -466,9 +466,9 @@ class VelocityCallback(PlotCallback):
 
         self.plot_args = plot_args
 
-        if None not in (lower_threshold, upper_threshold):
-            threshold_field = self.field
-        else:
+        if upper_threshold is not None or lower_threshold is not None:
+            threshold_field = threshold_field or self.field
+        elif upper_threshold is None and lower_threshold is None:
             threshold_field = None  # Need to specify at least one value
         self.threshold_field = threshold_field
         self.lower_threshold = lower_threshold
