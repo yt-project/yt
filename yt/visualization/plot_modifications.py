@@ -917,15 +917,18 @@ class QuiverCallback(BaseQuiverCallback):
             mask = None
 
         if self.field_c is not None:
-            pixC = plot.data.ds.coordinates.pixelize(
-                plot.data.axis,
-                plot.data,
-                self.field_c,
-                bounds,
-                (nx, ny),
-                False,  # antialias
-                periodic,
-            )
+            if self.field_c == self.threshold_field:
+                pixC = pixT
+            else:
+                pixC = plot.data.ds.coordinates.pixelize(
+                    plot.data.axis,
+                    plot.data,
+                    self.field_c,
+                    bounds,
+                    (nx, ny),
+                    False,  # antialias
+                    periodic,
+                )
         else:
             pixC = None
 
