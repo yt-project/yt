@@ -466,10 +466,9 @@ class VelocityCallback(PlotCallback):
 
         self.plot_args = plot_args
 
-        if upper_threshold is not None or lower_threshold is not None:
-            threshold_field = threshold_field or self.field
-        elif upper_threshold is None and lower_threshold is None:
-            threshold_field = None  # Need to specify at least one value
+        if upper_threshold is None and lower_threshold is None:
+            # Need to specify at least one value
+            threshold_field = None
         self.threshold_field = threshold_field
         self.lower_threshold = lower_threshold
         self.upper_threshold = upper_threshold
@@ -738,10 +737,9 @@ class BaseQuiverCallback(PlotCallback, ABC):
             plot_args.update(kwargs)
 
         self.plot_args = plot_args
-        if upper_threshold is not None or lower_threshold is not None:
-            threshold_field = threshold_field or self.field
-        elif upper_threshold is None and lower_threshold is None:
-            threshold_field = None  # Need to specify at least one value
+        if upper_threshold is None and lower_threshold is None:
+            # Need to specify at least one value
+            threshold_field = None
         self.threshold_field = threshold_field
         self.lower_threshold = lower_threshold
         self.upper_threshold = upper_threshold
