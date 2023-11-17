@@ -278,11 +278,13 @@ def add_cells_to_image_offaxis(
 
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 cdef inline np.float64_t det2d(const np.float64_t[::1] a, const np.float64_t[::1] b) noexcept nogil:
     return a[0] * b[1] - a[1] * b[0]
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
+@cython.wraparound(False)
 cdef bint check_in_parallelogram(
     const np.float64_t[::1] PA,
     const np.float64_t[::1] PQ,
