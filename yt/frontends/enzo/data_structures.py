@@ -666,7 +666,7 @@ class EnzoDataset(Dataset):
     Enzo-specific output, set at a fixed time.
     """
 
-    _load_requirements = ["h5py", "libconf"]
+    _load_requirements = ["h5py"]
     _index_class = EnzoHierarchy
     _field_info_class = EnzoFieldInfo
 
