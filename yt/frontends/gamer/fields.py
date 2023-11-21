@@ -292,7 +292,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                 if self.ds.mhd:
                     # magnetic_energy is a yt internal field
                     Et -= data["gas", "magnetic_energy_density"]
-                if self.ds.gamma_cr is not None:
+                if getattr(self.ds, "gamma_cr", None):
                     # cosmic rays are included in this dataset
                     Et -= data["gas", "cosmic_ray_energy_density"]
                 return Et
@@ -340,7 +340,7 @@ class GAMERFieldInfo(FieldInfoContainer):
             units=unit_system["pressure"],
         )
 
-        if self.ds.gamma_cr is not None:
+        if getattr(self.ds, "gamma_cr", None):
 
             def _cr_pressure(field, data):
                 return (data.ds.gamma_cr - 1.0) * data[
