@@ -66,9 +66,10 @@ cdef void _add_cell_to_image_offaxis(
 ) noexcept nogil:
     cdef np.float64_t lx, rx, ly, ry
     cdef int j, k, depth
-    cdef int jmin, jmax, kmin, kmax, jj1, jj2, kk1, kk2
+    cdef int jmin, jmax, kmin, kmax, jj1, jj2, kk1, kk2, itmp
     cdef np.float64_t cell_max_half_width = cell_max_width / 2
-    cdef np.float64_t xx1, xx2, yy1, yy2, dvx, dvy, sw, swq, dx_loc, dy_loc
+    cdef np.float64_t xx1, xx2, yy1, yy2, dvx, dvy, sw, sq, tmp, dx_loc, dy_loc
+    cdef np.float64_t dx3 = dx * dx * dx * Nx * Ny
 
     lx = x - cell_max_half_width
     rx = x + cell_max_half_width
@@ -85,12 +86,15 @@ cdef void _add_cell_to_image_offaxis(
 
     # If the cell is fully within one pixel
     if (jmax == jmin + 1) and (kmax == kmin + 1):
-        buffer[ij2idx(jmin, kmin, Nx)] += w * q * dx
-        buffer_weight[ij2idx(jmin, kmin, Nx)] += w * dx
+        buffer[ij2idx(jmin, kmin, Nx)]        += q * dx3
+        buffer_weight[ij2idx(jmin, kmin, Nx)] += w * dx3
         return
 
+    # Our 'stamp' has multiple resolutions, select the one
+    # that allow that is at a higher resolution than the pixel
+    # we are projecting onto with at least 4 pixels on the diagonal
     depth = iclip(
-        <int> (ceil(log2(2 * sqrt(3) * dx * fmax(Nx, Ny)))),
+        <int> (ceil(log2(4 * sqrt(3) * dx * fmax(Nx, Ny)))),
         1,
         max_depth - 1,
     )
@@ -129,26 +133,36 @@ cdef void _add_cell_to_image_offaxis(
             # with gil:
             #     print(f"{j=} {k=} {xx1=} {xx2=} {yy1=} {yy2=} {jj1=} {jj2=} {kk1=} {kk2=}")
 
-            sw =  stamp[depth, j, k] * w * dx
-            swq = sw * q
+            tmp = stamp[depth, j, k] * dx3
+
+            sw = tmp * w
+            sq = tmp * q
 
             dvy = fclip((kk2 - yy1) / (yy2 - yy1), 0., 1.)
 
             if jj1 >= 0 and kk1 >= 0:
-                buffer[ij2idx(jj1, kk1, Nx)]        += swq * dvx * dvy
-                buffer_weight[ij2idx(jj1, kk1, Nx)] +=  sw * dvx * dvy
+                tmp = dvx * dvy
+                itmp = ij2idx(jj1, kk1, Nx)
+                buffer[itmp]        += sq * tmp
+                buffer_weight[itmp] += sw * tmp
 
             if jj1 >= 0 and kk2 < Ny:
-                buffer[ij2idx(jj1, kk2, Nx)]        += swq * dvx * (1 - dvy)
-                buffer_weight[ij2idx(jj1, kk2, Nx)] +=  sw * dvx * (1 - dvy)
+                tmp = dvx * (1 - dvy)
+                itmp = ij2idx(jj1, kk2, Nx)
+                buffer[itmp]        += sq * tmp
+                buffer_weight[itmp] += sw * tmp
 
             if jj2 < Nx and kk1 >= 0:
-                buffer[ij2idx(jj2, kk1, Nx)]        += swq * (1 - dvx) * dvy
-                buffer_weight[ij2idx(jj2, kk1, Nx)] +=  sw * (1 - dvx) * dvy
+                tmp = (1 - dvx) * dvy
+                itmp = ij2idx(jj2, kk1, Nx)
+                buffer[itmp]        += sq * tmp
+                buffer_weight[itmp] += sw * tmp
 
             if jj2 < Nx and kk2 < Ny:
-                buffer[ij2idx(jj2, kk2, Nx)]        += swq * (1 - dvx) * (1 - dvy)
-                buffer_weight[ij2idx(jj2, kk2, Nx)] +=  sw * (1 - dvx) * (1 - dvy)
+                tmp = (1 - dvx) * (1 - dvy)
+                itmp = ij2idx(jj2, kk2, Nx)
+                buffer[itmp]        += sq * tmp
+                buffer_weight[itmp] += sw * tmp
 
 @cython.boundscheck(False)
 @cython.cdivision(True)

@@ -393,14 +393,20 @@ def off_axis_projection(
         fields.append(("index", "dx"))
 
         data_source.get_data(fields)
+        # We need the width of the plot window in projected coordinates,
+        # i.e. we ignore the z-component
+        wmax = width[:2].max()
+
+        # Normalize the positions & dx so that they are in the range [-0.5, 0.5]
         xyz = np.stack(
             [
-                ((data_source["index", k] - center[i]) / width[i]).to("1").d
+                ((data_source["index", k] - center[i]) / wmax).to("1").d
                 for i, k in enumerate("xyz")
             ],
             axis=-1,
         )
-        dx = (data_source["index", "dx"] / width.max()).to("1").d
+
+        dx = (data_source["index", "dx"] / wmax).to("1").d
 
         if vol.weight_field is None:
             weight_field = np.ones_like(dx)
