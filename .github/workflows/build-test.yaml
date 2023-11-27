@@ -27,7 +27,7 @@ jobs:
           windows-latest,
           ubuntu-latest,
         ]
-        python-version: ['3.11']
+        python-version: ['3.12']
         dependencies: [full]
         tests-type: [unit]
         test-runner: [pytest]
@@ -54,11 +54,8 @@ jobs:
             tests-type: answer
             test-runner: nose
           - os: ubuntu-latest
-            # minimal tests with Python 3.12 and no optional dependencies
-            # TODO: when all optional dependencies are compatibles,
-            # remove this and bump 3.11 -> 3.12 on all arch with 'full' dependencies
-            # see https://github.com/yt-project/yt/issues/4689
-            python-version: '3.12'
+            # minimal tests with latest Python and no optional dependencies
+            python-version: '3.x'
             dependencies: ''
             tests-type: unit
             test-runner: pytest

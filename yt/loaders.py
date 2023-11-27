@@ -1588,7 +1588,15 @@ def _get_sample_data(
                     if not is_within_directory(path, member_path):
                         raise Exception("Attempted Path Traversal in Tar File")
 
-                tar.extractall(path, members, numeric_owner=numeric_owner)
+                if sys.version_info >= (3, 12):
+                    # the filter argument is new in Python 3.12, but not specifying it
+                    # explicitly raises a deprecation warning on 3.12 and 3.13
+                    extractall_kwargs = {"filter": "data"}
+                else:
+                    extractall_kwargs = {}
+                tar.extractall(
+                    path, members, numeric_owner=numeric_owner, **extractall_kwargs
+                )
 
             safe_extract(fh, save_dir)
         os.remove(tmp_file)
