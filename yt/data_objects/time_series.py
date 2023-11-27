@@ -2,11 +2,10 @@ import functools
 import glob
 import inspect
 import os
-import typing
 import weakref
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 import numpy as np
 from more_itertools import always_iterable
@@ -30,7 +29,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_root_only,
 )
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from yt.data_objects.static_output import Dataset
 
 
