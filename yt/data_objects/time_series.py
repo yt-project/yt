@@ -471,9 +471,9 @@ class DatasetSeries:
 
         # Use a binary search to find the closest value
         iL = 0
-        iH = len(self._pre_outputs) - 1
+        iR = len(self._pre_outputs) - 1
 
-        if iL == iH:
+        if iL == iR:
             ds = self[0]
             if (
                 tolerance is not None
@@ -486,17 +486,17 @@ class DatasetSeries:
 
         # Check signedness
         dsL = self[iL]
-        dsH = self[iH]
+        dsR = self[iR]
         vL = getattr(dsL, attribute)
-        vH = getattr(dsH, attribute)
+        vR = getattr(dsR, attribute)
 
-        if vL < vH:
+        if vL < vR:
             sign = 1
-        elif vL > vH:
+        elif vL > vR:
             sign = -1
         else:
             raise ValueError(
-                f"{dsL} and {dsH} have both {attribute}={vL}, cannot perform search. "
+                f"{dsL} and {dsR} have both {attribute}={vL}, cannot perform search."
                 "Try with another key."
             )
 
@@ -506,33 +506,33 @@ class DatasetSeries:
             tolerance = dsL.quan(*tolerance)
 
         # Short-circuit if value is out-of-range
-        if not (vL * sign < value * sign < vH * sign):
-            iL = iH = 0
+        if not (vL * sign < value * sign < vR * sign):
+            iL = iR = 0
 
-        while iH - iL > 1:
-            iM = (iH + iL) // 2
+        while iR - iL > 1:
+            iM = (iR + iL) // 2
             dsM = self[iM]
             vM = getattr(dsM, attribute)
             if sign * value < sign * vM:
-                iH = iM
-                dsH = dsM
+                iR = iM
+                dsR = dsM
             elif sign * value > sign * vM:
                 iL = iM
                 dsL = dsM
             else:  # Exact match
-                dsL = dsH = dsM
+                dsL = dsR = dsM
                 break
 
         if side == "smaller":
-            ds_best = dsL if sign > 0 else dsH
+            ds_best = dsL if sign > 0 else dsR
         elif side == "larger":
-            ds_best = dsH if sign > 0 else dsL
+            ds_best = dsR if sign > 0 else dsL
         elif abs(value - getattr(dsL, attribute)) < abs(
-            value - getattr(dsH, attribute)
+            value - getattr(dsR, attribute)
         ):
             ds_best = dsL
         else:
-            ds_best = dsH
+            ds_best = dsR
 
         if tolerance is not None:
             if abs(value - getattr(ds_best, attribute)) > tolerance:
