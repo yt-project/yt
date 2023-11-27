@@ -37,7 +37,7 @@ def test_no_match_pattern():
 
 @pytest.fixture
 def FakeDataset():
-    class __FakeDataset(Dataset):
+    class _FakeDataset(Dataset):
         """A minimal loadable fake dataset subclass"""
 
         def __init__(self, *args, **kwargs):
@@ -66,9 +66,9 @@ def FakeDataset():
             return
 
     try:
-        yield __FakeDataset
+        yield _FakeDataset
     finally:
-        output_type_registry.pop("__FakeDataset")
+        output_type_registry.pop("_FakeDataset")
 
 
 @pytest.fixture
