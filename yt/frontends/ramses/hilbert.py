@@ -127,7 +127,7 @@ def get_cpu_list(
         # Finish recursion
         return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]))
 
-    # # If the current cell is fully within the selected region, stop recursion
+    # If the current cell is fully within the selected region, stop recursion
     if fully_contains(region.selector, LE, dx):
         return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]))
 
