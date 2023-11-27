@@ -546,7 +546,7 @@ class DatasetSeries:
         time: Union[unyt_quantity, tuple[float, Union[Unit, str]]],
         tolerance: Union[None, unyt_quantity, tuple[float, Union[Unit, str]]] = None,
         prefer: Literal["nearest", "smaller", "larger"] = "nearest",
-    ) -> Dataset:
+    ) -> "Dataset":
         """
         Get a dataset at or near to a given time.
 
@@ -578,7 +578,7 @@ class DatasetSeries:
         redshift: float,
         tolerance: Optional[float] = None,
         prefer: Literal["nearest", "smaller", "larger"] = "nearest",
-    ) -> Dataset:
+    ) -> "Dataset":
         """
         Get a dataset at or near to a given time.
 
