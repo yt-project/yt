@@ -179,8 +179,8 @@ class RAMSESDomainFile:
     _hydro_offset = None
     _level_count = None
 
-    oct_handler_initialized = False
-    amr_header_initialized = False
+    _oct_handler_initialized = False
+    _amr_header_initialized = False
 
     def __init__(self, ds, domain_id):
         self.ds = ds
@@ -251,7 +251,7 @@ class RAMSESDomainFile:
         return f
 
     def _read_amr_header(self):
-        if self.amr_header_initialized:
+        if self._amr_header_initialized:
             return
         hvals = {}
         with self.amr_file as f:
@@ -305,7 +305,7 @@ class RAMSESDomainFile:
         imin, imax = self.ds.min_level, self._amr_header["nlevelmax"]
         self._total_oct_count = hvals["numbl"][imin:imax, :].sum(axis=0)
 
-        self.amr_header_initialized = True
+        self._amr_header_initialized = True
 
     @property
     def ngridbound(self):
@@ -381,7 +381,7 @@ class RAMSESDomainFile:
                 f" does not match the expected number {self.max_level}."
             )
         self.max_level = new_max_level
-        self.oct_handler_initialized = True
+        self._oct_handler_initialized = True
 
         return oct_handler
 
@@ -675,7 +675,7 @@ class RAMSESIndex(OctreeIndex):
                     if dom.domain_id not in idoms:
                         continue
                     # If the domain has its oct handler, refine the selection
-                    if dom.oct_handler_initialized and not dom.included(dobj.selector):
+                    if dom._oct_handler_initialized and not dom.included(dobj.selector):
                         continue
                     mylog.debug("Identified domain %s", dom.domain_id)
 
