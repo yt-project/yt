@@ -90,8 +90,8 @@ select an output based on its time or by its redshift (if defined) as follows:
    # This will fail if no output is found within 100 Myr
    ds = ts.get_by_time((3, "Gyr"), tolerance=(100, "Myr"))
    # Get the output at the time right before and after 3 Gyr
-   ds_before = ts.get_by_time((3, "Gyr"), side="smaller")
-   ds_after = ts.get_by_time((3, "Gyr"), side="larger")
+   ds_before = ts.get_by_time((3, "Gyr"), prefer="smaller")
+   ds_after = ts.get_by_time((3, "Gyr"), prefer="larger")
 
    # For cosmological simulations, you can also select an output by its redshift
    # with the same options as above

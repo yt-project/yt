@@ -441,32 +441,32 @@ class DatasetSeries:
         attribute: str,
         value: Union[unyt_quantity, tuple[float, Union[Unit, str]]],
         tolerance: Union[None, unyt_quantity, tuple[float, Union[Unit, str]]] = None,
-        side: Literal["nearest", "smaller", "larger"] = "nearest",
+        prefer: Literal["nearest", "smaller", "larger"] = "nearest",
     ) -> "Dataset":
         r"""
         Get a dataset at or near to a given value.
 
         Parameters
         ----------
-        key : str
+        attribute : str
             The key by which to retrieve an output, usually 'current_time' or
             'current_redshift'. The key must be an attribute of the dataset
             and monotonic.
-        value : unyt_array or (value, unit)
+        value : unyt_quantity or (value, unit)
             The value to search for.
-        tolerance : unyt_array or (value, unit)
+        tolerance : unyt_quantity or (value, unit), optional
             If not None, do not return a dataset unless the value is
             within the tolerance value. If None, simply return the
             nearest dataset.
             Default: None.
-        side : str
+        prefer : str
             The side of the value to return. Can be 'nearest', 'smaller' or 'larger'.
             Default: 'nearest'.
         """
 
-        if side not in ("nearest", "smaller", "larger"):
+        if prefer not in ("nearest", "smaller", "larger"):
             raise ValueError(
-                f"side must be 'nearest', 'smaller' or 'larger', got {side}"
+                f"side must be 'nearest', 'smaller' or 'larger', got {prefer}"
             )
 
         # Use a binary search to find the closest value
@@ -523,9 +523,9 @@ class DatasetSeries:
                 dsL = dsR = dsM
                 break
 
-        if side == "smaller":
+        if prefer == "smaller":
             ds_best = dsL if sign > 0 else dsR
-        elif side == "larger":
+        elif prefer == "larger":
             ds_best = dsR if sign > 0 else dsL
         elif abs(value - getattr(dsL, attribute)) < abs(
             value - getattr(dsR, attribute)
@@ -545,7 +545,7 @@ class DatasetSeries:
         self,
         time: Union[unyt_quantity, tuple[float, Union[Unit, str]]],
         tolerance: Union[None, unyt_quantity, tuple[float, Union[Unit, str]]] = None,
-        side: Literal["nearest", "smaller", "larger"] = "nearest",
+        prefer: Literal["nearest", "smaller", "larger"] = "nearest",
     ) -> Dataset:
         """
         Get a dataset at or near to a given time.
@@ -559,7 +559,7 @@ class DatasetSeries:
             within the tolerance value. If None, simply return the
             nearest dataset.
             Default: None.
-        side : str
+        prefer : str
             The side of the value to return. Can be 'nearest', 'smaller' or 'larger'.
             Default: 'nearest'.
 
@@ -570,14 +570,14 @@ class DatasetSeries:
         ... ds = ts.get_by_time(t, tolerance=(100, "Myr"))
         """
         return self._get_by_attribute(
-            "current_time", time, tolerance=tolerance, side=side
+            "current_time", time, tolerance=tolerance, prefer=prefer
         )
 
     def get_by_redshift(
         self,
         redshift: float,
         tolerance: Optional[float] = None,
-        side: Literal["nearest", "smaller", "larger"] = "nearest",
+        prefer: Literal["nearest", "smaller", "larger"] = "nearest",
     ) -> Dataset:
         """
         Get a dataset at or near to a given time.
@@ -591,7 +591,7 @@ class DatasetSeries:
             within the tolerance value. If None, simply return the
             nearest dataset.
             Default: None.
-        side : str
+        prefer : str
             The side of the value to return. Can be 'nearest', 'smaller' or 'larger'.
             Default: 'nearest'.
 
@@ -600,7 +600,7 @@ class DatasetSeries:
         >>> ds = ts.get_by_redshift(0.0)
         """
         return self._get_by_attribute(
-            "current_redshift", redshift, tolerance=tolerance, side=side
+            "current_redshift", redshift, tolerance=tolerance, prefer=prefer
         )
 
 
