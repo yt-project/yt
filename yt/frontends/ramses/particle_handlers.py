@@ -153,9 +153,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
 
         flen = os.path.getsize(self.fname)
         with FortranFile(self.fname) as fd:
-            hvals = {}
-            attrs = self.attrs
-            hvals.update(fd.read_attrs(attrs))
+            hvals = dict(fd.read_attrs(self.attrs))
             particle_field_pos = fd.tell()
 
         self.header = hvals
