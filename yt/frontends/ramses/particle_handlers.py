@@ -110,7 +110,6 @@ _default_dtypes: dict[int, str] = {
     2: "h",  # short,
     4: "f",  # float
     8: "d",  # double
-    # 16: np.float128,  # double double precision
 }
 
 
