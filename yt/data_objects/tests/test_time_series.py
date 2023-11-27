@@ -2,7 +2,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from numpy.testing import assert_raises
 
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import DatasetSeries
@@ -30,9 +29,8 @@ def test_pattern_expansion():
 def test_no_match_pattern():
     with tempfile.TemporaryDirectory() as tmpdir:
         pattern = Path(tmpdir).joinpath("fake_data_file_*")
-        assert_raises(
-            FileNotFoundError, DatasetSeries._get_filenames_from_glob_pattern, pattern
-        )
+        with pytest.raises(FileNotFoundError):
+            DatasetSeries._get_filenames_from_glob_pattern(pattern)
 
 
 @pytest.fixture
@@ -105,10 +103,12 @@ def test_init_fake_dataseries(fake_datasets):
     assert ts._pre_outputs == pfile_list
 
     # rejected input type (str repr of a list) "[file1, file2, ...]"
-    assert_raises(FileNotFoundError, DatasetSeries, str(file_list))
+    with pytest.raises(FileNotFoundError):
+        DatasetSeries(str(file_list))
 
     # finally, check that ts[0] fails to actually load
-    assert_raises(YTUnidentifiedDataType, ts.__getitem__, 0)
+    with pytest.raises(YTUnidentifiedDataType):
+        ts[0]
 
 
 def test_init_fake_dataseries2(FakeDataset, fake_datasets):
@@ -118,7 +118,8 @@ def test_init_fake_dataseries2(FakeDataset, fake_datasets):
 
     ts = DatasetSeries(pattern, my_unsupported_kwarg=None)
 
-    assert_raises(TypeError, ts.__getitem__, 0)
+    with pytest.raises(TypeError):
+        ts[0]
 
 
 def test_get_by_key(FakeDataset, fake_datasets):
