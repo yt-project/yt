@@ -10,7 +10,7 @@ from typing import Literal, Optional, Union
 
 import numpy as np
 from more_itertools import always_iterable
-from unyt import unyt_quantity
+from unyt import Unit, unyt_quantity
 
 from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
@@ -444,11 +444,9 @@ class DatasetSeries:
     def _get_by_attribute(
         self,
         attribute: str,
-        value: Union[unyt_quantity, tuple[float, str]],
-        tolerance: Union[None, unyt_quantity, tuple[float, str]] = None,
-        side: Union[
-            Literal["nearest"], Literal["smaller"], Literal["larger"]
-        ] = "nearest",
+        value: Union[unyt_quantity, tuple[float, Union[Unit, str]]],
+        tolerance: Union[None, unyt_quantity, tuple[float, Union[Unit, str]]] = None,
+        side: Literal["nearest", "smaller", "larger"] = "nearest",
     ) -> "Dataset":
         r"""
         Get a dataset at or near to a given value.
@@ -550,12 +548,10 @@ class DatasetSeries:
 
     def get_by_time(
         self,
-        time: Union[unyt_quantity, tuple],
-        tolerance: Union[None, unyt_quantity, tuple] = None,
-        side: Union[
-            Literal["nearest"], Literal["smaller"], Literal["larger"]
-        ] = "nearest",
-    ):
+        time: Union[unyt_quantity, tuple[float, Union[Unit, str]]],
+        tolerance: Union[None, unyt_quantity, tuple[float, Union[Unit, str]]] = None,
+        side: Literal["nearest", "smaller", "larger"] = "nearest",
+    ) -> Dataset:
         """
         Get a dataset at or near to a given time.
 
@@ -586,10 +582,8 @@ class DatasetSeries:
         self,
         redshift: float,
         tolerance: Optional[float] = None,
-        side: Union[
-            Literal["nearest"], Literal["smaller"], Literal["larger"]
-        ] = "nearest",
-    ):
+        side: Literal["nearest", "smaller", "larger"] = "nearest",
+    ) -> Dataset:
         """
         Get a dataset at or near to a given time.
 
