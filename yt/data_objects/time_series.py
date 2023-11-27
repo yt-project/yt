@@ -466,7 +466,7 @@ class DatasetSeries:
 
         if prefer not in ("nearest", "smaller", "larger"):
             raise ValueError(
-                f"side must be 'nearest', 'smaller' or 'larger', got {prefer}"
+                f"Side must be 'nearest', 'smaller' or 'larger', got {prefer}."
             )
 
         # Use a binary search to find the closest value
@@ -497,7 +497,6 @@ class DatasetSeries:
         else:
             raise ValueError(
                 f"{dsL} and {dsR} have both {attribute}={vL}, cannot perform search."
-                "Try with another key."
             )
 
         if isinstance(value, tuple):
