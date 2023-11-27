@@ -107,7 +107,7 @@ def hilbert3d(
     return order
 
 
-def get_cpu_list(
+def get_intersecting_cpus(
     ds,
     region: YTRegion,
     LE: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
@@ -143,7 +143,9 @@ def get_cpu_list(
                 LE_new = LE + np.array([i, j, k], dtype="d") * dx
 
                 if bbox_intersects(region.selector, LE_new, dx):
-                    ret.update(get_cpu_list(ds, region, LE_new, dx, dx_cond, factor))
+                    ret.update(
+                        get_intersecting_cpus(ds, region, LE_new, dx, dx_cond, factor)
+                    )
     return ret
 
 

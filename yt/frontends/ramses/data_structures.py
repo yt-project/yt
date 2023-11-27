@@ -32,7 +32,7 @@ from .definitions import (
 )
 from .field_handlers import get_field_handlers
 from .fields import _X, RAMSESFieldInfo
-from .hilbert import get_cpu_list
+from .hilbert import get_intersecting_cpus
 from .io_utils import fill_hydro, read_amr
 from .particle_handlers import get_particle_handlers
 
@@ -618,7 +618,7 @@ class RAMSESIndex(OctreeIndex):
 
     def _initialize_oct_handler(self):
         if self.ds._bbox is not None:
-            cpu_list = get_cpu_list(self.dataset, self.dataset._bbox)
+            cpu_list = get_intersecting_cpus(self.dataset, self.dataset._bbox)
         else:
             cpu_list = range(self.dataset["ncpu"])
 
@@ -666,7 +666,9 @@ class RAMSESIndex(OctreeIndex):
         )
         if getattr(dobj, "_chunk_info", None) is None:
             if use_fast_hilbert:
-                idoms = {idom + 1 for idom in get_cpu_list(self.ds, dobj, factor=3)}
+                idoms = {
+                    idom + 1 for idom in get_intersecting_cpus(self.ds, dobj, factor=3)
+                }
                 # If the oct handler has been initialized, use it
                 domains = []
                 for dom in self.domains:
