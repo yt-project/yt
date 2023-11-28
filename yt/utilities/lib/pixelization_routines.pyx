@@ -558,6 +558,7 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                       extents,
                       *,
                       int return_mask=0,
+                      offset=None,
 ):
 
     cdef np.float64_t x, y, dx, dy, r0, theta0
@@ -566,7 +567,11 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
     cdef int i, i1, pi, pj
-
+    cdef np.float64_t voff[3]
+    if offset is None:
+        voff[0] = voff[1] = voff[2] = 0.0
+    else:
+        voff[0], voff[1], voff[2] = offset
     cdef int imin, imax
     imin = np.asarray(radius).argmin()
     imax = np.asarray(radius).argmax()
@@ -612,8 +617,8 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     r_inc = 0.5 * fmin(dx, dy)
 
     for i in range(radius.shape[0]):
-        r0 = radius[i]
-        theta0 = theta[i]
+        r0 = radius[i] + voff[0]
+        theta0 = theta[i] + voff[1]
         dr_i = dradius[i]
         dtheta_i = dtheta[i]
         # Skip out early if we're offsides, for zoomed in plots

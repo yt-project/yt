@@ -3,6 +3,8 @@ cdef class SliceSelector(SelectorObject):
     cdef public np.float64_t coord
     cdef public int ax, ay
     cdef public int reduced_dimensionality
+    cdef np.float64_t _offset[3]
+    cdef object offset
 
     def __init__(self, dobj):
         self.axis = dobj.axis
@@ -15,9 +17,19 @@ cdef class SliceSelector(SelectorObject):
             self.reduced_dimensionality = 1
         else:
             self.reduced_dimensionality = 0
+        self.offset = getattr(dobj, "offset", [0, 0, 0])
 
         self.ax = (self.axis+1) % 3
         self.ay = (self.axis+2) % 3
+
+    @property
+    def offset(self):
+        return tuple(self._offset[i] for i in range(3))
+
+    @offset.setter
+    def offset(self, value):
+        for i in range(3):
+            self._offset[i] = value[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -44,7 +56,7 @@ cdef class SliceSelector(SelectorObject):
             for i in range(3):
                 if i == self.axis:
                     icoord = <np.uint64_t>(
-                        (self.coord - gobj.LeftEdge.d[i])/gobj.dds[i])
+                        (self.coord - (gobj.LeftEdge.d[i] + self._offset[i]))/gobj.dds[i])
                     # clip coordinate to avoid seg fault below if we're
                     # exactly at a grid boundary
                     ind[i][0] = iclip(
@@ -69,8 +81,8 @@ cdef class SliceSelector(SelectorObject):
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         if self.reduced_dimensionality == 1:
             return 1
-        if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
-           and pos[self.axis] - 0.5*dds[self.axis] - grid_eps <= self.coord:
+        if (pos[self.axis] + self._offset[self.axis]) + 0.5*dds[self.axis] > self.coord \
+           and (pos[self.axis] + self._offset[self.axis]) - 0.5*dds[self.axis] - grid_eps <= self.coord:
             return 1
         return 0
 
@@ -85,7 +97,7 @@ cdef class SliceSelector(SelectorObject):
         if self.reduced_dimensionality == 1:
             return 1
         cdef np.float64_t dist = self.periodic_difference(
-            pos[self.axis], self.coord, self.axis)
+            pos[self.axis] + self._offset[self.axis], self.coord, self.axis)
         if dist*dist < radius*radius:
             return 1
         return 0
@@ -97,7 +109,7 @@ cdef class SliceSelector(SelectorObject):
                                np.float64_t right_edge[3]) noexcept nogil:
         if self.reduced_dimensionality == 1:
             return 1
-        if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
+        if (left_edge[self.axis] + self._offset[self.axis]) - grid_eps <= self.coord < (right_edge[self.axis] + self._offset[self.axis]):
             return 1
         return 0
 
@@ -108,15 +120,16 @@ cdef class SliceSelector(SelectorObject):
                                np.float64_t right_edge[3]) noexcept nogil:
         if self.reduced_dimensionality == 1:
             return 2
-        if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
+        if (left_edge[self.axis] + self._offset[self.axis]) - grid_eps <= self.coord < (right_edge[self.axis] + self._offset[self.axis]):
             return 2 # a box with non-zero volume can't be inside a plane
         return 0
 
     def _hash_vals(self):
         return (("axis", self.axis),
-                ("coord", self.coord))
+                ("coord", self.coord),
+                ("offset", self.offset))
 
     def _get_state_attnames(self):
-        return ("axis", "coord", "ax", "ay", "reduced_dimensionality")
+        return ("axis", "coord", "ax", "ay", "reduced_dimensionality", "offset")
 
 slice_selector = SliceSelector
