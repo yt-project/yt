@@ -109,15 +109,22 @@ class GAMERFieldInfo(FieldInfoContainer):
                 )
 
             # lorentz factor
-            def _lorentz_factor(field, data):
-                out = fgen.lorentz_factor(
-                    data["gamer", "Dens"].d,
-                    data["gamer", "MomX"].d,
-                    data["gamer", "MomY"].d,
-                    data["gamer", "MomZ"].d,
-                    data["gamer", "Temp"].d,
-                )
-                return data.ds.arr(out, "dimensionless")
+            if ("gamer", "Lrtz") in self.field_list:
+
+                def _lorentz_factor(field, data):
+                    return data["gamer", "Lrtz"]
+
+            else:
+
+                def _lorentz_factor(field, data):
+                    out = fgen.lorentz_factor(
+                        data["gamer", "Dens"].d,
+                        data["gamer", "MomX"].d,
+                        data["gamer", "MomY"].d,
+                        data["gamer", "MomZ"].d,
+                        data["gamer", "Temp"].d,
+                    )
+                    return data.ds.arr(out, "dimensionless")
 
             self.add_field(
                 ("gas", "lorentz_factor"),
@@ -128,16 +135,27 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # velocity
             def velocity_xyz(v):
-                def _velocity(field, data):
-                    out = fgen.velocity_xyz(
-                        data["gamer", "Dens"].d,
-                        data["gamer", "MomX"].d,
-                        data["gamer", "MomY"].d,
-                        data["gamer", "MomZ"].d,
-                        data["gamer", "Temp"].d,
-                        data["gamer", f"Mom{v.upper()}"].d,
-                    )
-                    return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
+                if ("gamer", f"Vel{v.upper()}") in self.field_list:
+
+                    def _velocity(field, data):
+                        return data.ds.arr(data["gamer", f"Vel{v.upper()}"].d, "c").to(
+                            unit_system["velocity"]
+                        )
+
+                else:
+
+                    def _velocity(field, data):
+                        out = fgen.velocity_xyz(
+                            data["gamer", "Dens"].d,
+                            data["gamer", "MomX"].d,
+                            data["gamer", "MomY"].d,
+                            data["gamer", "MomZ"].d,
+                            data["gamer", "Temp"].d,
+                            data["gamer", f"Mom{v.upper()}"].d,
+                        )
+                        return data.ds.arr(out, "code_velocity").to(
+                            unit_system["velocity"]
+                        )
 
                 return _velocity
 
