@@ -47,6 +47,12 @@ def convert_ramses_conformal_time_to_physical_age(
     physical_age : np.ndarray
         The physical age in code units
     """
+    h0 = ds.hubble_constant
+    tau_bins = ds.tau_frw * h0
+    t_bins = ds.t_frw
+
+    return ds.arr(np.interp(conformal_time, tau_bins, t_bins, right=0.0), t_bins.units)
+
     tf = ds.t_frw
     dtau = ds.dtau
     tauf = ds.tau_frw
@@ -72,7 +78,7 @@ def convert_ramses_conformal_time_to_physical_age(
     return (tsim - t) * t_scale
 
 
-def _ramses_particle_binary_file_handler(particle, subset, fields, count):
+def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count):
     """General file handler for binary file, called by _read_particle_subset
 
     Parameters
@@ -88,10 +94,9 @@ def _ramses_particle_binary_file_handler(particle, subset, fields, count):
     """
     tr = {}
     ds = subset.domain.ds
-    current_time = ds.current_time.in_units("code_time").v
-    foffsets = particle.field_offsets
-    fname = particle.fname
-    data_types = particle.field_types
+    foffsets = particle_handler.field_offsets
+    fname = particle_handler.fname
+    data_types = particle_handler.field_types
     with FortranFile(fname) as fd:
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
@@ -100,24 +105,23 @@ def _ramses_particle_binary_file_handler(particle, subset, fields, count):
             if count == 0:
                 tr[field] = np.empty(0, dtype=data_types[field])
                 continue
-            fd.seek(foffsets[field])
-            dt = data_types[field]
-            tr[field] = fd.read_vector(dt)
+            # Sentinel value: -1 means we don't have this field
+            if foffsets[field] == -1:
+                tr[field] = np.empty(count, dtype=data_types[field])
+            else:
+                fd.seek(foffsets[field])
+                dt = data_types[field]
+                tr[field] = fd.read_vector(dt)
             if field[1].startswith("particle_position"):
                 np.divide(tr[field], ds["boxlen"], tr[field])
-            if ds.cosmological_simulation and field[1] == "particle_birth_time":
-                conformal_time = tr[field]
-                physical_age = convert_ramses_conformal_time_to_physical_age(
-                    ds, conformal_time
-                )
-                tr[field] = current_time - physical_age
-                # arbitrarily set particles with zero conformal_age to zero
-                # particle_age. This corresponds to DM particles.
-                tr[field][conformal_time == 0] = 0
+
+            # Handle over to field handler for special cases, like particle_birth_times
+            particle_handler.handle_field(field, tr)
+
     return tr
 
 
-def _ramses_particle_csv_file_handler(particle, subset, fields, count):
+def _ramses_particle_csv_file_handler(particle_handler, subset, fields, count):
     """General file handler for csv file, called by _read_particle_subset
 
     Parameters
@@ -135,9 +139,8 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
 
     tr = {}
     ds = subset.domain.ds
-    current_time = ds.current_time.in_units("code_time").v
-    foffsets = particle.field_offsets
-    fname = particle.fname
+    foffsets = particle_handler.field_offsets
+    fname = particle_handler.fname
 
     list_field_ind = [
         (field, foffsets[field]) for field in sorted(fields, key=lambda a: foffsets[a])
@@ -156,15 +159,9 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
         tr[field] = dat[ind].to_numpy()
         if field[1].startswith("particle_position"):
             np.divide(tr[field], ds["boxlen"], tr[field])
-        if ds.cosmological_simulation and field[1] == "particle_birth_time":
-            conformal_time = tr[field]
-            physical_age = convert_ramses_conformal_time_to_physical_age(
-                ds, conformal_time
-            )
-            tr[field] = current_time - physical_age
-            # arbitrarily set particles with zero conformal_age to zero
-            # particle_age. This corresponds to DM particles.
-            tr[field][conformal_time == 0] = 0
+
+        particle_handler.handle_field(field, tr)
+
     return tr
 
 
@@ -284,22 +281,11 @@ class IOHandlerRAMSES(BaseIOHandler):
             ok = False
             for ph in subset.domain.particle_handlers:
                 if ph.ptype == ptype:
-                    foffsets = ph.field_offsets
-                    data_types = ph.field_types
                     ok = True
                     count = ph.local_particle_count
                     break
             if not ok:
                 raise YTFieldTypeNotFound(ptype)
-
-            cosmo = self.ds.cosmological_simulation
-            if (ptype, "particle_birth_time") in foffsets and cosmo:
-                foffsets[ptype, "conformal_birth_time"] = foffsets[
-                    ptype, "particle_birth_time"
-                ]
-                data_types[ptype, "conformal_birth_time"] = data_types[
-                    ptype, "particle_birth_time"
-                ]
 
             tr.update(ph.reader(subset, subs_fields, count))
 
