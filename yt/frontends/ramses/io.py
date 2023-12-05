@@ -176,11 +176,12 @@ class IOHandlerRAMSES(BaseIOHandler):
 
         # Set of field types
         ftypes = {f[0] for f in fields}
+
         for chunk in chunks:
             # Gather fields by type to minimize i/o operations
             for ft in ftypes:
                 # Get all the fields of the same type
-                field_subs = list(filter(lambda f, ft=ft: f[0] == ft, fields))
+                field_subs = [field for field in fields if field[0] == ft]
 
                 # Loop over subsets
                 for subset in chunk.objs:
@@ -209,12 +210,17 @@ class IOHandlerRAMSES(BaseIOHandler):
                             d.max(),
                             d.size,
                         )
-                        tr[(ft, f)].append(d)
+                        tr[ft, f].append(np.atleast_1d(d))
+
         d = {}
         for field in fields:
-            d[field] = np.concatenate(tr.pop(field))
+            tmp = tr.pop(field, None)
+            if tmp:
+                d[field] = np.concatenate(tmp)
+            else:
+                d[field] = np.empty(0, dtype="=f8")
 
-        return d
+        return self.ds.index.comm.par_combine_object(d, op="cat")
 
     def _read_particle_coords(self, chunks, ptf):
         pn = "particle_position_%s"
@@ -258,6 +264,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                         yield (ptype, field), data
 
             else:
+                tr = defaultdict(list)
                 for chunk in chunks:
                     for subset in chunk.objs:
                         rv = self._read_particle_subset(subset, fields)
@@ -270,7 +277,19 @@ class IOHandlerRAMSES(BaseIOHandler):
                                 mask = []
                             for field in field_list:
                                 data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
-                                yield (ptype, field), data
+                                tr[ptype, field].append(np.atleast_1d(data))
+
+                d = {}
+                for ptype, field_list in sorted(ptf.items()):
+                    for field in field_list:
+                        tmp = tr.pop((ptype, field), None)
+                        if tmp:
+                            d[ptype, field] = np.concatenate(tmp)
+                        else:
+                            d[ptype, field] = np.empty(0, dtype="=f8")
+
+                d = self.ds.index.comm.par_combine_object(d, op="cat")
+                yield from d.items()
 
     def _read_particle_subset(self, subset, fields):
         """Read the particle files."""
