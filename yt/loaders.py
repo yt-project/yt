@@ -287,7 +287,7 @@ def load_uniform_grid(
     cell_widths: list, optional
         If set, cell_widths is a list of arrays with an array for each dimension,
         specificing the cell spacing in that dimension. Must be consistent with
-        the domain_dimensions. nprocs must remain 1 to set cell_widths.
+        the domain_dimensions.
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
@@ -354,16 +354,30 @@ def load_uniform_grid(
     else:
         particle_types = {}
 
+    if cell_widths is not None:
+        cell_widths = _validate_cell_widths(cell_widths, domain_dimensions)
+
     if nprocs > 1:
         temp = {}
         new_data = {}  # type: ignore [var-annotated]
         for key in data.keys():
             psize = get_psize(np.array(data[key].shape), nprocs)
-            grid_left_edges, grid_right_edges, shapes, slices = decompose_array(
-                data[key].shape, psize, bbox
+            (
+                grid_left_edges,
+                grid_right_edges,
+                shapes,
+                slices,
+                grid_cell_widths,
+            ) = decompose_array(
+                data[key].shape,
+                psize,
+                bbox,
+                cell_widths=cell_widths,
             )
+            cell_widths = grid_cell_widths
             grid_dimensions = np.array(list(shapes), dtype="int32")
             temp[key] = [data[key][slice] for slice in slices]
+
         for gid in range(nprocs):
             new_data[gid] = {}
             for key in temp.keys():
@@ -375,13 +389,10 @@ def load_uniform_grid(
         grid_left_edges = domain_left_edge
         grid_right_edges = domain_right_edge
         grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
-
-    if cell_widths is not None:
-        # cell_widths left as an empty guard value if None
-        if nprocs != 1:
-            # see https://github.com/yt-project/yt/issues/4330
-            raise NotImplementedError("nprocs must equal 1 if supplying cell_widths.")
-        cell_widths = _validate_cell_widths(cell_widths, domain_dimensions)
+        if cell_widths is not None:
+            cell_widths = [
+                cell_widths,
+            ]
 
     if length_unit is None:
         length_unit = "code_length"
@@ -1905,7 +1916,7 @@ def load_hdf5_file(
         mylog.info("Auto-guessing %s chunks from a size of %s", nchunks, full_size)
     grid_data = []
     psize = get_psize(np.array(shape), nchunks)
-    left_edges, right_edges, shapes, _ = decompose_array(shape, psize, bbox)
+    left_edges, right_edges, shapes, _, _ = decompose_array(shape, psize, bbox)
     for le, re, s in zip(left_edges, right_edges, shapes):
         data = {_: reader for _ in fields}
         data.update({"left_edge": le, "right_edge": re, "dimensions": s, "level": 0})

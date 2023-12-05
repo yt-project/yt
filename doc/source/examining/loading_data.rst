@@ -2084,9 +2084,8 @@ widths are provided in advance.
 
 .. note::
 
-   At present, support is available for a single grid with varying cell-widths,
-   loaded through the stream handler.  Future versions of yt will have more
-   complete and flexible support!
+   At present, stretched grids are restricted to a single level of refinement.
+   Future versions of yt will have more complete and flexible support!
 
 To load a stretched grid, you use the standard (and now rather-poorly named)
 ``load_uniform_grid`` function, but supplying a ``cell_widths`` argument.  This
@@ -2121,7 +2120,8 @@ demonstrates loading a simple "random" dataset with a random set of cell-widths.
 
 
 This can be modified to load data from a file, as well as to use more (or
-fewer) cells.
+fewer) cells. Like with a standard uniform grid, providing ``nprocs>1`` will
+decompose the domain into multiple grids (without refinement).
 
 Unstructured Grid Data
 ----------------------

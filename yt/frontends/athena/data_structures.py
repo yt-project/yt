@@ -360,7 +360,7 @@ class AthenaHierarchy(GridIndex):
                 )
                 bbox = np.array([[le, re] for le, re in zip(gle_orig, gre_orig)])
                 psize = get_psize(self.ds.domain_dimensions, self.ds.nprocs)
-                gle, gre, shapes, slices = decompose_array(gdims[i], psize, bbox)
+                gle, gre, shapes, slices, _ = decompose_array(gdims[i], psize, bbox)
                 gle_all += gle
                 gre_all += gre
                 shapes_all += shapes
