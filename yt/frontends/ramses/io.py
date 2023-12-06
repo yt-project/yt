@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+from functools import lru_cache
 from typing import Union
 
 import numpy as np
@@ -201,6 +202,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                         rv = subset.fill(fd, field_subs, selector, file_handler)
                     for ft, f in field_subs:
                         d = rv.pop(f)
+                        if d.size == 0:
+                            continue
                         mylog.debug(
                             "Filling %s with %s (%0.3e %0.3e) (%s zones)",
                             f,
@@ -212,7 +215,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                         tr[(ft, f)].append(d)
         d = {}
         for field in fields:
-            d[field] = np.concatenate(tr.pop(field))
+            tmp = tr.pop(field, None)
+            d[field] = np.concatenate(tmp) if tmp else np.empty(0, dtype="d")
 
         return d
 
@@ -306,6 +310,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         return tr
 
 
+@lru_cache
 def _read_part_binary_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read a file descriptor and returns the array of the fields found.
@@ -362,6 +367,7 @@ def _read_part_binary_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     return fields
 
 
+@lru_cache
 def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read the file from the csv sink particles output.
@@ -411,6 +417,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     return fields, local_particle_count
 
 
+@lru_cache
 def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"], *, prefix: str):
     """
     Read a file descriptor and returns the array of the fields found.

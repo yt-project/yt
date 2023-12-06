@@ -1,6 +1,10 @@
 import abc
 import os
-from typing import Optional
+import struct
+from itertools import chain, count
+from typing import TYPE_CHECKING, Any, Callable, Optional
+
+import numpy as np
 
 from yt._typing import FieldKey
 from yt.config import ytcfg
@@ -14,6 +18,9 @@ from .io import (
     _read_part_binary_file_descriptor,
     _read_part_csv_file_descriptor,
 )
+
+if TYPE_CHECKING:
+    from yt.frontends.ramses.data_structures import RAMSESDomainSubset
 
 PARTICLE_HANDLERS: set[type["ParticleFileHandler"]] = set()
 
@@ -38,23 +45,43 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
 
     _file_type = "particle"
 
-    # These properties are static properties
-    ptype: Optional[str] = None  # The name to give to the particle type
-    fname: Optional[str] = None  # The name of the file(s).
-    file_descriptor: Optional[str] = None  # The name of the file descriptor (if any)
+    ## These properties are static
+    # The name to give to the particle type
+    ptype: str
 
-    attrs: tuple[tuple[str, int, str], ...]  # The attributes of the header
-    known_fields: Optional[
-        list[FieldKey]
-    ] = None  # A list of tuple containing the field name and its type
-    config_field: Optional[str] = None  # Name of the config section (if any)
+    # The name of the file(s).
+    fname: str
 
-    # These properties are computed dynamically
-    field_offsets = None  # Mapping from field to offset in file
-    field_types = (
-        None  # Mapping from field to the type of the data (float, integer, ...)
-    )
-    local_particle_count = None  # The number of particle in the domain
+    # The name of the file descriptor (if any)
+    file_descriptor: Optional[str] = None
+
+    # The attributes of the header
+    attrs: tuple[tuple[str, int, str], ...]
+
+    # A list of tuple containing the field name and its type
+    known_fields: list[FieldKey]
+
+    # The function to employ to read the file
+    reader: Callable[
+        ["ParticleFileHandler", "RAMSESDomainSubset", list[tuple[str, str]], int],
+        dict[tuple[str, str], np.ndarray],
+    ]
+
+    # Name of the config section (if any)
+    config_field: Optional[str] = None
+
+    ## These properties are computed dynamically
+    # Mapping from field to offset in file
+    _field_offsets: dict[tuple[str, str], int]
+
+    # Mapping from field to the type of the data (float, integer, ...)
+    _field_types: dict[tuple[str, str], str]
+
+    # Number of particle in the domain
+    _local_particle_count: int
+
+    # The header of the file
+    _header: dict[str, Any]
 
     def __init_subclass__(cls, *args, **kwargs):
         """
@@ -91,14 +118,50 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
 
         It is in charge of setting `self.field_offsets` and `self.field_types`.
 
-        * `field_offsets`: dictionary: tuple -> integer
+        * `_field_offsets`: dictionary: tuple -> integer
             A dictionary that maps `(type, field_name)` to their
             location in the file (integer)
-        * `field_types`: dictionary: tuple -> character
+        * `_field_types`: dictionary: tuple -> character
             A dictionary that maps `(type, field_name)` to their type
             (character), following Python's struct convention.
         """
         pass
+
+    @property
+    def field_offsets(self) -> dict[tuple[str, str], int]:
+        if hasattr(self, "_field_offsets"):
+            return self._field_offsets
+        self.read_header()
+        return self._field_offsets
+
+    @property
+    def field_types(self) -> dict[tuple[str, str], str]:
+        if hasattr(self, "_field_types"):
+            return self._field_types
+        self.read_header()
+        return self._field_types
+
+    @property
+    def local_particle_count(self) -> int:
+        if hasattr(self, "_local_particle_count"):
+            return self._local_particle_count
+        self.read_header()
+        return self._local_particle_count
+
+    @property
+    def header(self) -> dict[str, Any]:
+        if hasattr(self, "_header"):
+            return self._header
+        self.read_header()
+        return self._header
+
+
+_default_dtypes: dict[int, str] = {
+    1: "c",  # char
+    2: "h",  # short,
+    4: "f",  # float
+    8: "d",  # double
+}
 
 
 class DefaultParticleFileHandler(ParticleFileHandler):
@@ -133,20 +196,19 @@ class DefaultParticleFileHandler(ParticleFileHandler):
 
     def read_header(self):
         if not self.exists:
-            self.field_offsets = {}
-            self.field_types = {}
-            self.local_particle_count = 0
+            self._field_offsets = {}
+            self._field_types = {}
+            self._local_particle_count = 0
+            self._header = {}
             return
 
-        fd = FortranFile(self.fname)
-        fd.seek(0, os.SEEK_END)
-        flen = fd.tell()
-        fd.seek(0)
-        hvals = {}
-        attrs = self.attrs
-        hvals.update(fd.read_attrs(attrs))
-        self.header = hvals
-        self.local_particle_count = hvals["npart"]
+        flen = os.path.getsize(self.fname)
+        with FortranFile(self.fname) as fd:
+            hvals = dict(fd.read_attrs(self.attrs))
+            particle_field_pos = fd.tell()
+
+        self._header = hvals
+        self._local_particle_count = hvals["npart"]
         extra_particle_fields = self.ds._extra_particle_fields
 
         if self.has_descriptor:
@@ -157,37 +219,67 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             if extra_particle_fields is not None:
                 particle_fields += extra_particle_fields
 
-        if hvals["nstar_tot"] > 0 and extra_particle_fields is not None:
+        if (
+            hvals["nstar_tot"] > 0
+            and extra_particle_fields is not None
+            and ("particle_birth_time", "d") not in particle_fields
+        ):
             particle_fields += [
                 ("particle_birth_time", "d"),
                 ("particle_metallicity", "d"),
             ]
 
+        def build_iterator():
+            return chain(
+                particle_fields,
+                ((f"particle_extra_field_{i}", "d") for i in count(1)),
+            )
+
         field_offsets = {}
         _pfields = {}
-
         ptype = self.ptype
+        blockLen = struct.calcsize("i") * 2
 
-        # Read offsets
-        for field, vtype in particle_fields:
-            if fd.tell() >= flen:
-                break
-            field_offsets[ptype, field] = fd.tell()
+        particle_fields_iterator = build_iterator()
+        ipos = particle_field_pos
+        while ipos < flen:
+            field, vtype = next(particle_fields_iterator)
+            field_offsets[ptype, field] = ipos
             _pfields[ptype, field] = vtype
-            fd.skip(1)
+            ipos += blockLen + struct.calcsize(vtype) * hvals["npart"]
 
-        iextra = 0
-        while fd.tell() < flen:
-            iextra += 1
-            field, vtype = ("particle_extra_field_%i" % iextra, "d")
-            particle_fields.append((field, vtype))
+        if ipos != flen:
+            particle_fields_iterator = build_iterator()
+            with FortranFile(self.fname) as fd:
+                fd.seek(particle_field_pos)
+                ipos = particle_field_pos
+                while ipos < flen:
+                    field, vtype = next(particle_fields_iterator)
+                    old_pos = fd.tell()
+                    field_offsets[ptype, field] = old_pos
+                    fd.skip(1)
+                    ipos = fd.tell()
 
-            field_offsets[ptype, field] = fd.tell()
-            _pfields[ptype, field] = vtype
-            fd.skip(1)
+                    record_len = ipos - old_pos - blockLen
+                    exp_len = struct.calcsize(vtype) * hvals["npart"]
 
-        fd.close()
+                    if record_len != exp_len:
+                        # Guess record vtype from length
+                        nbytes = record_len // hvals["npart"]
+                        vtype = _default_dtypes[nbytes]
 
+                        mylog.warning(
+                            "Supposed that `%s` has type %s given record size",
+                            field,
+                            np.dtype(vtype),
+                        )
+
+                    _pfields[ptype, field] = vtype
+
+        if field.startswith("particle_extra_field_"):
+            iextra = int(field.split("_")[-1])
+        else:
+            iextra = 0
         if iextra > 0 and not self.ds._warned_extra_fields["io"]:
             mylog.warning(
                 "Detected %s extra particle fields assuming kind "
@@ -197,8 +289,8 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             )
             self.ds._warned_extra_fields["io"] = True
 
-        self.field_offsets = field_offsets
-        self.field_types = _pfields
+        self._field_offsets = field_offsets
+        self._field_types = _pfields
 
 
 class SinkParticleFileHandler(ParticleFileHandler):
@@ -238,14 +330,13 @@ class SinkParticleFileHandler(ParticleFileHandler):
 
     def read_header(self):
         if not self.exists:
-            self.field_offsets = {}
-            self.field_types = {}
-            self.local_particle_count = 0
+            self._field_offsets = {}
+            self._field_types = {}
+            self._local_particle_count = 0
+            self._header = {}
             return
         fd = FortranFile(self.fname)
-        fd.seek(0, os.SEEK_END)
-        flen = fd.tell()
-        fd.seek(0)
+        flen = os.path.getsize(self.fname)
         hvals = {}
         # Read the header of the file
         attrs = self.attrs
@@ -258,10 +349,10 @@ class SinkParticleFileHandler(ParticleFileHandler):
         # domains. Here, we set the local_particle_count to 0 except
         # for the first domain to be red.
         if getattr(self.ds, "_sink_file_flag", False):
-            self.local_particle_count = 0
+            self._local_particle_count = 0
         else:
             self.ds._sink_file_flag = True
-            self.local_particle_count = hvals["nsink"]
+            self._local_particle_count = hvals["nsink"]
 
         # Read the fields + add the sink properties
         if self.has_descriptor:
@@ -286,8 +377,8 @@ class SinkParticleFileHandler(ParticleFileHandler):
             field_offsets[self.ptype, field] = fd.tell()
             _pfields[self.ptype, field] = vtype
             fd.skip(1)
-        self.field_offsets = field_offsets
-        self.field_types = _pfields
+        self._field_offsets = field_offsets
+        self._field_types = _pfields
         fd.close()
 
 
@@ -303,18 +394,19 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
 
     def read_header(self):
         if not self.exists:
-            self.field_offsets = {}
-            self.field_types = {}
-            self.local_particle_count = 0
+            self._field_offsets = {}
+            self._field_types = {}
+            self._local_particle_count = 0
+            self._header = {}
             return
         field_offsets = {}
         _pfields = {}
 
-        fields, self.local_particle_count = _read_part_csv_file_descriptor(self.fname)
+        fields, self._local_particle_count = _read_part_csv_file_descriptor(self.fname)
 
         for ind, field in enumerate(fields):
             field_offsets[self.ptype, field] = ind
             _pfields[self.ptype, field] = "d"
 
-        self.field_offsets = field_offsets
-        self.field_types = _pfields
+        self._field_offsets = field_offsets
+        self._field_types = _pfields

@@ -1,7 +1,55 @@
+from typing import Any, Optional
+
 import numpy as np
 
+from yt.data_objects.selection_objects.region import YTRegion
+from yt.geometry.selection_routines import (
+    bbox_intersects,
+    fully_contains,
+)
 
-def hilbert3d(X, bit_length):
+# State diagram to compute the hilbert curve
+_STATE_DIAGRAM = np.array(
+    [
+        [
+            [1, 2, 0, 6, 11, 4, 5, 6, 10, 4, 7, 10],
+            [0, 0, 0, 2, 4, 6, 4, 6, 2, 2, 4, 6],
+        ],
+        [
+            [2, 6, 9, 0, 11, 4, 7, 1, 3, 4, 2, 3],
+            [1, 7, 3, 3, 3, 5, 7, 7, 5, 1, 5, 1],
+        ],
+        [
+            [3, 0, 10, 6, 0, 8, 5, 6, 1, 8, 11, 2],
+            [3, 1, 7, 1, 5, 1, 3, 5, 3, 5, 7, 7],
+        ],
+        [
+            [2, 7, 9, 11, 7, 8, 3, 10, 1, 8, 2, 6],
+            [2, 6, 4, 0, 2, 2, 0, 4, 4, 6, 6, 0],
+        ],
+        [
+            [4, 8, 1, 9, 5, 0, 1, 9, 10, 2, 7, 10],
+            [7, 3, 1, 5, 7, 7, 5, 1, 1, 3, 3, 5],
+        ],
+        [
+            [5, 8, 1, 0, 9, 6, 1, 4, 3, 7, 5, 3],
+            [6, 4, 2, 4, 0, 4, 6, 0, 6, 0, 2, 2],
+        ],
+        [
+            [3, 0, 11, 9, 0, 10, 11, 9, 5, 2, 8, 4],
+            [4, 2, 6, 6, 6, 0, 2, 2, 0, 4, 0, 4],
+        ],
+        [
+            [5, 7, 11, 8, 7, 6, 11, 10, 9, 3, 5, 4],
+            [5, 5, 5, 7, 1, 3, 1, 3, 7, 7, 1, 3],
+        ],
+    ]
+)
+
+
+def hilbert3d(
+    X: "np.ndarray[Any, np.dtype[np.float64]]", bit_length: int
+) -> "np.ndarray[Any, np.dtype[np.float64]]":
     """Compute the order using Hilbert indexing.
 
     Arguments
@@ -12,206 +60,6 @@ def hilbert3d(X, bit_length):
       The bit_length for the indexing.
     """
     X = np.atleast_2d(X)
-    state_diagram = (
-        np.array(
-            [
-                1,
-                2,
-                3,
-                2,
-                4,
-                5,
-                3,
-                5,
-                0,
-                1,
-                3,
-                2,
-                7,
-                6,
-                4,
-                5,
-                2,
-                6,
-                0,
-                7,
-                8,
-                8,
-                0,
-                7,
-                0,
-                7,
-                1,
-                6,
-                3,
-                4,
-                2,
-                5,
-                0,
-                9,
-                10,
-                9,
-                1,
-                1,
-                11,
-                11,
-                0,
-                3,
-                7,
-                4,
-                1,
-                2,
-                6,
-                5,
-                6,
-                0,
-                6,
-                11,
-                9,
-                0,
-                9,
-                8,
-                2,
-                3,
-                1,
-                0,
-                5,
-                4,
-                6,
-                7,
-                11,
-                11,
-                0,
-                7,
-                5,
-                9,
-                0,
-                7,
-                4,
-                3,
-                5,
-                2,
-                7,
-                0,
-                6,
-                1,
-                4,
-                4,
-                8,
-                8,
-                0,
-                6,
-                10,
-                6,
-                6,
-                5,
-                1,
-                2,
-                7,
-                4,
-                0,
-                3,
-                5,
-                7,
-                5,
-                3,
-                1,
-                1,
-                11,
-                11,
-                4,
-                7,
-                3,
-                0,
-                5,
-                6,
-                2,
-                1,
-                6,
-                1,
-                6,
-                10,
-                9,
-                4,
-                9,
-                10,
-                6,
-                7,
-                5,
-                4,
-                1,
-                0,
-                2,
-                3,
-                10,
-                3,
-                1,
-                1,
-                10,
-                3,
-                5,
-                9,
-                2,
-                5,
-                3,
-                4,
-                1,
-                6,
-                0,
-                7,
-                4,
-                4,
-                8,
-                8,
-                2,
-                7,
-                2,
-                3,
-                2,
-                1,
-                5,
-                6,
-                3,
-                0,
-                4,
-                7,
-                7,
-                2,
-                11,
-                2,
-                7,
-                5,
-                8,
-                5,
-                4,
-                5,
-                7,
-                6,
-                3,
-                2,
-                0,
-                1,
-                10,
-                3,
-                2,
-                6,
-                10,
-                3,
-                4,
-                4,
-                6,
-                1,
-                7,
-                0,
-                5,
-                2,
-                4,
-                3,
-            ]
-        )
-        .reshape(12, 2, 8)
-        .T
-    )
 
     x_bit_mask, y_bit_mask, z_bit_mask = (
         np.zeros(bit_length, dtype=bool) for _ in range(3)
@@ -243,8 +91,8 @@ def hilbert3d(X, bit_length):
                 + 2 * i_bit_mask[3 * i + 1]
                 + 1 * i_bit_mask[3 * i]
             )
-            nstate = state_diagram[sdigit, 0, cstate]
-            hdigit = state_diagram[sdigit, 1, cstate]
+            nstate = _STATE_DIAGRAM[sdigit, 0, cstate]
+            hdigit = _STATE_DIAGRAM[sdigit, 1, cstate]
 
             i_bit_mask[3 * i + 2] = hdigit & 0b100
             i_bit_mask[3 * i + 1] = hdigit & 0b010
@@ -259,10 +107,52 @@ def hilbert3d(X, bit_length):
     return order
 
 
-def get_cpu_list(ds, X):
+def get_intersecting_cpus(
+    ds,
+    region: YTRegion,
+    LE: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
+    dx: float = 1.0,
+    dx_cond: Optional[float] = None,
+    factor: float = 4.0,
+) -> set[int]:
     """
-    Return the list of the CPU intersecting with the positions
-    given. Note that it will be 0-indexed.
+    Find the subset of CPUs that intersect the bbox in a recursive fashion.
+    """
+    if LE is None:
+        LE = np.array([0, 0, 0], dtype="d")
+    if dx_cond is None:
+        bbox = region.get_bbox()
+        dx_cond = float((bbox[1] - bbox[0]).min().to("code_length"))
+
+    # If the current dx is smaller than the smallest size of the bbox
+    if dx < dx_cond / factor:
+        # Finish recursion
+        return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]))
+
+    # If the current cell is fully within the selected region, stop recursion
+    if fully_contains(region.selector, LE, dx):
+        return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]))
+
+    dx /= 2
+
+    ret = set()
+    # Compute intersection of the eight subcubes with the bbox and recurse.
+    for i in range(2):
+        for j in range(2):
+            for k in range(2):
+                LE_new = LE + np.array([i, j, k], dtype="d") * dx
+
+                if bbox_intersects(region.selector, LE_new, dx):
+                    ret.update(
+                        get_intersecting_cpus(ds, region, LE_new, dx, dx_cond, factor)
+                    )
+    return ret
+
+
+def get_cpu_list_cuboid(ds, X: "np.ndarray[Any, np.dtype[np.float64]]") -> set[int]:
+    """
+    Return the list of the CPU intersecting with the cuboid containing the positions.
+    Note that it will be 0-indexed.
 
     Parameters
     ----------
@@ -283,12 +173,7 @@ def get_cpu_list(ds, X):
     xmax, ymax, zmax = X.max(axis=0)
 
     dmax = max(xmax - xmin, ymax - ymin, zmax - zmin)
-    ilevel = 0
-    deltax = dmax * 2
-
-    while deltax >= dmax:
-        ilevel += 1
-        deltax = 0.5**ilevel
+    ilevel = int(np.ceil(-np.log2(dmax)))
 
     lmin = ilevel
     bit_length = lmin - 1
@@ -308,7 +193,7 @@ def get_cpu_list(ds, X):
     if bit_length > 0:
         ndom = 8
 
-    idom, jdom, kdom = (np.zeros(8, dtype="int64") for _ in range(3))
+    ijkdom = idom, jdom, kdom = np.empty((3, 8), dtype="int64")
 
     idom[0], idom[1] = imin, imax
     idom[2], idom[3] = imin, imax
@@ -326,40 +211,26 @@ def get_cpu_list(ds, X):
     kdom[6], kdom[7] = kmax, kmax
 
     bounding_min, bounding_max = np.zeros(ndom), np.zeros(ndom)
+    if bit_length > 0:
+        order_min = hilbert3d(ijkdom.T, bit_length)
     for i in range(ndom):
         if bit_length > 0:
-            order_min = hilbert3d([idom[i], jdom[i], kdom[i]], bit_length)
+            omin = order_min[i]
         else:
-            order_min = 0
-        bounding_min[i] = (order_min) * dkey
-        bounding_max[i] = (order_min + 1) * dkey
+            omin = 0
+        bounding_min[i] = omin * dkey
+        bounding_max[i] = (omin + 1) * dkey
 
-    bound_key = {}
+    bound_key = np.empty(ncpu + 1, dtype="float64")
     for icpu in range(1, ncpu + 1):
         bound_key[icpu - 1], bound_key[icpu] = ds.hilbert_indices[icpu]
 
-    cpu_min, cpu_max = (np.zeros(ncpu + 1, dtype="int64") for _ in range(2))
-    for icpu in range(1, ncpu + 1):
-        for i in range(ndom):
-            if (
-                bound_key[icpu - 1] <= bounding_min[i]
-                and bound_key[icpu] > bounding_min[i]
-            ):
-                cpu_min[i] = icpu - 1
-            if (
-                bound_key[icpu - 1] < bounding_max[i]
-                and bound_key[icpu] >= bounding_max[i]
-            ):
-                cpu_max[i] = icpu
+    cpu_min = np.searchsorted(bound_key, bounding_min, side="right") - 1
+    cpu_max = np.searchsorted(bound_key, bounding_max, side="right")
 
-    ncpu_read = 0
-    cpu_list = []
-    cpu_read = np.zeros(ncpu, dtype="bool")
+    cpu_read: set[int] = set()
+
     for i in range(ndom):
-        for j in range(cpu_min[i], cpu_max[i]):
-            if not cpu_read[j]:
-                ncpu_read += 1
-                cpu_list.append(j)
-                cpu_read[j] = True
+        cpu_read.update(range(cpu_min[i], cpu_max[i]))
 
-    return sorted(cpu_list)
+    return cpu_read

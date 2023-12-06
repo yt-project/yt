@@ -148,6 +148,32 @@ def points_in_cells(
 
     return mask
 
+def bbox_intersects(
+    SelectorObject selector,
+    np.float64_t[::1] left_edges,
+    np.float64_t dx
+):
+    cdef np.float64_t[3] right_edges
+    right_edges[0] = left_edges[0] + dx
+    right_edges[1] = left_edges[1] + dx
+    right_edges[2] = left_edges[2] + dx
+    return selector.select_bbox(&left_edges[0], right_edges) == 1
+
+def fully_contains(
+    SelectorObject selector,
+    np.float64_t[::1] left_edges,
+    np.float64_t dx,
+):
+    cdef np.float64_t[3] right_edges
+
+    right_edges[0] = left_edges[0] + dx
+    right_edges[1] = left_edges[1] + dx
+    right_edges[2] = left_edges[2] + dx
+
+    return selector.select_bbox_edge(&left_edges[0], right_edges) == 1
+
+
+
 include "_selection_routines/selector_object.pxi"
 include "_selection_routines/point_selector.pxi"
 include "_selection_routines/sphere_selector.pxi"
