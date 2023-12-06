@@ -219,11 +219,6 @@ class RAMSESDomainFile:
             PH(self) for PH in get_particle_handlers() if PH.any_exist(ds)
         ]
         self.particle_handlers = particle_handlers
-        for ph in particle_handlers:
-            mylog.debug(
-                "Detected particle type %s in domain_id=%s", ph.ptype, domain_id
-            )
-            ph.read_header()
 
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
@@ -641,9 +636,8 @@ class RAMSESIndex(OctreeIndex):
         dsl = set()
 
         # Get the detected particle fields
-        for domain in self.domains:
-            for ph in domain.particle_handlers:
-                dsl.update(set(ph.field_offsets.keys()))
+        for ph in self.domains[0].particle_handlers:
+            dsl.update(set(ph.field_offsets.keys()))
 
         self.particle_field_list = list(dsl)
         cosmo = self.ds.cosmological_simulation

@@ -2,7 +2,7 @@ import abc
 import os
 import struct
 from itertools import chain, count
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 
@@ -120,6 +120,11 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     config_field = "ramses-particles"
     reader = _ramses_particle_binary_file_handler
 
+    _field_offsets: dict[tuple[str, str], int]
+    _field_types: dict[tuple[str, str], str]
+    _local_particle_count: int
+    _header: dict[str, Any]
+
     attrs = (
         ("ncpu", 1, "i"),
         ("ndim", 1, "i"),
@@ -145,9 +150,10 @@ class DefaultParticleFileHandler(ParticleFileHandler):
 
     def read_header(self):
         if not self.exists:
-            self.field_offsets = {}
-            self.field_types = {}
-            self.local_particle_count = 0
+            self._field_offsets = {}
+            self._field_types = {}
+            self._local_particle_count = 0
+            self._header = {}
             return
 
         flen = os.path.getsize(self.fname)
@@ -155,8 +161,8 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             hvals = dict(fd.read_attrs(self.attrs))
             particle_field_pos = fd.tell()
 
-        self.header = hvals
-        self.local_particle_count = hvals["npart"]
+        self._header = hvals
+        self._local_particle_count = hvals["npart"]
         extra_particle_fields = self.ds._extra_particle_fields
 
         if self.has_descriptor:
@@ -237,8 +243,36 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             )
             self.ds._warned_extra_fields["io"] = True
 
-        self.field_offsets = field_offsets
-        self.field_types = _pfields
+        self._field_offsets = field_offsets
+        self._field_types = _pfields
+
+    @property
+    def field_offsets(self) -> dict[tuple[str, str], int]:
+        if hasattr(self, "_field_offsets"):
+            return self._field_offsets
+        self.read_header()
+        return self._field_offsets
+
+    @property
+    def field_types(self) -> dict[tuple[str, str], str]:
+        if hasattr(self, "_field_types"):
+            return self._field_types
+        self.read_header()
+        return self._field_types
+
+    @property
+    def local_particle_count(self) -> int:
+        if hasattr(self, "_local_particle_count"):
+            return self._local_particle_count
+        self.read_header()
+        return self._local_particle_count
+
+    @property
+    def header(self) -> dict[str, Any]:
+        if hasattr(self, "_header"):
+            return self._header
+        self.read_header()
+        return self._header
 
 
 class SinkParticleFileHandler(ParticleFileHandler):
@@ -278,9 +312,9 @@ class SinkParticleFileHandler(ParticleFileHandler):
 
     def read_header(self):
         if not self.exists:
-            self.field_offsets = {}
-            self.field_types = {}
-            self.local_particle_count = 0
+            self._field_offsets = {}
+            self._field_types = {}
+            self._local_particle_count = 0
             return
         fd = FortranFile(self.fname)
         flen = os.path.getsize(self.fname)
@@ -296,10 +330,10 @@ class SinkParticleFileHandler(ParticleFileHandler):
         # domains. Here, we set the local_particle_count to 0 except
         # for the first domain to be red.
         if getattr(self.ds, "_sink_file_flag", False):
-            self.local_particle_count = 0
+            self._local_particle_count = 0
         else:
             self.ds._sink_file_flag = True
-            self.local_particle_count = hvals["nsink"]
+            self._local_particle_count = hvals["nsink"]
 
         # Read the fields + add the sink properties
         if self.has_descriptor:
@@ -324,8 +358,8 @@ class SinkParticleFileHandler(ParticleFileHandler):
             field_offsets[self.ptype, field] = fd.tell()
             _pfields[self.ptype, field] = vtype
             fd.skip(1)
-        self.field_offsets = field_offsets
-        self.field_types = _pfields
+        self._field_offsets = field_offsets
+        self._field_types = _pfields
         fd.close()
 
 
@@ -341,8 +375,8 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
 
     def read_header(self):
         if not self.exists:
-            self.field_offsets = {}
-            self.field_types = {}
+            self._field_offsets = {}
+            self._field_types = {}
             self.local_particle_count = 0
             return
         field_offsets = {}
@@ -354,5 +388,5 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
             field_offsets[self.ptype, field] = ind
             _pfields[self.ptype, field] = "d"
 
-        self.field_offsets = field_offsets
-        self.field_types = _pfields
+        self._field_offsets = field_offsets
+        self._field_types = _pfields
