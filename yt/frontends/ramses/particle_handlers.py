@@ -140,11 +140,6 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     config_field = "ramses-particles"
     reader = _ramses_particle_binary_file_handler
 
-    _field_offsets: dict[tuple[str, str], int]
-    _field_types: dict[tuple[str, str], str]
-    _local_particle_count: int
-    _header: dict[str, Any]
-
     attrs = (
         ("ncpu", 1, "i"),
         ("ndim", 1, "i"),
