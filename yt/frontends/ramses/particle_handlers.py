@@ -115,14 +115,42 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
 
         It is in charge of setting `self.field_offsets` and `self.field_types`.
 
-        * `field_offsets`: dictionary: tuple -> integer
+        * `_field_offsets`: dictionary: tuple -> integer
             A dictionary that maps `(type, field_name)` to their
             location in the file (integer)
-        * `field_types`: dictionary: tuple -> character
+        * `_field_types`: dictionary: tuple -> character
             A dictionary that maps `(type, field_name)` to their type
             (character), following Python's struct convention.
         """
         pass
+
+    @property
+    def field_offsets(self) -> dict[tuple[str, str], int]:
+        if hasattr(self, "_field_offsets"):
+            return self._field_offsets
+        self.read_header()
+        return self._field_offsets
+
+    @property
+    def field_types(self) -> dict[tuple[str, str], str]:
+        if hasattr(self, "_field_types"):
+            return self._field_types
+        self.read_header()
+        return self._field_types
+
+    @property
+    def local_particle_count(self) -> int:
+        if hasattr(self, "_local_particle_count"):
+            return self._local_particle_count
+        self.read_header()
+        return self._local_particle_count
+
+    @property
+    def header(self) -> dict[str, Any]:
+        if hasattr(self, "_header"):
+            return self._header
+        self.read_header()
+        return self._header
 
 
 _default_dtypes: dict[int, str] = {
@@ -260,34 +288,6 @@ class DefaultParticleFileHandler(ParticleFileHandler):
 
         self._field_offsets = field_offsets
         self._field_types = _pfields
-
-    @property
-    def field_offsets(self) -> dict[tuple[str, str], int]:
-        if hasattr(self, "_field_offsets"):
-            return self._field_offsets
-        self.read_header()
-        return self._field_offsets
-
-    @property
-    def field_types(self) -> dict[tuple[str, str], str]:
-        if hasattr(self, "_field_types"):
-            return self._field_types
-        self.read_header()
-        return self._field_types
-
-    @property
-    def local_particle_count(self) -> int:
-        if hasattr(self, "_local_particle_count"):
-            return self._local_particle_count
-        self.read_header()
-        return self._local_particle_count
-
-    @property
-    def header(self) -> dict[str, Any]:
-        if hasattr(self, "_header"):
-            return self._header
-        self.read_header()
-        return self._header
 
 
 class SinkParticleFileHandler(ParticleFileHandler):
