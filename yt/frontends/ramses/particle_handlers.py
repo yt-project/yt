@@ -2,7 +2,7 @@ import abc
 import os
 import struct
 from itertools import chain, count
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import numpy as np
 
@@ -18,6 +18,9 @@ from .io import (
     _read_part_binary_file_descriptor,
     _read_part_csv_file_descriptor,
 )
+
+if TYPE_CHECKING:
+    from yt.frontends.ramses.data_structures import RAMSESDomainSubset
 
 PARTICLE_HANDLERS: set[type["ParticleFileHandler"]] = set()
 
@@ -42,23 +45,40 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
 
     _file_type = "particle"
 
-    # These properties are static properties
-    ptype: Optional[str] = None  # The name to give to the particle type
-    fname: Optional[str] = None  # The name of the file(s).
-    file_descriptor: Optional[str] = None  # The name of the file descriptor (if any)
+    ## These properties are static
+    # The name to give to the particle type
+    ptype: str
 
-    attrs: tuple[tuple[str, int, str], ...]  # The attributes of the header
-    known_fields: Optional[
-        list[FieldKey]
-    ] = None  # A list of tuple containing the field name and its type
-    config_field: Optional[str] = None  # Name of the config section (if any)
+    # The name of the file(s).
+    fname: str
 
-    # These properties are computed dynamically
-    field_offsets = None  # Mapping from field to offset in file
-    field_types = (
-        None  # Mapping from field to the type of the data (float, integer, ...)
-    )
-    local_particle_count = None  # The number of particle in the domain
+    # The name of the file descriptor (if any)
+    file_descriptor: Optional[str] = None
+
+    # The attributes of the header
+    attrs: tuple[tuple[str, int, str], ...]
+
+    # A list of tuple containing the field name and its type
+    known_fields: list[FieldKey]
+
+    # The function to employ to read the file
+    reader: Callable[
+        ["ParticleFileHandler", "RAMSESDomainSubset", list[tuple[str, str]], int],
+        dict[tuple[str, str], np.ndarray],
+    ]
+
+    # Name of the config section (if any)
+    config_field: Optional[str] = None
+
+    ## These properties are computed dynamically
+    # Mapping from field to offset in file
+    _field_offsets: dict[tuple[str, str], int]
+
+    # Mapping from field to the type of the data (float, integer, ...)
+    _field_types: dict[tuple[str, str], str]
+
+    # Number of particle in the domain
+    _local_particle_count: int
 
     def __init_subclass__(cls, *args, **kwargs):
         """
