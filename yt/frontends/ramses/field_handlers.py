@@ -469,6 +469,11 @@ class GravFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
+        # Try to get the detected fields
+        detected_fields = cls.get_detected_fields(ds)
+        if detected_fields:
+            return detected_fields
+
         ndim = ds.dimensionality
         iout = int(str(ds).split("_")[1])
         basedir = os.path.split(ds.parameter_filename)[0]
@@ -496,6 +501,8 @@ class GravFieldFileHandler(FieldFileHandler):
                     fields.append(f"var{i}")
 
         cls.field_list = [(cls.ftype, e) for e in fields]
+
+        cls.set_detected_fields(ds, fields)
 
         return fields
 
