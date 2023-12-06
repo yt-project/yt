@@ -80,6 +80,9 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
     # Number of particle in the domain
     _local_particle_count: int
 
+    # The header of the file
+    _header: dict[str, Any]
+
     def __init_subclass__(cls, *args, **kwargs):
         """
         Registers subclasses at creation.
@@ -330,6 +333,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
             self._field_offsets = {}
             self._field_types = {}
             self._local_particle_count = 0
+            self._header = {}
             return
         fd = FortranFile(self.fname)
         flen = os.path.getsize(self.fname)
@@ -392,12 +396,13 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
         if not self.exists:
             self._field_offsets = {}
             self._field_types = {}
-            self.local_particle_count = 0
+            self._local_particle_count = 0
+            self._header = {}
             return
         field_offsets = {}
         _pfields = {}
 
-        fields, self.local_particle_count = _read_part_csv_file_descriptor(self.fname)
+        fields, self._local_particle_count = _read_part_csv_file_descriptor(self.fname)
 
         for ind, field in enumerate(fields):
             field_offsets[self.ptype, field] = ind
