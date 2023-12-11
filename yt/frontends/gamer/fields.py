@@ -23,6 +23,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         ("MomY", (mom_units, ["momentum_density_y"], None)),
         ("MomZ", (mom_units, ["momentum_density_z"], None)),
         ("Engy", (erg_units, ["total_energy_density"], None)),
+        ("CRay", (erg_units, ["cosmic_ray_energy_density"], None)),
         ("Pote", (pot_units, ["gravitational_potential"], None)),
         # MHD fields on disk (CC=cell-centered)
         ("CCMagX", (b_units, [], "B_x")),
@@ -61,10 +62,12 @@ class GAMERFieldInfo(FieldInfoContainer):
         if self.ds.srhd:
             c2 = pc.clight * pc.clight
             c = pc.clight.in_units("code_length / code_time")
-            if self.ds.eos == 4:
-                fgen = SRHDFields(self.ds.eos, 0.0, c.d)
-            else:
+            if self.ds.eos == 1:
+                # gamma-law EOS
                 fgen = SRHDFields(self.ds.eos, self.ds.gamma, c.d)
+            else:
+                # Taub-Mathews EOS
+                fgen = SRHDFields(self.ds.eos, 0.0, c.d)
 
             def _sound_speed(field, data):
                 out = fgen.sound_speed(data["gamer", "Temp"].d)
@@ -106,15 +109,22 @@ class GAMERFieldInfo(FieldInfoContainer):
                 )
 
             # lorentz factor
-            def _lorentz_factor(field, data):
-                out = fgen.lorentz_factor(
-                    data["gamer", "Dens"].d,
-                    data["gamer", "MomX"].d,
-                    data["gamer", "MomY"].d,
-                    data["gamer", "MomZ"].d,
-                    data["gamer", "Temp"].d,
-                )
-                return data.ds.arr(out, "dimensionless")
+            if ("gamer", "Lrtz") in self.field_list:
+
+                def _lorentz_factor(field, data):
+                    return data["gamer", "Lrtz"]
+
+            else:
+
+                def _lorentz_factor(field, data):
+                    out = fgen.lorentz_factor(
+                        data["gamer", "Dens"].d,
+                        data["gamer", "MomX"].d,
+                        data["gamer", "MomY"].d,
+                        data["gamer", "MomZ"].d,
+                        data["gamer", "Temp"].d,
+                    )
+                    return data.ds.arr(out, "dimensionless")
 
             self.add_field(
                 ("gas", "lorentz_factor"),
@@ -125,16 +135,27 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # velocity
             def velocity_xyz(v):
-                def _velocity(field, data):
-                    out = fgen.velocity_xyz(
-                        data["gamer", "Dens"].d,
-                        data["gamer", "MomX"].d,
-                        data["gamer", "MomY"].d,
-                        data["gamer", "MomZ"].d,
-                        data["gamer", "Temp"].d,
-                        data["gamer", f"Mom{v.upper()}"].d,
-                    )
-                    return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
+                if ("gamer", f"Vel{v.upper()}") in self.field_list:
+
+                    def _velocity(field, data):
+                        return data.ds.arr(data["gamer", f"Vel{v.upper()}"].d, "c").to(
+                            unit_system["velocity"]
+                        )
+
+                else:
+
+                    def _velocity(field, data):
+                        out = fgen.velocity_xyz(
+                            data["gamer", "Dens"].d,
+                            data["gamer", "MomX"].d,
+                            data["gamer", "MomY"].d,
+                            data["gamer", "MomZ"].d,
+                            data["gamer", "Temp"].d,
+                            data["gamer", f"Mom{v.upper()}"].d,
+                        )
+                        return data.ds.arr(out, "code_velocity").to(
+                            unit_system["velocity"]
+                        )
 
                 return _velocity
 
@@ -289,6 +310,9 @@ class GAMERFieldInfo(FieldInfoContainer):
                 if self.ds.mhd:
                     # magnetic_energy is a yt internal field
                     Et -= data["gas", "magnetic_energy_density"]
+                if getattr(self.ds, "gamma_cr", None):
+                    # cosmic rays are included in this dataset
+                    Et -= data["gas", "cosmic_ray_energy_density"]
                 return Et
 
             # thermal energy per mass (i.e., specific)
@@ -333,6 +357,20 @@ class GAMERFieldInfo(FieldInfoContainer):
             function=_pressure,
             units=unit_system["pressure"],
         )
+
+        if getattr(self.ds, "gamma_cr", None):
+
+            def _cr_pressure(field, data):
+                return (data.ds.gamma_cr - 1.0) * data[
+                    "gas", "cosmic_ray_energy_density"
+                ]
+
+            self.add_field(
+                ("gas", "cosmic_ray_pressure"),
+                _cr_pressure,
+                sampling_type="cell",
+                units=self.ds.unit_system["pressure"],
+            )
 
         # mean molecular weight
         if hasattr(self.ds, "mu"):

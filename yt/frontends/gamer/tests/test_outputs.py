@@ -125,3 +125,20 @@ def test_stress_energy():
                 else:
                     Tmunu += p
                 assert_array_almost_equal(sp[f"T{mu}{nu}"], Tmunu)
+
+
+cr_shock = "CRShockTube/Data_000005"
+
+
+@requires_ds(cr_shock)
+def test_cosmic_rays():
+    ds = data_dir_load(cr_shock)
+    assert_array_almost_equal(ds.gamma_cr, 4.0 / 3.0)
+    ad = ds.all_data()
+    p_cr = ad["gas", "cosmic_ray_pressure"]
+    e_cr = ad["gas", "cosmic_ray_energy_density"]
+    assert_array_almost_equal(p_cr, e_cr / 3.0)
+    e_kin = ad["gas", "kinetic_energy_density"]
+    e_int = ad["gas", "thermal_energy_density"]
+    e_tot = ad["gas", "total_energy_density"]
+    assert_array_almost_equal(e_tot, e_kin + e_int + e_cr)

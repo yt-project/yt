@@ -7,7 +7,7 @@ cimport numpy as np
 import numpy as np
 
 
-cdef np.float64_t h_eos4(np.float64_t kT, np.float64_t g) noexcept nogil:
+cdef np.float64_t h_eos_tb(np.float64_t kT, np.float64_t g) noexcept nogil:
     cdef np.float64_t x
     x = 2.25 * kT * kT
     return 2.5 * kT + x / (1.0 + math.sqrt(x + 1.0))
@@ -18,16 +18,16 @@ cdef np.float64_t h_eos(np.float64_t kT, np.float64_t g) noexcept nogil:
 cdef np.float64_t gamma_eos(np.float64_t kT, np.float64_t g) noexcept nogil:
     return g
 
-cdef np.float64_t gamma_eos4(np.float64_t kT, np.float64_t g) noexcept nogil:
+cdef np.float64_t gamma_eos_tb(np.float64_t kT, np.float64_t g) noexcept nogil:
     cdef np.float64_t x, c_p, c_v
     x = 2.25 * kT / math.sqrt(2.25 * kT * kT + 1.0)
     c_p = 2.5 + x
     c_v = 1.5 + x
     return c_p / c_v
 
-cdef np.float64_t cs_eos4(np.float64_t kT, np.float64_t c, np.float64_t g) noexcept nogil:
+cdef np.float64_t cs_eos_tb(np.float64_t kT, np.float64_t c, np.float64_t g) noexcept nogil:
     cdef np.float64_t hp, cs2
-    hp = h_eos4(kT, 0.0) + 1.0
+    hp = h_eos_tb(kT, 0.0) + 1.0
     cs2 = kT / (3.0 * hp)
     cs2 *= (5.0 * hp - 8.0 * kT) / (hp - kT)
     return c * math.sqrt(cs2)
@@ -52,14 +52,14 @@ cdef class SRHDFields:
         self._c = clight
         self._c2 = clight * clight
         # Select aux functions based on eos no.
-        if (eos == 4):
-            self.h = h_eos4
-            self.gamma = gamma_eos4
-            self.cs = cs_eos4
-        else:
+        if eos == 1:
             self.h = h_eos
             self.gamma = gamma_eos
             self.cs = cs_eos
+        else:
+            self.h = h_eos_tb
+            self.gamma = gamma_eos_tb
+            self.cs = cs_eos_tb
 
     cdef np.float64_t _lorentz_factor(
             self,
