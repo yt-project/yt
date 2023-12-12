@@ -153,9 +153,9 @@ def test_xarray_export():
         assert "x" in xarr.coords
         assert "y" in xarr.coords
         assert "z" in xarr.coords
-        assert xarr.dims["x"] == dn * ds.domain_dimensions[0]
-        assert xarr.dims["y"] == dn * ds.domain_dimensions[1]
-        assert xarr.dims["z"] == dn * ds.domain_dimensions[2]
+        assert xarr.sizes["x"] == dn * ds.domain_dimensions[0]
+        assert xarr.sizes["y"] == dn * ds.domain_dimensions[1]
+        assert xarr.sizes["z"] == dn * ds.domain_dimensions[2]
         assert_equal(xarr.x, cg[("index", "x")][:, 0, 0])
         assert_equal(xarr.y, cg[("index", "y")][0, :, 0])
         assert_equal(xarr.z, cg[("index", "z")][0, 0, :])
