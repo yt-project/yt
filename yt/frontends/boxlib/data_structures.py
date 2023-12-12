@@ -374,10 +374,8 @@ class BoxlibHierarchy(GridIndex):
             default_ybounds = (0.0, 1.0)
             default_zbounds = (0.0, 1.0)
         elif self.ds.geometry == "cylindrical":
-            # Now we check for dimensionality issues
-            if self.dimensionality != 2:
-                raise RuntimeError("yt needs cylindrical to be 2D")
             self.level_dds[:, 2] = 2 * np.pi
+            default_ybounds = (0.0, 1.0)
             default_zbounds = (0.0, 2 * np.pi)
         elif self.ds.geometry == "spherical":
             # BoxLib only supports 1D spherical, so ensure
@@ -892,7 +890,7 @@ class BoxlibDataset(Dataset):
             self.geometry = Geometry(geom_str)
 
         if self.geometry == "cylindrical":
-            dre = self.domain_right_edge
+            dre = self.domain_right_edge.copy()
             dre[2] = 2.0 * np.pi
             self.domain_right_edge = dre
 
