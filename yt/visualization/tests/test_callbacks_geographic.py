@@ -16,6 +16,8 @@ def test_quiver_callback_geographic(geometry, tmp_path):
 
     for ax in ds.coordinates.axis_order:
         slc = SlicePlot(ds, ax, "density", buff_size=(50, 50))
+        if ax == ds.coordinates.radial_axis:
+            slc.set_width((359.99, 179.99))
         slc.annotate_quiver(("stream", "velocity_ew"), ("stream", "velocity_ns"))
         slc.save(tmpfi)
         assert_fname(tmpfi)
@@ -64,6 +66,7 @@ def ds_geo_uni_grid():
 @pytest.mark.mpl_image_compare
 def test_geoquiver_answer(ds_geo_uni_grid):
     slc = SlicePlot(ds_geo_uni_grid, "altitude", "u_vel")
+    slc.set_width((359.99, 179.99))
     slc.set_log("u_vel", False)
     slc.annotate_quiver("u_vel", "v_vel", scale=50)
     slc.render()

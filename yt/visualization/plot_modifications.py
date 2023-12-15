@@ -43,7 +43,7 @@ from yt.visualization._commons import (
     invalidate_plot,
 )
 from yt.visualization.base_plot_types import CallbackWrapper
-from yt.visualization.geo_plot_utils import _limit_to_geographic_bounds
+from yt.visualization.geo_plot_utils import _check_geographic_bounds
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.plot_window import PWViewerMPL
 
@@ -743,16 +743,16 @@ class BaseQuiverCallback(PlotCallback, ABC):
         else:
             # when we have a cartopy transform, provide the x, y values
             # in the coordinate reference system of the data and let cartopy
-            # do the transformation. Also avoid the exact bounds of the transform
+            # do the transformation. Also check for the exact bounds of the transform
             # which can cause issues with projections.
-            eps_val = plot.ds.quan(1e-3, "code_length")
-            bounds, changed = _limit_to_geographic_bounds(
-                bounds, plot._transform, eps_val
-            )
-            if changed:
-                mylog.info(
-                    "Limiting the bounds used for the quiver plot to avoid "
-                    "exact transform bounds."
+            if _check_geographic_bounds(bounds, plot._transform):
+                # note: cartopy will also raise its own warning, but it is useful to add this
+                # warning as well since the only way to avoid the exact bounds is to change the
+                # extent of the plot.
+                mylog.warning(
+                    "Using the exact bounds of the transform may cause errors at the bounds."
+                    " To avoid this warning, adjust the width of your plot object to not include "
+                    "the bounds."
                 )
             X, Y = np.meshgrid(
                 np.linspace(bounds[0].d, bounds[1].d, nx, endpoint=True),

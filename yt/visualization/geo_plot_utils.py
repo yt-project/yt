@@ -123,24 +123,7 @@ def _geographic_bounds(transform):
     return xlims + ylims
 
 
-def _limit_to_geographic_bounds(bounds, transform, eps_val):
-    # this takes a physical bounds tuple and limits the bounds to within a small
-    # distance of the transform bounds. assumes bounds already in code_length.
-
+def _check_geographic_bounds(bounds, transform):
+    # returns True if any of the bounds match the exact transform bounds
     transform_bounds = _geographic_bounds(transform)
-    valid_bounds = list(bounds)
-    changed = False
-    if bounds[0].d == transform_bounds[0]:
-        valid_bounds[0] = bounds[0] + eps_val
-        changed = True
-    if bounds[1].d == transform_bounds[1]:
-        valid_bounds[1] = bounds[1] - eps_val
-        changed = True
-    if bounds[2].d == transform_bounds[2]:
-        valid_bounds[2] = bounds[2] + eps_val
-        changed = True
-    if bounds[3].d == transform_bounds[3]:
-        valid_bounds[3] = bounds[3] - eps_val
-        changed = True
-    valid_bounds = tuple(valid_bounds)
-    return valid_bounds, changed
+    return any(bounds[bid].d == transform_bounds[bid] for bid in range(4))
