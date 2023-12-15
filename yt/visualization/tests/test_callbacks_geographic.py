@@ -63,6 +63,7 @@ def ds_geo_uni_grid():
     return ds
 
 
+@requires_module("cartopy")
 @pytest.mark.mpl_image_compare
 def test_geoquiver_answer(ds_geo_uni_grid):
     slc = SlicePlot(ds_geo_uni_grid, "altitude", "u_vel")
