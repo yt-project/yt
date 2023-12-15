@@ -117,13 +117,13 @@ def get_mpl_transform(mpl_proj) -> Optional[FunctionType]:
     return instantiated_func
 
 
-def _geographic_bounds(transform):
-    xlims = transform.x_limits
-    ylims = transform.y_limits
+def _geographic_bounds(transform) -> tuple:
+    xlims: tuple = transform.x_limits
+    ylims: tuple = transform.y_limits
     return xlims + ylims
 
 
-def _check_geographic_bounds(bounds, transform):
+def _check_geographic_bounds(bounds: tuple, transform) -> bool:
     # returns True if any of the bounds match the exact transform bounds
     transform_bounds = _geographic_bounds(transform)
     return any(bounds[bid].d == transform_bounds[bid] for bid in range(4))
