@@ -579,7 +579,7 @@ class Extrema(DerivedQuantity):
         If True, only positive values are considered in the calculation.
         Default: False
     check_finite : bool
-        If True, non-finite values will be explicitly exluded.
+        If True, non-finite values will be explicitly excluded.
         Default: False
 
     Examples
@@ -591,17 +591,17 @@ class Extrema(DerivedQuantity):
 
     """
 
-    def count_values(self, fields, non_zero, check_finite):
+    def count_values(self, fields, non_zero, *, check_finite=False):
         self.num_vals = len(fields) * 2
 
     def __call__(self, fields, non_zero=False, *, check_finite=False):
         fields = list(iter_fields(fields))
-        rv = super().__call__(fields, non_zero, check_finite)
+        rv = super().__call__(fields, non_zero, check_finite=check_finite)
         if len(rv) == 1:
             rv = rv[0]
         return rv
 
-    def process_chunk(self, data, fields, non_zero, check_finite):
+    def process_chunk(self, data, fields, non_zero, *, check_finite=False):
         vals = []
         for field in fields:
             field = data._determine_fields(field)[0]
