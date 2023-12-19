@@ -41,6 +41,20 @@ def test_extrema():
             assert_equal(ma, np.nanmax(dd[("gas", "radial_velocity")]))
 
 
+def test_extrema_with_nan():
+    dens = np.ones((16, 16, 16))
+    dens[0, 0, 0] = np.nan
+    data = {"density": dens}
+    ds = yt.load_uniform_grid(data, data["density"].shape)
+    ad = ds.all_data()
+    mi, ma = ad.quantities.extrema(("stream", "density"))
+    assert np.isnan(mi)
+    assert np.isnan(ma)
+    mi, ma = ad.quantities.extrema(("stream", "density"), check_finite=True)
+    assert mi == 1.0
+    assert ma == 1.0
+
+
 def test_average():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",), units=("g/cm**3",))
