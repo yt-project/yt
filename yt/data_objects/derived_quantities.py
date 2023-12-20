@@ -606,7 +606,7 @@ class Extrema(DerivedQuantity):
             if non_zero:
                 fd = fd[fd > 0.0]
             if fd.size > 0:
-                vals += [fd.min(), fd.max()]
+                vals += [np.nanmin(fd), np.nanmax(fd)]
             else:
                 vals += [
                     array_like_field(data, HUGE, field),
