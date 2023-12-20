@@ -265,6 +265,14 @@ def phase_plot_attribute(
 
 
 def generic_image(img_fname):
+    from yt._maintenance.deprecation import issue_deprecation_warning
+
+    issue_deprecation_warning(
+        "yt.utilities.answer_testing.answer_tests.generic_image is deprecated "
+        "and will be removed in a future version. Please use pytest-mpl instead",
+        since="4.4",
+        stacklevel=2,
+    )
     img_data = mpimg.imread(img_fname)
     return img_data
 
