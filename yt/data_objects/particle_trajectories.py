@@ -339,8 +339,8 @@ class ParticleTrajectories:
             raise IndexError
         fields = sorted(self.field_data.keys())
         traj = {}
-        traj[(self.ptype,"particle_time")] = self.times
-        traj[(self.ptype,"particle_index")] = index
+        traj[(self.ptype, "particle_time")] = self.times
+        traj[(self.ptype, "particle_index")] = index
         for field in fields:
             traj[field] = self[field][mask, :][0]
         return traj
