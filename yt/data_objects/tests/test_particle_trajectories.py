@@ -1,6 +1,7 @@
 import glob
 import os
 
+# import pytest
 import numpy as np
 from numpy.testing import assert_raises
 
@@ -28,6 +29,37 @@ vfields = [
     ("all", "particle_velocity_y"),
     ("all", "particle_velocity_z"),
 ]
+
+# For switching to pytest
+# @pytest.fixture
+# def particle_trajectories_test_dataset():
+#    n_particles = 2
+#    n_steps = 2
+#    ids = np.arange(n_particles, dtype="int64")
+#    data = {"particle_index": ids}
+#    fields = [
+#        "particle_position_x",
+#        "particle_position_y",
+#        "particle_position_z",
+#        "particle_velocity_x", # adding a non-default field
+#        "particle_index",
+#    ]
+#    negative = [False, False, False, True, False]
+#    units = ["cm", "cm", "cm", "cm/s", "1"]
+
+#    ts = DatasetSeries(
+#        [
+#            fake_particle_ds(
+#                fields=fields,
+#                negative=negative,
+#                units=units,
+#                npart=n_particles,
+#                data=data,
+#            )
+#            for i in range(n_steps)
+#        ]
+#    )
+#    return ts
 
 
 @requires_ds("Orbit/orbit_hdf5_chk_0000")
@@ -139,3 +171,126 @@ def test_ptype():
 
     # Build trajectories
     ts.particle_trajectories(ids, ptype="dummy")
+
+
+# nose version - remove when switching to pytest
+def test_default_field_tuple():
+    # setup DatasetSeries
+    n_particles = 2
+    n_steps = 2
+    ids = np.arange(n_particles, dtype="int64")
+    data = {"particle_index": ids}
+    fields = [
+        "particle_position_x",
+        "particle_position_y",
+        "particle_position_z",
+        "particle_index",
+    ]
+    negative = [False, False, False, False]
+    units = ["cm", "cm", "cm", "1"]
+
+    ts = DatasetSeries(
+        [
+            fake_particle_ds(
+                fields=fields,
+                negative=negative,
+                units=units,
+                npart=n_particles,
+                data=data,
+            )
+            for i in range(n_steps)
+        ]
+    )
+    # actual test - not specifying ptype
+    trajs = ts.particle_trajectories(ids, suppress_logging=True)
+    for k in trajs.field_data.keys():
+        assert isinstance(k, tuple), f"Expected key to be tuple, received {type(k)}"
+        assert k in pfields, f"Unexpected field: {k}"
+
+    # specifying ptype - should change the field type of the default fields
+    trajs = ts.particle_trajectories(ids, ptype="io", suppress_logging=True)
+    for k in trajs.field_data.keys():
+        assert isinstance(k, tuple), f"Expected key to be tuple, received {type(k)}"
+        assert k[0] == "io", f"Default field type ({k[0]}) does not match expected (io)"
+        assert ("all", k[1]) in pfields, f"Unexpected field: {k[1]}"
+
+
+# pytest version
+# @pytest.mark.parametrize("ptype",
+#    [
+#        None,
+#        ("io")
+#    ]
+# )
+# def test_default_field_tuple(particle_trajectories_test_dataset,ptype):
+#    ds = particle_trajectories_test_dataset[0]
+#    ids = ds.all_data()[("all","particle_index")]
+#    trajs = particle_trajectories_test_dataset.particle_trajectories(ids,
+#                ptype=ptype, suppress_logging=True)
+#    ptype = ptype if ptype else "all" # ptype defaults to "all"
+#    for k in trajs.field_data.keys():
+#        assert isinstance(k,tuple), f"Expected key to be tuple, received {type(k)}"
+#        assert k[0]==ptype, f"Default field type ({k[0]}) does not match expected ({ptype})"
+#        assert ("all",k[1]) in pfields, f"Unexpected field: {k[1]}"
+
+
+# nose version - remove when switching to pytest
+def test_time_and_index():
+    # setup ParticleTrajectories
+    n_particles = 2
+    n_steps = 2
+    ids = np.arange(n_particles, dtype="int64")
+    data = {"particle_index": ids}
+    fields = [
+        "particle_position_x",
+        "particle_position_y",
+        "particle_position_z",
+        "particle_index",
+    ]
+    negative = [False, False, False, False]
+    units = ["cm", "cm", "cm", "1"]
+
+    ts = DatasetSeries(
+        [
+            fake_particle_ds(
+                fields=fields,
+                negative=negative,
+                units=units,
+                npart=n_particles,
+                data=data,
+            )
+            for i in range(n_steps)
+        ]
+    )
+    # actual test - default ptype
+    trajs = ts.particle_trajectories(ids, suppress_logging=True)
+    traj = trajs.trajectory_from_index(1)
+    for field in ["particle_time", "particle_index"]:
+        assert ("all", field) in traj.keys(), f"Missing ('all',{field})"
+        assert (field) not in traj.keys(), f"{field} present as bare string"
+
+    # actual test - io ptype
+    trajs = ts.particle_trajectories(ids, ptype="io", suppress_logging=True)
+    traj = trajs.trajectory_from_index(1)
+    for field in ["particle_time", "particle_index"]:
+        assert ("io", field) in traj.keys(), f"Missing (io,{field})"
+        assert (field) not in traj.keys(), f"{field} present as bare string"
+
+
+# pytest version
+# @pytest.mark.parametrize("ptype",
+#    [
+#        None,
+#        ("io")
+#    ]
+# )
+# def test_time_and_index(particle_trajectories_test_dataset,ptype):
+#    ds = particle_trajectories_test_dataset[0]
+#    ids = ds.all_data()[("all","particle_index")]
+#    trajs = particle_trajectories_test_dataset.particle_trajectories(ids,
+#                ptype=ptype, suppress_logging=True)
+#    ptype = ptype if ptype else "all" # ptype defaults to "all"
+#    traj = trajs.trajectory_from_index(1)
+#    for field in ["particle_time","particle_index"]:
+#        assert (ptype,field) in traj.keys(), f"Missing ({ptype},{field})"
+#        assert (field) not in traj.keys(), f"{field} present as bare string"
