@@ -1,7 +1,6 @@
 import glob
 import os
 
-# import pytest
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.answer_testing.framework import GenericArrayTest, requires_ds
@@ -23,37 +22,6 @@ vfields = [
     ("all", "particle_velocity_y"),
     ("all", "particle_velocity_z"),
 ]
-
-# For switching to pytest
-# @pytest.fixture
-# def particle_trajectories_test_dataset():
-#    n_particles = 2
-#    n_steps = 2
-#    ids = np.arange(n_particles, dtype="int64")
-#    data = {"particle_index": ids}
-#    fields = [
-#        "particle_position_x",
-#        "particle_position_y",
-#        "particle_position_z",
-#        "particle_velocity_x", # adding a non-default field
-#        "particle_index",
-#    ]
-#    negative = [False, False, False, True, False]
-#    units = ["cm", "cm", "cm", "cm/s", "1"]
-
-#    ts = DatasetSeries(
-#        [
-#            fake_particle_ds(
-#                fields=fields,
-#                negative=negative,
-#                units=units,
-#                npart=n_particles,
-#                data=data,
-#            )
-#            for i in range(n_steps)
-#        ]
-#    )
-#    return ts
 
 
 @requires_ds("Orbit/orbit_hdf5_chk_0000")
