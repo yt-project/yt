@@ -120,7 +120,7 @@ def test_ptype():
     ts.particle_trajectories(ids, ptype="dummy")
 
 
-@pytest.mark.parametrize("ptype", [None, ("io")])
+@pytest.mark.parametrize("ptype", [None, "io"])
 def test_default_field_tuple(particle_trajectories_test_dataset, ptype):
     ds = particle_trajectories_test_dataset[0]
     ids = ds.all_data()[("all", "particle_index")]
