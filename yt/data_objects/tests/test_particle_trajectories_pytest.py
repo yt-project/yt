@@ -113,7 +113,6 @@ def test_ptype():
     ts = DatasetSeries(all_ds)
 
     # Select all dummy particles
-    print(ts[0].derived_field_list)
     ids = ts[0].all_data()["dummy", "particle_index"]
 
     # Build trajectories
