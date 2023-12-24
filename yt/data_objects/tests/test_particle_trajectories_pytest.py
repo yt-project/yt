@@ -136,7 +136,7 @@ def test_default_field_tuple(particle_trajectories_test_dataset, ptype):
         assert ("all", k[1]) in pfields, f"Unexpected field: {k[1]}"
 
 
-@pytest.mark.parametrize("ptype", [None, ("io")])
+@pytest.mark.parametrize("ptype", [None, "io"])
 def test_time_and_index(particle_trajectories_test_dataset, ptype):
     ds = particle_trajectories_test_dataset[0]
     ids = ds.all_data()[("all", "particle_index")]
