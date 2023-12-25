@@ -138,7 +138,7 @@ class ParticleTrajectories:
                     raise YTIllDefinedParticleData(
                         "This dataset contains duplicate particle indices!"
                     ) from e
-            self.field_data[field] = array_like_field(
+            self.field_data[fds[field]] = array_like_field(
                 dd_first, output_field.copy(), fds[field]
             )
             self.particle_fields.append(field)
@@ -339,8 +339,8 @@ class ParticleTrajectories:
             raise IndexError
         fields = sorted(self.field_data.keys())
         traj = {}
-        traj["particle_time"] = self.times
-        traj["particle_index"] = index
+        traj[(self.ptype, "particle_time")] = self.times
+        traj[(self.ptype, "particle_index")] = index
         for field in fields:
             traj[field] = self[field][mask, :][0]
         return traj
