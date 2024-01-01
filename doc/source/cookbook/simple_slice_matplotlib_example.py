@@ -8,6 +8,10 @@ ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 # Create a slice object
 slc = yt.SlicePlot(ds, "x", ("gas", "density"), width=(800.0, "kpc"))
 
+# Rendering should be performed explicitly *before* any modification is
+# performed directly with matplotlib.
+slc.render()
+
 # Get a reference to the matplotlib axes object for the plot
 ax = slc.plots[("gas", "density")].axes
 
