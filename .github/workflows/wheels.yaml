@@ -46,7 +46,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.os }}
           path: ./dist/*.whl
 
   build_sdist:
@@ -114,8 +114,9 @@ jobs:
       - name: Download wheels
         uses: actions/download-artifact@v3
         with:
-          name: wheels
           path: dist
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.8.11
