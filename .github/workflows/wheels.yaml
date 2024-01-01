@@ -44,9 +44,9 @@ jobs:
           CIBW_ENVIRONMENT: "LDFLAGS='-static-libstdc++'"
           CIBW_BUILD_VERBOSITY: 1
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.os }}
           path: ./dist/*.whl
 
   build_sdist:
@@ -60,7 +60,7 @@ jobs:
         run: pipx run build --sdist
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -114,8 +114,9 @@ jobs:
       - name: Download wheels
         uses: actions/download-artifact@v4
         with:
-          name: wheels
           path: dist
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.8.11
