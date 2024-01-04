@@ -284,8 +284,75 @@ Here is what a minimal example might look like for a new frontend:
 Answer test examples can be found in ``yt/frontends/enzo/tests/test_outputs.py``.
 
 
-How to Write Image Comparison Tests
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _update_image_tests:
+
+Creating and Updating Image Baselines for pytest-mpl Tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We use `pytest-mpl <https://pytest-mpl.readthedocs.io/en/latest/>`_ for image comparison
+tests. These tests take the form of functions, which must be decorated with
+``@pytest.mark.mpl_image_compare`` and return a ``matplotlib.figure.Figure`` object.
+
+The collection of reference images is kept as git submodule in ``tests/pytest_mpl_baseline/``.
+
+There are 4 situations where updating reference images may be necessary
+
+- adding new tests
+- bugfixes
+- intentional change of style in yt
+- old baseline fails with a new version of matplotlib, but changes are not noticeable to the human eye
+
+The process of updating images is the same in all cases. It involves opening two Pull Requests (PR)
+that we'll number PR1 and PR2.
+
+1. open a Pull Request (PR1) to yt's main repo with the code changes
+2. wait for tests jobs to complete
+3. go to the "Checks" tab on the PR page (``https://github.com/yt-project/yt/pull/<PR number>/checks``)
+4. if all tests passed, you're done !
+5. if tests other than image tests failed, fix them, and go back to step 2.
+  Otherwise, if only image tests failed, navigate to the "Build and Tests" job summary page.
+6. at the bottom of the page, you'll find "Artifacts".
+   Download ``yt_pytest_mpl_results.zip``, unzip it and open ``fig_comparison.html`` therein;
+   This document is an interactive report of the test job.
+   Inspect failed tests results and verify that any differences are either intended or insignificant.
+   If they are not, fix the code and go back to step 2
+7. clone ``https://github.com/yt-project/yt_pytest_mpl_baseline.git`` and unzip the new baseline
+8. Download the other artifact (``yt_pytest_mpl_new_baseline.zip``),
+   unzip it within your clone of ``yt_pytest_mpl_baseline``.
+9. create a branch, commit all changes, and open a Pull Request (PR2) to ``https://github.com/yt-project/yt_pytest_mpl_baseline``
+   (PR2 should link to PR1)
+10. wait for this second PR to be merged
+11. Now it's time to update PR1: navigate back to your local copy of ``yt``'s main repository.
+12. run the following commands
+
+.. code-block:: bash
+
+  $ git submodule update --init
+  $ cd tests/pytest_mpl_baseline
+  $ git checkout main
+  $ git pull
+  $ cd ../
+  $ git add pytest_mpl_baseline
+  $ git commit -m "update image test baseline"
+  $ git push
+
+13. go back to step 2. This time everything should pass. If not, ask for help !
+
+.. note::
+    Though it is technically possible to (re)generate reference images locally, it is
+    best not to, because at a pixel level, matplotlib's behaviour is platform-dependent.
+    By letting CI runners generate images, we ensure pixel-perfect comparison is possible
+    in CI, which is where image comparison tests are most often run.
+
+
+.. _deprecated_generic_image:
+
+How to Write Image Comparison Tests (deprecated API)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+    this section describes deprecated API. New test code should follow :ref:`_update_image_tests`
+
 
 Many of yt's operations involve creating and manipulating images. As such, we have a number of tests designed to compare images. These tests employ functionality from matplotlib to automatically compare images and detect
 differences, if any. Image comparison tests are used in the plotting and volume
@@ -345,6 +412,7 @@ Another good example of an image comparison test is the
 test is more useful if you are finding yourself writing a ton of boilerplate
 code to get your image comparison test working.  The ``generic_image`` function is
 more useful if you only need to do a one-off image comparison test.
+
 
 Updating Answers
 ~~~~~~~~~~~~~~~~
