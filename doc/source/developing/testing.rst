@@ -302,9 +302,10 @@ There are 4 situations where updating reference images may be necessary
 - intentional change of style in yt
 - old baseline fails with a new version of matplotlib, but changes are not noticeable to the human eye
 
-The process of updating images is the same in all cases.
+The process of updating images is the same in all cases. It involves opening two Pull Requests (PR)
+that we'll number PR1 and PR2.
 
-1. open a Pull Request (PR) to yt's main repo with the code changes
+1. open a Pull Request (PR1) to yt's main repo with the code changes
 2. wait for tests jobs to complete
 3. go to the "Checks" tab on the PR page (``https://github.com/yt-project/yt/pull/<PR number>/checks``)
 4. if all tests passed, you're done !
@@ -318,10 +319,10 @@ The process of updating images is the same in all cases.
 7. clone ``https://github.com/yt-project/yt_pytest_mpl_baseline.git`` and unzip the new baseline
 8. Download the other artifact (``yt_pytest_mpl_new_baseline.zip``),
    unzip it within your clone of ``yt_pytest_mpl_baseline``.
-9. create a branch, commit all changes, and open a PR to ``https://github.com/yt-project/yt_pytest_mpl_baseline``
-   (this PR should link to the one on the main repo)
+9. create a branch, commit all changes, and open a Pull Request (PR2) to ``https://github.com/yt-project/yt_pytest_mpl_baseline``
+   (PR2 should link to PR1)
 10. wait for this second PR to be merged
-11. go back to your local copy of ``yt``'s main repository.
+11. Now it's time to update PR1: navigate back to your local copy of ``yt``'s main repository.
 12. run the following commands
 
 .. code-block:: bash
