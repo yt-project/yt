@@ -622,6 +622,12 @@
     "load_name": "c5.h5m",
     "url": "https://yt-project.org/data/c5.tar.gz"
   },
+  "castro_sedov_1d_cyl_plt00150.tar.gz": {
+    "hash": "c96a8fdf3cd43563a88e34569a6b37e57a0349692a9100ea65252506a167f08f",
+    "load_kwargs": {},
+    "load_name": "",
+    "url": "https://yt-project.org/data/castro_sedov_1d_cyl_plt00150.tar.gz"
+  },
   "castro_sedov_2d_cyl_in_cart_plt00150.tar.gz": {
     "hash": "8b73a37a0503dba593af65f8bf16dfcc11ac825d671f11e5a364a2dee63c9047",
     "load_kwargs": {},
