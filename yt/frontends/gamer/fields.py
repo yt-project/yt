@@ -25,6 +25,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         ("Engy", (erg_units, ["total_energy_density"], None)),
         ("CRay", (erg_units, ["cosmic_ray_energy_density"], None)),
         ("Pote", (pot_units, ["gravitational_potential"], None)),
+        ("Temp", ("code_temperature", ["temperature"], None)),
         # MHD fields on disk (CC=cell-centered)
         ("CCMagX", (b_units, [], "B_x")),
         ("CCMagY", (b_units, [], "B_y")),
@@ -386,13 +387,15 @@ class GAMERFieldInfo(FieldInfoContainer):
             )
 
         # temperature
-        def _temperature(field, data):
-            return (
-                data.ds.mu
-                * data["gas", "pressure"]
-                * pc.mh
-                / (data["gas", "density"] * pc.kb)
-            )
+        if ("gamer", "Temp") not in self.field_list:
+
+            def _temperature(field, data):
+                return (
+                    data.ds.mu
+                    * data["gas", "pressure"]
+                    * pc.amu
+                    / (data["gas", "density"] * pc.kb)
+                )
 
         self.add_field(
             ("gas", "temperature"),
