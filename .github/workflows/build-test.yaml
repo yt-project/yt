@@ -32,8 +32,8 @@ jobs:
         tests-type: [unit]
         test-runner: [pytest]
         include:
-          - os: ubuntu-latest
-            python-version: '3.9'
+          - os: ubuntu-20.04
+            python-version: '3.9.2'
             dependencies: minimal
             tests-type: unit
             test-runner: pytest
