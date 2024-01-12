@@ -70,12 +70,23 @@ class GAMERFieldInfo(FieldInfoContainer):
                 # Taub-Mathews EOS
                 fgen = SRHDFields(self.ds.eos, 0.0, c.d)
 
+            def _temp_fraction(field, data):
+                kT = pc.kb * data["gamer", "Temp"]
+                return kT / (data.ds.mu * pc.amu * c2)
+
+            self.add_field(
+                ("gas", "temp_fraction"),
+                function=_temp_fraction,
+                sampling_type="cell",
+                units="",
+            )
+
             def _sound_speed(field, data):
-                out = fgen.sound_speed(data["gamer", "Temp"].d)
+                out = fgen.sound_speed(data["gas", "temp_fraction"].d)
                 return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
 
             def _gamma(field, data):
-                out = fgen.gamma_field(data["gamer", "Temp"].d)
+                out = fgen.gamma_field(data["gas", "temp_fraction"].d)
                 return data.ds.arr(out, "dimensionless")
 
             # coordinate frame density
@@ -95,7 +106,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                     out = fgen.four_velocity_xyz(
                         data["gamer", f"Mom{u.upper()}"].d,
                         data["gamer", "Dens"].d,
-                        data["gamer", "Temp"].d,
+                        data["gas", "temp_fraction"].d,
                     )
                     return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
 
@@ -123,7 +134,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                         data["gamer", "MomX"].d,
                         data["gamer", "MomY"].d,
                         data["gamer", "MomZ"].d,
-                        data["gamer", "Temp"].d,
+                        data["gas", "temp_fraction"].d,
                     )
                     return data.ds.arr(out, "dimensionless")
 
@@ -151,7 +162,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                             data["gamer", "MomX"].d,
                             data["gamer", "MomY"].d,
                             data["gamer", "MomZ"].d,
-                            data["gamer", "Temp"].d,
+                            data["gas", "temp_fraction"].d,
                             data["gamer", f"Mom{v.upper()}"].d,
                         )
                         return data.ds.arr(out, "code_velocity").to(
@@ -175,7 +186,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
-                    data["gamer", "Temp"].d,
+                    data["gas", "temp_fraction"].d,
                 )
                 return data.ds.arr(dens, rho_units).to(unit_system["density"])
 
@@ -193,7 +204,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
-                    data["gamer", "Temp"].d,
+                    data["gas", "temp_fraction"].d,
                 )
                 return data.ds.arr(out, pre_units).to(unit_system["pressure"])
 
@@ -204,7 +215,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
-                    data["gamer", "Temp"].d,
+                    data["gas", "temp_fraction"].d,
                 )
                 return data.ds.arr(out, "code_length**2 / code_time**2").to(
                     unit_system["specific_energy"]
@@ -221,7 +232,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
-                    data["gamer", "Temp"].d,
+                    data["gas", "temp_fraction"].d,
                 )
                 return data.ds.arr(out, erg_units).to(unit_system["pressure"])
 
@@ -252,7 +263,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
-                    data["gamer", "Temp"].d,
+                    data["gas", "temp_fraction"].d,
                 )
                 return data.ds.arr(out, "dimensionless")
 
