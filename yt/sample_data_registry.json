@@ -625,7 +625,7 @@
   "castro_sedov_1d_cyl_plt00150.tar.gz": {
     "hash": "c96a8fdf3cd43563a88e34569a6b37e57a0349692a9100ea65252506a167f08f",
     "load_kwargs": {},
-    "load_name": "castro_sedov_1d_cyl_plt00150",
+    "load_name": "",
     "url": "https://yt-project.org/data/castro_sedov_1d_cyl_plt00150.tar.gz"
   },
   "castro_sedov_2d_cyl_in_cart_plt00150.tar.gz": {
