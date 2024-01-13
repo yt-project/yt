@@ -76,10 +76,10 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # Taub-Mathews EOS functions
             fgen = SRHDFields(c.d)
-
+            
             def _temp_fraction(field, data):
                 kT = pc.kb * data["gamer", "Temp"]
-                return kT / (data.ds.mu * pc.amu * c2)
+                return kT / (data.ds.mu * self.ds.units.amu * c2)
 
             self.add_field(
                 ("gas", "temp_fraction"),
@@ -131,8 +131,8 @@ class GAMERFieldInfo(FieldInfoContainer):
             def four_velocity_xyz(u):
                 def _four_velocity(field, data):
                     out = fgen.four_velocity_xyz(
-                        data["gamer", f"Mom{u.upper()}"].d,
                         data["gamer", "Dens"].d,
+                        data["gamer", f"Mom{u.upper()}"].d,
                         data["gamer", "Enth"].d,
                     )
                     return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
@@ -149,7 +149,7 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # lorentz factor
             if ("gamer", "Lrtz") in self.field_list:
-
+                
                 def _lorentz_factor(field, data):
                     return data["gamer", "Lrtz"]
 
@@ -201,7 +201,7 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # density
             def _density(field, data):
-                return data["Gamer", "Dens"] / data["gas", "lorentz_factor"]
+                return data["gamer", "Dens"] / data["gas", "lorentz_factor"]
 
             self.add_field(
                 ("gas", "density"),
@@ -392,7 +392,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return (
                     data.ds.mu
                     * data["gas", "pressure"]
-                    * pc.amu
+                    * ds.units.amu
                     / (data["gas", "density"] * pc.kb)
                 )
 
