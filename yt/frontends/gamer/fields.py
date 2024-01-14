@@ -62,8 +62,11 @@ class GAMERFieldInfo(FieldInfoContainer):
         unit_system = self.ds.unit_system
         unit_system.registry = self.ds.unit_registry  # TODO: Why do I need this?!
 
+        temp_conv = pc.kb / (self.ds.mu * self.ds.units.amu)
+
         if self.ds.srhd:
             c2 = pc.clight * pc.clight
+            invc2 = 1.0 / c2
             c = pc.clight.in_units("code_length / code_time")
             if ("gamer", "Temp") not in self.field_list:
                 mylog.warning(
@@ -76,10 +79,9 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # Taub-Mathews EOS functions
             fgen = SRHDFields(c.d)
-            
+
             def _temp_fraction(field, data):
-                kT = pc.kb * data["gamer", "Temp"]
-                return kT / (data.ds.mu * self.ds.units.amu * c2)
+                return data["gamer", "Temp"] * temp_conv * invc2
 
             self.add_field(
                 ("gas", "temp_fraction"),
@@ -149,7 +151,7 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # lorentz factor
             if ("gamer", "Lrtz") in self.field_list:
-                
+
                 def _lorentz_factor(field, data):
                     return data["gamer", "Lrtz"]
 
@@ -389,12 +391,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         if ("gamer", "Temp") not in self.field_list:
 
             def _temperature(field, data):
-                return (
-                    data.ds.mu
-                    * data["gas", "pressure"]
-                    * ds.units.amu
-                    / (data["gas", "density"] * pc.kb)
-                )
+                return data["gas", "pressure"] / (data["gas", "density"] * temp_conv)
 
             self.add_field(
                 ("gas", "temperature"),
