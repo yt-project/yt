@@ -131,12 +131,31 @@ class GAMERFieldInfo(FieldInfoContainer):
                     units=unit_system["velocity"],
                 )
 
+            # ratio of specific heats (gamma)
             def _gamma(field, data):
                 out = fgen.gamma_field(data["gas", "temp_fraction"].d)
                 return data.ds.arr(out, "dimensionless")
 
             self.add_field(
                 ("gas", "gamma"), sampling_type="cell", function=_gamma, units=""
+            )
+
+            # reduced total energy density
+            self.alias(
+                ("gas", "reduced_total_energy_density"),
+                ("gamer", "Engy"),
+                units=unit_system["pressure"],
+            )
+
+            # total energy density
+            def _total_energy_density(field, data):
+                return data["gamer", "Engy"] + data["gamer", "Dens"] * c2
+
+            self.add_field(
+                ("gas", "total_energy_density"),
+                sampling_type="cell",
+                function=_total_energy_density,
+                units=unit_system["pressure"],
             )
 
             # coordinate frame density
@@ -243,8 +262,9 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # total energy per mass
             def _specific_total_energy(field, data):
-                return data["gamer", "Engy"] / data["gamer", "Dens"] + c2
+                return data["gas", "total_energy_density"] / data["gas", "density"]
 
+            # kinetic energy density
             def _kinetic_energy_density(field, data):
                 out = fgen.kinetic_energy_density(
                     data["gamer", "Dens"].d,
@@ -290,6 +310,12 @@ class GAMERFieldInfo(FieldInfoContainer):
             # density
             self.alias(
                 ("gas", "density"), ("gamer", "Dens"), units=unit_system["density"]
+            )
+
+            self.alias(
+                ("gas", "total_energy_density"),
+                ("gamer", "Engy"),
+                units=unit_system["pressure"],
             )
 
             # velocity
