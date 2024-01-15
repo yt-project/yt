@@ -28,10 +28,17 @@ class GAMERFieldInfo(FieldInfoContainer):
         ("Pote", (pot_units, ["gravitational_potential"], None)),
         ("Temp", ("code_temperature", ["temperature"], None)),
         ("Enth", (pot_units, ["specific_reduced_enthalpy"], None)),
+        ("Mach", ("dimensionless", ["mach_number"], None)),
+        ("Cs", (vel_units, ["sound_speed"], None)),
+        ("DivVel", ("1/code_time", ["velocity_divergence"], None)),
         # MHD fields on disk (CC=cell-centered)
         ("CCMagX", (b_units, [], "B_x")),
         ("CCMagY", (b_units, [], "B_y")),
         ("CCMagZ", (b_units, [], "B_z")),
+        (
+            "DivMag",
+            ("code_magnetic/code_length", ["magnetic_field_divergence"], None),
+        ),
         # psiDM fields on disk
         ("Real", (psi_units, ["psidm_real_part"], None)),
         ("Imag", (psi_units, ["psidm_imaginary_part"], None)),
@@ -100,19 +107,22 @@ class GAMERFieldInfo(FieldInfoContainer):
                 units=unit_system["specific_energy"],
             )
 
-            def _sound_speed(field, data):
-                out = fgen.sound_speed(
-                    data["gas", "temp_fraction"].d,
-                    data["gamer", "Enth"].d,
-                )
-                return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
+            # sound speed
+            if ("gamer", "Cs") not in self.field_list:
 
-            self.add_field(
-                ("gas", "sound_speed"),
-                sampling_type="cell",
-                function=_sound_speed,
-                units=unit_system["velocity"],
-            )
+                def _sound_speed(field, data):
+                    out = fgen.sound_speed(
+                        data["gas", "temp_fraction"].d,
+                        data["gamer", "Enth"].d,
+                    )
+                    return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
+
+                self.add_field(
+                    ("gas", "sound_speed"),
+                    sampling_type="cell",
+                    function=_sound_speed,
+                    units=unit_system["velocity"],
+                )
 
             def _gamma(field, data):
                 out = fgen.gamma_field(data["gas", "temp_fraction"].d)
@@ -246,23 +256,26 @@ class GAMERFieldInfo(FieldInfoContainer):
                 units=unit_system["pressure"],
             )
 
-            def _mach_number(field, data):
-                out = fgen.mach_number(
-                    data["gamer", "Dens"].d,
-                    data["gamer", "MomX"].d,
-                    data["gamer", "MomY"].d,
-                    data["gamer", "MomZ"].d,
-                    data["gas", "temp_fraction"].d,
-                    data["gamer", "Enth"].d,
-                )
-                return data.ds.arr(out, "dimensionless")
+            # Mach number
+            if ("gamer", "Mach") not in self.field_list:
 
-            self.add_field(
-                ("gas", "mach_number"),
-                sampling_type="cell",
-                function=_mach_number,
-                units="",
-            )
+                def _mach_number(field, data):
+                    out = fgen.mach_number(
+                        data["gamer", "Dens"].d,
+                        data["gamer", "MomX"].d,
+                        data["gamer", "MomY"].d,
+                        data["gamer", "MomZ"].d,
+                        data["gas", "temp_fraction"].d,
+                        data["gamer", "Enth"].d,
+                    )
+                    return data.ds.arr(out, "dimensionless")
+
+                self.add_field(
+                    ("gas", "mach_number"),
+                    sampling_type="cell",
+                    function=_mach_number,
+                    units="",
+                )
 
             setup_stress_energy_ideal(self)
 
