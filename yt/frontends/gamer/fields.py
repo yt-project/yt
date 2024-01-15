@@ -77,11 +77,16 @@ class GAMERFieldInfo(FieldInfoContainer):
             c = pc.clight.in_units("code_length / code_time")
             if ("gamer", "Temp") not in self.field_list:
                 mylog.warning(
-                    'The temperature field "Temp" is not present in the dataset. Most SRHD fields will not be available!! Please set "OPT__OUTPUT_TEMP = 1" in Input__Parameter and re-run the simulation.'
+                    'The temperature field "Temp" is not present in the dataset. Most '
+                    'SRHD fields will not be available!! Please set "OPT__OUTPUT_TEMP '
+                    '= 1" in Input__Parameter and re-run the simulation.'
                 )
             if ("gamer", "Enth") not in self.field_list:
                 mylog.warning(
-                    'The reduced enthalpy field "Enth" is not present in the dataset. Most SRHD fields will not be available!! Please set "OPT__OUTPUT_ENTHALPY = 1" in Input__Parameter and re-run the simulation.'
+                    'The reduced enthalpy field "Enth" is not present in the dataset. '
+                    "Most SRHD fields will not be available!! Please set "
+                    '"OPT__OUTPUT_ENTHALPY = 1" in Input__Parameter and re-run the '
+                    "simulation."
                 )
 
             # Taub-Mathews EOS functions
