@@ -87,6 +87,7 @@ class GAMERFieldInfo(FieldInfoContainer):
             # Taub-Mathews EOS functions
             fgen = SRHDFields(c.d)
 
+            # temperature fraction (kT/mc^2)
             def _temp_fraction(field, data):
                 return data["gamer", "Temp"] * temp_conv * invc2
 
@@ -97,6 +98,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                 units="",
             )
 
+            # specific enthalpy
             def _specific_enthalpy(field, data):
                 return data["gas", "specific_reduced_enthalpy"] + c2
 
