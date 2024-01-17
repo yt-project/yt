@@ -18,6 +18,7 @@ from yt.utilities.lib.api import (  # type: ignore
 from yt.utilities.lib.pixelization_routines import (
     pixelize_cylinder,
     rotate_particle_coord,
+    sample_arbitrary_points_in_1d_buffer,
 )
 from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -31,6 +32,10 @@ else:
 
 if TYPE_CHECKING:
     from yt.visualization.fixed_resolution_filters import FixedResolutionBufferFilter
+
+from yt.data_objects.selection_objects.slices import (
+    YTCuttingPlaneMixedCoords,
+)
 
 
 class FixedResolutionBuffer:
@@ -688,6 +693,108 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         ia = ImageArray(buff.swapaxes(0, 1), info=self._get_info(item))
         self.data[item] = ia
         self.mask[item] = None
+
+
+class MixedCoordSliceFixedResolutionBuffer(FixedResolutionBuffer):
+    """
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    that supports off axis slices when a coordinate transformation
+    is required
+    """
+
+    def __init__(
+        self,
+        data_source: YTCuttingPlaneMixedCoords,
+        bounds,
+        buff_size,
+        antialias=True,
+        periodic=False,
+        *,
+        filters: Optional[list["FixedResolutionBufferFilter"]] = None,
+    ):
+        if not isinstance(data_source, YTCuttingPlaneMixedCoords):
+            raise ValueError(
+                "The MixedCoordSliceFixedResolutionBuffer only "
+                "works with YTCuttingPlaneMixedCoords objects."
+            )
+        super().__init__(
+            data_source,
+            bounds,
+            buff_size,
+            antialias=antialias,
+            periodic=periodic,
+            filters=filters,
+        )
+
+    def _1d_sample_points(self, axisid: int):
+        # get a 1d array of sample points along a dimension
+        bmin_i = self.bounds[axisid * 2]
+        bmax_i = self.bounds[axisid * 2 + 1]
+        buff_size_i = self.buff_size[axisid]
+        dx_i = (bmax_i - bmin_i) / (buff_size_i + 1)
+        return np.linspace(bmin_i + dx_i, bmax_i + dx_i, buff_size_i)
+
+    def image_xy(self):
+        x_plane = self._1d_sample_points(0)
+        y_plane = self._1d_sample_points(1)
+        return x_plane, y_plane
+
+    @override
+    def _generate_image_and_mask(self, item) -> None:
+        mylog.info(
+            "Making a fixed resolution buffer of (%s) %d by %d",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
+        )
+        data_source = self.data_source
+        buff = np.zeros(self.buff_size)
+
+        # get the coordinates of the plane in the coordinate system of the
+        # underlying dataset (the "native" coordinates)
+        x_plane, y_plane = self.image_xy()
+        x_plane, y_plane = np.meshgrid(x_plane, y_plane)
+        b_pos0, b_pos1, b_pos2 = data_source._plane_coords(x_plane, y_plane)
+
+        buff = np.ravel(buff).astype(np.float64)
+        b_pos0 = np.ravel(b_pos0).astype(np.float64)
+        b_pos1 = np.ravel(b_pos1).astype(np.float64)
+        b_pos2 = np.ravel(b_pos2).astype(np.float64)
+
+        chunk_masks = []
+        pos0, pos1, pos2, dpos0, dpos1, dpos2 = data_source._index_fields
+        fields_needed = data_source._index_fields + [
+            item,
+        ]
+        for chunk in data_source.chunks(fields_needed, "io"):
+            # for chunk in parallel_objects(data_source.chunks(fields_needed, "io")):
+
+            msk = sample_arbitrary_points_in_1d_buffer(
+                buff,
+                b_pos0,
+                b_pos1,
+                b_pos2,
+                chunk[pos0].astype(np.float64),
+                chunk[pos1].astype(np.float64),
+                chunk[pos2].astype(np.float64),
+                chunk[dpos0].astype(np.float64),
+                chunk[dpos1].astype(np.float64),
+                chunk[dpos2].astype(np.float64),
+                chunk[item].astype(np.float64),  # the data, need to handle units!
+                return_mask=1,
+            )
+            chunk_masks.append(msk)
+
+        mask = np.any(np.array(chunk_masks), axis=0)
+        # if self.ds.index.comm.size > 1:  # frbs dont have a self.comm...
+        #     buff = self.ds.index.mpi_allreduce(buff, op="sum")
+        #     mask = self.ds.index.mpi_allreduce(mask, op="sum")
+
+        buff = buff.reshape(self.buff_size)
+        ia = ImageArray(buff, info=self._get_info(item))
+        self.data[item] = ia
+        self.mask[item] = mask.reshape(self.buff_size)
 
 
 class ParticleImageBuffer(FixedResolutionBuffer):

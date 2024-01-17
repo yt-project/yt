@@ -72,12 +72,18 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
             self.field_parameters.update(data_source.field_parameters)
         self.quantities = DerivedQuantityCollection(self)
 
+
+    def _get_selector_class(self):
+        s_module = getattr(self, "_selector_module",
+                           yt.geometry.selection_routines)
+        sclass = getattr(s_module, f"{self._type_name}_selector", None)
+        return sclass
+
     @property
     def selector(self):
         if self._selector is not None:
             return self._selector
-        s_module = getattr(self, "_selector_module", yt.geometry.selection_routines)
-        sclass = getattr(s_module, f"{self._type_name}_selector", None)
+        sclass = self._get_selector_class()
         if sclass is None:
             raise YTDataSelectorNotImplemented(self._type_name)
 

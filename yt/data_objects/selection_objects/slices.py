@@ -15,6 +15,8 @@ from yt.funcs import (
     validate_object,
     validate_width_tuple,
 )
+from yt.geometry import selection_routines
+from yt.geometry.geometry_enum import Geometry
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.minimal_representation import MinimalSliceData
 from yt.utilities.orientation import Orientation
@@ -169,7 +171,6 @@ class YTCuttingPlane(YTSelectionContainer2D):
     data_source: optional
         Draw the selection from the provided data source rather than
         all data associated with the dataset
-
     Notes
     -----
 
@@ -233,13 +234,20 @@ class YTCuttingPlane(YTSelectionContainer2D):
     def normal(self):
         return self._norm_vec
 
+    def _current_chunk_xyz(self):
+        x = self._current_chunk.fcoords[:, 0]
+        y = self._current_chunk.fcoords[:, 1]
+        z = self._current_chunk.fcoords[:, 2]
+        return x, y, z
+
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if field == "px":
-            x = self._current_chunk.fcoords[:, 0] - self.center[0]
-            y = self._current_chunk.fcoords[:, 1] - self.center[1]
-            z = self._current_chunk.fcoords[:, 2] - self.center[2]
+            x, y, z = self._current_chunk_xyz()
+            x = x - self.center[0]
+            y = y - self.center[1]
+            z = z - self.center[2]
             tr = np.zeros(x.size, dtype="float64")
             tr = self.ds.arr(tr, "code_length")
             tr += x * self._x_vec[0]
@@ -247,9 +255,10 @@ class YTCuttingPlane(YTSelectionContainer2D):
             tr += z * self._x_vec[2]
             return tr
         elif field == "py":
-            x = self._current_chunk.fcoords[:, 0] - self.center[0]
-            y = self._current_chunk.fcoords[:, 1] - self.center[1]
-            z = self._current_chunk.fcoords[:, 2] - self.center[2]
+            x, y, z = self._current_chunk_xyz()
+            x = x - self.center[0]
+            y = y - self.center[1]
+            z = z - self.center[2]
             tr = np.zeros(x.size, dtype="float64")
             tr = self.ds.arr(tr, "code_length")
             tr += x * self._y_vec[0]
@@ -257,9 +266,10 @@ class YTCuttingPlane(YTSelectionContainer2D):
             tr += z * self._y_vec[2]
             return tr
         elif field == "pz":
-            x = self._current_chunk.fcoords[:, 0] - self.center[0]
-            y = self._current_chunk.fcoords[:, 1] - self.center[1]
-            z = self._current_chunk.fcoords[:, 2] - self.center[2]
+            x, y, z = self._current_chunk_xyz()
+            x = x - self.center[0]
+            y = y - self.center[1]
+            z = z - self.center[2]
             tr = np.zeros(x.size, dtype="float64")
             tr = self.ds.arr(tr, "code_length")
             tr += x * self._norm_vec[0]
@@ -275,6 +285,12 @@ class YTCuttingPlane(YTSelectionContainer2D):
         else:
             raise KeyError(field)
 
+    @property
+    def _frb_class(self):
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
+
+        return FixedResolutionBuffer
+
     def to_pw(self, fields=None, center="center", width=None, axes_unit=None):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
@@ -283,12 +299,12 @@ class YTCuttingPlane(YTSelectionContainer2D):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
+
         normal = self.normal
         center = self.center
         self.fields = list(iter_fields(fields)) + [
             k for k in self.field_data.keys() if k not in self._key_fields
         ]
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer
         from yt.visualization.plot_window import (
             PWViewerMPL,
             get_oblique_window_parameters,
@@ -304,7 +320,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
             origin="center-window",
             periodic=False,
             oblique=True,
-            frb_generator=FixedResolutionBuffer,
+            frb_generator=self._frb_class,
             plot_type="OffAxisSlice",
         )
         if axes_unit is not None:
@@ -363,8 +379,138 @@ class YTCuttingPlane(YTSelectionContainer2D):
             height = self.ds.quan(height[0], height[1])
         if not is_sequence(resolution):
             resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer
 
         bounds = (-width / 2.0, width / 2.0, -height / 2.0, height / 2.0)
-        frb = FixedResolutionBuffer(self, bounds, resolution, periodic=periodic)
-        return frb
+        return self._frb_class(self, bounds, resolution, periodic=periodic)
+
+
+def _cartesian_passthrough(x, y, z):
+    return x, y, z
+
+
+def _spherical_to_cartesian(r, theta, phi):
+    z = r * np.cos(theta)
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    return x, y, z
+
+
+def _cartesian_to_spherical(x, y, z):
+    # get spherical coords of points in plane
+    r = np.sqrt(x.d**2 + y.d**2 + z.d**2)
+    theta = np.arccos(z / (r + 1e-8))  # 0 to pi angle
+    phi = np.arctan2(y, x)  # 0 to 2pi angle
+    # arctan2 returns -pi to pi
+    phi[phi < 0] = phi[phi < 0] + 2 * np.pi
+    return r, theta, phi
+
+
+class YTCuttingPlaneMixedCoords(YTCuttingPlane):
+    """
+    This is similar to YTCutting plane (ds.cutting) except the cutting plane
+    is defined in potentially different coordinates from the underlying dataset.
+    Useful for when you want to take a cartesian slice through a dataset
+    defined in, for example, spherical coordinates (whereas YTCutting plane
+    will always slice in index-space).
+    """
+
+    _type_name = "cutting_mixed"
+    _con_args = ("normal", "center")
+    _tds_attrs = ("_inv_mat",)
+    _tds_fields = ("x", "y", "z", "dx")
+    _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
+    _supported_geometries = (Geometry.SPHERICAL, Geometry.CARTESIAN)
+
+    def __init__(
+        self,
+        normal,
+        center,
+        north_vector=None,
+        ds=None,
+        field_parameters=None,
+        data_source=None,
+    ):
+        # note: cartesian base geometry is supported for testing purposes.
+        # should just use YTCuttingPlane for that case...
+        super().__init__(
+            normal,
+            center,
+            north_vector=north_vector,
+            ds=ds,
+            field_parameters=field_parameters,
+            data_source=data_source,
+        )
+        self._ds_geom = self.ds.geometry
+        self._validate_geometry()
+
+    def _validate_geometry(self):
+        if self._ds_geom not in self._supported_geometries:
+            raise NotImplementedError("nope")
+
+    @property
+    def _index_fields(self):
+        fields = [("index", fld) for fld in self.ds.coordinates.axis_order]
+        fields += [("index", f"d{fld}") for fld in self.ds.coordinates.axis_order]
+        return fields
+
+    @property
+    def _cartesian_to_native(self):
+        if self._ds_geom is Geometry.SPHERICAL:
+            return _cartesian_to_spherical
+        elif self._ds_geom is Geometry.CARTESIAN:
+            return _cartesian_passthrough
+
+    @property
+    def _native_to_cartesian(self):
+        if self._ds_geom is Geometry.SPHERICAL:
+            return _spherical_to_cartesian
+        elif self._ds_geom is Geometry.CARTESIAN:
+            return _cartesian_passthrough
+
+    @property
+    def _frb_class(self):
+        from yt.visualization.fixed_resolution import (
+            MixedCoordSliceFixedResolutionBuffer,
+        )
+
+        return MixedCoordSliceFixedResolutionBuffer
+
+    def _plane_coords(self, in_plane_x, in_plane_y):
+        # calculates the 3d coordinates of points on a plane in the
+        # native coordinate system of the dataset.
+
+        # actual x, y, z locations of each point in the plane
+        c = self.center.d
+        x_global = in_plane_x * self._x_vec[0] + in_plane_y * self._y_vec[0] + c[0]
+        y_global = in_plane_x * self._x_vec[1] + in_plane_y * self._y_vec[1] + c[1]
+        z_global = in_plane_x * self._x_vec[2] + in_plane_y * self._y_vec[2] + c[2]
+
+        return self._cartesian_to_native(x_global, y_global, z_global)
+
+    def to_pw(self):
+        msg = (
+            "to_pw is not implemented for mixed coordinate slices. You can create"
+            " plots manually using to_frb() to generate a fixed resolution array."
+        )
+        raise NotImplementedError(msg)
+
+    def _get_selector_class(self):
+        s_module = getattr(self, "_selector_module", selection_routines)
+        if self.ds.geometry is Geometry.CARTESIAN:
+            type_name = super()._type_name
+        elif self.ds.geometry is Geometry.SPHERICAL:
+            type_name = self._type_name + "_spherical"
+
+        sclass = getattr(s_module, f"{type_name}_selector", None)
+        return sclass
+
+    def _current_chunk_xyz(self):
+        x = self._current_chunk.fcoords[:, 0]
+        y = self._current_chunk.fcoords[:, 1]
+        z = self._current_chunk.fcoords[:, 2]
+        return self._native_to_cartesian(x, y, z)
+
+    def _generate_container_field(self, field):
+        # note: px, py, pz will be correct but pdx, pdy and pdz will **NOT**
+        # be sensible.
+        return super()._generate_container_field(field)

@@ -19,9 +19,12 @@ cimport cython
 cimport numpy as np
 from cpython cimport buffer
 from cython.view cimport memoryview
-from libc.math cimport abs, sqrt
+from libc.math cimport abs, sqrt, cos, sin
 from libc.stdlib cimport free, malloc
 from libc.string cimport strcmp
+
+from numpy.math cimport PI as NPY_PI
+from numpy.math cimport INFINITY as NPY_INF
 
 from yt.geometry.selection_routines cimport _ensure_code
 from yt.utilities.lib.fp_utils cimport fmax, fmin
@@ -1157,3 +1160,123 @@ def _obtain_coords_and_widths(np.int64_t[:] icoords,
         fcoords[i] = cell_centers[icoords[i]]
         fwidth[i] = cell_widths[icoords[i]]
     return fcoords, fwidth
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef _cartesian_bboxes_for_spherical(np.float64_t[:] r,
+                                      np.float64_t[:] theta,
+                                      np.float64_t[:] phi,
+                                      np.float64_t[:] dr,
+                                      np.float64_t[:] dtheta,
+                                      np.float64_t[:] dphi,
+                                      np.float64_t[:] x,
+                                      np.float64_t[:] y,
+                                      np.float64_t[:] z,
+                                      np.float64_t[:] dx,
+                                      np.float64_t[:] dy,
+                                      np.float64_t[:] dz,
+                                      ):
+    # calculates the cartesian bounding boxes around spherical volume elements
+    # x, y, z: cartesian centers of bounding boxes
+
+    # dx, dy, dz : cartesian widths of bounding boxes
+    cdef int nsize, i
+    cdef np.float64_t xi, yi, zi, ri, thetai, phii, phii2, thetai2
+    cdef np.float64_t h_dphi, h_dr, h_dtheta
+    cdef np.float64_t xli, yli, zli, xlr, ylr, zlr, r_xy, r_xy2
+    cdef int isign_r, isign_th, isign_ph
+
+    cdef np.ndarray[np.float64_t, ndim=1] sign_r = np.ones(2, dtype="float64")
+    cdef np.ndarray[np.float64_t, ndim=1] sign_th = np.ones(2, dtype="float64")
+    cdef np.ndarray[np.float64_t, ndim=1] sign_ph = np.ones(2, dtype="float64")
+
+    cdef np.float64_t NPY_PI_2 = NPY_PI / 2.0
+    cdef np.float64_t NPY_PI_3_2 = 3. * NPY_PI / 2.0
+    cdef np.float64_t NPY_2xPI = 2. * NPY_PI
+
+    sign_r[0] = -1.
+    sign_th[0] = -1.
+    sign_ph[0] = -1.
+
+    # modified inplace for each element
+    xi = 0.0
+    yi = 0.0
+    zi = 0.0
+
+    # initialize the left/right values for each element
+    xli = NPY_INF
+    yli = NPY_INF
+    zli = NPY_INF
+    xri = -1.0 * NPY_INF
+    yri = -1.0 * NPY_INF
+    zri = -1.0 * NPY_INF
+
+    # with nogil: breaks for now...
+    for i in range(r.size):
+
+        # find the min/max bounds over the 8 corners of the
+        # spherical volume element.
+        h_dphi =  dphi[i] / 2.0
+        h_dtheta =  dtheta[i] / 2.0
+        h_dr =  dr[i] / 2.0
+        for isign_r in range(2):
+            for isign_ph in range(2):
+                for isign_th in range(2):
+                    ri = r[i] + sign_r[isign_r] * h_dr
+                    thetai = theta[i] + sign_th[isign_th] * h_dtheta
+                    phii = phi[i] + sign_ph[isign_ph] * h_dphi
+                    #_single_sphere_to_cart(ri, thetai, phii, xi, yi, zi)
+                    xi = ri * sin(thetai) * cos(phii)
+                    yi = ri * sin(thetai) * sin(phii)
+                    zi = ri * cos(thetai)
+                    #_store_min_max(xi, yi, zi, xli, yli, zli, xri, yri, zri)
+                    xli = fmin(xli, xi)
+                    yli = fmin(yli, yi)
+                    zli = fmin(zli, zi)
+                    xri = fmax(xri, xi)
+                    yri = fmax(yri, yi)
+                    zri = fmax(zri, zi)
+
+        # need to correct for special cases:
+        # if polar angle, phi, spans pi/2, pi, 3pi/2 then just
+        # taking the min/max of the corners will miss the cusp of the
+        # element. When this condition is met, the x/y min/max will
+        # equal +/- the projection of r in the xy plane -- in this case,
+        # the theta angle that gives the max projection of r in
+        # the x-y plane will change depending on the whether theta < or > pi/2,
+        # so the following calculates for the min/max theta value of the element
+        # and takes the max.
+        # ALSO note, that the phi = 0 or 2pi case is not covered, so this assumes
+        # that elements do not span that periodic boundary... also this will
+        # likely break down for large elements that span whole quadrants...
+        phii =  phi[i] - h_dphi
+        phii2 = phi[i] + h_dphi
+        thetai = theta[i] - h_dtheta
+        thetai2 = theta[i] + h_dtheta
+
+        if thetai < NPY_PI_2 and thetai2 > NPY_PI_2:
+            r_xy = ri
+        else:
+            r_xy = ri * sin(thetai)
+            r_xy2 = ri * sin(thetai2)
+            r_xy = fmax(r_xy, r_xy2)
+
+        if phii == 0.0 or phii2 == NPY_2xPI:
+            # need to re-check this, for when theta spans equator
+            xri = r_xy
+        elif phii < NPY_PI_2 and phii2  > NPY_PI_2:
+            yri = r_xy
+        elif phii < NPY_PI and phii2  > NPY_PI:
+            xli = -r_xy
+        elif phii < NPY_PI_3_2 and phii2  > NPY_PI_3_2:
+            yli = -r_xy
+
+
+        x[i] = (xri+xli)/2.
+        y[i] = (yri+yli)/2.
+        z[i] = (zri+zli)/2.
+        dx[i] = xri-xli
+        dy[i] = yri-yli
+        dz[i] = zri-zli

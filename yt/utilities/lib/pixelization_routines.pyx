@@ -2020,3 +2020,104 @@ def normalization_1d_utility(np.float64_t[:] num,
     for i in range(num.shape[0]):
         if den[i] != 0.0:
             num[i] = num[i] / den[i]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void _fill_1d_buffer(np.float64_t[:] buff,
+                          np.float64_t[:] bpos_0,
+                          np.float64_t[:] bpos_1,
+                          np.float64_t[:] bpos_2,
+                          np.float64_t[:] pos_0,
+                          np.float64_t[:] pos_1,
+                          np.float64_t[:] pos_2,
+                          np.float64_t[:] pos_0_dx,
+                          np.float64_t[:] pos_1_dx,
+                          np.float64_t[:] pos_2_dx,
+                          np.float64_t[:] data,
+                          np.int64_t[:] mask,) noexcept nogil:
+
+    # loop variables
+    cdef np.float64_t bpos_0i, bpos_1i, bpos_2i # active buffer coordinates
+    cdef np.float64_t le_0, le_1, le_2 # activate left edge
+    cdef np.float64_t re_0, re_1, re_2 # active right edge
+    cdef np.int64_t ip  # active data indices
+    cdef np.int64_t ib # active buffer index
+    cdef np.int64_t n_el # number of elements
+
+    # brute force loop that does not assume any ordering of the points to
+    # find. calling this after initial chunk subselection, so that's good
+    # at least.
+    n_el = pos_0.shape[0]
+    for ip in range(n_el):
+        le_0 = pos_0[ip] - pos_0_dx[ip]/2.0
+        re_0 = pos_0[ip] + pos_0_dx[ip]/2.0
+        le_1 = pos_1[ip] - pos_1_dx[ip]/2.0
+        re_1 = pos_1[ip] + pos_1_dx[ip]/2.0
+        le_2 = pos_2[ip] - pos_2_dx[ip]/2.0
+        re_2 = pos_2[ip] + pos_2_dx[ip]/2.0
+
+        # find the image buffer pixel(s) that fall in the current
+        # grid volume if it(they) exist. possible for multiple
+        # pixels here to sample the same volume.
+        for ib in range(0, buff.shape[0]):
+            if mask[ib] == 1:
+                continue
+
+            # check if this pixel falls in the current volume
+            bpos_0i = bpos_0[ib]
+            if bpos_0i < le_0 or bpos_0i >= re_0:
+                continue
+            bpos_1i = bpos_1[ib]
+            if bpos_1i < le_1 or  bpos_1i >= re_1:
+                continue
+            bpos_2i = bpos_2[ib]
+            if bpos_2i < le_2 or bpos_2i >= re_2:
+                continue
+
+            mask[ib] += 1
+            buff[ib] += data[ip]
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def sample_arbitrary_points_in_1d_buffer(
+                       np.float64_t[:] buff,
+                       np.float64_t[:] bpos_0,
+                       np.float64_t[:] bpos_1,
+                       np.float64_t[:] bpos_2,
+                       np.float64_t[:] pos_0,
+                       np.float64_t[:] pos_1,
+                       np.float64_t[:] pos_2,
+                       np.float64_t[:] pos_0_dx,
+                       np.float64_t[:] pos_1_dx,
+                       np.float64_t[:] pos_2_dx,
+                       np.float64_t[:] data,
+                       *,
+                       int return_mask=0,
+):
+    """ a 1D buffer pixelization. maybe you want to reshape it to be an image? or
+        sample an arbitrary set of points? maybe this is useful
+
+    Parameters
+    buff: 1d buffer array, modified in place to fill
+    bpos_0, _1, _2: 1D arrays, the coordinates to sample
+    native_x, y, z : 1D arrays, cell centers in their native coordinates
+    native_dx, dy, dz : 1D positions cell widths in their native coordinates
+    data : 1D array, actual data values
+    """
+
+    cdef np.ndarray[np.int64_t, ndim=1] mask
+    mask = np.zeros((buff.shape[0],), dtype="int") # global pixel mask
+
+    _fill_1d_buffer(buff,
+                    bpos_0, bpos_1, bpos_2,
+                    pos_0, pos_1, pos_2,
+                    pos_0_dx, pos_1_dx, pos_2_dx,
+                    data,
+                    mask)
+
+    if return_mask:
+        return mask!=0
