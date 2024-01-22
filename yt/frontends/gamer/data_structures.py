@@ -367,6 +367,8 @@ class GAMERDataset(Dataset):
         else:
             self.mhd = 0
             self.srhd = 0
+            # set dummy value of mu here to avoid more complicated workarounds later
+            self.mu = 1.0
 
         # old data format (version < 2210) did not contain any information of code units
         self.parameters.setdefault("Opt__Unit", 0)
