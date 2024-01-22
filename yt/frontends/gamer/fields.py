@@ -69,7 +69,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         unit_system = self.ds.unit_system
         unit_system.registry = self.ds.unit_registry  # TODO: Why do I need this?!
 
-        temp_conv = pc.kb / (self.ds.mu * pc.mH)
+        temp_conv = pc.kb / (self.ds.mu * pc.mh)
 
         if self.ds.srhd:
             c2 = pc.clight * pc.clight
@@ -89,8 +89,9 @@ class GAMERFieldInfo(FieldInfoContainer):
                     "simulation."
                 )
 
-            # Taub-Mathews EOS functions
-            fgen = SRHDFields(c.d)
+            # EOS functions
+            gamma = self.ds.gamma if self.ds.eos == 1 else 0.0
+            fgen = SRHDFields(self.ds.eos, gamma, c.d)
 
             # temperature fraction (kT/mc^2)
             def _temp_fraction(field, data):

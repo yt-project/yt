@@ -7,22 +7,50 @@ cimport numpy as np
 import numpy as np
 
 
-cdef class SRHDFields:
-    cdef np.float64_t _c, _c2
+cdef np.float64_t gamma_eos(np.float64_t kT, np.float64_t g) noexcept nogil:
+    return g
 
-    def __init__(self, np.float64_t clight):
+cdef np.float64_t gamma_eos_tb(np.float64_t kT, np.float64_t g) noexcept nogil:
+    cdef np.float64_t x, c_p, c_v
+    x = 2.25 * kT / math.sqrt(2.25 * kT * kT + 1.0)
+    c_p = 2.5 + x
+    c_v = 1.5 + x
+    return c_p / c_v
+
+cdef np.float64_t cs_eos_tb(np.float64_t kT, np.float64_t h, np.float64_t g) noexcept nogil:
+    cdef np.float64_t hp, cs2
+    hp = h + 1.0
+    cs2 = kT / (3.0 * hp)
+    cs2 *= (5.0 * hp - 8.0 * kT) / (hp - kT)
+    return math.sqrt(cs2)
+
+cdef np.float64_t cs_eos(np.float64_t kT, np.float64_t h, np.float64_t g) noexcept nogil:
+    cdef np.float64_t hp, cs2
+    hp = h + 1.0
+    cs2 = g / hp * kT
+    return math.sqrt(cs2)
+
+
+ctypedef np.float64_t (*f2_type)(np.float64_t, np.float64_t) noexcept nogil
+ctypedef np.float64_t (*f3_type)(np.float64_t, np.float64_t, np.float64_t) noexcept nogil
+
+
+cdef class SRHDFields:
+    cdef f2_type gamma
+    cdef f3_type cs
+    cdef np.float64_t _gamma, _c, _c2
+
+    def __init__(self, int eos, np.float64_t gamma, np.float64_t clight):
+        self._gamma = gamma
         self._c = clight
         self._c2 = clight * clight
-
-    cdef np.float64_t _gamma(
-            self,
-            np.float64_t kT,
-        ) noexcept nogil:
-        cdef np.float64_t x, c_p, c_v
-        x = 2.25 * kT / math.sqrt(2.25 * kT * kT + 1.0)
-        c_p = 2.5 + x
-        c_v = 1.5 + x
-        return c_p / c_v
+        # Select aux functions based on eos no.
+        if eos == 1:
+            self.gamma = gamma_eos
+            self.cs = cs_eos
+        else:
+            self.gamma = gamma_eos_tb
+            self.cs = cs_eos_tb
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -35,7 +63,7 @@ cdef class SRHDFields:
         cdef int i
 
         for i in range(outp.shape[0]):
-            outp[i] = self._gamma(kT[i])
+            outp[i] = self.gamma(kT[i], self._gamma)
         return out
 
     cdef np.float64_t _lorentz_factor(
@@ -72,17 +100,6 @@ cdef class SRHDFields:
             outp[i] = self._lorentz_factor(rho[i], mx[i], my[i], mz[i], h[i])
         return out
 
-    cdef np.float64_t _cs(
-            self,
-            np.float64_t kT,
-            np.float64_t h,
-        ) noexcept nogil:
-        cdef np.float64_t hp, cs2
-        hp = h + 1.0
-        cs2 = kT / (3.0 * hp)
-        cs2 *= (5.0 * hp - 8.0 * kT) / (hp - kT)
-        return self._c * math.sqrt(cs2)
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -94,7 +111,7 @@ cdef class SRHDFields:
 
         cdef int i
         for i in range(outp.shape[0]):
-            outp[i] = self._c*self._cs(kT[i], h[i])
+            outp[i] = self._c*self.cs(kT[i], h[i], self._gamma)
         return out
 
     cdef np.float64_t _four_vel(
