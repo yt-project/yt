@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.mpl_image_compare
 def test_annotations_answer():
     from matplotlib.image import imread
-    from matplotlib.pyplot import imshow
+    from matplotlib.pyplot import imshow, subplots
 
 
     ds = fake_vr_orientation_test_ds(N=16)
@@ -25,4 +25,6 @@ def test_annotations_answer():
         "test_scene_annotated.png",
         text_annotate=[[(0.1, 1.05), "test_string"]],
     )
-    return imshow(imread("test_scene_annotated.png"))
+    f, ax = subplots(1)
+    ax.imshow(imread("test_scene_annotated.png"))
+    return f
