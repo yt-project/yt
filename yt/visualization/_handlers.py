@@ -62,7 +62,6 @@ class NormHandler:
         "_norm_type",
         "_linthresh",
         "_vcenter",
-        "_norm_type",
         "_norm",
         "prefer_log",
     )
