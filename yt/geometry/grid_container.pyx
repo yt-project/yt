@@ -55,7 +55,7 @@ cdef class GridTree:
                   np.ndarray[np.float64_t, ndim=2] left_edge,
                   np.ndarray[np.float64_t, ndim=2] right_edge,
                   np.ndarray[np.int32_t, ndim=2] dimensions,
-                  list parent_ind, # Not an array anymore!
+                  list[list[float]] parent_ind, # Not an array anymore!
                   np.ndarray[np.int64_t, ndim=1] level,
                   np.ndarray[np.int64_t, ndim=1] num_children,
                   refine_by = 2,
