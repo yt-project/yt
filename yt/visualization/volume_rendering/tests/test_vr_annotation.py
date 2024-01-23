@@ -23,7 +23,7 @@ def test_annotations_answer():
     sc[0].tfh.tf.add_layers(10, colormap="cubehelix")
     sc.save_annotated(
         "test_scene_annotated.png",
-        text_annotate=[[(0.1, 1.05), "test_string"]],
+        text_annotate=[[(0.1, 0.95), "test_string",  dict(color="y", fontsize="24")],],
     )
     f, ax = subplots(1)
     ax.imshow(imread("test_scene_annotated.png"))
