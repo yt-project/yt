@@ -1859,8 +1859,8 @@ functionality:
 Particle data are supported and are always stored in the same file as the grid
 data.
 
-For special relativistic simulations, the Taub-Mathews EOS is supported, and the
-following fields are defined from this EOS:
+For special relativistic simulations, both the gamma-law and Taub-Mathews EOSes
+are supported, and the following fields are defined:
 
 * ``("gas", "density")``: Comoving rest-mass density :math:`\rho`
 * ``("gas", "frame_density")``: Coordinate-frame density :math:`D = \gamma\rho`
