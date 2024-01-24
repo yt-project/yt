@@ -89,7 +89,7 @@ jobs:
     - run: python -m pip list
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
-      run: pytest --color=yes yt/visualization/volume_rendering/tests/test_scene.py::test_annotations
+      run: pytest --color=yes yt/visualization/
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
       run: cat nose_ignores.txt | xargs python -m nose -c nose_unit.cfg --traverse-namespace
