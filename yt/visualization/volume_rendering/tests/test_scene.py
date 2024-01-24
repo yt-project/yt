@@ -99,7 +99,7 @@ def test_annotations():
     sc[0].tfh.tf.add_layers(10, colormap="cubehelix")
     sc.save_annotated(
         "test_scene_annotated.png",
-        # text_annotate=[[(0.1, 1.05), "test_string"]],
+        text_annotate=[[(0.1, 1.05), "test_string"]],
     )
     image = imread("test_scene_annotated.png")
     assert image.shape == sc.camera.resolution + (4,)
