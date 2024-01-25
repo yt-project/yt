@@ -17,6 +17,7 @@ def test_firefly_JSON_string(tmp_path):
         tmpdir,
         velocity_units="cm/s",
         coordinate_units="cm",
+        clean_datadir=False,
     )
 
     reader.writeToDisk(write_to_disk=False, file_extension=".json")
