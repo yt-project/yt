@@ -7,11 +7,13 @@ from yt.utilities.exceptions import YTFieldNotFound
 
 
 @requires_module("firefly")
-def test_firefly_JSON_string():
+def test_firefly_JSON_string(tmp_path):
+    tmpdir = str(tmp_path)
+
     ds = fake_particle_ds()
     ad = ds.all_data()
     reader = ad.create_firefly_object(
-        None,
+        tmpdir,
         velocity_units="cm/s",
         coordinate_units="cm",
     )
