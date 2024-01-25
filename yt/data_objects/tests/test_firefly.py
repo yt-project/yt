@@ -11,10 +11,9 @@ def test_firefly_JSON_string():
     ds = fake_particle_ds()
     ad = ds.all_data()
     reader = ad.create_firefly_object(
-        datadir=None,
+        None,
         velocity_units="cm/s",
         coordinate_units="cm",
-        file_prefix="hello_there",
     )
 
     reader.writeToDisk(write_to_disk=False, file_extension=".json")
