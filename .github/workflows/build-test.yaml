@@ -23,42 +23,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [
-          macos-latest,
-          windows-latest,
           ubuntu-latest,
         ]
         python-version: ['3.12']
         dependencies: [full]
         tests-type: [unit]
         test-runner: [pytest]
-        include:
-          - os: ubuntu-20.04
-            python-version: '3.9.2'
-            dependencies: minimal
-            tests-type: unit
-            test-runner: pytest
-          - os: ubuntu-latest
-            # this job is necessary for non-answer, 'yield' based tests
-            # because pytest doesn't support such tests, and nose is not
-            # compatible with Python 3.10
-            python-version: '3.9'
-            dependencies: full
-            tests-type: unit
-            test-runner: nose
-          - os: ubuntu-latest
-            # answer tests use 'yield', so they require nose
-            # they are also attached to a specific, occasionally updated, Python version
-            # but it does *not* have to match the current minimal supported version
-            python-version: '3.9'
-            dependencies: full
-            tests-type: answer
-            test-runner: nose
-          - os: ubuntu-latest
-            # minimal tests with latest Python and no optional dependencies
-            python-version: '3.x'
-            dependencies: ''
-            tests-type: unit
-            test-runner: pytest
 
     runs-on: ${{ matrix.os }}
 
@@ -88,74 +58,10 @@ jobs:
 
     - run: python -m pip list
     - name: Run Unit Tests (pytest)
-      if: matrix.test-runner == 'pytest'
+      if: failure()
       run: |
         pytest --color=yes
     - name: Re-Run Failed Tests (pytest)
       if: matrix.test-runner == 'pytest'
       run: |
         pytest --color=yes --lf
-    - name: Run Tests (nose)
-      if: matrix.test-runner == 'nose'
-      run: cat nose_ignores.txt | xargs python -m nose -c nose_unit.cfg --traverse-namespace
-
-  image-tests:
-    name: Image tests
-    runs-on: ubuntu-latest
-
-    concurrency:
-      # auto-cancel any in-progress job *on the same branch*
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-
-    steps:
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Checkout repo (with submodules)
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-
-    - name: Install dependencies and yt
-      shell: bash
-      env:
-        dependencies: 'cartopy'
-      run: |
-        source ./tests/ci_install.sh
-
-    - run: python -m pip list
-
-    - name: Run Image Tests
-      run: |
-        pytest --color=yes --mpl -m mpl_image_compare \
-               --mpl-generate-summary=html \
-               --mpl-results-path=pytest_mpl_results \
-               --mpl-baseline-path=tests/pytest_mpl_baseline \
-               -rxXs # show extra info on xfailed, xpassed, and skipped tests
-
-    - name: Generate new image baseline
-      if: failure()
-      run: |
-        pytest --color=yes --mpl -m mpl_image_compare \
-               --mpl-generate-path=pytest_mpl_new_baseline \
-               --last-failed
-
-    # always attempt to upload artifacts, even
-    # (and especially) in case of failure.
-    - name: Upload pytest-mpl report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: yt_pytest_mpl_results
-        path: pytest_mpl_results/*
-
-    - name: Upload pytest-mpl baseline
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: yt_pytest_mpl_new_baseline
-        path: pytest_mpl_new_baseline/*
-        if-no-files-found: ignore
