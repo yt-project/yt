@@ -66,8 +66,8 @@ jobs:
       if: matrix.test-runner == 'pytest'
       run: |
         pytest --color=yes  \
-        yt/visualization/volume_rendering/tests/test_scene.py \
-        yt/data_objects/tests/test_firefly.py::test_firefly_JSON_string
+        yt/data_objects/tests/test_firefly.py::test_firefly_JSON_string \
+        yt/visualization/volume_rendering/tests/test_scene.py
     - name: Re-Run Failed Tests (pytest)
       if: failure()
       run: |
