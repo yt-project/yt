@@ -55,13 +55,13 @@ jobs:
       env:
         dependencies: ${{ matrix.dependencies }}
       run: source ./tests/ci_install.sh
-    - run: python -m pip install detect-test-pollution
+#    - run: python -m pip install detect-test-pollution
     - run: python -m pip list
-    - name: detect pollution?
-      run: |
-        detect-test-pollution     \
-        --failing-test yt/data_objects/tests/test_zscene.py::test_annotations  \
-        --tests yt/data_objects/tests
+#    - name: detect pollution?
+#      run: |
+#        detect-test-pollution     \
+#        --failing-test yt/data_objects/tests/test_zscene.py::test_annotations  \
+#        --tests yt/data_objects/tests
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
       run: |
