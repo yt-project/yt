@@ -1334,6 +1334,12 @@ class NyxDataset(BoxlibDataset):
         setdefaultattr(self, "velocity_unit", self.length_unit / self.time_unit)
 
 
+class QuokkaDataset(AMReXDataset):
+    # match any plotfiles that have a metadata.yaml file in the root
+    _subtype_keyword = ""
+    _default_cparam_filename = "metadata.yaml"
+
+
 def _guess_pcast(vals):
     # Now we guess some things about the parameter and its type
     # Just in case there are multiple; we'll go
