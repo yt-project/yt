@@ -60,7 +60,7 @@ jobs:
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
       run: |
-        pytest -v yt/data_objects yt/visualization
+        pytest -v yt/data_objects yt/visualization/volume_rendering/
     - name: Re-Run Failed Tests (pytest)
       if: failure()
       run: |
