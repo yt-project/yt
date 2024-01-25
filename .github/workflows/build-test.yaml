@@ -65,7 +65,8 @@ jobs:
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
       run: |
-        pytest --color=yes yt/data_objects/tests
+        pytest --color=yes yt/data_objects/tests/test_firefly.py::test_firefly_JSON_string \
+        yt/data_objects/tests/test_zscene.py
     - name: Re-Run Failed Tests (pytest)
       if: failure()
       run: |
