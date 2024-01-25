@@ -60,7 +60,7 @@ jobs:
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
       run: |
-        pytest --color=yes yt/fields yt/frontends yt/geometry yt/sample_data yt/tests yt/units yt/utilities yt/visualization
+        pytest -v yt/data_objects yt/visualization
     - name: Re-Run Failed Tests (pytest)
       if: failure()
       run: |
