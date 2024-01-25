@@ -129,7 +129,7 @@ ytdata = ["yt[HDF5]"]
 # "full" should contain all optional dependencies intended for users (not devs)
 # in particular it should enable support for all frontends
 full = [
-    "cartopy>=0.22.0",
+    #"cartopy>=0.22.0",
     "firefly>=3.2.0",
     "glueviz>=0.13.3",
     "ipython>=2.0.0",
@@ -142,7 +142,7 @@ full = [
     "pyx>=0.15",
     "scipy>=1.5.0",
     "glue-core!=1.2.4;python_version >= '3.10'",  # see https://github.com/glue-viz/glue/issues/2263
-    "ratarmount~=0.8.1;platform_system!='Windows' and platform_system!='Darwin'",
+    #"ratarmount~=0.8.1;platform_system!='Windows' and platform_system!='Darwin'",
     "yt[adaptahop]",
     "yt[ahf]",
     "yt[amrvac]",
@@ -152,7 +152,7 @@ full = [
     "yt[athena]",
     "yt[athena_pp]",
     "yt[boxlib]",
-    "yt[cf_radial]",
+    #"yt[cf_radial]",
     "yt[chimera]",
     "yt[chombo]",
     "yt[cholla]",
