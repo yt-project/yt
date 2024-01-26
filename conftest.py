@@ -31,6 +31,11 @@ if find_spec("setuptools") is not None:
 else:
     SETUPTOOLS_VERSION = None
 
+if find_spec("pandas") is not None:
+    PANDAS_VERSION = Version(version("pandas"))
+else:
+    PANDAS_VERSION = None
+
 
 def pytest_addoption(parser):
     """
@@ -167,6 +172,12 @@ def pytest_configure(config):
                 r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
                 " from PyObject:RuntimeWarning"
             ),
+        )
+
+    if PANDAS_VERSION is not None and PANDAS_VERSION >= Version("2.2.0"):
+        config.addinivalue_line(
+            "filterwarnings",
+            r"ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning",
         )
 
     if sys.version_info >= (3, 12):
