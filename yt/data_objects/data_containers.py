@@ -783,12 +783,9 @@ class YTDataContainer(abc.ABC):
             )
             datadir = JSONdir
 
-        if "clean_datadir" in kwargs:
-            clean_datadir = kwargs.pop("clean_datadir")
-
         ## initialize a firefly reader instance
         reader = firefly.data_reader.Reader(
-            datadir=datadir, clean_datadir=clean_datadir, **kwargs
+            datadir=datadir, clean_datadir=True, **kwargs
         )
 
         ## Ensure at least one field type contains every field requested
