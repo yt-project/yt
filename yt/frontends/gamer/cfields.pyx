@@ -38,12 +38,10 @@ ctypedef np.float64_t (*f3_type)(np.float64_t, np.float64_t, np.float64_t) noexc
 cdef class SRHDFields:
     cdef f2_type gamma
     cdef f3_type cs
-    cdef np.float64_t _gamma, _c, _c2
+    cdef np.float64_t _gamma
 
-    def __init__(self, int eos, np.float64_t gamma, np.float64_t clight):
+    def __init__(self, int eos, np.float64_t gamma):
         self._gamma = gamma
-        self._c = clight
-        self._c2 = clight * clight
         # Select aux functions based on eos no.
         if eos == 1:
             self.gamma = gamma_eos
@@ -79,7 +77,7 @@ cdef class SRHDFields:
 
         fac = (1.0 / (rho * (h + 1.0))) ** 2
         u2 = (mx * mx + my * my + mz * mz) * fac
-        return math.sqrt(1.0 + u2 / self._c2)
+        return math.sqrt(1.0 + u2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -111,7 +109,7 @@ cdef class SRHDFields:
 
         cdef int i
         for i in range(outp.shape[0]):
-            outp[i] = self._c*self.cs(kT[i], h[i], self._gamma)
+            outp[i] = self.cs(kT[i], h[i], self._gamma)
         return out
 
     cdef np.float64_t _four_vel(
@@ -160,9 +158,9 @@ cdef class SRHDFields:
             uz = self._four_vel(rho[i], mz[i], h[i])
             u2 = ux**2 + uy**2 + uz**2
             lf = self._lorentz_factor(rho[i], mx[i], my[i], mz[i], h[i])
-            gm1 = u2 / self._c2 / (lf + 1.0)
-            p = rho[i] / lf * self._c2 * kT[i]
-            outp[i] = gm1 * (rho[i] * (h[i] + 1.0) * self._c2 + p)
+            gm1 = u2 / (lf + 1.0)
+            p = rho[i] / lf * kT[i]
+            outp[i] = gm1 * (rho[i] * (h[i] + 1.0) + p)
         return out
 
     @cython.boundscheck(False)
@@ -183,7 +181,7 @@ cdef class SRHDFields:
 
         for i in range(outp.shape[0]):
             cs = self.cs(kT[i], h[i], self._gamma)
-            us = cs / math.sqrt(1.0 - cs**2 / self._c2)
+            us = cs / math.sqrt(1.0 - cs**2)
             u = math.sqrt(mx[i]**2 + my[i]**2 + mz[i]**2) / (rho[i] * (h[i] + 1.0))
             outp[i] = u / us
         return out

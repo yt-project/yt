@@ -74,9 +74,12 @@ class GAMERFieldInfo(FieldInfoContainer):
             )
 
         if self.ds.srhd:
-            c2 = pc.clight * pc.clight
+            if self.ds.opt_unit:
+                c2 = pc.clight * pc.clight
+            else:
+                c2 = self.ds.arr(1.0, "code_velocity**2")
             invc2 = 1.0 / c2
-            c = pc.clight.in_units("code_length / code_time")
+
             if ("gamer", "Temp") not in self.field_list:
                 mylog.warning(
                     'The temperature field "Temp" is not present in the dataset. Most '
@@ -93,7 +96,7 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # EOS functions
             gamma = self.ds.gamma if self.ds.eos == 1 else 0.0
-            fgen = SRHDFields(self.ds.eos, gamma, c.d)
+            fgen = SRHDFields(self.ds.eos, gamma)
 
             # temperature fraction (kT/mc^2)
             def _temp_fraction(field, data):
