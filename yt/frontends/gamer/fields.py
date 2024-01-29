@@ -23,9 +23,10 @@ class GAMERFieldInfo(FieldInfoContainer):
         ("MomX", (mom_units, ["momentum_density_x"], None)),
         ("MomY", (mom_units, ["momentum_density_y"], None)),
         ("MomZ", (mom_units, ["momentum_density_z"], None)),
-        ("Engy", (erg_units, ["total_energy_density"], None)),
+        ("Engy", (erg_units, [], None)),
         ("CRay", (erg_units, ["cosmic_ray_energy_density"], None)),
         ("Pote", (pot_units, ["gravitational_potential"], None)),
+        ("Pres", (pre_units, [], None)),
         ("Temp", ("code_temperature", ["temperature"], None)),
         ("Enth", (pot_units, ["specific_reduced_enthalpy"], None)),
         ("Mach", ("dimensionless", ["mach_number"], None)),
@@ -35,10 +36,6 @@ class GAMERFieldInfo(FieldInfoContainer):
         ("CCMagX", (b_units, [], "B_x")),
         ("CCMagY", (b_units, [], "B_y")),
         ("CCMagZ", (b_units, [], "B_z")),
-        (
-            "DivMag",
-            ("code_magnetic/code_length", ["magnetic_field_divergence"], None),
-        ),
         # psiDM fields on disk
         ("Real", (psi_units, ["psidm_real_part"], None)),
         ("Imag", (psi_units, ["psidm_imaginary_part"], None)),
@@ -211,33 +208,6 @@ class GAMERFieldInfo(FieldInfoContainer):
                 units="",
             )
 
-            # velocity
-            def velocity_xyz(v):
-                if ("gamer", f"Vel{v.upper()}") in self.field_list:
-
-                    def _velocity(field, data):
-                        return data.ds.arr(data["gamer", f"Vel{v.upper()}"].d, "c").to(
-                            unit_system["velocity"]
-                        )
-
-                else:
-
-                    def _velocity(field, data):
-                        return (
-                            data["gas", f"four_velocity_{v}"]
-                            / data["gas", "lorentz_factor"]
-                        )
-
-                return _velocity
-
-            for v in "xyz":
-                self.add_field(
-                    ("gas", f"velocity_{v}"),
-                    sampling_type="cell",
-                    function=velocity_xyz(v),
-                    units=unit_system["velocity"],
-                )
-
             # density
             def _density(field, data):
                 return data["gamer", "Dens"] / data["gas", "lorentz_factor"]
@@ -319,21 +289,6 @@ class GAMERFieldInfo(FieldInfoContainer):
                 units=unit_system["pressure"],
             )
 
-            # velocity
-            def velocity_xyz(v):
-                def _velocity(field, data):
-                    return data["gas", f"momentum_density_{v}"] / data["gas", "density"]
-
-                return _velocity
-
-            for v in "xyz":
-                self.add_field(
-                    ("gas", f"velocity_{v}"),
-                    sampling_type="cell",
-                    function=velocity_xyz(v),
-                    units=unit_system["velocity"],
-                )
-
             # ====================================================
             # note that yt internal fields assume
             #    [specific_thermal_energy]   = [energy per mass]
@@ -376,6 +331,51 @@ class GAMERFieldInfo(FieldInfoContainer):
             def _pressure(field, data):
                 return et(data) * (data.ds.gamma - 1.0)
 
+        # velocity
+        def velocity_xyz(v):
+            if ("gamer", f"Vel{v.upper()}") in self.field_list:
+
+                def _velocity(field, data):
+                    return data.ds.arr(
+                        data["gamer", f"Vel{v.upper()}"].d, "code_velocity"
+                    ).to(unit_system["velocity"])
+
+            elif self.ds.srhd:
+
+                def _velocity(field, data):
+                    return (
+                        data["gas", f"four_velocity_{v}"]
+                        / data["gas", "lorentz_factor"]
+                    )
+
+            else:
+
+                def _velocity(field, data):
+                    return data["gas", f"momentum_density_{v}"] / data["gas", "density"]
+
+            return _velocity
+
+        for v in "xyz":
+            self.add_field(
+                ("gas", f"velocity_{v}"),
+                sampling_type="cell",
+                function=velocity_xyz(v),
+                units=unit_system["velocity"],
+            )
+
+        if ("gamer", "Pres") in self.field_list:
+            self.alias(
+                ("gas", "pressure"), ("gamer", "Pres"), units=unit_system["pressure"]
+            )
+
+        else:
+            self.add_field(
+                ("gas", "pressure"),
+                sampling_type="cell",
+                function=_pressure,
+                units=unit_system["pressure"],
+            )
+
         self.add_field(
             ("gas", "specific_thermal_energy"),
             sampling_type="cell",
@@ -398,13 +398,6 @@ class GAMERFieldInfo(FieldInfoContainer):
             sampling_type="cell",
             function=_specific_total_energy,
             units=unit_system["specific_energy"],
-        )
-
-        self.add_field(
-            ("gas", "pressure"),
-            sampling_type="cell",
-            function=_pressure,
-            units=unit_system["pressure"],
         )
 
         if getattr(self.ds, "gamma_cr", None):

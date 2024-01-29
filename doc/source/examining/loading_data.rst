@@ -1868,7 +1868,7 @@ are supported, and the following fields are defined:
 * ``("gas", "four_velocity_[txyz]")``: Four-velocity fields :math:`U_t, U_x, U_y, U_z`
 * ``("gas", "lorentz_factor")``: Lorentz factor :math:`\gamma = \sqrt{1+U_iU^i/c^2}`
   (where :math:`i` runs over the spatial indices)
-* ``("gas", "specific_reduced_enthalpy")``: Specific reduced enthalpy :math:`h = \epsilon + p/\rho`
+* ``("gas", "specific_reduced_enthalpy")``: Specific reduced enthalpy :math:`\tilde{h} = \epsilon + p/\rho`
 * ``("gas", "specific_enthalpy")``: Specific enthalpy :math:`h = c^2 + \epsilon + p/\rho`
 
 These, and other fields following them (3-velocity, energy densities, etc.) are

@@ -12,7 +12,7 @@ cdef np.float64_t gamma_eos(np.float64_t kT, np.float64_t g) noexcept nogil:
 
 cdef np.float64_t gamma_eos_tb(np.float64_t kT, np.float64_t g) noexcept nogil:
     cdef np.float64_t x, c_p, c_v
-    x = 2.25 * kT / math.sqrt(2.25 * kT * kT + 1.0)
+    x = 2.25 * kT / ( math.sqrt(2.25 * kT * kT + 1.0) + 1.0 )
     c_p = 2.5 + x
     c_v = 1.5 + x
     return c_p / c_v
@@ -141,20 +141,6 @@ cdef class SRHDFields:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def specific_thermal_energy(self, dens, momx, momy, momz, temp, enth):
-        cdef np.float64_t[:] kT = temp.ravel()
-        cdef np.float64_t[:] h = enth.ravel()
-        out = np.empty_like(dens)
-        cdef np.float64_t[:] outp = out.ravel()
-        cdef int i
-
-        for i in range(outp.shape[0]):
-            outp[i] = self._c2 * (h[i] - kT[i])
-        return out
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def kinetic_energy_density(self, dens, momx, momy, momz, temp, enth):
         cdef np.float64_t[:] rho = dens.ravel()
         cdef np.float64_t[:] mx = momx.ravel()
@@ -169,9 +155,9 @@ cdef class SRHDFields:
         cdef int i
 
         for i in range(outp.shape[0]):
-            ux = self._four_vel(rho[i], kT[i], mx[i])
-            uy = self._four_vel(rho[i], kT[i], my[i])
-            uz = self._four_vel(rho[i], kT[i], mz[i])
+            ux = self._four_vel(rho[i], mx[i], h[i])
+            uy = self._four_vel(rho[i], my[i], h[i])
+            uz = self._four_vel(rho[i], mz[i], h[i])
             u2 = ux**2 + uy**2 + uz**2
             lf = self._lorentz_factor(rho[i], mx[i], my[i], mz[i], h[i])
             gm1 = u2 / self._c2 / (lf + 1.0)
@@ -192,11 +178,11 @@ cdef class SRHDFields:
 
         out = np.empty_like(dens)
         cdef np.float64_t[:] outp = out.ravel()
-        cdef np.float64_t cs
+        cdef np.float64_t cs, us, u
         cdef int i
 
         for i in range(outp.shape[0]):
-            cs = self._cs(kT[i], h[i])
+            cs = self.cs(kT[i], h[i], self._gamma)
             us = cs / math.sqrt(1.0 - cs**2 / self._c2)
             u = math.sqrt(mx[i]**2 + my[i]**2 + mz[i]**2) / (rho[i] * (h[i] + 1.0))
             outp[i] = u / us
