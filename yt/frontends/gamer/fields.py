@@ -66,7 +66,12 @@ class GAMERFieldInfo(FieldInfoContainer):
         unit_system = self.ds.unit_system
         unit_system.registry = self.ds.unit_registry  # TODO: Why do I need this?!
 
-        temp_conv = pc.kb / (self.ds.mu * pc.mh)
+        if self.ds.opt_unit:
+            temp_conv = pc.kb / (self.ds.mu * pc.mh)
+        else:
+            temp_conv = (
+                self.ds.arr(1.0, "code_velocity**2/code_temperature") / self.ds.mu
+            )
 
         if self.ds.srhd:
             c2 = pc.clight * pc.clight
