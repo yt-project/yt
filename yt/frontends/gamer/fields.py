@@ -26,7 +26,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         ("Engy", (erg_units, [], None)),
         ("CRay", (erg_units, ["cosmic_ray_energy_density"], None)),
         ("Pote", (pot_units, ["gravitational_potential"], None)),
-        ("Pres", (pre_units, [], None)),
+        ("Pres", (pre_units, ["pressure"], None)),
         ("Temp", ("code_temperature", ["temperature"], None)),
         ("Enth", (pot_units, ["specific_reduced_enthalpy"], None)),
         ("Mach", ("dimensionless", ["mach_number"], None)),
@@ -368,12 +368,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                 units=unit_system["velocity"],
             )
 
-        if ("gamer", "Pres") in self.field_list:
-            self.alias(
-                ("gas", "pressure"), ("gamer", "Pres"), units=unit_system["pressure"]
-            )
-
-        else:
+        if ("gamer", "Pres") not in self.field_list:
             self.add_field(
                 ("gas", "pressure"),
                 sampling_type="cell",
