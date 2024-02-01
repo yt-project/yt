@@ -15,15 +15,20 @@ from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import AthenaPPFieldInfo
 
+#geom_map = {
+#    "cartesian": "cartesian",
+#    "cylindrical": "cylindrical",
+#    "spherical_polar": "spherical",
+#    "minkowski": "cartesian",
+#    "tilted": "cartesian",
+#    "sinusoidal": "cartesian",
+#    "schwarzschild": "spherical",
+#    "kerr-schild": "spherical",
+#}
 geom_map = {
-    "cartesian": "cartesian",
-    "cylindrical": "cylindrical",
-    "spherical_polar": "spherical",
-    "minkowski": "cartesian",
-    "tilted": "cartesian",
-    "sinusoidal": "cartesian",
-    "schwarzschild": "spherical",
-    "kerr-schild": "spherical",
+    "cartesian": (Geometry.CARTESIAN,("x","y","z")),
+    "cylindrical": (Geometry.CYLINDRICAL,("r","theta","z")),
+    "spherical_polar": (Geometry.SPHERICAL,("r","theta","phi")),
 }
 
 
@@ -153,6 +158,11 @@ class AthenaPPDataset(Dataset):
         zrat = self._handle.attrs["RootGridX3"][2]
         self._nonuniform = xrat != 1.0 or yrat != 1.0 or zrat != 1.0
         self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
+
+        geom = self._handle.attrs["Coordinates"].decode("utf-8")
+        self.geometry = geom_map[geom][0]
+        axis_order = geom_map[geom][1]
+
         Dataset.__init__(
             self,
             filename,
@@ -160,6 +170,7 @@ class AthenaPPDataset(Dataset):
             units_override=units_override,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
+            axis_order=axis_order
         )
         if storage_filename is None:
             storage_filename = self.basename + ".yt"
@@ -200,9 +211,6 @@ class AthenaPPDataset(Dataset):
         self.domain_left_edge = np.array([xmin, ymin, zmin], dtype="float64")
         self.domain_right_edge = np.array([xmax, ymax, zmax], dtype="float64")
 
-        self.geometry = Geometry(
-            geom_map[self._handle.attrs["Coordinates"].decode("utf-8")]
-        )
         self.domain_width = self.domain_right_edge - self.domain_left_edge
         self.domain_dimensions = self._handle.attrs["RootGridSize"]
 
