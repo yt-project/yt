@@ -15,22 +15,16 @@ from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import AthenaPPFieldInfo
 
-#geom_map = {
-#    "cartesian": "cartesian",
-#    "cylindrical": "cylindrical",
-#    "spherical_polar": "spherical",
-#    "minkowski": "cartesian",
-#    "tilted": "cartesian",
-#    "sinusoidal": "cartesian",
-#    "schwarzschild": "spherical",
-#    "kerr-schild": "spherical",
-#}
 geom_map = {
-    "cartesian": (Geometry.CARTESIAN,("x","y","z")),
-    "cylindrical": (Geometry.CYLINDRICAL,("r","theta","z")),
-    "spherical_polar": (Geometry.SPHERICAL,("r","theta","phi")),
+    "cartesian": "cartesian",
+    "cylindrical": "cylindrical",
+    "spherical_polar": "spherical",
+    "minkowski": "cartesian",
+    "tilted": "cartesian",
+    "sinusoidal": "cartesian",
+    "schwarzschild": "spherical",
+    "kerr-schild": "spherical",
 }
-
 
 class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
@@ -160,8 +154,11 @@ class AthenaPPDataset(Dataset):
         self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
 
         geom = self._handle.attrs["Coordinates"].decode("utf-8")
-        self.geometry = geom_map[geom][0]
-        axis_order = geom_map[geom][1]
+        self.geometry = Geometry(geom_map[geom])
+        if geom_map[geom] == "cylindrical":
+            axis_order = ("r","theta","z")
+        else:
+            axis_order = None
 
         Dataset.__init__(
             self,
