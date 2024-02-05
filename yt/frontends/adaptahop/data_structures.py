@@ -6,7 +6,6 @@ Data structures for AdaptaHOP frontend.
 
 """
 
-
 import os
 import re
 from itertools import product

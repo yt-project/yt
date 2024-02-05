@@ -267,12 +267,10 @@ class TestParticlePhasePlotSave(unittest.TestCase):
                 particle_phases.append(ParticlePhasePlot.from_profile(pp))
         particle_phases[0]._repr_html_()
 
-        with mock.patch(
-            "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
-        ), mock.patch(
-            "matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"
-        ), mock.patch(
-            "matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"
+        with (
+            mock.patch("matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"),
+            mock.patch("matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"),
+            mock.patch("matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"),
         ):
             for p in particle_phases:
                 for fname in TEST_FLNMS:
@@ -384,12 +382,10 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                 ),
             ]
         particle_projs[0]._repr_html_()
-        with mock.patch(
-            "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
-        ), mock.patch(
-            "matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"
-        ), mock.patch(
-            "matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"
+        with (
+            mock.patch("matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"),
+            mock.patch("matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"),
+            mock.patch("matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"),
         ):
             for p in particle_projs:
                 for fname in TEST_FLNMS:

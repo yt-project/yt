@@ -325,6 +325,7 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
     >>> p.save()
 
     """
+
     _plot_type = "Particle"
     _frb_generator = ParticleImageBuffer
 
@@ -553,6 +554,7 @@ class ParticlePhasePlot(PhasePlot):
     >>> plot.set_unit("particle_mass", "Msun")
 
     """
+
     _plot_type = "ParticlePhase"
 
     def __init__(

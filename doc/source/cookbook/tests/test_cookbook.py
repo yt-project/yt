@@ -8,6 +8,7 @@ Example:
       $ sed -e '/where/d' -i nose.cfg setup.cfg
       $ nosetests doc/source/cookbook/tests/test_cookbook.py -P -v
 """
+
 import subprocess
 import sys
 

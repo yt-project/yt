@@ -29,7 +29,6 @@ from .zbuffer_array import ZBuffer
 
 
 class Scene:
-
     """A virtual landscape for a volume rendering.
 
     The Scene class is meant to be the primary container for the

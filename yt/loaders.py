@@ -2,6 +2,7 @@
 This module gathers all user-facing functions with a `load_` prefix.
 
 """
+
 import atexit
 import os
 import sys
