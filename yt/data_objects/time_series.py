@@ -143,6 +143,7 @@ class DatasetSeries:
     ...     SlicePlot(ds, "x", ("gas", "density")).save()
 
     """
+
     # this annotation should really be Optional[Type[Dataset]]
     # but we cannot import the yt.data_objects.static_output.Dataset
     # class here without creating a circular import for now

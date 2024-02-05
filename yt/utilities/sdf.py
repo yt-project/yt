@@ -557,7 +557,6 @@ def _shift_periodic(pos, left, right, domain_width):
 
 
 class SDFIndex:
-
     """docstring for SDFIndex
 
     This provides an index mechanism into the full SDF Dataset.

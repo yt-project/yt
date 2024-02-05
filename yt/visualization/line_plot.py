@@ -148,6 +148,7 @@ class LinePlot(BaseLinePlot):
     >>> plot.save()
 
     """
+
     _plot_dict_type = LinePlotDictionary
     _plot_type = "line_plot"
 

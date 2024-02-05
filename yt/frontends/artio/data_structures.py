@@ -483,9 +483,7 @@ class ARTIODataset(Dataset):
             ]
 
             self.parameters["unit_m"] = self.artio_parameters["mass_unit"][0]
-            self.parameters["unit_t"] = (
-                self.artio_parameters["time_unit"][0] * abox**2
-            )
+            self.parameters["unit_t"] = self.artio_parameters["time_unit"][0] * abox**2
             self.parameters["unit_l"] = self.artio_parameters["length_unit"][0] * abox
 
             if self.artio_parameters["DeltaDC"][0] != 0:

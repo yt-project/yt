@@ -144,9 +144,8 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
     # These properties are static properties
     ftype: Optional[str] = None  # The name to give to the field type
     fname: Optional[str] = None  # The name of the file(s)
-    attrs: Optional[
-        tuple[tuple[str, int, str], ...]
-    ] = None  # The attributes of the header
+    # The attributes of the header
+    attrs: Optional[tuple[tuple[str, int, str], ...]] = None
     known_fields = None  # A list of tuple containing the field name and its type
     config_field: Optional[str] = None  # Name of the config section (if any)
 

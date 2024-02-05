@@ -68,9 +68,7 @@ def setup_velocity(self, ptype):
             momentum = data[ptype, f"particle_momentum_{axis}"]
             mass = data[ptype, "particle_mass"]
             weighting = data[ptype, "particle_weighting"]
-            return momentum / np.sqrt(
-                (mass * weighting) ** 2 + (momentum**2) / (c**2)
-            )
+            return momentum / np.sqrt((mass * weighting) ** 2 + (momentum**2) / (c**2))
 
         return velocity
 

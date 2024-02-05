@@ -1785,6 +1785,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     >>> p.save("sliceplot")
 
     """
+
     _plot_type = "Slice"
     _frb_generator = FixedResolutionBuffer
 
@@ -2011,6 +2012,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     >>> p = AxisAlignedProjectionPlot(ds, "z", ("gas", "density"), width=(20, "kpc"))
 
     """
+
     _plot_type = "Projection"
     _frb_generator = FixedResolutionBuffer
 
@@ -2407,6 +2409,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         used. Effectively sets a resolution limit to the image if buff_size is
         smaller than the finest gridding.
     """
+
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
     _supported_geometries = ("cartesian", "spectral_cube")

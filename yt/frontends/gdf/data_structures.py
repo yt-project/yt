@@ -278,7 +278,8 @@ class GDFDataset(Dataset):
             self.omega_matter = 0.0
             self.hubble_constant = 0.0
             self.cosmological_simulation = 0
-        self.parameters["Time"] = 1.0  # Hardcode time conversion for now.
+        # Hardcode time conversion for now.
+        self.parameters["Time"] = 1.0
         # Hardcode for now until field staggering is supported.
         self.parameters["HydroMethod"] = 0
         self._handle.close()

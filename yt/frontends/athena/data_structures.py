@@ -615,10 +615,10 @@ class AthenaDataset(Dataset):
         self.omega_matter = 0.0
         self.hubble_constant = 0.0
         self.cosmological_simulation = 0
-        self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
-        self.parameters[
-            "HydroMethod"
-        ] = 0  # Hardcode for now until field staggering is supported.
+        # Hardcode time conversion for now.
+        self.parameters["Time"] = self.current_time
+        # Hardcode for now until field staggering is supported.
+        self.parameters["HydroMethod"] = 0
         if "gamma" in self.specified_parameters:
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:

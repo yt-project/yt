@@ -99,9 +99,11 @@ def generate_tasks_input():
     exclude_answers = [f"--exclude-test={ex}" for ex in exclude_answers]
 
     args = [
-        (item + [f"--xunit-file={item[0]}.xml"], exclusive)
-        if item[0] != "unittests"
-        else (item + ["--xunit-file=unittests.xml"] + exclude_answers, exclusive)
+        (
+            (item + [f"--xunit-file={item[0]}.xml"], exclusive)
+            if item[0] != "unittests"
+            else (item + ["--xunit-file=unittests.xml"] + exclude_answers, exclusive)
+        )
         for item, exclusive in args
     ]
     return args
