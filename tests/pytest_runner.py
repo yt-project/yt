@@ -6,7 +6,6 @@ It's currently used on:
 for executing answer tests and optionally generating new answers.
 """
 
-
 import glob
 import os
 

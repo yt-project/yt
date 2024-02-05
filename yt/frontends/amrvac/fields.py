@@ -3,7 +3,6 @@ AMRVAC-specific fields
 
 """
 
-
 import functools
 
 import numpy as np

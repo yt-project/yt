@@ -69,9 +69,11 @@ class TestYTConfig(unittest.TestCase):
         args = ["yt", "config"] + args
         retcode = 0
 
-        with mock.patch.object(sys, "argv", args), mock.patch(
-            "sys.exit", side_effect=SysExitException
-        ) as exit, captureOutput() as output:
+        with (
+            mock.patch.object(sys, "argv", args),
+            mock.patch("sys.exit", side_effect=SysExitException) as exit,
+            captureOutput() as output,
+        ):
             try:
                 yt.utilities.command_line.run_main()
             except SysExitException:

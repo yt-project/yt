@@ -6,8 +6,7 @@ from more_itertools import always_iterable
 class Union(ABC):
     @property
     @abstractmethod
-    def _union_type(self) -> str:
-        ...
+    def _union_type(self) -> str: ...
 
     def __init__(self, name, sub_types):
         self.name = name
