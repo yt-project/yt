@@ -155,7 +155,7 @@ class AthenaPPDataset(Dataset):
 
         geom = self._handle.attrs["Coordinates"].decode("utf-8")
         self.geometry = Geometry(geom_map[geom])
-        if geom_map[geom] == "cylindrical":
+        if self.geometry == "cylindrical":
             axis_order = ("r","theta","z")
         else:
             axis_order = None
