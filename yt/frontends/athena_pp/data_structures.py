@@ -26,6 +26,7 @@ geom_map = {
     "kerr-schild": "spherical",
 }
 
+
 class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
 
@@ -156,7 +157,7 @@ class AthenaPPDataset(Dataset):
         geom = self._handle.attrs["Coordinates"].decode("utf-8")
         self.geometry = Geometry(geom_map[geom])
         if self.geometry == "cylindrical":
-            axis_order = ("r","theta","z")
+            axis_order = ("r", "theta", "z")
         else:
             axis_order = None
 
@@ -167,7 +168,7 @@ class AthenaPPDataset(Dataset):
             units_override=units_override,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
-            axis_order=axis_order
+            axis_order=axis_order,
         )
         if storage_filename is None:
             storage_filename = self.basename + ".yt"
