@@ -279,6 +279,8 @@ exclude = [
     "yt/mods.py",
     "yt/visualization/_colormap_data.py",
 ]
+
+[tool.ruff.lint]
 select = [
     "E",
     "F",
@@ -297,10 +299,10 @@ ignore = [
     "B018",  # Found useless expression. # disabled because ds.index is idiomatic
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "test_*" = ["NPY002"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 known-third-party = [
   "IPython",
