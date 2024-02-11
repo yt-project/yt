@@ -556,9 +556,7 @@ class AthenaDataset(Dataset):
         )
         self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge - self.domain_left_edge
-        self.domain_dimensions = np.round(self.domain_width / grid["dds"]).astype(
-            "int32"
-        )
+        domain_dimensions = np.round(self.domain_width / grid["dds"]).astype("int32")
         refine_by = None
         if refine_by is None:
             refine_by = 2
@@ -569,11 +567,12 @@ class AthenaDataset(Dataset):
         if grid["dimensions"][1] == 1:
             dimensionality = 1
         if dimensionality <= 2:
-            self.domain_dimensions[2] = np.int32(1)
+            domain_dimensions[2] = np.int32(1)
         if dimensionality == 1:
-            self.domain_dimensions[1] = np.int32(1)
+            domain_dimensions[1] = np.int32(1)
         if dimensionality != 3 and self.nprocs > 1:
             raise RuntimeError("Virtual grids are only supported for 3D outputs!")
+        self.domain_dimensions = domain_dimensions
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
         self.cosmological_simulation = False
