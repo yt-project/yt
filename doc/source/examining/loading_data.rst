@@ -1868,11 +1868,19 @@ are supported, and the following fields are defined:
 * ``("gas", "four_velocity_[txyz]")``: Four-velocity fields :math:`U_t, U_x, U_y, U_z`
 * ``("gas", "lorentz_factor")``: Lorentz factor :math:`\gamma = \sqrt{1+U_iU^i/c^2}`
   (where :math:`i` runs over the spatial indices)
+* ``("gas", "specific_reduced_enthalpy")``: Specific reduced enthalpy :math:`\tilde{h} = \epsilon + p/\rho`
+* ``("gas", "specific_enthalpy")``: Specific enthalpy :math:`h = c^2 + \epsilon + p/\rho`
 
 These, and other fields following them (3-velocity, energy densities, etc.) are
 computed in the same manner as in the
 `GAMER-SR paper <https://ui.adsabs.harvard.edu/abs/2021MNRAS.504.3298T/abstract>`_
 to avoid catastrophic cancellations.
+
+All of the special relativistic fields will only be available if the ``Temp`` and
+``Enth`` fields are present in the dataset, which can be ensured if the runtime
+options ``OPT__OUTPUT_TEMP = 1`` and ``OPT__OUTPUT_ENTHALPY  = 1`` are set in the
+``Input__Parameter`` file when running the simulation. This greatly speeds up
+calculations of the above derived fields in yt.
 
 .. rubric:: Caveats
 

@@ -255,7 +255,7 @@ class GAMERDataset(Dataset):
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
-        if self.parameters["Opt__Unit"]:
+        if self.opt_unit:
             # GAMER units are always in CGS
             setdefaultattr(
                 self, "length_unit", self.quan(self.parameters["Unit_L"], "cm")
@@ -367,10 +367,11 @@ class GAMERDataset(Dataset):
         else:
             self.mhd = 0
             self.srhd = 0
+            # set dummy value of mu here to avoid more complicated workarounds later
+            self.mu = 1.0
 
         # old data format (version < 2210) did not contain any information of code units
-        self.parameters.setdefault("Opt__Unit", 0)
-
+        self.opt_unit = self.parameters.get("Opt__Unit", 0)
         self.geometry = Geometry(geometry_parameters[parameters.get("Coordinate", 1)])
 
     @classmethod
