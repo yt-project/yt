@@ -2273,6 +2273,7 @@ class OffAxisProjectionDummyDataSource:
         le=None,
         re=None,
         north_vector=None,
+        depth=None,
         method="integrate",
         data_source=None,
         *,
@@ -2284,6 +2285,7 @@ class OffAxisProjectionDummyDataSource:
         self.axis = None  # always true for oblique data objects
         self.normal_vector = normal_vector
         self.width = width
+        self.depth = depth
         if data_source is None:
             self.dd = ds.all_data()
         else:

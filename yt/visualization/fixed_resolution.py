@@ -649,6 +649,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             no_ghost=dd.no_ghost,
             interpolated=dd.interpolated,
             north_vector=dd.north_vector,
+            depth=dd.depth,
             method=dd.method,
         )
         if self.data_source.moment == 2:
@@ -679,6 +680,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 no_ghost=dd.no_ghost,
                 interpolated=dd.interpolated,
                 north_vector=dd.north_vector,
+                depth=dd.depth,
                 method=dd.method,
             )
             buff = compute_stddev_image(buff2, buff)
