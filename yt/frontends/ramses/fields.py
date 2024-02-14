@@ -6,6 +6,7 @@ import numpy as np
 
 from yt import units
 from yt._typing import KnownFieldsT
+from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.ramses.io import convert_ramses_conformal_time_to_physical_age
 from yt.utilities.cython_fortran_utils import FortranFile
@@ -218,12 +219,16 @@ class RAMSESFieldInfo(FieldInfoContainer):
         else:
 
             def _temperature(field, data):
-                warnings.warn(
-                    "Trying to calculate temperature but the cooling tables couldn't be found or read. "
-                    "yt will return T/µ instead of T — this is equivalent to assuming µ=1.0",
-                    category=RuntimeWarning,
-                    stacklevel=1,
-                )
+                if not isinstance(data, FieldDetector):
+                    warnings.warn(
+                        "Trying to calculate temperature but the cooling tables "
+                        "couldn't be found or read. yt will return T/µ instead of "
+                        "T — this is equivalent to assuming µ=1.0. To suppress this, "
+                        "derive the temperature from temperature_over_mu with "
+                        "some values for mu.",
+                        category=RuntimeWarning,
+                        stacklevel=1,
+                    )
                 return data["gas", "temperature_over_mu"]
 
         self.add_field(
