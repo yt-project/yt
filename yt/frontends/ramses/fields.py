@@ -196,10 +196,21 @@ class RAMSESFieldInfo(FieldInfoContainer):
         )
 
     def setup_fluid_fields(self):
-        def _temperature(field, data):
+        def _temperature_over_mu(field, data):
             rv = data["gas", "pressure"] / data["gas", "density"]
             rv *= mass_hydrogen_cgs / boltzmann_constant_cgs
             return rv
+
+        self.add_field(
+            ("gas", "temperature_over_mu"),
+            sampling_type="cell",
+            function=_temperature_over_mu,
+            units=self.ds.unit_system["temperature"],
+        )
+        self.create_cooling_fields()
+        
+        def _temperature(field, data):
+            return data["gas", "temperature_over_mu"] * data["gas", "mu"]
 
         self.add_field(
             ("gas", "temperature"),
@@ -207,7 +218,6 @@ class RAMSESFieldInfo(FieldInfoContainer):
             function=_temperature,
             units=self.ds.unit_system["temperature"],
         )
-        self.create_cooling_fields()
 
         self.species_names = [
             known_species_names[fn]
@@ -387,10 +397,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
         # Function to create the cooling fields
         def _create_field(name, interp_object, unit):
             def _func(field, data):
-                shape = data["gas", "temperature"].shape
+                shape = data["gas", "temperature_over_mu"].shape
                 d = {
                     "lognH": np.log10(_X * data["gas", "density"] / mh).ravel(),
-                    "logT": np.log10(data["gas", "temperature"]).ravel(),
+                    "logT": np.log10(data["gas", "temperature_over_mu"]).ravel(),
                 }
                 rv = interp_object(d).reshape(shape)
                 if name[-1] != "mu":
@@ -446,7 +456,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             ["lognH", "logT"],
             truncate=True,
         )
-        _create_field(("gas", "mu"), interp, tvals["mu"]["unit"])
+        _create_field(("gas", "mu"), interp, "dimensionless")
 
         # Add the number density field, based on mu
         def _number_density(field, data):
