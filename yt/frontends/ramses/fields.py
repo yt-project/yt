@@ -1,4 +1,5 @@
 import os
+import warnings
 from functools import partial
 
 import numpy as np
@@ -207,10 +208,23 @@ class RAMSESFieldInfo(FieldInfoContainer):
             function=_temperature_over_mu,
             units=self.ds.unit_system["temperature"],
         )
-        self.create_cooling_fields()
-        
-        def _temperature(field, data):
-            return data["gas", "temperature_over_mu"] * data["gas", "mu"]
+        found_cooling_fields = self.create_cooling_fields()
+
+        if found_cooling_fields:
+
+            def _temperature(field, data):
+                return data["gas", "temperature_over_mu"] * data["gas", "mu"]
+
+        else:
+
+            def _temperature(field, data):
+                warnings.warn(
+                    "Trying to calculate temperature but the cooling tables couldn't be found or read. "
+                    "yt will return T/µ instead of T — this is equivalent to assuming µ=1.0",
+                    category=RuntimeWarning,
+                    stacklevel=1,
+                )
+                return data["gas", "temperature_over_mu"]
 
         self.add_field(
             ("gas", "temperature"),
@@ -383,7 +397,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
                     units=flux_unit,
                 )
 
-    def create_cooling_fields(self):
+    def create_cooling_fields(self) -> bool:
+        "Create cooling fields from the cooling files. Return True if successful."
         num = os.path.basename(self.ds.parameter_filename).split(".")[0].split("_")[1]
         filename = "%s/cooling_%05i.out" % (
             os.path.dirname(self.ds.parameter_filename),
@@ -392,7 +407,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         if not os.path.exists(filename):
             mylog.warning("This output has no cooling fields")
-            return
+            return False
 
         # Function to create the cooling fields
         def _create_field(name, interp_object, unit):
@@ -435,7 +450,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                         "This cooling file format is no longer supported. "
                         "Cooling field loading skipped."
                     )
-                    return
+                    return False
                 if var.size == n1 * n2:
                     tvals[tname] = {
                         "data": var.reshape((n1, n2), order="F"),
@@ -514,3 +529,5 @@ class RAMSESFieldInfo(FieldInfoContainer):
             function=_net_cool,
             units=cooling_function_units,
         )
+
+        return True
