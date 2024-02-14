@@ -55,3 +55,28 @@ def test_field_config_2(custom_ramses_fields_conf):
         assert ("ramses", f) in ds.field_list
     for f in custom_grav:
         assert ("gravity", f) in ds.field_list
+
+
+@requires_file(output_00080)
+@requires_file(ramses_new_format)
+def test_warning_T2():
+    ds1 = yt.load(output_00080)
+    ds2 = yt.load(ramses_new_format)
+
+    # Should not raise warnings
+    ds1.r["gas", "temperature_over_mu"]
+    ds2.r["gas", "temperature_over_mu"]
+
+    # We cannot read the cooling tables of output_00080
+    # so this should raise a warning
+    with pytest.warns(
+        RuntimeWarning,
+        match=(
+            "Trying to calculate temperature but the cooling tables couldn't be "
+            r"found or read\. yt will return T/µ instead of T.*"
+        ),
+    ):
+        ds1.r["gas", "temperature"]
+
+    # But this one should not
+    ds2.r["gas", "temperature"]
