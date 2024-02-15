@@ -187,14 +187,16 @@ def pytest_configure(config):
             "filterwarnings",
             r"ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning",
         )
-        # On Python 3.12+, there is a deprecation warning when calling os.fork()
-        # in a multi-threaded process
-        config.addinivalue_line(
-            "filterwarnings",
-            r"ignore:This process \(pid=\d+\) is multi-threaded, use of fork\(\) "
-            r"may lead to deadlocks in the child\."
-            ":DeprecationWarning",
-        )
+
+        if find_spec("ratarmount"):
+            # On Python 3.12+, there is a deprecation warning when calling os.fork()
+            # in a multi-threaded process. We use this mechanism to mount archives.
+            config.addinivalue_line(
+                "filterwarnings",
+                r"ignore:This process \(pid=\d+\) is multi-threaded, use of fork\(\) "
+                r"may lead to deadlocks in the child\."
+                ":DeprecationWarning",
+            )
 
 
 def pytest_collection_modifyitems(config, items):
