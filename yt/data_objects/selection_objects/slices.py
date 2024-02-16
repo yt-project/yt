@@ -445,7 +445,15 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
 
     def _validate_geometry(self):
         if self._ds_geom not in self._supported_geometries:
-            raise NotImplementedError("nope")
+            self._raise_unsupported_geometry()
+
+    def _raise_unsupported_geometry(self):
+        msg = (
+            "YTCuttingPlaneMixedCoords only supports the following "
+            f"geometries: {self._supported_geometries}. The current"
+            f" geometry is {self._ds_geom}."
+        )
+        raise NotImplementedError(msg)
 
     @property
     def _index_fields(self):
@@ -459,6 +467,7 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
             return _cartesian_to_spherical
         elif self._ds_geom is Geometry.CARTESIAN:
             return _cartesian_passthrough
+        self._raise_unsupported_geometry()
 
     @property
     def _native_to_cartesian(self):
@@ -466,14 +475,20 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
             return _spherical_to_cartesian
         elif self._ds_geom is Geometry.CARTESIAN:
             return _cartesian_passthrough
+        self._raise_unsupported_geometry()
 
     @property
     def _frb_class(self):
         from yt.visualization.fixed_resolution import (
-            MixedCoordSliceFixedResolutionBuffer,
+            FixedResolutionBuffer,
+            SphericalFixedResolutionBuffer,
         )
 
-        return MixedCoordSliceFixedResolutionBuffer
+        if self._ds_geom is Geometry.SPHERICAL:
+            return SphericalFixedResolutionBuffer
+        elif self._ds_geom is Geometry.CARTESIAN:
+            return FixedResolutionBuffer
+        self._raise_unsupported_geometry()
 
     def _plane_coords(self, in_plane_x, in_plane_y):
         # calculates the 3d coordinates of points on a plane in the
@@ -509,8 +524,3 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
         y = self._current_chunk.fcoords[:, 1]
         z = self._current_chunk.fcoords[:, 2]
         return self._native_to_cartesian(x, y, z)
-
-    def _generate_container_field(self, field):
-        # note: px, py, pz will be correct but pdx, pdy and pdz will **NOT**
-        # be sensible.
-        return super()._generate_container_field(field)

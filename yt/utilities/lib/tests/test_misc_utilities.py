@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.utilities.lib.misc_utilities import _cartesian_bboxes_for_spherical
+from yt.utilities.lib.misc_utilities import cartesian_bboxes_for_spherical
 
 
 def test_cartesian_bboxes_for_spherical():
@@ -24,18 +24,14 @@ def test_cartesian_bboxes_for_spherical():
     dy = np.full(r.shape, np.nan, dtype="float64")
     dz = np.full(r.shape, np.nan, dtype="float64")
 
-    _cartesian_bboxes_for_spherical(
-        r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz
-    )
+    cartesian_bboxes_for_spherical(r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz)
     assert z + dz / 2 == 1.0
     assert np.allclose(x - dx / 2, 0.0)
     assert np.allclose(y - dy / 2, 0.0)
 
     # now theta = np.pi
     theta = np.array([np.pi - dtheta[0] / 2])
-    _cartesian_bboxes_for_spherical(
-        r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz
-    )
+    cartesian_bboxes_for_spherical(r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz)
     assert z - dz / 2 == -1.0
     assert np.allclose(x - dx / 2, 0.0)
     assert np.allclose(y - dy / 2, 0.0)
@@ -43,9 +39,7 @@ def test_cartesian_bboxes_for_spherical():
     # element at equator, overlapping the +y axis
     theta = np.array([np.pi / 2])
     phi = np.array([np.pi / 2])
-    _cartesian_bboxes_for_spherical(
-        r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz
-    )
+    cartesian_bboxes_for_spherical(r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz)
 
     assert y + dy / 2 == 1.0
     assert np.allclose(x, 0.0)
@@ -53,9 +47,7 @@ def test_cartesian_bboxes_for_spherical():
 
     # element at equator, overlapping the -x axis
     phi = np.array([np.pi])
-    _cartesian_bboxes_for_spherical(
-        r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz
-    )
+    cartesian_bboxes_for_spherical(r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz)
 
     assert x - dx / 2 == -1.0
     assert np.allclose(y, 0.0)
@@ -63,9 +55,7 @@ def test_cartesian_bboxes_for_spherical():
 
     # element at equator, overlapping the -y axis
     phi = np.array([3 * np.pi / 2])
-    _cartesian_bboxes_for_spherical(
-        r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz
-    )
+    cartesian_bboxes_for_spherical(r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz)
 
     assert y - dy / 2 == -1.0
     assert np.allclose(x, 0.0)
@@ -73,23 +63,17 @@ def test_cartesian_bboxes_for_spherical():
 
     # element at equator, overlapping +x axis
     phi = dphi / 2.0
-    _cartesian_bboxes_for_spherical(
-        r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz
-    )
+    cartesian_bboxes_for_spherical(r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz)
     assert x + dx / 2 == 1.0
 
     # element with edge on +x axis in -theta direction
     theta = np.pi / 2 - dtheta / 2
-    _cartesian_bboxes_for_spherical(
-        r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz
-    )
+    cartesian_bboxes_for_spherical(r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz)
     assert x + dx / 2 == 1.0
 
     # element with edge on +x axis in +theta direction
     theta = np.pi / 2 + dtheta / 2
-    _cartesian_bboxes_for_spherical(
-        r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz
-    )
+    cartesian_bboxes_for_spherical(r, theta, phi, dr, dtheta, dphi, x, y, z, dx, dy, dz)
     assert x + dx / 2 == 1.0
 
     # finally, check that things work OK with a wide range of
@@ -115,7 +99,7 @@ def test_cartesian_bboxes_for_spherical():
     x_y_z = [np.full(r_th_ph[0].shape, np.nan, dtype="float64") for _ in range(3)]
     d_x_y_z = [np.full(r_th_ph[0].shape, np.nan, dtype="float64") for _ in range(3)]
 
-    _cartesian_bboxes_for_spherical(
+    cartesian_bboxes_for_spherical(
         r_th_ph[0],
         r_th_ph[1],
         r_th_ph[2],

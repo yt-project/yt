@@ -28,7 +28,6 @@ from yt.utilities.lib.fp_utils cimport (
     i64min,
     iclip,
 )
-
 from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
 
 from cpython.exc cimport PyErr_CheckSignals
@@ -49,6 +48,7 @@ from yt.utilities.lib.element_mappings cimport (
     Tet2Sampler3D,
     W1Sampler3D,
 )
+from yt.utilities.lib.misc_utilities cimport _cartesian_bounds_of_spherical_element
 
 from .vec3_ops cimport cross, dot, subtract
 
@@ -2118,6 +2118,161 @@ def sample_arbitrary_points_in_1d_buffer(
                     pos_0_dx, pos_1_dx, pos_2_dx,
                     data,
                     mask)
+
+    if return_mask:
+        return mask!=0
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_off_axis_spherical(
+                       np.float64_t[:,:] buff,
+                       np.float64_t[:,:] buff_r,
+                       np.float64_t[:,:] buff_theta,
+                       np.float64_t[:,:] buff_phi,
+                       np.float64_t[:] r,
+                       np.float64_t[:] theta,
+                       np.float64_t[:] phi,
+                       np.float64_t[:] dr,
+                       np.float64_t[:] dtheta,
+                       np.float64_t[:] dphi,
+                       np.float64_t[:] plane_c,
+                       np.float64_t[:] plane_normal,
+                       np.float64_t[:] plane_east,
+                       np.float64_t[:] plane_north,
+                       np.int_t[:] indices,
+                       np.float64_t[:] data,
+                       bounds,
+                       *,
+                       int return_mask=0,
+):
+
+    # pixelize a cartesian image plane passing through a spherical geometry.
+    #
+    # buff
+    #   image buffer 2d array
+    # buff_r, buff_theta, buff_phi
+    #   spherical coordinates of image pixels, 2d arrays
+    # r, phi, theta
+    #   data coordinates in spherical coordinates
+    # dr, dphi, dtheta
+    #   element widths in spherical coordinates
+    # plane_c
+    #   the cartesian coordinates of the plane center point
+    # plane_normal
+    #   normal vector for the plane
+    # plane_east
+    #   in-plane +x vector
+    # plane_north
+    #   in-plane +y vector
+    # indices
+    #   index mapping for the data values
+    # data
+    #   the data
+    # bounds
+    #   bounds of the image plain in in-plane coordinates
+    # return_mask
+    #   flag to return a mask
+    #
+    # most of this method is identical to pixelize_off_axis_cartesian. The initial
+    # identification of element-plane intersection uses the cartesian bounding
+    # boxes. When iterating over potential image pixels that intersect,
+    # it then checks that the spherical coordinates of the pixel coordinates
+    # fall within the spherical volume element.
+    #
+
+    cdef np.float64_t x_min, x_max, y_min, y_max
+    cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy, md
+    cdef int i, j, p, ip
+    cdef int lc, lr, rc, rr
+    cdef np.float64_t dxsp, dysp, dzsp, dsp
+    cdef np.float64_t pxsp, pysp
+    cdef np.ndarray[np.int64_t, ndim=2] mask
+    cdef np.float64_t xyz_i[3]
+    cdef np.float64_t dxyz_i[3]
+
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    width = x_max - x_min
+    height = y_max - y_min
+    px_dx = width / (<np.float64_t> buff.shape[1])
+    px_dy = height / (<np.float64_t> buff.shape[0])
+    ipx_dx = 1.0 / px_dx
+    ipx_dy = 1.0 / px_dy
+    if r.shape[0] != data.shape[0] or \
+       phi.shape[0] != data.shape[0] or \
+       theta.shape[0] != data.shape[0] or \
+       dr.shape[0] != data.shape[0] or \
+       dphi.shape[0] != data.shape[0] or \
+       dtheta.shape[0] != data.shape[0] or \
+       indices.shape[0] != data.shape[0] :
+        raise YTPixelizeError("Arrays are not of correct shape.")
+    mask = np.zeros((buff.shape[0], buff.shape[1]), "int64")
+
+    with nogil:
+        for ip in range(indices.shape[0]):
+            p = indices[ip]
+            dsp = data[p]
+            # get the cartesian bounding box for this element
+            _cartesian_bounds_of_spherical_element(r[p],
+                                    theta[p],
+                                    phi[p],
+                                    dr[p],
+                                    dtheta[p],
+                                    dphi[p],
+                                    xyz_i,
+                                    dxyz_i)
+
+            # project cartesian bounds onto plane
+            pxsp = 0.0
+            pysp = 0.0
+            for idim in range(3):
+                xyz_i[idim] = xyz_i[idim] - plane_c[idim]
+                pxsp += xyz_i[idim] * plane_east[idim]
+                pysp += xyz_i[idim] * plane_north[idim]
+                #pzsp += xyz_i[i] * plane_normal[i]
+
+            dxsp = dxyz_i[0] * 0.5
+            dysp = dxyz_i[1] * 0.5
+            dzsp = dxyz_i[2] * 0.5
+
+            # Any point we want to plot is at most this far from the center
+            md = 2.0 * math.sqrt(dxsp*dxsp + dysp*dysp + dzsp*dzsp)
+            if pxsp + md < x_min or \
+               pxsp - md > x_max or \
+               pysp + md < y_min or \
+               pysp - md > y_max:
+                continue
+
+            # identify pixels that fall within the cartesian bounding box
+            lc = <int> fmax(((pxsp - md - x_min)*ipx_dx),0)
+            lr = <int> fmax(((pysp - md - y_min)*ipx_dy),0)
+            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), buff.shape[1])
+            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), buff.shape[0])
+
+            for i in range(lr, rr):
+                for j in range(lc, rc):
+                    # final check to ensure the actual spherical coords of the
+                    # pixel falls within the spherical volume element
+                    if buff_r[i,j] < r[p] - 0.5 * dr[p] or \
+                       buff_r[i,j] >= r[p] + 0.5 * dr[p] or \
+                       buff_theta[i,j] < theta[p] - 0.5 * dtheta[p] or \
+                       buff_theta[i,j] >= theta[p] + 0.5 * dtheta[p] or \
+                       buff_phi[i,j] < phi[p] - 0.5 * dphi[p] or \
+                       buff_phi[i,j] >= phi[p] + 0.5 * dphi[p]:
+                       continue
+                    mask[i, j] += 1
+                    # make sure pixel value is not a NaN before incrementing it
+                    if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
+                    buff[i, j] += dsp
+    # is the following chunk-safe? commenting for now...
+#    for i in range(buff.shape[0]):
+#        for j in range(buff.shape[1]):
+#            if mask[i,j] == 0: continue
+#            buff[i,j] /= mask[i,j]
 
     if return_mask:
         return mask!=0

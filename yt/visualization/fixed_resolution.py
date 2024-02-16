@@ -17,8 +17,8 @@ from yt.utilities.lib.api import (  # type: ignore
 )
 from yt.utilities.lib.pixelization_routines import (
     pixelize_cylinder,
+    pixelize_off_axis_spherical,
     rotate_particle_coord,
-    sample_arbitrary_points_in_1d_buffer,
 )
 from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -695,12 +695,11 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         self.mask[item] = None
 
 
-class MixedCoordSliceFixedResolutionBuffer(FixedResolutionBuffer):
+class SphericalFixedResolutionBuffer(FixedResolutionBuffer):
     """
     This object is a subclass of
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
-    that supports off axis slices when a coordinate transformation
-    is required
+    that supports off axis (cartesian) slices through a 3D spherical domain
     """
 
     def __init__(
@@ -715,7 +714,7 @@ class MixedCoordSliceFixedResolutionBuffer(FixedResolutionBuffer):
     ):
         if not isinstance(data_source, YTCuttingPlaneMixedCoords):
             raise ValueError(
-                "The MixedCoordSliceFixedResolutionBuffer only "
+                "The SphericalFixedResolutionBuffer only "
                 "works with YTCuttingPlaneMixedCoords objects."
             )
         super().__init__(
@@ -736,8 +735,8 @@ class MixedCoordSliceFixedResolutionBuffer(FixedResolutionBuffer):
         return np.linspace(bmin_i + dx_i, bmax_i + dx_i, buff_size_i)
 
     def image_xy(self):
-        x_plane = self._1d_sample_points(0)
-        y_plane = self._1d_sample_points(1)
+        x_plane = self._1d_sample_points(1)
+        y_plane = self._1d_sample_points(0)
         return x_plane, y_plane
 
     @override
@@ -757,20 +756,18 @@ class MixedCoordSliceFixedResolutionBuffer(FixedResolutionBuffer):
         x_plane, y_plane = np.meshgrid(x_plane, y_plane)
         b_pos0, b_pos1, b_pos2 = data_source._plane_coords(x_plane, y_plane)
 
-        buff = np.ravel(buff).astype(np.float64)
-        b_pos0 = np.ravel(b_pos0).astype(np.float64)
-        b_pos1 = np.ravel(b_pos1).astype(np.float64)
-        b_pos2 = np.ravel(b_pos2).astype(np.float64)
-
         chunk_masks = []
         pos0, pos1, pos2, dpos0, dpos1, dpos2 = data_source._index_fields
         fields_needed = data_source._index_fields + [
             item,
         ]
+
         for chunk in data_source.chunks(fields_needed, "io"):
             # for chunk in parallel_objects(data_source.chunks(fields_needed, "io")):
-
-            msk = sample_arbitrary_points_in_1d_buffer(
+            # indxs = np.argsort(chunk[dpos0])[::-1].astype(np.int_)
+            indxs = np.arange(0, chunk[pos0].size)
+            data_ch = chunk[item].astype(np.float64)  # handle units!
+            msk = pixelize_off_axis_spherical(
                 buff,
                 b_pos0,
                 b_pos1,
@@ -781,7 +778,13 @@ class MixedCoordSliceFixedResolutionBuffer(FixedResolutionBuffer):
                 chunk[dpos0].astype(np.float64),
                 chunk[dpos1].astype(np.float64),
                 chunk[dpos2].astype(np.float64),
-                chunk[item].astype(np.float64),  # the data, need to handle units!
+                self.data_source.center,
+                self.data_source._norm_vec,
+                self.data_source._x_vec,
+                self.data_source._y_vec,
+                indxs,
+                data_ch,
+                self.bounds,
                 return_mask=1,
             )
             chunk_masks.append(msk)
@@ -795,6 +798,7 @@ class MixedCoordSliceFixedResolutionBuffer(FixedResolutionBuffer):
         ia = ImageArray(buff, info=self._get_info(item))
         self.data[item] = ia
         self.mask[item] = mask.reshape(self.buff_size)
+        self._data_valid = True
 
 
 class ParticleImageBuffer(FixedResolutionBuffer):

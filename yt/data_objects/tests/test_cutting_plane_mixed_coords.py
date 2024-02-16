@@ -19,10 +19,10 @@ def test_cutting_plane_mixed_coords():
 def test_cutting_plane_mixed_coords_answer():
     # TODO: make this an answer test
     ds = yt.load_sample("KeplerianDisk")
-    normal = np.array([0.0, 0.0, 1.0])
-    plane_center = np.array([0.0, 0.0, 0.5])
+    normal = np.array([0.0, 1.0, 0.0])
+    plane_center = np.array([0.0, 0.0, 0.0])
     slc = ds.cutting_mixed(normal, plane_center)
-    frb = slc.to_frb(10.0, 800)
+    frb = slc.to_frb(8.0, 400)
     bvals = frb[("athena_pp", "dens")]
     mask = frb.get_mask(("athena_pp", "dens"))
     bvals[~mask] = np.nan
