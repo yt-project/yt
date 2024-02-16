@@ -327,14 +327,15 @@ class AthenaHierarchy(GridIndex):
         self.dataset.domain_center = 0.5 * (
             self.dataset.domain_left_edge + self.dataset.domain_right_edge
         )
-        self.dataset.domain_dimensions = np.round(
-            self.dataset.domain_width / gdds[0]
-        ).astype("int64")
+        domain_dimensions = np.round(self.dataset.domain_width / gdds[0]).astype(
+            "int64"
+        )
 
         if self.dataset.dimensionality <= 2:
-            self.dataset.domain_dimensions[2] = 1
+            domain_dimensions[2] = 1
         if self.dataset.dimensionality == 1:
-            self.dataset.domain_dimensions[1] = 1
+            domain_dimensions[1] = 1
+        self.dataset.domain_dimensions = domain_dimensions
 
         dle = self.dataset.domain_left_edge
         dre = self.dataset.domain_right_edge
