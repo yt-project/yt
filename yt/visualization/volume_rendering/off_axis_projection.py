@@ -81,7 +81,10 @@ def off_axis_projection(
     north_vector : optional, array_like, default None
         A vector that, if specified, restricts the orientation such that the
         north vector dotted into the image plane points "up". Useful for rotations
-    depth: float or 
+    depth: float, tuple[float, str], or unyt_array or size 1.
+        specify the depth of the projection region (size along the 
+        line of sight). If no units are given (unyt_array or second 
+        tuple element), code units are assumed.
     num_threads: integer, optional, default 1
         Use this many OpenMP threads during projection.
     method : string
@@ -148,8 +151,14 @@ def off_axis_projection(
     if not hasattr(width, "units"):
         width = data_source.ds.arr(width, "code_length")
     if depth is not None:
+        # handle units (intrinsic or as a tuple), 
+        # then convert to code length
+        # float -> assumed to be in code units
+        if isinstance(depth, tuple):
+            depth = data_source.ds.arr(np.array([depth[0]]), depth[1])
         if hasattr(depth, "units"):
             depth = depth.to("code_length").d
+        
         #depth = data_source.ds.arr(depth, "code_length")
         
 
@@ -210,23 +219,22 @@ def off_axis_projection(
         buf = np.zeros((resolution[0], resolution[1]), dtype="float64")
         mask = np.ones_like(buf, dtype="uint8")
         
-        # width from fixed_resolution.py is just the size of the domain
-        x_min = center[0] - width[0] / 2
-        x_max = center[0] + width[0] / 2
-        y_min = center[1] - width[1] / 2
-        y_max = center[1] + width[1] / 2
-        z_min = center[2] - width[2] / 2
-        z_max = center[2] + width[2] / 2
-        bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
-        periodic = data_source.ds.periodicity
-        #le = data_source.ds.domain_left_edge.to("code_length").d
-        #re = data_source.ds.domain_right_edge.to("code_length").d
-        #x_min, y_min, z_min = le
-        #x_max, y_max, z_max = re
+        ## width from fixed_resolution.py is just the size of the domain
+        #x_min = center[0] - width[0] / 2
+        #x_max = center[0] + width[0] / 2
+        #y_min = center[1] - width[1] / 2
+        #y_max = center[1] + width[1] / 2
+        #z_min = center[2] - width[2] / 2
+        #z_max = center[2] + width[2] / 2
         
+        periodic = data_source.ds.periodicity
+        le = data_source.ds.domain_left_edge.to("code_length").d
+        re = data_source.ds.domain_right_edge.to("code_length").d
+        x_min, y_min, z_min = le
+        x_max, y_max, z_max = re
+        bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
         finfo = data_source.ds.field_info[item]
         ounits = finfo.output_units
-
         if weight is None:
             for chunk in data_source.chunks([], "io"):
                 off_axis_projection_SPH(

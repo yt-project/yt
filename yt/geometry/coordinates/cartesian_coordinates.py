@@ -323,11 +323,20 @@ class CartesianCoordinateHandler(CoordinateHandler):
         # We should be using fcoords
         field = data_source._determine_fields(field)[0]
         finfo = data_source.ds.field_info[field]
-        period = self.period[:2].copy()  # dummy here
-        period[0] = self.period[self.x_axis[dim]]
-        period[1] = self.period[self.y_axis[dim]]
-        if hasattr(period, "in_units"):
-            period = period.in_units("code_length").d
+        # some coordinate handlers use only projection-plane periods,
+        # others need all box periods.
+        period2 = self.period[:2].copy()  # dummy here
+        period2[0] = self.period[self.x_axis[dim]]
+        period2[1] = self.period[self.y_axis[dim]]
+        period3 = self.period[:].copy()  # dummy here
+        period3[0] = self.period[self.x_axis[dim]]
+        period3[1] = self.period[self.y_axis[dim]]
+        zax = list({0, 1, 2} - {self.x_axis[dim], self.y_axis[dim]})
+        period3[2] = self.period[zax]
+        if hasattr(period2, "in_units"):
+            period2 = period2.in_units("code_length").d
+        if hasattr(period3, "in_units"):
+            period3 = period3.in_units("code_length").d
 
         buff = np.full((size[1], size[0]), np.nan, dtype="float64")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
@@ -349,7 +358,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 coord,
                 bounds,
                 int(antialias),
-                period,
+                period2,
                 int(periodic),
                 return_mask=True,
             )
@@ -359,8 +368,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 ptype = data_source.ds._sph_ptypes[0]
             px_name = self.axis_name[self.x_axis[dim]]
             py_name = self.axis_name[self.y_axis[dim]]
+            # need z coordinates for depth, 
+            # but name isn't saved in the handler -> use the 'other one'
+            pz_name = list((set(self.axis_order) - {px_name, py_name}))[0]
+            
             ounits = data_source.ds.field_info[field].output_units
             bnds = data_source.ds.arr(bounds, "code_length").tolist()
+
             if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
                 moment = data_source.moment
@@ -369,6 +383,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 ya = self.y_axis[dim]
                 # If we're not periodic, we need to clip to the boundary edges
                 # or we get errors about extending off the edge of the region.
+                # (depth/z range is handled by region setting)
                 if not self.ds.periodicity[xa]:
                     le[xa] = max(bounds[0], self.ds.domain_left_edge[xa])
                     re[xa] = min(bounds[1], self.ds.domain_right_edge[xa])
@@ -389,6 +404,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     data_source=data_source.data_source,
                 )
                 proj_reg.set_field_parameter("axis", data_source.axis)
+                # need some z bounds for SPH projection 
+                # -> use source bounds
+                zax = list({0, 1, 2} - set([xa, ya]))[0]
+                bnds3 = bnds + [le[zax], re[zax]]
+                
                 buff = np.zeros(size, dtype="float64")
                 mask_uint8 = np.zeros_like(buff, dtype="uint8")
                 if weight is None:
@@ -399,13 +419,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
+                            chunk[ptype, pz_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
-                            bnds,
+                            bnds3,
                             check_period=int(periodic),
-                            period=period,
+                            period=period3,
                         )
                     # We use code length here, but to get the path length right
                     # we need to multiply by the conversion factor between
@@ -430,13 +451,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
+                            chunk[ptype, pz_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
-                            bnds,
+                            bnds3,
                             check_period=int(periodic),
-                            period=period,
+                            period=period3,
                             weight_field=chunk[weight].in_units(wounits),
                         )
                     mylog.info(
@@ -452,13 +474,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
+                            chunk[ptype, pz_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[weight].in_units(wounits),
-                            bnds,
+                            bnds3,
                             check_period=int(periodic),
-                            period=period,
+                            period=period3,
                         )
                     normalization_2d_utility(buff, weight_buff)
                     if moment == 2:
@@ -471,13 +494,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 mask_uint8,
                                 chunk[ptype, px_name].to("code_length"),
                                 chunk[ptype, py_name].to("code_length"),
+                                chunk[ptype, pz_name].to("code_length"),
                                 chunk[ptype, "smoothing_length"].to("code_length"),
                                 chunk[ptype, "mass"].to("code_mass"),
                                 chunk[ptype, "density"].to("code_density"),
                                 chunk[field].in_units(ounits) ** 2,
-                                bnds,
+                                bnds3,
                                 check_period=int(periodic),
-                                period=period,
+                                period=period3,
                                 weight_field=chunk[weight].in_units(wounits),
                             )
                         normalization_2d_utility(buff2, weight_buff)
@@ -505,7 +529,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[field].in_units(ounits),
                             bnds,
                             check_period=int(periodic),
-                            period=period,
+                            period=period2,
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
@@ -519,7 +543,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 np.ones(chunk[ptype, "density"].shape[0]),
                                 bnds,
                                 check_period=int(periodic),
-                                period=period,
+                                period=period2,
                             )
 
                     if normalize:
@@ -608,7 +632,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 data_source[field],
                 bounds,
                 int(antialias),
-                period,
+                period2,
                 int(periodic),
                 return_mask=True,
             )

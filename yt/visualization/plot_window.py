@@ -86,14 +86,16 @@ def get_oblique_window_parameters(normal, center, width, ds, depth=None):
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
-        center = (center - ds.domain_left_edge) / ds.domain_width - 0.5
+        # the original dimensionless center messes up off-axis 
+        # SPH projections though
+        center = ((center - ds.domain_left_edge) / ds.domain_width - 0.5)\
+                  * ds.domain_width
         (normal, perp1, perp2) = ortho_find(normal)
         mat = np.transpose(np.column_stack((perp1, perp2, normal)))
         center = np.dot(mat, center)
 
     w = tuple(el.in_units("code_length") for el in width)
     bounds = tuple(((2 * (i % 2)) - 1) * w[i // 2] / 2 for i in range(len(w) * 2))
-
     return (bounds, center)
 
 
@@ -2423,7 +2425,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         fields,
         center="center",
         width=None,
-        depth=(1, "1"),
+        depth=None,
         axes_unit=None,
         weight_field=None,
         max_level=None,
@@ -2450,7 +2452,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         )
         fields = list(iter_fields(fields))[:]
         oap_width = ds.arr(
-            (bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
+            (bounds[1] - bounds[0], bounds[3] - bounds[2])
         )
         OffAxisProj = OffAxisProjectionDummyDataSource(
             center_rot,
@@ -2465,6 +2467,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             le=le,
             re=re,
             north_vector=north_vector,
+            depth=depth,
             method=method,
             data_source=data_source,
             moment=moment,

@@ -634,7 +634,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             (
                 self.bounds[1] - self.bounds[0],
                 self.bounds[3] - self.bounds[2],
-                self.bounds[5] - self.bounds[4],
             )
         )
         buff = off_axis_projection(

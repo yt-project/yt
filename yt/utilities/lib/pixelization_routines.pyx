@@ -1176,7 +1176,6 @@ def pixelize_sph_kernel_projection(
     if kernel_name not in kernel_tables:
         kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
-
     with nogil, parallel():
         # loop through every particle
         # NOTE: this loop can be quite time consuming. However it is easily
@@ -1204,7 +1203,7 @@ def pixelize_sph_kernel_projection(
         xiterv[0] = yiterv[0] = ziterv[0] = 0.0
         for i in range(xsize * ysize):
             local_buff[i] = 0.0
-
+        
         for j in prange(0, posx.shape[0], schedule="dynamic"):
             if j % 100000 == 0:
                 with gil:
@@ -1920,14 +1919,14 @@ def rotate_particle_coord(np.float64_t[:] px,
     cdef np.float64_t[:] rotated_center
     #rotated_center = rotation_matmul(
     #    rotation_matrix, np.array([center[0], center[1], center[2]]))
-    rotated_center = np.zeros(3, dtype=center.dtype)
+    rotated_center = np.zeros((3,), dtype=center.dtype)
     # set up the rotated bounds
     cdef np.float64_t rot_bounds_x0 = rotated_center[0] - 0.5 * width[0]
     cdef np.float64_t rot_bounds_x1 = rotated_center[0] + 0.5 * width[0]
     cdef np.float64_t rot_bounds_y0 = rotated_center[1] - 0.5 * width[1]
     cdef np.float64_t rot_bounds_y1 = rotated_center[1] + 0.5 * width[1]
-    cdef np.float64_t rot_bounds_z0 = rotated_center[2] - 0.5 * depth[2]
-    cdef np.float64_t rot_bounds_z1 = rotated_center[2] + 0.5 * depth[2]
+    cdef np.float64_t rot_bounds_z0 = rotated_center[2] - 0.5 * depth
+    cdef np.float64_t rot_bounds_z1 = rotated_center[2] + 0.5 * depth
 
     for i in range(num_particles):
         coordinate_matrix[0] = px[i]
@@ -1986,7 +1985,7 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     if depth is None:
         # set to volume diagonal -> won't exclude anything
         depth = np.sqrt((bounds[1] - bounds[0])**2
-                        + (bounds[3] - bounds[2])**2,
+                        + (bounds[3] - bounds[2])**2
                         + (bounds[5] - bounds[4])**2)
 
     px_rotated, py_rotated, pz_rotated, \
