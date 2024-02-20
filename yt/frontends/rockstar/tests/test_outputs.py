@@ -57,4 +57,4 @@ def test_halo_loading():
         halo.mass
 
         # Make sure we can access the member particles
-        assert len(halo.member_ids) == Npart
+        assert_equal(len(halo.member_ids), Npart)
