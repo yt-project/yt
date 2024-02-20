@@ -2,7 +2,11 @@ from functools import cached_property
 
 import numpy as np
 
-from yt.utilities.lib.pixelization_routines import pixelize_aitoff, pixelize_cylinder
+from yt.utilities.lib.pixelization_routines import (
+    pixelize_aitoff,
+    pixelize_cylinder,
+    pixelize_off_axis_mixed_coords,
+)
 
 from .coordinate_handler import (
     CoordinateHandler,
@@ -94,7 +98,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         return_mask=False,
     ):
         self.period
-        name = self.axis_name[dimension]
+        name = self.axis_name.get(dimension, dimension)
         if name == "r":
             buff, mask = self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
@@ -112,7 +116,9 @@ class SphericalCoordinateHandler(CoordinateHandler):
                 data_source, field, bounds, size, antialias, dimension
             )
         else:
-            raise NotImplementedError
+            buff, mask = self._oblique_pixelize(
+                data_source, field, bounds, size, antialias, dimension
+            )
 
         if return_mask:
             assert mask is None or mask.dtype == bool
@@ -122,6 +128,67 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def pixelize_line(self, field, start_point, end_point, npoints):
         raise NotImplementedError
+
+    def _oblique_pixelize(
+        self,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias,
+        dimension,
+    ):
+
+        from yt.utilities.lib.coordinate_utilities import (
+            SphericalMixedCoordBBox,
+        )
+
+        buff = np.zeros(size)
+
+        def _1d_sample_points(bounds, buff_size, axisid):
+            # get a 1d array of sample points along a dimension
+            bmin_i = bounds[axisid * 2]
+            bmax_i = bounds[axisid * 2 + 1]
+            buff_size_i = buff_size[axisid]
+            dx_i = (bmax_i - bmin_i) / buff_size_i
+            x_i = bmin_i + dx_i / 2.0 + np.arange(buff_size_i) * dx_i
+            return x_i
+
+        # get the coordinates of the plane in the coordinate system of the
+        # underlying dataset (the "native" coordinates)
+        x_plane = _1d_sample_points(bounds, size, 0)
+        y_plane = _1d_sample_points(bounds, size, 1)
+        # in-plane x-y coordinates of each pixel in buffer
+        b_x, b_y = np.meshgrid(x_plane, y_plane, indexing="ij")
+        # spherical coords if each pixel in buffer
+        b_r, b_theta, b_phi = data_source._plane_coords(b_x, b_y)
+
+        bbox_handler = SphericalMixedCoordBBox()
+
+        indxs = np.arange(0, data_source[("index", "r")].size)
+        mask = pixelize_off_axis_mixed_coords(
+            bbox_handler,
+            buff,
+            b_r,
+            b_theta,
+            b_phi,
+            data_source[("index", "r")].astype(np.float64),
+            data_source[("index", "theta")].astype(np.float64),
+            data_source[("index", "phi")].astype(np.float64),
+            data_source[("index", "dr")].astype(np.float64),
+            data_source[("index", "dtheta")].astype(np.float64),
+            data_source[("index", "dphi")].astype(np.float64),
+            data_source.center,
+            data_source._norm_vec,
+            data_source._x_vec,
+            data_source._y_vec,
+            indxs,
+            data_source[field].astype(np.float64),
+            bounds,
+            return_mask=1,
+        )
+
+        return buff.T, mask.T
 
     def _ortho_pixelize(
         self, data_source, field, bounds, size, antialias, dim, periodic

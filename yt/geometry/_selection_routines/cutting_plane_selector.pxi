@@ -1,5 +1,4 @@
-from libc.math cimport sin, cos, atan2, sqrt, acos
-
+from yt.utilities.lib.coordinate_utilities cimport spherical_to_cartesian, cartesian_to_spherical
 
 cdef class CuttingPlaneSelector(SelectorObject):
     cdef public np.float64_t norm_vec[3]  # the unit-normal for the plane
@@ -191,13 +190,13 @@ cdef class CuttingPlaneTransformed(CuttingPlaneSelector):
 
 cdef class SphericalCuttingPlaneSelector(CuttingPlaneTransformed):
 
-    # interesection of a cartesian plane with data in spherical coordinates.
-    # expected ordering is (r, theta, phi), where theta is the azimuthal/latitudinal
-    # angle (bounds of 0 to pi) and phi is the polar/longitudinal angle (bounds 0 to 2pi).
+    # intersection of a cartesian plane with data in spherical coordinates.
+    # expected ordering is (r, theta, phi), where theta is the colatitude
+    # angle (bounds of 0 to pi) and phi is the azimuthal/longitudinal
+    # angle (bounds 0 to 2pi).
 
     cdef public np.float64_t r_min # the minimum radius for possible intersection
     cdef public np.float64_t c_rtp[3]
-    cdef public np.float64_t c_xyz[3]
 
     def __init__(self, dobj):
 
@@ -209,39 +208,19 @@ cdef class SphericalCuttingPlaneSelector(CuttingPlaneTransformed):
         # plane, cannot intersect the plane. Record r_min here for convenience:
         self.r_min = fabs(self.d)
 
-        # also record the phi and theta coordinates of the point on the plane
+        # also record the spherical coordinates of the point on the plane
         # closest to the origin
         for i in range(3):
             xyz[i] = - self.norm_vec[i] * self.d  # cartesian position
-            self.c_xyz[i] = xyz[i] # TODO: delete. temp for debugging
-        self.transform_xyz_to_rtp(xyz, self.c_rtp)
-
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef void transform_rtp_to_xyz(self, np.float64_t in_pos[3], np.float64_t out_pos[3]) noexcept nogil:
-        # See `spherical_coordinates.py` for more details
-        # r => in_pos[0] theta => in_pos[1] phi => in_pos[2]
-        out_pos[0] = in_pos[0] * cos(in_pos[2]) * sin(in_pos[1])
-        out_pos[1] = in_pos[0] * sin(in_pos[2]) * sin(in_pos[1])
-        out_pos[2] = in_pos[0] * cos(in_pos[1])
+        self.c_rtp[0],  self.c_rtp[1],  self.c_rtp[2] = cartesian_to_spherical(xyz[0], xyz[1], xyz[2])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void transform_vertex_pos(self, np.float64_t pos_in[3], np.float64_t pos_out[3]) noexcept nogil:
-        self.transform_rtp_to_xyz(pos_in, pos_out)
+        # r => in_pos[0] theta => in_pos[1] phi => in_pos[2]
+        pos_out[0], pos_out[1], pos_out[2] = spherical_to_cartesian(pos_in[0], pos_in[1], pos_in[2])
 
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef void transform_xyz_to_rtp(self, np.float64_t in_pos[3], np.float64_t out_pos[3]) noexcept nogil:
-        # we have to have 012 be xyz and 012 be rtp
-        out_pos[0] = sqrt(in_pos[0]*in_pos[0] + in_pos[1]*in_pos[1] + in_pos[2]*in_pos[2])
-        out_pos[1] = acos(in_pos[2] / out_pos[0])
-        out_pos[2] = atan2(in_pos[1], in_pos[0])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -278,7 +257,6 @@ cdef class SphericalCuttingPlaneSelector(CuttingPlaneTransformed):
                         return 0
                 return 1
 
-
          return selected
 
     def _select_single_bbox(self,
@@ -296,8 +274,6 @@ cdef class SphericalCuttingPlaneSelector(CuttingPlaneTransformed):
              right_edge[i] = right_edge_in[i]
 
          return self.select_bbox(left_edge, right_edge)
-
-
 
 
 cutting_selector = CuttingPlaneSelector

@@ -285,12 +285,6 @@ class YTCuttingPlane(YTSelectionContainer2D):
         else:
             raise KeyError(field)
 
-    @property
-    def _frb_class(self):
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer
-
-        return FixedResolutionBuffer
-
     def to_pw(self, fields=None, center="center", width=None, axes_unit=None):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
@@ -299,12 +293,12 @@ class YTCuttingPlane(YTSelectionContainer2D):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-
         normal = self.normal
         center = self.center
         self.fields = list(iter_fields(fields)) + [
             k for k in self.field_data.keys() if k not in self._key_fields
         ]
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
         from yt.visualization.plot_window import (
             PWViewerMPL,
             get_oblique_window_parameters,
@@ -320,7 +314,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
             origin="center-window",
             periodic=False,
             oblique=True,
-            frb_generator=self._frb_class,
+            frb_generator=FixedResolutionBuffer,
             plot_type="OffAxisSlice",
         )
         if axes_unit is not None:
@@ -369,6 +363,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         >>> frb = cutting.to_frb((1.0, "pc"), 1024)
         >>> write_image(np.log10(frb[("gas", "density")]), "density_1pc.png")
         """
+
         if is_sequence(width):
             validate_width_tuple(width)
             width = self.ds.quan(width[0], width[1])
@@ -380,29 +375,43 @@ class YTCuttingPlane(YTSelectionContainer2D):
         if not is_sequence(resolution):
             resolution = (resolution, resolution)
 
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
+
         bounds = (-width / 2.0, width / 2.0, -height / 2.0, height / 2.0)
-        return self._frb_class(self, bounds, resolution, periodic=periodic)
+        frb = FixedResolutionBuffer(self, bounds, resolution, periodic=periodic)
+        return frb
 
 
-def _cartesian_passthrough(x, y, z):
-    return x, y, z
+def _get1d_views(x1, x2, x3):
+    assert x1.shape == x2.shape == x3.shape
+    if x1.ndim == 1:
+        return None, x1, x2, x3
+    elif x1.ndim > 1:
+        return x1.shape, x1.reshape(-1), x2.reshape(-1), x3.reshape(-1)
+    else:
+        raise RuntimeError("array shapes must be at least 1d.")
 
 
 def _spherical_to_cartesian(r, theta, phi):
-    z = r * np.cos(theta)
-    x = r * np.sin(theta) * np.cos(phi)
-    y = r * np.sin(theta) * np.sin(phi)
-    return x, y, z
+
+    from yt.utilities.lib.coordinate_utilities import spherical_points_to_cartesian
+
+    orig_shape, r1d, theta1d, phi1d = _get1d_views(r, theta, phi)
+    xyz = spherical_points_to_cartesian(r1d, theta1d, phi1d)
+    if orig_shape is not None:
+        xyz = [xyz_i.reshape(orig_shape) for xyz_i in xyz]
+    return xyz
 
 
 def _cartesian_to_spherical(x, y, z):
-    # get spherical coords of points in plane
-    r = np.sqrt(x.d**2 + y.d**2 + z.d**2)
-    theta = np.arccos(z / (r + 1e-8))  # 0 to pi angle
-    phi = np.arctan2(y, x)  # 0 to 2pi angle
-    # arctan2 returns -pi to pi
-    phi[phi < 0] = phi[phi < 0] + 2 * np.pi
-    return r, theta, phi
+
+    from yt.utilities.lib.coordinate_utilities import cartesian_points_to_spherical
+
+    orig_shape, x1d, y1d, z1d = _get1d_views(x, y, z)
+    rthphi = cartesian_points_to_spherical(x1d, y1d, z1d)
+    if orig_shape is not None:
+        rthphi = [rthphi_i.reshape(orig_shape) for rthphi_i in rthphi]
+    return rthphi
 
 
 class YTCuttingPlaneMixedCoords(YTCuttingPlane):
@@ -419,7 +428,7 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
     _tds_attrs = ("_inv_mat",)
     _tds_fields = ("x", "y", "z", "dx")
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
-    _supported_geometries = (Geometry.SPHERICAL, Geometry.CARTESIAN)
+    _supported_geometries = (Geometry.SPHERICAL,)
 
     def __init__(
         self,
@@ -445,7 +454,14 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
 
     def _validate_geometry(self):
         if self._ds_geom not in self._supported_geometries:
-            self._raise_unsupported_geometry()
+            if self._ds_geom is Geometry.CARTESIAN:
+                msg = (
+                    "YTCuttingPlaneMixedCoords is not supported for cartesian "
+                    "coordinates: use YTCuttingPlane instead (i.e., ds.cutting)."
+                )
+                raise NotImplementedError(msg)
+            else:
+                self._raise_unsupported_geometry()
 
     def _raise_unsupported_geometry(self):
         msg = (
@@ -457,37 +473,24 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
 
     @property
     def _index_fields(self):
-        fields = [("index", fld) for fld in self.ds.coordinates.axis_order]
-        fields += [("index", f"d{fld}") for fld in self.ds.coordinates.axis_order]
+        # note: using the default axis order here because the index fields
+        # will are accessed by-chunk and passed down to the pixelizer
+        # with an expected ordering matching the default ordering.
+        ax_order = self.ds.coordinates._default_axis_order
+        fields = [("index", fld) for fld in ax_order]
+        fields += [("index", f"d{fld}") for fld in ax_order]
         return fields
 
     @property
     def _cartesian_to_native(self):
         if self._ds_geom is Geometry.SPHERICAL:
             return _cartesian_to_spherical
-        elif self._ds_geom is Geometry.CARTESIAN:
-            return _cartesian_passthrough
         self._raise_unsupported_geometry()
 
     @property
     def _native_to_cartesian(self):
         if self._ds_geom is Geometry.SPHERICAL:
             return _spherical_to_cartesian
-        elif self._ds_geom is Geometry.CARTESIAN:
-            return _cartesian_passthrough
-        self._raise_unsupported_geometry()
-
-    @property
-    def _frb_class(self):
-        from yt.visualization.fixed_resolution import (
-            FixedResolutionBuffer,
-            SphericalFixedResolutionBuffer,
-        )
-
-        if self._ds_geom is Geometry.SPHERICAL:
-            return SphericalFixedResolutionBuffer
-        elif self._ds_geom is Geometry.CARTESIAN:
-            return FixedResolutionBuffer
         self._raise_unsupported_geometry()
 
     def _plane_coords(self, in_plane_x, in_plane_y):
@@ -502,7 +505,7 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
 
         return self._cartesian_to_native(x_global, y_global, z_global)
 
-    def to_pw(self):
+    def to_pw(self, fields=None, center="center", width=None, axes_unit=None):
         msg = (
             "to_pw is not implemented for mixed coordinate slices. You can create"
             " plots manually using to_frb() to generate a fixed resolution array."

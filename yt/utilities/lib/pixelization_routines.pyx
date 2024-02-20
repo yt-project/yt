@@ -48,7 +48,7 @@ from yt.utilities.lib.element_mappings cimport (
     Tet2Sampler3D,
     W1Sampler3D,
 )
-from yt.utilities.lib.misc_utilities cimport _cartesian_bounds_of_spherical_element
+from yt.utilities.lib.coordinate_utilities cimport MixedCoordBBox
 
 from .vec3_ops cimport cross, dot, subtract
 
@@ -2022,121 +2022,21 @@ def normalization_1d_utility(np.float64_t[:] num,
             num[i] = num[i] / den[i]
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void _fill_1d_buffer(np.float64_t[:] buff,
-                          np.float64_t[:] bpos_0,
-                          np.float64_t[:] bpos_1,
-                          np.float64_t[:] bpos_2,
-                          np.float64_t[:] pos_0,
-                          np.float64_t[:] pos_1,
-                          np.float64_t[:] pos_2,
-                          np.float64_t[:] pos_0_dx,
-                          np.float64_t[:] pos_1_dx,
-                          np.float64_t[:] pos_2_dx,
-                          np.float64_t[:] data,
-                          np.int64_t[:] mask,) noexcept nogil:
-
-    # loop variables
-    cdef np.float64_t bpos_0i, bpos_1i, bpos_2i # active buffer coordinates
-    cdef np.float64_t le_0, le_1, le_2 # activate left edge
-    cdef np.float64_t re_0, re_1, re_2 # active right edge
-    cdef np.int64_t ip  # active data indices
-    cdef np.int64_t ib # active buffer index
-    cdef np.int64_t n_el # number of elements
-
-    # brute force loop that does not assume any ordering of the points to
-    # find. calling this after initial chunk subselection, so that's good
-    # at least.
-    n_el = pos_0.shape[0]
-    for ip in range(n_el):
-        le_0 = pos_0[ip] - pos_0_dx[ip]/2.0
-        re_0 = pos_0[ip] + pos_0_dx[ip]/2.0
-        le_1 = pos_1[ip] - pos_1_dx[ip]/2.0
-        re_1 = pos_1[ip] + pos_1_dx[ip]/2.0
-        le_2 = pos_2[ip] - pos_2_dx[ip]/2.0
-        re_2 = pos_2[ip] + pos_2_dx[ip]/2.0
-
-        # find the image buffer pixel(s) that fall in the current
-        # grid volume if it(they) exist. possible for multiple
-        # pixels here to sample the same volume.
-        for ib in range(0, buff.shape[0]):
-            if mask[ib] == 1:
-                continue
-
-            # check if this pixel falls in the current volume
-            bpos_0i = bpos_0[ib]
-            if bpos_0i < le_0 or bpos_0i >= re_0:
-                continue
-            bpos_1i = bpos_1[ib]
-            if bpos_1i < le_1 or  bpos_1i >= re_1:
-                continue
-            bpos_2i = bpos_2[ib]
-            if bpos_2i < le_2 or bpos_2i >= re_2:
-                continue
-
-            mask[ib] += 1
-            buff[ib] += data[ip]
-
-
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def sample_arbitrary_points_in_1d_buffer(
-                       np.float64_t[:] buff,
-                       np.float64_t[:] bpos_0,
-                       np.float64_t[:] bpos_1,
-                       np.float64_t[:] bpos_2,
-                       np.float64_t[:] pos_0,
-                       np.float64_t[:] pos_1,
-                       np.float64_t[:] pos_2,
-                       np.float64_t[:] pos_0_dx,
-                       np.float64_t[:] pos_1_dx,
-                       np.float64_t[:] pos_2_dx,
-                       np.float64_t[:] data,
-                       *,
-                       int return_mask=0,
-):
-    """ a 1D buffer pixelization. maybe you want to reshape it to be an image? or
-        sample an arbitrary set of points? maybe this is useful
-
-    Parameters
-    buff: 1d buffer array, modified in place to fill
-    bpos_0, _1, _2: 1D arrays, the coordinates to sample
-    native_x, y, z : 1D arrays, cell centers in their native coordinates
-    native_dx, dy, dz : 1D positions cell widths in their native coordinates
-    data : 1D array, actual data values
-    """
-
-    cdef np.ndarray[np.int64_t, ndim=1] mask
-    mask = np.zeros((buff.shape[0],), dtype="int") # global pixel mask
-
-    _fill_1d_buffer(buff,
-                    bpos_0, bpos_1, bpos_2,
-                    pos_0, pos_1, pos_2,
-                    pos_0_dx, pos_1_dx, pos_2_dx,
-                    data,
-                    mask)
-
-    if return_mask:
-        return mask!=0
-
-
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def pixelize_off_axis_spherical(
+def pixelize_off_axis_mixed_coords(
+                       MixedCoordBBox bbox_handler,
                        np.float64_t[:,:] buff,
-                       np.float64_t[:,:] buff_r,
-                       np.float64_t[:,:] buff_theta,
-                       np.float64_t[:,:] buff_phi,
-                       np.float64_t[:] r,
-                       np.float64_t[:] theta,
-                       np.float64_t[:] phi,
-                       np.float64_t[:] dr,
-                       np.float64_t[:] dtheta,
-                       np.float64_t[:] dphi,
+                       np.float64_t[:,:] buff_pos0,
+                       np.float64_t[:,:] buff_pos1,
+                       np.float64_t[:,:] buff_pos2,
+                       np.float64_t[:] pos0,
+                       np.float64_t[:] pos1,
+                       np.float64_t[:] pos2,
+                       np.float64_t[:] dpos0,
+                       np.float64_t[:] dpos1,
+                       np.float64_t[:] dpos2,
                        np.float64_t[:] plane_c,
                        np.float64_t[:] plane_normal,
                        np.float64_t[:] plane_east,
@@ -2148,16 +2048,16 @@ def pixelize_off_axis_spherical(
                        int return_mask=0,
 ):
 
-    # pixelize a cartesian image plane passing through a spherical geometry.
+    # pixelize a cartesian image plane passing through a non-cartesian geometry.
     #
     # buff
     #   image buffer 2d array
-    # buff_r, buff_theta, buff_phi
-    #   spherical coordinates of image pixels, 2d arrays
-    # r, phi, theta
-    #   data coordinates in spherical coordinates
-    # dr, dphi, dtheta
-    #   element widths in spherical coordinates
+    # buff_pos0, buff_pos1, buff_pos2
+    #   native coordinates of image pixels, 2d arrays
+    # pos0, pos1, pos2
+    #   data coordinates in native coordinates
+    # dpos0, dpos1, dpos2
+    #   element widths in native coordinates
     # plane_c
     #   the cartesian coordinates of the plane center point
     # plane_normal
@@ -2185,7 +2085,7 @@ def pixelize_off_axis_spherical(
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy, md
     cdef int i, j, p, ip
-    cdef int lc, lr, rc, rr
+    cdef int x_ind_l, x_ind_r, y_ind_l, y_ind_r
     cdef np.float64_t dxsp, dysp, dzsp, dsp
     cdef np.float64_t pxsp, pysp
     cdef np.ndarray[np.int64_t, ndim=2] mask
@@ -2198,16 +2098,16 @@ def pixelize_off_axis_spherical(
     y_max = bounds[3]
     width = x_max - x_min
     height = y_max - y_min
-    px_dx = width / (<np.float64_t> buff.shape[1])
-    px_dy = height / (<np.float64_t> buff.shape[0])
+    px_dx = width / (<np.float64_t> buff.shape[0])
+    px_dy = height / (<np.float64_t> buff.shape[1])
     ipx_dx = 1.0 / px_dx
     ipx_dy = 1.0 / px_dy
-    if r.shape[0] != data.shape[0] or \
-       phi.shape[0] != data.shape[0] or \
-       theta.shape[0] != data.shape[0] or \
-       dr.shape[0] != data.shape[0] or \
-       dphi.shape[0] != data.shape[0] or \
-       dtheta.shape[0] != data.shape[0] or \
+    if pos0.shape[0] != data.shape[0] or \
+       pos1.shape[0] != data.shape[0] or \
+       pos2.shape[0] != data.shape[0] or \
+       dpos0.shape[0] != data.shape[0] or \
+       dpos2.shape[0] != data.shape[0] or \
+       dpos2.shape[0] != data.shape[0] or \
        indices.shape[0] != data.shape[0] :
         raise YTPixelizeError("Arrays are not of correct shape.")
     mask = np.zeros((buff.shape[0], buff.shape[1]), "int64")
@@ -2217,14 +2117,14 @@ def pixelize_off_axis_spherical(
             p = indices[ip]
             dsp = data[p]
             # get the cartesian bounding box for this element
-            _cartesian_bounds_of_spherical_element(r[p],
-                                    theta[p],
-                                    phi[p],
-                                    dr[p],
-                                    dtheta[p],
-                                    dphi[p],
-                                    xyz_i,
-                                    dxyz_i)
+            bbox_handler.get_cartesian_bbox(pos0[p],
+                                            pos1[p],
+                                            pos2[p],
+                                            dpos0[p],
+                                            dpos1[p],
+                                            dpos2[p],
+                                            xyz_i,
+                                            dxyz_i)
 
             # project cartesian bounds onto plane
             pxsp = 0.0
@@ -2248,31 +2148,31 @@ def pixelize_off_axis_spherical(
                 continue
 
             # identify pixels that fall within the cartesian bounding box
-            lc = <int> fmax(((pxsp - md - x_min)*ipx_dx),0)
-            lr = <int> fmax(((pysp - md - y_min)*ipx_dy),0)
-            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), buff.shape[1])
-            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), buff.shape[0])
+            x_ind_l = <int> fmax(((pxsp - md - x_min)*ipx_dx),0)
+            x_ind_r = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), buff.shape[0])
+            y_ind_l = <int> fmax(((pysp - md - y_min)*ipx_dy),0)
+            y_ind_r = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), buff.shape[1])
 
-            for i in range(lr, rr):
-                for j in range(lc, rc):
+            for i in range(x_ind_l, x_ind_r):
+                for j in range(y_ind_l, y_ind_r):
                     # final check to ensure the actual spherical coords of the
                     # pixel falls within the spherical volume element
-                    if buff_r[i,j] < r[p] - 0.5 * dr[p] or \
-                       buff_r[i,j] >= r[p] + 0.5 * dr[p] or \
-                       buff_theta[i,j] < theta[p] - 0.5 * dtheta[p] or \
-                       buff_theta[i,j] >= theta[p] + 0.5 * dtheta[p] or \
-                       buff_phi[i,j] < phi[p] - 0.5 * dphi[p] or \
-                       buff_phi[i,j] >= phi[p] + 0.5 * dphi[p]:
+                    if buff_pos0[i,j] < pos0[p] - 0.5 * dpos0[p] or \
+                       buff_pos0[i,j] > pos0[p] + 0.5 * dpos0[p] or \
+                       buff_pos1[i,j] < pos1[p] - 0.5 * dpos1[p] or \
+                       buff_pos1[i,j] > pos1[p] + 0.5 * dpos1[p] or \
+                       buff_pos2[i,j] < pos2[p] - 0.5 * dpos2[p] or \
+                       buff_pos2[i,j] > pos2[p] + 0.5 * dpos2[p]:
                        continue
                     mask[i, j] += 1
                     # make sure pixel value is not a NaN before incrementing it
                     if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                     buff[i, j] += dsp
-    # is the following chunk-safe? commenting for now...
-#    for i in range(buff.shape[0]):
-#        for j in range(buff.shape[1]):
-#            if mask[i,j] == 0: continue
-#            buff[i,j] /= mask[i,j]
+
+    for i in range(buff.shape[0]):
+        for j in range(buff.shape[1]):
+            if mask[i,j] == 0: continue
+            buff[i,j] /= mask[i,j]
 
     if return_mask:
         return mask!=0
