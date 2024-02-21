@@ -59,6 +59,10 @@ class RockstarBinaryFile(HaloCatalogFile):
 
         with open(self.filename, "rb") as f:
             f.seek(ipos, os.SEEK_SET)
+            print(
+                f"Reading {self._Npart[ind_halo]} particles for halo {ihalo}. position={f.tell()}"
+            )
+            # assert False
             ids = np.fromfile(f, dtype=np.int64, count=self._Npart[ind_halo])
             return ids
 
