@@ -214,7 +214,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer2D.__init__(self, None, ds, field_parameters, data_source)
         self._set_center(center)
-        self.set_field_parameter("center", center)
+        self.set_field_parameter("center", self.center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
         self.orienter = Orientation(normal, north_vector=north_vector)
