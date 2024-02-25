@@ -7,7 +7,6 @@ from collections import defaultdict
 from functools import cached_property
 
 import numpy as np
-import numpy.core.defchararray as np_char
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
@@ -575,7 +574,7 @@ class FITSDataset(Dataset):
 def find_axes(axis_names, prefixes):
     x = 0
     for p in prefixes:
-        y = np_char.startswith(axis_names, p)
+        y = np.char.startswith(axis_names, p)
         x += np.any(y)
     return x
 
@@ -690,13 +689,13 @@ class SkyDataFITSDataset(FITSDataset):
 
         self.lat_axis = np.zeros((end - 1), dtype="bool")
         for p in lat_prefixes:
-            self.lat_axis += np_char.startswith(self.ctypes, p)
+            self.lat_axis += np.char.startswith(self.ctypes, p)
         self.lat_axis = np.where(self.lat_axis)[0][0]
         self.lat_name = self.ctypes[self.lat_axis].split("-")[0].lower()
 
         self.lon_axis = np.zeros((end - 1), dtype="bool")
         for p in lon_prefixes:
-            self.lon_axis += np_char.startswith(self.ctypes, p)
+            self.lon_axis += np.char.startswith(self.ctypes, p)
         self.lon_axis = np.where(self.lon_axis)[0][0]
         self.lon_name = self.ctypes[self.lon_axis].split("-")[0].lower()
 
@@ -797,7 +796,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
 
         self.spec_axis = np.zeros(end - 1, dtype="bool")
         for p in spec_names.keys():
-            self.spec_axis += np_char.startswith(self.ctypes, p)
+            self.spec_axis += np.char.startswith(self.ctypes, p)
         self.spec_axis = np.where(self.spec_axis)[0][0]
         self.spec_name = spec_names[self.ctypes[self.spec_axis].split("-")[0][0]]
 
