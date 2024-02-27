@@ -100,7 +100,7 @@ _fields_derived_cluster = (
 @requires_ds(athenapk_cluster)
 def test_cluster():
     ds = data_dir_load(athenapk_cluster)
-    assert_equal(str(ds), "athenapk.cons.cluster")
+    assert_equal(str(ds), "athenapk_cluster.restart.00000")
     for test in small_patch_amr(ds, _fields_derived + _fields_derived_cluster):
         test_cluster.__name__ = test.description
         yield test
