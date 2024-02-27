@@ -2136,7 +2136,7 @@ type:
 
 .. code-block:: bash
 
-   yt notebook
+   jupyter lab
 
 at the command line.  This will prompt you for a password (so that if you're on
 a shared user machine no one else can pretend to be you!) and then spawn an
