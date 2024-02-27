@@ -545,13 +545,13 @@
     "url": "https://yt-project.org/data/ahf_halos.tar.gz"
   },
   "athenapk_cluster.tar.gz": {
-    "hash": "FIXME",
+    "hash": "95f641b31cca00a39fa728be367861db9abc75ec3e3adcd9103325f675d3e9c1",
     "load_kwargs": {},
     "load_name": "athenapk_cluster.restart.00000.rhdf",
     "url": "https://yt-project.org/data/athenapk_cluster.tar.gz"
   },
   "athenapk_disk.tar.gz": {
-    "hash": "FIXME",
+    "hash": "3bd59a494a10b28cd691d1f69700f9e100a6a3a32541b0e16348d81163404cd0",
     "load_kwargs": {},
     "load_name": "athenapk_disk.prim.00000.phdf",
     "url": "https://yt-project.org/data/athenapk_disk.tar.gz"
@@ -827,7 +827,7 @@
     "url": "https://yt-project.org/data/owls_fof_halos.tar.gz"
   },
   "parthenon_advection.tar.gz": {
-    "hash": "FIXME",
+    "hash": "93e9e747cc9c0f230f87ea960a116c7e8c117b348f1488d72402aaaa906e4e89",
     "load_kwargs": {},
     "load_name": "advection_2d.out0.final.phdf",
     "url": "https://yt-project.org/data/parthenon_advection.tar.gz"
