@@ -52,7 +52,9 @@ jobs:
         python -m pip install --upgrade setuptools wheel
         python -m pip install --pre --only-binary ":all:" numpy matplotlib \
          --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
-        python -m pip install --pre ewah-bool-utils Cython
+        python -m pip install --pre Cython
+        python -m pip install git+https://github.com/yt-project/ewah_bool_utils.git \
+         --no-build-isolation
         python -m pip install git+https://github.com/yt-project/unyt.git
         python -m pip install --pre pytest PyYAML
 
