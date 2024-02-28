@@ -618,7 +618,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 
-        indices = np.argsort(data_source["pdx"])[::-1].astype(np.int_)
+        indices = np.argsort(data_source["pdx"])[::-1].astype("int64", copy=False)
         buff = np.full((size[1], size[0]), np.nan, dtype="float64")
         ftype = "index"
         if isinstance(data_source.ds, YTSpatialPlotDataset):

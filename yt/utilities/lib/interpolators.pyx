@@ -76,9 +76,9 @@ def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
                            np.ndarray[np.float64_t, ndim=1] x_bins,
                            np.ndarray[np.float64_t, ndim=1] y_bins,
                            np.ndarray[np.float64_t, ndim=1] z_bins,
-                           np.ndarray[np.int_t, ndim=1] x_is,
-                           np.ndarray[np.int_t, ndim=1] y_is,
-                           np.ndarray[np.int_t, ndim=1] z_is,
+                           np.ndarray[np.int64_t, ndim=1] x_is,
+                           np.ndarray[np.int64_t, ndim=1] y_is,
+                           np.ndarray[np.int64_t, ndim=1] z_is,
                            np.ndarray[np.float64_t, ndim=1] output):
     cdef double x, xp, xm
     cdef double y, yp, ym
@@ -122,10 +122,10 @@ def QuadrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=4] table,
                               np.ndarray[np.float64_t, ndim=1] y_bins,
                               np.ndarray[np.float64_t, ndim=1] z_bins,
                               np.ndarray[np.float64_t, ndim=1] w_bins,
-                              np.ndarray[np.int_t, ndim=1] x_is,
-                              np.ndarray[np.int_t, ndim=1] y_is,
-                              np.ndarray[np.int_t, ndim=1] z_is,
-                              np.ndarray[np.int_t, ndim=1] w_is,
+                              np.ndarray[np.int64_t, ndim=1] x_is,
+                              np.ndarray[np.int64_t, ndim=1] y_is,
+                              np.ndarray[np.int64_t, ndim=1] z_is,
+                              np.ndarray[np.int64_t, ndim=1] w_is,
                               np.ndarray[np.float64_t, ndim=1] output):
     cdef double x, xp, xm
     cdef double y, yp, ym
