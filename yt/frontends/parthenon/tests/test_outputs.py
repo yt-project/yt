@@ -12,7 +12,7 @@ from yt.testing import (
 from yt.utilities.answer_testing.framework import (
     GenericArrayTest,
     data_dir_load,
-    requires_ds,
+    requires_file,
     small_patch_amr,
 )
 
@@ -71,7 +71,7 @@ athenapk_cluster = "athenapk_cluster/athenapk_cluster.restart.00000.rhdf"
 # Keplerian disk in 2D cylindrical from downstream Parthenon code AthenaPK (Data, Primitives)
 athenapk_disk = "athenapk_disk/athenapk_disk.prim.00000.phdf"
 
-@requires_ds(athenapk_cluster)
+@requires_file(athenapk_cluster)
 def test_AthenaPK_rhdf():
     # Test that a downstream AthenaPK data set can be loaded with this Parthenon
     # frontend
@@ -82,7 +82,7 @@ def test_AthenaPK_rhdf():
     assert_equal(ds.domain_right_edge.in_units("code_length").v,(0.15,0.18,0.2))
     
 
-@requires_ds(athenapk_disk)
+@requires_file(athenapk_disk)
 def test_AthenaPK_phdf():
     # Test that a downstream AthenaPK data set can be loaded with this Parthenon
     # frontend
@@ -133,8 +133,8 @@ def test_derived_fields():
 
         yield GenericArrayTest(ds, field_func, args=[field])
 
-@requires_ds(athenapk_cluster)
-@requires_ds(athenapk_disk)
+@requires_file(athenapk_cluster)
+@requires_file(athenapk_disk)
 def test_adiabatic_index():
     # Read adiabiatic index from dataset parameters
     ds = data_dir_load(athenapk_cluster)
@@ -147,7 +147,7 @@ def test_adiabatic_index():
     ds = load(athenapk_disk, parameters={"gamma":9./8.})
     assert_allclose(ds.gamma,9.0/8.0,rtol=1e-12)
 
-@requires_ds(athenapk_cluster)
+@requires_file(athenapk_cluster)
 def test_molecular_mass():
     # Read mu from dataset parameters
     ds = data_dir_load(athenapk_cluster)
@@ -157,7 +157,7 @@ def test_molecular_mass():
     ds = load(athenapk_disk, parameters={"mu":137})
     assert_equal(ds.mu,137)
     
-@requires_ds(athenapk_cluster)
+@requires_file(athenapk_cluster)
 def test_units():
     # Check units in dataset are loaded correctly
     ds = data_dir_load(athenapk_cluster)
@@ -166,7 +166,7 @@ def test_units():
     assert_allclose(float(ds.quan(1,"code_mass"  ).in_units("msun")),1e14,rtol=1e-12)
 
 
-@requires_ds(athenapk_disk)
+@requires_file(athenapk_disk)
 def test_load_cylindrical():
     # Load a cylindrical dataset of a full disk
     ds = data_dir_load(athenapk_disk)
