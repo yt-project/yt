@@ -739,6 +739,9 @@ class BoxlibDataset(Dataset):
                 param, vals = (s.strip() for s in line.split("="))
             except ValueError:
                 continue
+            # Castro and Maestro mark overridden defaults with a "[*]" before
+            # the parameter name
+            param = param.removeprefix("[*]").strip()
             if param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
@@ -1128,16 +1131,6 @@ class CastroDataset(AMReXDataset):
                     self.parameters[fields[0]] = fields[1].strip()
                 line = next(f)
 
-            # runtime parameters that we overrode follow "Inputs File
-            # Parameters"
-            # skip the "====..." line
-            line = next(f)
-            for line in f:
-                if line.strip() == "" or "fortin parameters" in line:
-                    continue
-                p, v = line.strip().split("=")
-                self.parameters[p] = v.strip()
-
         # hydro method is set by the base class -- override it here
         self.parameters["HydroMethod"] = "Castro"
 
@@ -1199,21 +1192,8 @@ class MaestroDataset(AMReXDataset):
                     fields = line.split(":")
                     self.parameters[fields[0]] = fields[1].strip()
 
-        with open(jobinfo_filename) as f:
-            # get the runtime parameters
-            for line in f:
-                try:
-                    p, v = (_.strip() for _ in line[4:].split("=", 1))
-                    if len(v) == 0:
-                        self.parameters[p] = ""
-                    else:
-                        self.parameters[p] = _guess_pcast(v)
-                except ValueError:
-                    # not a parameter line
-                    pass
-
-            # hydro method is set by the base class -- override it here
-            self.parameters["HydroMethod"] = "Maestro"
+        # hydro method is set by the base class -- override it here
+        self.parameters["HydroMethod"] = "Maestro"
 
         # set the periodicity based on the integer BC runtime parameters
         periodicity = [False, False, False]
