@@ -159,7 +159,11 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
-            return (data[("index", "longitude")] + 180) * np.pi / 180.0
+            lonvals = data[("index", "longitude")]
+            neglons = lonvals < 0.0
+            if np.any(neglons):
+                lonvals[neglons] = lonvals[neglons] + 360.0
+            return lonvals * np.pi / 180.0
 
         registry.add_field(
             ("index", "phi"), sampling_type="cell", function=_longitude_to_phi, units=""

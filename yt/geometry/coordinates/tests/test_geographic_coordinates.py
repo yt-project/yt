@@ -94,6 +94,20 @@ def test_geographic_conversions(geometry):
     assert theta[north_pole_id] - dtheta[north_pole_id] / 2 == 0.0
     assert theta[south_pole_id] + dtheta[south_pole_id] / 2 == np.pi
 
+    # check that longitude-phi conversions
+    phi = ad[("index", "phi")]
+    dphi = ad[("index", "dphi")]
+    lons = ad[("index", "longitude")]
+    dlon = ad[("index", "dlongitude")]
+    lon_180 = np.where(lons == np.max(lons))[0][0]
+    lon_neg180 = np.where(lons == np.min(lons))[0][0]
+    # check we have -180, 180 exactly
+    assert lons[lon_neg180] - dlon[lon_neg180] / 2.0 == -180.0
+    assert lons[lon_180] + dlon[lon_180] / 2.0 == 180.0
+    # check that those both convert to phi = np.pi
+    assert phi[lon_neg180] - dphi[lon_neg180] / 2.0 == np.pi
+    assert phi[lon_180] + dphi[lon_180] / 2.0 == np.pi
+
     # check that z = +/- radius at +/-90
     # default expected axis order: lat, lon, radial axis
     r_val = ds.coordinates._retrieve_radial_offset()[0]
