@@ -12,7 +12,7 @@ from yt.testing import (
 from yt.utilities.answer_testing.framework import (
     GenericArrayTest,
     data_dir_load,
-    requires_file,
+    requires_ds,
     small_patch_amr,
 )
 
