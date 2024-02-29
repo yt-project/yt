@@ -443,3 +443,28 @@ def test_maestro_parameters():
     # Check an int parameter
     assert ds.parameters["s0_interp_type"] == 3
     assert type(ds.parameters["s0_interp_type"]) is int  # noqa: E721
+
+
+castro_1d_cyl = "castro_sedov_1d_cyl_plt00150"
+
+
+@requires_file(castro_1d_cyl)
+def test_castro_parameters():
+    ds = data_dir_load(castro_1d_cyl)
+    assert isinstance(ds, CastroDataset)
+
+    # Modified from default (leading [*])
+    assert ds.parameters["castro.do_hydro"] == 1
+    assert ds.parameters["castro.cfl"] == 0.5
+    assert ds.parameters["problem.p_ambient"] == float("1e-06")
+    # Leading [*] should be removed from the parameter name
+    assert "[*] castro.do_hydro" not in ds.parameters
+
+    # Not modified from default
+    assert ds.parameters["castro.pslope_cutoff_density"] == float("-1e+20")
+    assert ds.parameters["castro.do_sponge"] == 0
+    assert ds.parameters["problem.dens_ambient"] == 1
+    assert ds.parameters["eos.eos_assume_neutral"] == 1
+
+    # Empty string value
+    assert ds.parameters["castro.stopping_criterion_field"] is None
