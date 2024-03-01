@@ -10,7 +10,7 @@ from yt.utilities.logger import ytLogger as mylog
 def grid_sequences(grids):
     g_iter = sorted(grids, key=lambda g: g.id)
     for _, g in groupby(enumerate(g_iter), lambda i_x1: i_x1[0] - i_x1[1].id):
-        seq = list(v[1] for v in g)
+        seq = [v[1] for v in g]
         yield seq
 
 
