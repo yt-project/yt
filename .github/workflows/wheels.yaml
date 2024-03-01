@@ -119,7 +119,7 @@ jobs:
           merge-multiple: true
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.11
+        uses: pypa/gh-action-pypi-publish@v1.8.12
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}
