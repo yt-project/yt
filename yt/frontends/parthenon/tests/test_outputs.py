@@ -7,7 +7,6 @@ from yt.testing import (
     assert_equal,
     assert_true,
     requires_file,
-    units_override_check,
 )
 from yt.utilities.answer_testing.framework import (
     GenericArrayTest,
@@ -30,13 +29,14 @@ _fields_parthenon_advection = (
 # on changeset e5059ad
 parthenon_advection = "parthenon_advection/advection_2d.out0.final.phdf"
 
+
 @requires_ds(parthenon_advection)
 def test_loading_data():
     ds = data_dir_load(parthenon_advection)
     assert_equal(str(ds), "advection_2d.out0.final")
     dd = ds.all_data()
     # test mesh dims
-    vol = np.product(ds.domain_right_edge - ds.domain_left_edge)
+    vol = np.prod(ds.domain_right_edge - ds.domain_left_edge)
     assert_equal(vol, ds.quan(2.0, "code_length**3"))
     assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
     # test data
@@ -71,6 +71,7 @@ athenapk_cluster = "athenapk_cluster/athenapk_cluster.restart.00000.rhdf"
 # Keplerian disk in 2D cylindrical from downstream Parthenon code AthenaPK (Data, Primitives)
 athenapk_disk = "athenapk_disk/athenapk_disk.prim.00000.phdf"
 
+
 @requires_file(athenapk_cluster)
 def test_AthenaPK_rhdf():
     # Test that a downstream AthenaPK data set can be loaded with this Parthenon
@@ -78,9 +79,9 @@ def test_AthenaPK_rhdf():
     ds = data_dir_load(athenapk_cluster)
     assert isinstance(ds, ParthenonDataset)
 
-    assert_equal(ds.domain_left_edge.in_units("code_length").v,(-0.15,-0.18,-0.2))
-    assert_equal(ds.domain_right_edge.in_units("code_length").v,(0.15,0.18,0.2))
-    
+    assert_equal(ds.domain_left_edge.in_units("code_length").v, (-0.15, -0.18, -0.2))
+    assert_equal(ds.domain_right_edge.in_units("code_length").v, (0.15, 0.18, 0.2))
+
 
 @requires_file(athenapk_disk)
 def test_AthenaPK_phdf():
@@ -88,14 +89,14 @@ def test_AthenaPK_phdf():
     # frontend
     assert isinstance(data_dir_load(athenapk_disk), ParthenonDataset)
 
+
 _fields_derived = (
     ("gas", "temperature"),
     ("gas", "specific_thermal_energy"),
 )
 
-_fields_derived_cluster = (
-    ("gas", "magnetic_field_strength"),
-)
+_fields_derived_cluster = (("gas", "magnetic_field_strength"),)
+
 
 @requires_ds(athenapk_cluster)
 def test_cluster():
@@ -104,6 +105,7 @@ def test_cluster():
     for test in small_patch_amr(ds, _fields_derived + _fields_derived_cluster):
         test_cluster.__name__ = test.description
         yield test
+
 
 @requires_ds(athenapk_disk)
 @requires_ds(athenapk_cluster)
@@ -126,44 +128,47 @@ def test_derived_fields():
     ds = data_dir_load(athenapk_cluster)
     dd = ds.all_data()
 
-    for field in (_fields_derived+_fields_derived_cluster):
+    for field in _fields_derived + _fields_derived_cluster:
 
         def field_func(name):
             return dd[name]
 
         yield GenericArrayTest(ds, field_func, args=[field])
 
+
 @requires_file(athenapk_cluster)
 @requires_file(athenapk_disk)
 def test_adiabatic_index():
     # Read adiabiatic index from dataset parameters
     ds = data_dir_load(athenapk_cluster)
-    assert_allclose(ds.gamma,5.0/3.0,rtol=1e-12)
+    assert_allclose(ds.gamma, 5.0 / 3.0, rtol=1e-12)
 
     ds = data_dir_load(athenapk_disk)
-    assert_allclose(ds.gamma,4.0/3.0,rtol=1e-12)
+    assert_allclose(ds.gamma, 4.0 / 3.0, rtol=1e-12)
 
     # Change adiabatic index from dataset parameters
-    ds = load(athenapk_disk, parameters={"gamma":9./8.})
-    assert_allclose(ds.gamma,9.0/8.0,rtol=1e-12)
+    ds = load(athenapk_disk, parameters={"gamma": 9.0 / 8.0})
+    assert_allclose(ds.gamma, 9.0 / 8.0, rtol=1e-12)
+
 
 @requires_file(athenapk_cluster)
 def test_molecular_mass():
     # Read mu from dataset parameters
     ds = data_dir_load(athenapk_cluster)
-    assert_allclose(float(ds.mu),0.5925925925925926,rtol=1e-12)
+    assert_allclose(float(ds.mu), 0.5925925925925926, rtol=1e-12)
 
     # Change He mass fraction from dataset parameters
-    ds = load(athenapk_disk, parameters={"mu":137})
-    assert_equal(ds.mu,137)
-    
+    ds = load(athenapk_disk, parameters={"mu": 137})
+    assert_equal(ds.mu, 137)
+
+
 @requires_file(athenapk_cluster)
 def test_units():
     # Check units in dataset are loaded correctly
     ds = data_dir_load(athenapk_cluster)
-    assert_allclose(float(ds.quan(1,"code_time"  ).in_units("Gyr" )),1   ,rtol=1e-12)
-    assert_allclose(float(ds.quan(1,"code_length").in_units("Mpc" )),1   ,rtol=1e-12)
-    assert_allclose(float(ds.quan(1,"code_mass"  ).in_units("msun")),1e14,rtol=1e-12)
+    assert_allclose(float(ds.quan(1, "code_time").in_units("Gyr")), 1, rtol=1e-12)
+    assert_allclose(float(ds.quan(1, "code_length").in_units("Mpc")), 1, rtol=1e-12)
+    assert_allclose(float(ds.quan(1, "code_mass").in_units("msun")), 1e14, rtol=1e-12)
 
 
 @requires_file(athenapk_disk)
@@ -171,8 +176,6 @@ def test_load_cylindrical():
     # Load a cylindrical dataset of a full disk
     ds = data_dir_load(athenapk_disk)
 
-    #Check that the domain edges match r in [0.5,2.0], theta in [0, 2pi]
-    assert_equal(ds.domain_left_edge.in_units("code_length").v[:2],(0.5,0))
-    assert_equal(ds.domain_right_edge.in_units("code_length").v[:2],(2.0,2*np.pi))
-
-
+    # Check that the domain edges match r in [0.5,2.0], theta in [0, 2pi]
+    assert_equal(ds.domain_left_edge.in_units("code_length").v[:2], (0.5, 0))
+    assert_equal(ds.domain_right_edge.in_units("code_length").v[:2], (2.0, 2 * np.pi))

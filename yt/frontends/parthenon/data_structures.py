@@ -17,9 +17,9 @@ from yt.utilities.file_handler import HDF5FileHandler
 from .fields import ParthenonFieldInfo
 
 geom_map = {
-    "UniformCartesian":    Geometry.CARTESIAN,
-    "UniformCylindrical":  Geometry.CYLINDRICAL,
-    "UniformSpherical":    Geometry.SPHERICAL,
+    "UniformCartesian": Geometry.CARTESIAN,
+    "UniformCylindrical": Geometry.CYLINDRICAL,
+    "UniformSpherical": Geometry.SPHERICAL,
 }
 
 _cis = np.fromiter(
@@ -165,7 +165,7 @@ class ParthenonDataset(Dataset):
         self.geometry = geom_map[self._handle["Info"].attrs["Coordinates"]]
 
         if self.geometry == "cylindrical":
-            axis_order = ("r","theta","z")
+            axis_order = ("r", "theta", "z")
         else:
             axis_order = None
 
@@ -176,7 +176,7 @@ class ParthenonDataset(Dataset):
             units_override=units_override,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
-            axis_order=axis_order
+            axis_order=axis_order,
         )
         if storage_filename is None:
             storage_filename = self.basename + ".yt"
