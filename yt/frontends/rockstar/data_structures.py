@@ -39,6 +39,10 @@ class RockstarBinaryFile(HaloCatalogFile):
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
+        # DEBUG: printing the values of _Npart
+        for i, n in enumerate(self._Npart):
+            print(f"halo {i} (id={self._ids_halos[i]}) has {n} particles")
+
         expected_end = self._member_offset + 8 * self._Npart.sum()
         if expected_end != self._file_size:
             raise RuntimeError(
@@ -220,7 +224,7 @@ class RockstarHaloContainer:
     @cached_property
     def ihalo(self):
         halo_id = self.particle_identifier
-        halo_ids = list(self.halo_ds.r["halos", "particle_identifier"].astype(int))
+        halo_ids = list(self.halo_ds.r["halos", "particle_identifier"].astype("i8"))
         ihalo = halo_ids.index(halo_id)
 
         assert halo_ids[ihalo] == halo_id
