@@ -23,7 +23,6 @@ from libc.math cimport abs, sqrt
 from libc.stdlib cimport free, malloc
 from libc.string cimport strcmp
 
-
 from yt.geometry.selection_routines cimport _ensure_code
 from yt.utilities.lib.fp_utils cimport fmax, fmin
 
