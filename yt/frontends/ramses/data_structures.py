@@ -795,6 +795,12 @@ class RAMSESDataset(Dataset):
     _field_info_class = RAMSESFieldInfo
     gamma = 1.4  # This will get replaced on hydro_fn open
 
+    # RAMSES-specific parameters
+    force_cosmological: bool | None
+    _force_max_level: tuple[int, str]
+    _bbox: list[list[float]] | None
+    self_shielding: bool | None = None
+
     def __init__(
         self,
         filename,
@@ -809,6 +815,7 @@ class RAMSESDataset(Dataset):
         max_level=None,
         max_level_convention=None,
         default_species_fields=None,
+        self_shielding=None,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -880,6 +887,7 @@ class RAMSESDataset(Dataset):
                 self.fluid_types += (FH.ftype,)
 
         self.storage_filename = storage_filename
+        self.self_shielding = self_shielding
 
     @staticmethod
     def _sanitize_max_level(max_level, max_level_convention):
@@ -1111,27 +1119,42 @@ class RAMSESDataset(Dataset):
             self.group_size = rheader["ncpu"] // self.num_groups
 
         # Read namelist.txt file (if any)
-        self.read_namelist()
+        has_namelist = self.read_namelist()
 
-    def read_namelist(self):
+        if self.self_shielding is None and has_namelist:
+            nml = self.ds.parameters["namelist"]
+
+            # "self_shielding" is stored in physics_params in older versions of the code
+            physics_params = nml.get("physics_params", default={})
+            # and in "cooling_params" in more recent ones
+            cooling_params = nml.get("cooling_params", default={})
+
+            self.self_shielding = physics_params.get("self_shielding", False)
+            self.self_shielding |= cooling_params.get("self_shielding", False)
+
+    def read_namelist(self) -> bool:
         """Read the namelist.txt file in the output folder, if present"""
         namelist_file = os.path.join(self.root_folder, "namelist.txt")
-        if os.path.exists(namelist_file):
-            try:
-                with open(namelist_file) as f:
-                    nml = f90nml.read(f)
-            except ImportError as e:
-                nml = f"An error occurred when reading the namelist: {str(e)}"
-            except (ValueError, StopIteration, AssertionError) as err:
-                # Note: f90nml may raise a StopIteration, a ValueError or an AssertionError if
-                # the namelist is not valid.
-                mylog.warning(
-                    "Could not parse `namelist.txt` file as it was malformed:",
-                    exc_info=err,
-                )
-                return
+        if not os.path.exists(namelist_file):
+            return False
 
-            self.parameters["namelist"] = nml
+        try:
+            with open(namelist_file) as f:
+                nml = f90nml.read(f)
+        except ImportError as e:
+            nml = f"An error occurred when reading the namelist: {str(e)}"
+            return False
+        except (ValueError, StopIteration, AssertionError) as err:
+            # Note: f90nml may raise a StopIteration, a ValueError or an AssertionError if
+            # the namelist is not valid.
+            mylog.warning(
+                "Could not parse `namelist.txt` file as it was malformed:",
+                exc_info=err,
+            )
+            return False
+
+        self.parameters["namelist"] = nml
+        return True
 
     @classmethod
     def _is_valid(cls, filename: str, *args, **kwargs) -> bool:

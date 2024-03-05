@@ -418,8 +418,13 @@ class RAMSESFieldInfo(FieldInfoContainer):
         def _create_field(name, interp_object, unit):
             def _func(field, data):
                 shape = data["gas", "temperature_over_mu"].shape
+                nH = _X * data["gas", "density"].to("mp/cm**3") / mh
+                if data.ds.self_shielding:
+                    boost = np.maximum(np.exp(-nH / 0.01), 1e-20)
+                else:
+                    boost = 1
                 d = {
-                    "lognH": np.log10(_X * data["gas", "density"] / mh).ravel(),
+                    "lognH": np.log10(nH / boost).ravel(),
                     "logT": np.log10(data["gas", "temperature_over_mu"]).ravel(),
                 }
                 rv = interp_object(d).reshape(shape)
