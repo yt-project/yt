@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
-from yt.frontends.boxlib.api import (
+from yt.frontends.amrex.api import (
     AMReXDataset,
     CastroDataset,
     MaestroDataset,
