@@ -2046,6 +2046,7 @@ def pixelize_off_axis_mixed_coords(
                        bounds,
                        *,
                        int return_mask=0,
+                       np.float64_t edge_tol=1e-12,
 ):
 
     # pixelize a cartesian image plane passing through a non-cartesian geometry.
@@ -2074,6 +2075,9 @@ def pixelize_off_axis_mixed_coords(
     #   bounds of the image plain in in-plane coordinates
     # return_mask
     #   flag to return a mask
+    # edge_tol
+    #   tolerance for checking whether a pixel falls within an element. defaults
+    #   to 1e-12.
     #
     # most of this method is identical to pixelize_off_axis_cartesian. The initial
     # identification of element-plane intersection uses the cartesian bounding
@@ -2156,13 +2160,16 @@ def pixelize_off_axis_mixed_coords(
             for i in range(x_ind_l, x_ind_r):
                 for j in range(y_ind_l, y_ind_r):
                     # final check to ensure the actual spherical coords of the
-                    # pixel falls within the spherical volume element
-                    if buff_pos0[i,j] < pos0[p] - 0.5 * dpos0[p] or \
-                       buff_pos0[i,j] > pos0[p] + 0.5 * dpos0[p] or \
-                       buff_pos1[i,j] < pos1[p] - 0.5 * dpos1[p] or \
-                       buff_pos1[i,j] > pos1[p] + 0.5 * dpos1[p] or \
-                       buff_pos2[i,j] < pos2[p] - 0.5 * dpos2[p] or \
-                       buff_pos2[i,j] > pos2[p] + 0.5 * dpos2[p]:
+                    # pixel falls within the spherical volume element. a small
+                    # tolerance for the edge check accounts for floating point
+                    # errors in the coordinate transformation (an edge_tol of
+                    # 0.0 may result in blank pixels).
+                    if buff_pos0[i,j] < pos0[p] - 0.5 * dpos0[p] - edge_tol  or \
+                       buff_pos0[i,j] > pos0[p] + 0.5 * dpos0[p] + edge_tol or \
+                       buff_pos1[i,j] < pos1[p] - 0.5 * dpos1[p] - edge_tol or \
+                       buff_pos1[i,j] > pos1[p] + 0.5 * dpos1[p] + edge_tol or \
+                       buff_pos2[i,j] < pos2[p] - 0.5 * dpos2[p] - edge_tol or \
+                       buff_pos2[i,j] > pos2[p] + 0.5 * dpos2[p] + edge_tol:
                        continue
                     mask[i, j] += 1
                     # make sure pixel value is not a NaN before incrementing it
