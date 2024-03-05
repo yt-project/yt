@@ -1,6 +1,7 @@
 __all__ = [
     "adaptahop",
     "ahf",
+    "amrex",
     "amrvac",
     "art",
     "artio",
