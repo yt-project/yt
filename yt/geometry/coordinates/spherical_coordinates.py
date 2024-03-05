@@ -186,6 +186,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             data_source[field].astype(np.float64),
             bounds,
             return_mask=1,
+            edge_tol=data_source.edge_tol,
         )
 
         return buff.T, mask.T
@@ -252,19 +253,9 @@ class SphericalCoordinateHandler(CoordinateHandler):
             r = coord[:, ri]
             theta = coord[:, thetai]
             phi = coord[:, phii]
-            nc = np.zeros_like(coord)
-            # r, theta, phi
-            nc[:, ri] = np.cos(phi) * np.sin(theta) * r
-            nc[:, thetai] = np.sin(phi) * np.sin(theta) * r
-            nc[:, phii] = np.cos(theta) * r
         else:
             r, theta, phi = coord
-            nc = (
-                np.cos(phi) * np.sin(theta) * r,
-                np.sin(phi) * np.sin(theta) * r,
-                np.cos(theta) * r,
-            )
-        return nc
+        return spherical_to_cartesian(r, theta, phi)
 
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
@@ -468,3 +459,38 @@ class SphericalCoordinateHandler(CoordinateHandler):
             yw = zmax - zmin
             width = [xw, yw]
         return width
+
+
+def _get1d_views(x1, x2, x3):
+    assert x1.shape == x2.shape == x3.shape
+    if x1.ndim > 1:
+        return x1.reshape(-1), x2.reshape(-1), x3.reshape(-1)
+    return [np.atleast_1d(dim) for dim in [x1, x2, x3]]
+
+
+def _reshape_to_original(xyz, ndim, orig_shape):
+    if ndim > 1:
+        xyz = [xyz_i.reshape(orig_shape) for xyz_i in xyz]
+    elif ndim == 0:
+        xyz = [xyz_i[0] for xyz_i in xyz]
+    return xyz
+
+
+def spherical_to_cartesian(r, theta, phi):
+
+    from yt.utilities.lib.coordinate_utilities import spherical_points_to_cartesian
+
+    orig_shape = r.shape
+    r1d, theta1d, phi1d = _get1d_views(r, theta, phi)
+    xyz = spherical_points_to_cartesian(r1d, theta1d, phi1d)
+    return _reshape_to_original(xyz, r.ndim, orig_shape)
+
+
+def cartesian_to_spherical(x, y, z):
+
+    from yt.utilities.lib.coordinate_utilities import cartesian_points_to_spherical
+
+    orig_shape = x.shape
+    x1d, y1d, z1d = _get1d_views(x, y, z)
+    rthphi = cartesian_points_to_spherical(x1d, y1d, z1d)
+    return _reshape_to_original(rthphi, x.ndim, orig_shape)

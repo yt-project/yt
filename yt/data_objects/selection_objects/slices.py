@@ -382,38 +382,6 @@ class YTCuttingPlane(YTSelectionContainer2D):
         return frb
 
 
-def _get1d_views(x1, x2, x3):
-    assert x1.shape == x2.shape == x3.shape
-    if x1.ndim == 1:
-        return None, x1, x2, x3
-    elif x1.ndim > 1:
-        return x1.shape, x1.reshape(-1), x2.reshape(-1), x3.reshape(-1)
-    else:
-        raise RuntimeError("array shapes must be at least 1d.")
-
-
-def _spherical_to_cartesian(r, theta, phi):
-
-    from yt.utilities.lib.coordinate_utilities import spherical_points_to_cartesian
-
-    orig_shape, r1d, theta1d, phi1d = _get1d_views(r, theta, phi)
-    xyz = spherical_points_to_cartesian(r1d, theta1d, phi1d)
-    if orig_shape is not None:
-        xyz = [xyz_i.reshape(orig_shape) for xyz_i in xyz]
-    return xyz
-
-
-def _cartesian_to_spherical(x, y, z):
-
-    from yt.utilities.lib.coordinate_utilities import cartesian_points_to_spherical
-
-    orig_shape, x1d, y1d, z1d = _get1d_views(x, y, z)
-    rthphi = cartesian_points_to_spherical(x1d, y1d, z1d)
-    if orig_shape is not None:
-        rthphi = [rthphi_i.reshape(orig_shape) for rthphi_i in rthphi]
-    return rthphi
-
-
 class YTCuttingPlaneMixedCoords(YTCuttingPlane):
     """
     This is similar to YTCutting plane (ds.cutting) except the cutting plane
@@ -438,6 +406,7 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
         ds=None,
         field_parameters=None,
         data_source=None,
+        edge_tol=1e-12,
     ):
         # note: cartesian base geometry is supported for testing purposes.
         # should just use YTCuttingPlane for that case...
@@ -451,6 +420,7 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
         )
         self._ds_geom = self.ds.geometry
         self._validate_geometry()
+        self.edge_tol = edge_tol
 
     def _validate_geometry(self):
         if self._ds_geom not in self._supported_geometries:
@@ -484,13 +454,21 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
     @property
     def _cartesian_to_native(self):
         if self._ds_geom is Geometry.SPHERICAL:
-            return _cartesian_to_spherical
+            from yt.geometry.coordinates.spherical_coordinates import (
+                cartesian_to_spherical,
+            )
+
+            return cartesian_to_spherical
         self._raise_unsupported_geometry()
 
     @property
     def _native_to_cartesian(self):
         if self._ds_geom is Geometry.SPHERICAL:
-            return _spherical_to_cartesian
+            from yt.geometry.coordinates.spherical_coordinates import (
+                spherical_to_cartesian,
+            )
+
+            return spherical_to_cartesian
         self._raise_unsupported_geometry()
 
     def _plane_coords(self, in_plane_x, in_plane_y):
