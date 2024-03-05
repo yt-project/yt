@@ -128,7 +128,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                         data = get_component(pds, component, grid.pindex, grid.poffset)[
                             mask
                         ]
-                        for request_field in rfm[(ptype, field)]:
+                        for request_field in rfm[ptype, field]:
                             rv[request_field][
                                 ind[request_field] : ind[request_field] + data.shape[0]
                             ] = data

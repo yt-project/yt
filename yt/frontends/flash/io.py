@@ -277,7 +277,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
                 data = p_fields[si:ei, fi]
                 if selector:
                     data = data[mask]
-                data_return[(ptype, field)] = data
+                data_return[ptype, field] = data
 
         return data_return
 

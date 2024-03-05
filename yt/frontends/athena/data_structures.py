@@ -187,7 +187,7 @@ class AthenaHierarchy(GridIndex):
                 field = str23(splitup[1])
                 dtype = str23(splitup[-1]).lower()
                 for ax in "xyz":
-                    field_map[("athena", f"{field}_{ax}")] = (
+                    field_map["athena", f"{field}_{ax}"] = (
                         "vector",
                         f.tell() - read_table_offset,
                         dtype,

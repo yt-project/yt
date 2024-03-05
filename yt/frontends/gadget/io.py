@@ -230,7 +230,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 else:
                     data = g[field][si:ei][mask, ...]
 
-                data_return[(ptype, field)] = data
+                data_return[ptype, field] = data
 
         f.close()
         return data_return
@@ -424,7 +424,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     f.seek(poff[ptype, field], os.SEEK_SET)
                     data = self._read_field_from_file(f, tp[ptype], field)
                     data = data[mask, ...]
-                return_data[(ptype, field)] = data
+                return_data[ptype, field] = data
         f.close()
         return return_data
 
@@ -536,7 +536,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 if field in self._vector_fields:
                     start_offset *= self._vector_fields[field]
                 pos += start_offset
-                offsets[(ptype, field)] = pos
+                offsets[ptype, field] = pos
                 any_ptypes = True
                 remain_offset = (pcount[ptype] - df_start) * fs
                 if field in self._vector_fields:

@@ -100,7 +100,7 @@ class YTStreamline(YTSelectionContainer1D):
     >>> stream = streamlines.path(0)
     >>> fig, ax = plt.subplots()
     >>> ax.set_yscale("log")
-    >>> ax.plot(stream["t"], stream[("gas", "density")], "-x")
+    >>> ax.plot(stream["t"], stream["gas", "density"], "-x")
     """
 
     _type_name = "streamline"
@@ -515,7 +515,7 @@ class YTQuadTreeProj(YTProj):
 
     >>> ds = load("RedshiftOutput0005")
     >>> prj = ds.proj(("gas", "density"), 0)
-    >>> print(proj[("gas", "density")])
+    >>> print(proj["gas", "density"])
     """
 
     _type_name = "quad_proj"
@@ -750,7 +750,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         >>> dd = ds.r[::256j, ::256j, ::256j]
         >>> xf1 = dd.to_xarray([("gas", "density"), ("gas", "temperature")])
-        >>> dd[("gas", "velocity_magnitude")]
+        >>> dd["gas", "velocity_magnitude"]
         >>> xf2 = dd.to_xarray()
         """
         import xarray as xr
@@ -1014,12 +1014,12 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
                 pbar = tqdm(desc=f"Interpolating SPH field {field}")
                 for chunk in self._data_source.chunks([field], "io"):
-                    px = chunk[(ptype, "particle_position_x")].in_base("code").d
-                    py = chunk[(ptype, "particle_position_y")].in_base("code").d
-                    pz = chunk[(ptype, "particle_position_z")].in_base("code").d
-                    hsml = chunk[(ptype, "smoothing_length")].in_base("code").d
-                    mass = chunk[(ptype, "particle_mass")].in_base("code").d
-                    dens = chunk[(ptype, "density")].in_base("code").d
+                    px = chunk[ptype, "particle_position_x"].in_base("code").d
+                    py = chunk[ptype, "particle_position_y"].in_base("code").d
+                    pz = chunk[ptype, "particle_position_z"].in_base("code").d
+                    hsml = chunk[ptype, "smoothing_length"].in_base("code").d
+                    mass = chunk[ptype, "particle_mass"].in_base("code").d
+                    dens = chunk[ptype, "density"].in_base("code").d
                     field_quantity = chunk[field].d
 
                     pixelize_sph_kernel_arbitrary_grid(
@@ -1646,7 +1646,7 @@ class YTSurface(YTSelectionContainer3D):
     >>> from yt.units import kpc
     >>> sp = ds.sphere("max", (10, "kpc"))
     >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
-    >>> print(surf[("gas", "temperature")])
+    >>> print(surf["gas", "temperature"])
     >>> print(surf.vertices)
     >>> bounds = [
     ...     (sp.center[i] - 5.0 * kpc, sp.center[i] + 5.0 * kpc) for i in range(3)
@@ -1974,9 +1974,9 @@ class YTSurface(YTSelectionContainer3D):
         >>> trans = [0.5, 1.0]
         >>> def _Emissivity(field, data):
         ...     return (
-        ...         data[("gas", "density")]
-        ...         * data[("gas", "density")]
-        ...         * np.sqrt(data[("gas", "temperature")])
+        ...         data["gas", "density"]
+        ...         * data["gas", "density"]
+        ...         * np.sqrt(data["gas", "temperature"])
         ...     )
         >>> ds.add_field(
         ...     ("gas", "emissivity"),
@@ -2310,9 +2310,9 @@ class YTSurface(YTSelectionContainer3D):
         >>> trans = [0.5, 1.0]
         >>> def _Emissivity(field, data):
         ...     return (
-        ...         data[("gas", "density")]
-        ...         * data[("gas", "density")]
-        ...         * np.sqrt(data[("gas", "temperature")])
+        ...         data["gas", "density"]
+        ...         * data["gas", "density"]
+        ...         * np.sqrt(data["gas", "temperature"])
         ...     )
         >>> ds.add_field(("gas", "emissivity"), function=_Emissivity, units="g / cm**6")
         >>> for i, r in enumerate(rhos):
@@ -2472,7 +2472,7 @@ class YTSurface(YTSelectionContainer3D):
         >>> from yt.units import kpc
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
-        >>> print(surf[("gas", "temperature")])
+        >>> print(surf["gas", "temperature"])
         >>> print(surf.vertices)
         >>> bounds = [
         ...     (sp.center[i] - 5.0 * kpc, sp.center[i] + 5.0 * kpc) for i in range(3)
@@ -2824,10 +2824,10 @@ class YTOctree(YTSelectionContainer3D):
     --------
 
     octree = ds.octree(n_ref=64)
-    x_positions_of_cells = octree[('index', 'x')]
-    y_positions_of_cells = octree[('index', 'y')]
-    z_positions_of_cells = octree[('index', 'z')]
-    density_of_gas_in_cells = octree[('gas', 'density')]
+    x_positions_of_cells = octree['index', 'x']
+    y_positions_of_cells = octree['index', 'y']
+    z_positions_of_cells = octree['index', 'z']
+    density_of_gas_in_cells = octree['gas', 'density']
     """
 
     _spatial = True
@@ -2874,9 +2874,7 @@ class YTOctree(YTSelectionContainer3D):
         positions = []
         for ptype in self.ptypes:
             positions.append(
-                self._data_source[(ptype, "particle_position")]
-                .in_units("code_length")
-                .d
+                self._data_source[ptype, "particle_position"].in_units("code_length").d
             )
 
         positions = (
@@ -2900,18 +2898,18 @@ class YTOctree(YTSelectionContainer3D):
         # Now we store the index data about the octree in the python container
         ds = self.ds
         pos = ds.arr(self._octree.node_positions, "code_length")
-        self[("index", "positions")] = pos
-        self[("index", "x")] = pos[:, 0]
-        self[("index", "y")] = pos[:, 1]
-        self[("index", "z")] = pos[:, 2]
-        self[("index", "refined")] = self._octree.node_refined
+        self["index", "positions"] = pos
+        self["index", "x"] = pos[:, 0]
+        self["index", "y"] = pos[:, 1]
+        self["index", "z"] = pos[:, 2]
+        self["index", "refined"] = self._octree.node_refined
 
         sizes = ds.arr(self._octree.node_sizes, "code_length")
-        self[("index", "sizes")] = sizes
-        self[("index", "dx")] = sizes[:, 0]
-        self[("index", "dy")] = sizes[:, 1]
-        self[("index", "dz")] = sizes[:, 2]
-        self[("index", "depth")] = self._octree.node_depth
+        self["index", "sizes"] = sizes
+        self["index", "dx"] = sizes[:, 0]
+        self["index", "dy"] = sizes[:, 1]
+        self["index", "dz"] = sizes[:, 2]
+        self["index", "depth"] = self._octree.node_depth
 
     @property
     def tree(self):
@@ -3033,7 +3031,7 @@ class YTOctree(YTSelectionContainer3D):
         interpolate_sph_positions_gather(
             buff,
             all_fields["particle_position"],
-            self[("index", "positions")],
+            self["index", "positions"],
             all_fields["smoothing_length"],
             all_fields["particle_mass"],
             all_fields["density"],
@@ -3043,7 +3041,7 @@ class YTOctree(YTSelectionContainer3D):
             num_neigh=num_neighbors,
         )
 
-        self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
+        self[fields] = self.ds.arr(buff[~self["index", "refined"]], units)
 
     def _scatter_smooth(self, fields, units, normalize):
         from tqdm import tqdm
@@ -3058,12 +3056,12 @@ class YTOctree(YTSelectionContainer3D):
         ptype = fields[0]
         pbar = tqdm(desc=f"Interpolating (scatter) SPH field {fields[0]}")
         for chunk in self._data_source.chunks([fields], "io"):
-            px = chunk[(ptype, "particle_position_x")].to("code_length").d
-            py = chunk[(ptype, "particle_position_y")].to("code_length").d
-            pz = chunk[(ptype, "particle_position_z")].to("code_length").d
-            hsml = chunk[(ptype, "smoothing_length")].to("code_length").d
-            pmass = chunk[(ptype, "particle_mass")].to("code_mass").d
-            pdens = chunk[(ptype, "density")].to("code_mass/code_length**3").d
+            px = chunk[ptype, "particle_position_x"].to("code_length").d
+            py = chunk[ptype, "particle_position_y"].to("code_length").d
+            pz = chunk[ptype, "particle_position_z"].to("code_length").d
+            hsml = chunk[ptype, "smoothing_length"].to("code_length").d
+            pmass = chunk[ptype, "particle_mass"].to("code_mass").d
+            pdens = chunk[ptype, "density"].to("code_mass/code_length**3").d
             field_quantity = chunk[fields].to(units).d
 
             if px.shape[0] > 0:
@@ -3086,4 +3084,4 @@ class YTOctree(YTSelectionContainer3D):
         if normalize:
             normalization_1d_utility(buff, buff_den)
 
-        self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
+        self[fields] = self.ds.arr(buff[~self["index", "refined"]], units)

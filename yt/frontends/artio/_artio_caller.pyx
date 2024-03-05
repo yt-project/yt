@@ -464,20 +464,20 @@ cdef class artio_fileset :
             if self.parameters["num_primary_variables"][species] > 0 and \
                     field in self.parameters["species_%02u_primary_variable_labels"%(species,)] :
                 selected_primary[species].append((self.parameters["species_%02u_primary_variable_labels"%(species,)].index(field),(species,field)))
-                data[(species,field)] = np.empty(0,dtype="float64")
+                data[species,field] = np.empty(0,dtype="float64")
             elif self.parameters["num_secondary_variables"][species] > 0 and \
                     field in self.parameters["species_%02u_secondary_variable_labels"%(species,)] :
                 selected_secondary[species].append((self.parameters["species_%02u_secondary_variable_labels"%(species,)].index(field),(species,field)))
-                data[(species,field)] = np.empty(0,dtype="float64")
+                data[species,field] = np.empty(0,dtype="float64")
             elif field == "MASS" :
                 selected_mass[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="float64")
+                data[species,field] = np.empty(0,dtype="float64")
             elif field == "PID" :
                 selected_pid[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="int64")
+                data[species,field] = np.empty(0,dtype="int64")
             elif field == "SPECIES" :
                 selected_species[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="int8")
+                data[species,field] = np.empty(0,dtype="int8")
             else :
                 raise RuntimeError("invalid field name provided to read_particle_chunk")
 
@@ -1154,32 +1154,32 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         vp = &vpoints[species]
         if field == "PID":
             vp.n_pid = 1
-            data[(species, field)] = np.zeros(tp, dtype="int64")
-            npi64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="int64")
+            npi64arr = data[species, field]
             vp.pid = <np.int64_t*> npi64arr.data
         elif field == "SPECIES":
             vp.n_species = 1
-            data[(species, field)] = np.zeros(tp, dtype="int8")
-            npi8arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="int8")
+            npi8arr = data[species, field]
             # We fill this *now*
             npi8arr += species
             vp.species = <np.int8_t*> npi8arr.data
         elif npri_vars[species] > 0 and field in pri_vars :
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="float64")
+            npf64arr = data[species, field]
             vp.p_ind[vp.n_p] = pri_vars.index(field)
             vp.pvars[vp.n_p] = <np.float64_t *> npf64arr.data
             vp.n_p += 1
         elif nsec_vars[species] > 0 and field in sec_vars :
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="float64")
+            npf64arr = data[species, field]
             vp.s_ind[vp.n_s] = sec_vars.index(field)
             vp.svars[vp.n_s] = <np.float64_t *> npf64arr.data
             vp.n_s += 1
         elif field == "MASS":
             vp.n_mass = 1
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="float64")
+            npf64arr = data[species, field]
             # We fill this *now*
             npf64arr += params["particle_species_mass"][species]
             vp.mass = <np.float64_t*> npf64arr.data

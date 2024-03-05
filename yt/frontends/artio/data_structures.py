@@ -196,9 +196,9 @@ class ARTIOIndex(Index):
         Returns (value, center) of location of maximum for a given field.
         """
         if (field, finest_levels) in self._max_locations:
-            return self._max_locations[(field, finest_levels)]
+            return self._max_locations[field, finest_levels]
         mv, pos = self.find_max_cell_location(field, finest_levels)
-        self._max_locations[(field, finest_levels)] = (mv, pos)
+        self._max_locations[field, finest_levels] = (mv, pos)
         return mv, pos
 
     def find_max_cell_location(self, field, finest_levels=3):
@@ -260,7 +260,7 @@ class ARTIOIndex(Index):
             # list_sfc_ranges = [ (v.min(), v.max()) ]
             for start, end in list_sfc_ranges:
                 if (start, end) in self.range_handlers.keys():
-                    range_handler = self.range_handlers[(start, end)]
+                    range_handler = self.range_handlers[start, end]
                 else:
                     range_handler = ARTIOSFCRangeHandler(
                         self.ds.domain_dimensions,
@@ -271,7 +271,7 @@ class ARTIOIndex(Index):
                         end,
                     )
                     range_handler.construct_mesh()
-                    self.range_handlers[(start, end)] = range_handler
+                    self.range_handlers[start, end] = range_handler
                 if nz != 2:
                     ci.append(
                         ARTIORootMeshSubset(
@@ -349,7 +349,7 @@ class ARTIOIndex(Index):
         Mostly useful for cases where we have irregularly spaced or structured
         grids.
         """
-        dds = self.ds.domain_width[(axes,)] / (
+        dds = self.ds.domain_width[axes,] / (
             self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
         pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]

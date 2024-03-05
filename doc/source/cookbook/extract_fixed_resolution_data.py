@@ -25,7 +25,7 @@ cube = ds.covering_grid(
 f = h5py.File("my_data.h5", mode="w")
 
 # We create a dataset at the root, calling it "density"
-f.create_dataset("/density", data=cube[("gas", "density")])
+f.create_dataset("/density", data=cube["gas", "density"])
 
 # We close our file
 f.close()

@@ -73,13 +73,13 @@ class TestLinePlotMulti:
 def test_line_buffer():
     ds = fake_random_ds(32)
     lb = yt.LineBuffer(ds, (0, 0, 0), (1, 1, 1), 512, label="diag")
-    lb[("gas", "density")]
-    lb[("gas", "velocity_x")]
-    assert_equal(lb[("gas", "density")].size, 512)
-    lb[("gas", "density")] = 0
-    assert_equal(lb[("gas", "density")], 0)
+    lb["gas", "density"]
+    lb["gas", "velocity_x"]
+    assert_equal(lb["gas", "density"].size, 512)
+    lb["gas", "density"] = 0
+    assert_equal(lb["gas", "density"], 0)
     assert_equal(set(lb.keys()), {("gas", "density"), ("gas", "velocity_x")})
-    del lb[("gas", "velocity_x")]
+    del lb["gas", "velocity_x"]
     assert_equal(set(lb.keys()), {("gas", "density")})
 
 
