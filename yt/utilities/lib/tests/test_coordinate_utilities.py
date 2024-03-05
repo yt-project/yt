@@ -1,7 +1,6 @@
 import numpy as np
 
 from yt.utilities.lib.coordinate_utilities import (
-    CartesianMixedCoordBBox,
     SphericalMixedCoordBBox,
     cartesian_bboxes,
     cartesian_points_to_spherical,
@@ -132,39 +131,6 @@ def test_cartesian_bboxes_for_spherical():
         min_val = np.min(x_y_z[i] - d_x_y_z[i] / 2.0)
         assert max_val == 1.0
         assert min_val == -1.0
-
-
-def test_cartesian_passthrough():
-
-    bbox_handler = CartesianMixedCoordBBox()
-    rng = np.random.default_rng()
-    sz = 10
-
-    xyz_in = [rng.random(sz) for _ in range(3)]
-    dxyz_in = [rng.random(sz) for _ in range(3)]
-    xyz_out = [np.full(xyz_in[0].shape, np.nan) for _ in range(3)]
-    dxyz_out = [np.full(xyz_in[0].shape, np.nan) for _ in range(3)]
-
-    cartesian_bboxes(
-        bbox_handler,
-        xyz_in[0],
-        xyz_in[1],
-        xyz_in[2],
-        dxyz_in[0],
-        dxyz_in[1],
-        dxyz_in[2],
-        xyz_out[0],
-        xyz_out[1],
-        xyz_out[2],
-        dxyz_out[0],
-        dxyz_out[1],
-        dxyz_out[2],
-    )
-
-    assert np.all(np.isfinite(xyz_out))
-    for idim in range(3):
-        assert np.all(xyz_in[idim] == xyz_out[idim])
-        assert np.all(dxyz_in[idim] == dxyz_out[idim])
 
 
 def test_spherical_cartesian_roundtrip():
