@@ -384,11 +384,33 @@ class YTCuttingPlane(YTSelectionContainer2D):
 
 class YTCuttingPlaneMixedCoords(YTCuttingPlane):
     """
-    This is similar to YTCutting plane (ds.cutting) except the cutting plane
-    is defined in potentially different coordinates from the underlying dataset.
-    Useful for when you want to take a cartesian slice through a dataset
-    defined in, for example, spherical coordinates (whereas YTCutting plane
-    will always slice in index-space).
+    This is similar to YTCutting plane (ds.cutting) but for a cutting plane in
+    cartesian coordinates that slices through data defined in non-cartesian
+    coordinates.
+
+    Parameters
+    ----------
+    normal : array_like
+        The vector that defines the desired plane in cartesian coordinates.
+    center : array_like
+        The center of the cutting plane, where the normal vector is anchored, in
+        cartesian coordinates.
+    north_vector: array_like, optional
+        An optional vector to describe the north-facing direction in the resulting
+        plane, in cartesian coordinates.
+    ds: ~yt.data_objects.static_output.Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the dataset
+    edge_tol: float
+        Optional edge tolerance (default 1e-12). This controls the fuzziness
+        of element-plane intersection to account for floating point errors
+        in coordinate transformations. If your slice is missing elements,
+        try increasing this number a bit.
     """
 
     _type_name = "cutting_mixed"
@@ -408,8 +430,6 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
         data_source=None,
         edge_tol=1e-12,
     ):
-        # note: cartesian base geometry is supported for testing purposes.
-        # should just use YTCuttingPlane for that case...
         super().__init__(
             normal,
             center,
@@ -472,7 +492,7 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
         self._raise_unsupported_geometry()
 
     def _plane_coords(self, in_plane_x, in_plane_y):
-        # calculates the 3d coordinates of points on a plane in the
+        # calculates the 3d coordinates of points on the plane in the
         # native coordinate system of the dataset.
 
         # actual x, y, z locations of each point in the plane
@@ -481,6 +501,7 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
         y_global = in_plane_x * self._x_vec[1] + in_plane_y * self._y_vec[1] + c[1]
         z_global = in_plane_x * self._x_vec[2] + in_plane_y * self._y_vec[2] + c[2]
 
+        # now transform to the native coordinates
         return self._cartesian_to_native(x_global, y_global, z_global)
 
     def to_pw(self, fields=None, center="center", width=None, axes_unit=None):
