@@ -10,7 +10,6 @@ from yt._typing import FieldKey, MaskT
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
-from yt.geometry.geometry_enum import Geometry
 from yt.loaders import load_uniform_grid
 from yt.utilities.lib.api import (  # type: ignore
     CICDeposit_2,
@@ -18,7 +17,6 @@ from yt.utilities.lib.api import (  # type: ignore
 )
 from yt.utilities.lib.pixelization_routines import (
     pixelize_cylinder,
-    pixelize_off_axis_mixed_coords,
     rotate_particle_coord,
 )
 from yt.utilities.math_utils import compute_stddev_image
@@ -34,9 +32,6 @@ else:
 if TYPE_CHECKING:
     from yt.visualization.fixed_resolution_filters import FixedResolutionBufferFilter
 
-from yt.data_objects.selection_objects.slices import (
-    YTCuttingPlaneMixedCoords,
-)
 
 
 class FixedResolutionBuffer:
