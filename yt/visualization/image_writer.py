@@ -247,7 +247,11 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
         color_bounds = mi, ma
     else:
         color_bounds = [YTQuantity(func(c), image.units) for c in color_bounds]
-    image = (image - color_bounds[0]) / (color_bounds[1] - color_bounds[0])
+
+    color_bounds_diff = color_bounds[1] - color_bounds[0]
+    color_bounds_diff[color_bounds_diff == 0.0] = 1.0
+
+    image = (image - color_bounds[0]) / color_bounds_diff
     to_plot = map_to_colors(image, cmap_name)
     to_plot = np.clip(to_plot, 0, 255)
     return to_plot
