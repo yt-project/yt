@@ -6,7 +6,7 @@ from yt.units._numpy_wrapper_functions import uintersect1d
 from yt.units.yt_array import YTArray
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True

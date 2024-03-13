@@ -37,3 +37,7 @@
 --ignore-file=test_gadget_pytest\.py
 --ignore-file=test_vr_orientation\.py
 --ignore-file=test_particle_trajectories_pytest\.py
+--ignore-file=test_image_array\.py
+--ignore-file=test_alt_ray_tracers\.py
+--ignore-file=test_minimal_representation\.py
+--ignore-file=test_set_log_level\.py
