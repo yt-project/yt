@@ -34,6 +34,7 @@ __all__ = [
     "open_pmd",
     "owls",
     "owls_subfind",
+    "parthenon",
     "ramses",
     "rockstar",
     "sdf",
