@@ -167,7 +167,7 @@ class Clump(TreeContainer):
                 [f"obj['contours_{contour_key}'] == {cid}"],
                 {(f"contour_slices_{contour_key}"): cids},
             )
-            if new_clump[("index", "ones")].size == 0:
+            if new_clump["index", "ones"].size == 0:
                 # This is to skip possibly duplicate clumps.
                 # Using "ones" here will speed things up.
                 continue
@@ -430,7 +430,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
             else:
                 mylog.info(
                     "Eliminating invalid, childless clump with %d cells.",
-                    len(child.data[("index", "ones")]),
+                    len(child.data["index", "ones"]),
                 )
         if len(these_children) > 1:
             mylog.info(

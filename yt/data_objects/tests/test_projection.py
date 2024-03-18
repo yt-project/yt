@@ -62,17 +62,17 @@ def test_projection(pf):
                 )
                 if wf is None:
                     assert_equal(
-                        proj[("index", "ones")].sum(),
-                        LENGTH_UNIT * proj[("index", "ones")].size,
+                        proj["index", "ones"].sum(),
+                        LENGTH_UNIT * proj["index", "ones"].size,
                     )
-                    assert_equal(proj[("index", "ones")].min(), LENGTH_UNIT)
-                    assert_equal(proj[("index", "ones")].max(), LENGTH_UNIT)
+                    assert_equal(proj["index", "ones"].min(), LENGTH_UNIT)
+                    assert_equal(proj["index", "ones"].max(), LENGTH_UNIT)
                 else:
                     assert_equal(
-                        proj[("index", "ones")].sum(), proj[("index", "ones")].size
+                        proj["index", "ones"].sum(), proj["index", "ones"].size
                     )
-                    assert_equal(proj[("index", "ones")].min(), 1.0)
-                    assert_equal(proj[("index", "ones")].max(), 1.0)
+                    assert_equal(proj["index", "ones"].min(), 1.0)
+                    assert_equal(proj["index", "ones"].max(), 1.0)
                 assert_equal(np.unique(proj["px"]), uc[xax])
                 assert_equal(np.unique(proj["py"]), uc[yax])
                 assert_equal(np.unique(proj["pdx"]), 1.0 / (dims[xax] * 2.0))
@@ -123,8 +123,8 @@ def test_projection(pf):
                         )
             # wf == None
             assert_equal(wf, None)
-            v1 = proj[("gas", "density")].sum()
-            v2 = (dd[("gas", "density")] * dd[("index", f"d{an}")]).sum()
+            v1 = proj["gas", "density"].sum()
+            v2 = (dd["gas", "density"] * dd["index", f"d{an}"]).sum()
             assert_rel_equal(v1, v2.in_units(v1.units), 10)
 
         # Test moment projections
@@ -164,16 +164,16 @@ def test_projection(pf):
 def test_max_level():
     ds = fake_amr_ds(fields=[("gas", "density")], units=["mp/cm**3"])
     proj = ds.proj(("gas", "density"), 2, method="max", max_level=2)
-    assert proj[("index", "grid_level")].max() == 2
+    assert proj["index", "grid_level"].max() == 2
 
     proj = ds.proj(("gas", "density"), 2, method="max")
-    assert proj[("index", "grid_level")].max() == ds.index.max_level
+    assert proj["index", "grid_level"].max() == ds.index.max_level
 
 
 def test_min_level():
     ds = fake_amr_ds(fields=[("gas", "density")], units=["mp/cm**3"])
     proj = ds.proj(("gas", "density"), 2, method="min")
-    assert proj[("index", "grid_level")].min() == 0
+    assert proj["index", "grid_level"].min() == 0
 
     proj = ds.proj(("gas", "density"), 2, method="max")
-    assert proj[("index", "grid_level")].min() == ds.index.min_level
+    assert proj["index", "grid_level"].min() == ds.index.min_level

@@ -39,17 +39,17 @@ p3mini = "PopIII_mini/DD0034/DD0034"
 def color_conservation(ds):
     species_names = ds.field_info.species_names
     dd = ds.all_data()
-    dens_yt = dd[("gas", "density")].copy()
+    dens_yt = dd["gas", "density"].copy()
     # Enumerate our species here
     for s in sorted(species_names):
         if s == "El":
             continue
         dens_yt -= dd[f"{s}_density"]
-    dens_yt -= dd[("enzo", "Metal_Density")]
-    delta_yt = np.abs(dens_yt / dd[("gas", "density")])
+    dens_yt -= dd["enzo", "Metal_Density"]
+    delta_yt = np.abs(dens_yt / dd["gas", "density"])
     # Now we compare color conservation to Enzo's color conservation
     dd = ds.all_data()
-    dens_enzo = dd[("enzo", "Density")].copy()
+    dens_enzo = dd["enzo", "Density"].copy()
     for f in sorted(ds.field_list):
         ff = f[1]
         if not ff.endswith("_Density"):
@@ -64,25 +64,25 @@ def color_conservation(ds):
         if any(ff.startswith(ss) for ss in start_strings):
             continue
         dens_enzo -= dd[f]
-    delta_enzo = np.abs(dens_enzo / dd[("enzo", "Density")])
+    delta_enzo = np.abs(dens_enzo / dd["enzo", "Density"])
     np.testing.assert_almost_equal(delta_yt, delta_enzo)
 
 
 def check_color_conservation(ds):
     species_names = ds.field_info.species_names
     dd = ds.all_data()
-    dens_yt = dd[("gas", "density")].copy()
+    dens_yt = dd["gas", "density"].copy()
     # Enumerate our species here
     for s in sorted(species_names):
         if s == "El":
             continue
         dens_yt -= dd[f"{s}_density"]
-    dens_yt -= dd[("enzo", "Metal_Density")]
-    delta_yt = np.abs(dens_yt / dd[("gas", "density")])
+    dens_yt -= dd["enzo", "Metal_Density"]
+    delta_yt = np.abs(dens_yt / dd["gas", "density"])
 
     # Now we compare color conservation to Enzo's color conservation
     dd = ds.all_data()
-    dens_enzo = dd[("enzo", "Density")].copy()
+    dens_enzo = dd["enzo", "Density"].copy()
     for f in sorted(ds.field_list):
         ff = f[1]
         if not ff.endswith("_Density"):
@@ -97,7 +97,7 @@ def check_color_conservation(ds):
         if any(ff.startswith(ss) for ss in start_strings):
             continue
         dens_enzo -= dd[f]
-    delta_enzo = np.abs(dens_enzo / dd[("enzo", "Density")])
+    delta_enzo = np.abs(dens_enzo / dd["enzo", "Density"])
     return assert_almost_equal, delta_yt, delta_enzo
 
 
@@ -166,15 +166,15 @@ def test_nuclei_density_fields():
     ds = data_dir_load(ecp)
     ad = ds.all_data()
     assert_array_equal(
-        ad[("gas", "H_nuclei_density")],
-        (ad[("gas", "H_p0_number_density")] + ad[("gas", "H_p1_number_density")]),
+        ad["gas", "H_nuclei_density"],
+        (ad["gas", "H_p0_number_density"] + ad["gas", "H_p1_number_density"]),
     )
     assert_array_equal(
-        ad[("gas", "He_nuclei_density")],
+        ad["gas", "He_nuclei_density"],
         (
-            ad[("gas", "He_p0_number_density")]
-            + ad[("gas", "He_p1_number_density")]
-            + ad[("gas", "He_p2_number_density")]
+            ad["gas", "He_p0_number_density"]
+            + ad["gas", "He_p1_number_density"]
+            + ad["gas", "He_p2_number_density"]
         ),
     )
 
@@ -244,9 +244,9 @@ def test_face_centered_mhdct_fields():
         assert_equal(grid[field].shape, tuple(dims) + (2 * sum(flag),))
 
     # Average of face-centered fields should be the same as cell-centered field
-    assert (ad[("enzo", "BxF")].sum(axis=-1) / 2 == ad[("enzo", "Bx")]).all()
-    assert (ad[("enzo", "ByF")].sum(axis=-1) / 2 == ad[("enzo", "By")]).all()
-    assert (ad[("enzo", "BzF")].sum(axis=-1) / 2 == ad[("enzo", "Bz")]).all()
+    assert (ad["enzo", "BxF"].sum(axis=-1) / 2 == ad["enzo", "Bx"]).all()
+    assert (ad["enzo", "ByF"].sum(axis=-1) / 2 == ad["enzo", "By"]).all()
+    assert (ad["enzo", "BzF"].sum(axis=-1) / 2 == ad["enzo", "Bz"]).all()
 
 
 @requires_module("h5py")
@@ -259,7 +259,7 @@ def test_deeply_nested_zoom():
 
     plot = SlicePlot(ds, "z", "density", width=(0.001, "pc"), center=center)
 
-    image = plot.frb[("gas", "density")]
+    image = plot.frb["gas", "density"]
 
     assert (image > 0).all()
 
@@ -271,7 +271,7 @@ def test_deeply_nested_zoom():
     c_actual = ds.arr(c_actual, "code_length")
     assert_allclose_units(c, c_actual)
 
-    assert_equal(max(g[("gas", "density")].max() for g in ds.index.grids), v)
+    assert_equal(max(g["gas", "density"].max() for g in ds.index.grids), v)
 
 
 @requires_module("h5py")
@@ -282,7 +282,7 @@ def test_2d_grid_shape():
     # returns a 3D array with a dummy dimension.
     ds = data_dir_load(kh2d)
     g = ds.index.grids[1]
-    assert g[("gas", "density")].shape == (128, 100, 1)
+    assert g["gas", "density"].shape == (128, 100, 1)
 
 
 @requires_module("h5py")

@@ -46,13 +46,13 @@ class ParticleTrajectories:
     ... ]
     >>> ds = load(my_fns[0])
     >>> init_sphere = ds.sphere(ds.domain_center, (0.5, "unitary"))
-    >>> indices = init_sphere[("all", "particle_index")].astype("int64")
+    >>> indices = init_sphere["all", "particle_index"].astype("int64")
     >>> ts = DatasetSeries(my_fns)
     >>> trajs = ts.particle_trajectories(indices, fields=fields)
     >>> for t in trajs:
     ...     print(
-    ...         t[("all", "particle_velocity_x")].max(),
-    ...         t[("all", "particle_velocity_x")].min(),
+    ...         t["all", "particle_velocity_x"].max(),
+    ...         t["all", "particle_velocity_x"].min(),
     ...     )
     """
 
@@ -327,8 +327,8 @@ class ParticleTrajectories:
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> traj = trajs.trajectory_from_index(indices[0])
         >>> plt.plot(
-        ...     traj[("all", "particle_time")],
-        ...     traj[("all", "particle_position_x")],
+        ...     traj["all", "particle_time"],
+        ...     traj["all", "particle_position_x"],
         ...     "-x",
         ... )
         >>> plt.savefig("orbit")
@@ -339,8 +339,8 @@ class ParticleTrajectories:
             raise IndexError
         fields = sorted(self.field_data.keys())
         traj = {}
-        traj[(self.ptype, "particle_time")] = self.times
-        traj[(self.ptype, "particle_index")] = index
+        traj[self.ptype, "particle_time"] = self.times
+        traj[self.ptype, "particle_index"] = index
         for field in fields:
             traj[field] = self[field][mask, :][0]
         return traj

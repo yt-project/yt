@@ -1548,9 +1548,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_off_axis_cartesian(
             pixX,
-            plot.data[("index", "x")].to("code_length"),
-            plot.data[("index", "y")].to("code_length"),
-            plot.data[("index", "z")].to("code_length"),
+            plot.data["index", "x"].to("code_length"),
+            plot.data["index", "y"].to("code_length"),
+            plot.data["index", "z"].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1564,9 +1564,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
         )
         pixelize_off_axis_cartesian(
             pixY,
-            plot.data[("index", "x")].to("code_length"),
-            plot.data[("index", "y")].to("code_length"),
-            plot.data[("index", "z")].to("code_length"),
+            plot.data["index", "x"].to("code_length"),
+            plot.data["index", "y"].to("code_length"),
+            plot.data["index", "z"].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1585,9 +1585,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
             pixC = np.zeros((ny, nx), dtype="f8")
             pixelize_off_axis_cartesian(
                 pixC,
-                plot.data[("index", "x")].to("code_length"),
-                plot.data[("index", "y")].to("code_length"),
-                plot.data[("index", "z")].to("code_length"),
+                plot.data["index", "x"].to("code_length"),
+                plot.data["index", "y"].to("code_length"),
+                plot.data["index", "z"].to("code_length"),
                 plot.data["px"],
                 plot.data["py"],
                 plot.data["pdx"],

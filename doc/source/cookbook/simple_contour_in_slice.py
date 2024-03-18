@@ -25,7 +25,7 @@ sp.annotate_contour(
 )
 
 # This is the plot object.
-po = sp.plots[("gas", "density")]
+po = sp.plots["gas", "density"]
 
 # Turn off the colormap image, leaving just the contours.
 po.axes.images[0].set_visible(False)

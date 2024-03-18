@@ -28,17 +28,17 @@ def test_extrema():
         )
         for sp in [ds.sphere("c", (0.25, "unitary")), ds.r[0.5, :, :]]:
             mi, ma = sp.quantities["Extrema"](("gas", "density"))
-            assert_equal(mi, np.nanmin(sp[("gas", "density")]))
-            assert_equal(ma, np.nanmax(sp[("gas", "density")]))
+            assert_equal(mi, np.nanmin(sp["gas", "density"]))
+            assert_equal(ma, np.nanmax(sp["gas", "density"]))
             dd = ds.all_data()
             mi, ma = dd.quantities["Extrema"](("gas", "density"))
-            assert_equal(mi, np.nanmin(dd[("gas", "density")]))
-            assert_equal(ma, np.nanmax(dd[("gas", "density")]))
+            assert_equal(mi, np.nanmin(dd["gas", "density"]))
+            assert_equal(ma, np.nanmax(dd["gas", "density"]))
             sp = ds.sphere("max", (0.25, "unitary"))
-            assert_equal(np.any(np.isnan(sp[("gas", "radial_velocity")])), False)
+            assert_equal(np.any(np.isnan(sp["gas", "radial_velocity"])), False)
             mi, ma = dd.quantities["Extrema"](("gas", "radial_velocity"))
-            assert_equal(mi, np.nanmin(dd[("gas", "radial_velocity")]))
-            assert_equal(ma, np.nanmax(dd[("gas", "radial_velocity")]))
+            assert_equal(mi, np.nanmin(dd["gas", "radial_velocity"]))
+            assert_equal(ma, np.nanmax(dd["gas", "radial_velocity"]))
 
 
 def test_extrema_with_nan():
@@ -62,12 +62,12 @@ def test_average():
             my_mean = ad.quantities["WeightedAverageQuantity"](
                 ("gas", "density"), ("index", "ones")
             )
-            assert_rel_equal(my_mean, ad[("gas", "density")].mean(), 12)
+            assert_rel_equal(my_mean, ad["gas", "density"].mean(), 12)
 
             my_mean = ad.quantities["WeightedAverageQuantity"](
                 ("gas", "density"), ("gas", "cell_mass")
             )
-            a_mean = (ad[("gas", "density")] * ad[("gas", "cell_mass")]).sum() / ad[
+            a_mean = (ad["gas", "density"] * ad["gas", "cell_mass"]).sum() / ad[
                 ("gas", "cell_mass")
             ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
@@ -80,21 +80,19 @@ def test_standard_deviation():
             my_std, my_mean = ad.quantities["WeightedStandardDeviation"](
                 ("gas", "density"), ("index", "ones")
             )
-            assert_rel_equal(my_mean, ad[("gas", "density")].mean(), 12)
-            assert_rel_equal(my_std, ad[("gas", "density")].std(), 12)
+            assert_rel_equal(my_mean, ad["gas", "density"].mean(), 12)
+            assert_rel_equal(my_std, ad["gas", "density"].std(), 12)
 
             my_std, my_mean = ad.quantities["WeightedStandardDeviation"](
                 ("gas", "density"), ("gas", "cell_mass")
             )
-            a_mean = (ad[("gas", "density")] * ad[("gas", "cell_mass")]).sum() / ad[
+            a_mean = (ad["gas", "density"] * ad["gas", "cell_mass"]).sum() / ad[
                 ("gas", "cell_mass")
             ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
             a_std = np.sqrt(
-                (
-                    ad[("gas", "cell_mass")] * (ad[("gas", "density")] - a_mean) ** 2
-                ).sum()
-                / ad[("gas", "cell_mass")].sum()
+                (ad["gas", "cell_mass"] * (ad["gas", "density"] - a_mean) ** 2).sum()
+                / ad["gas", "cell_mass"].sum()
             )
             assert_rel_equal(my_std, a_std, 12)
 
@@ -105,13 +103,13 @@ def test_max_location():
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
             mv, x, y, z = ad.quantities.max_location(("gas", "density"))
 
-            assert_equal(mv, ad[("gas", "density")].max())
+            assert_equal(mv, ad["gas", "density"].max())
 
-            mi = np.argmax(ad[("gas", "density")])
+            mi = np.argmax(ad["gas", "density"])
 
-            assert_equal(ad[("index", "x")][mi], x)
-            assert_equal(ad[("index", "y")][mi], y)
-            assert_equal(ad[("index", "z")][mi], z)
+            assert_equal(ad["index", "x"][mi], x)
+            assert_equal(ad["index", "y"][mi], y)
+            assert_equal(ad["index", "z"][mi], z)
 
 
 def test_min_location():
@@ -120,13 +118,13 @@ def test_min_location():
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
             mv, x, y, z = ad.quantities.min_location(("gas", "density"))
 
-            assert_equal(mv, ad[("gas", "density")].min())
+            assert_equal(mv, ad["gas", "density"].min())
 
-            mi = np.argmin(ad[("gas", "density")])
+            mi = np.argmin(ad["gas", "density"])
 
-            assert_equal(ad[("index", "x")][mi], x)
-            assert_equal(ad[("index", "y")][mi], y)
-            assert_equal(ad[("index", "z")][mi], z)
+            assert_equal(ad["index", "x"][mi], x)
+            assert_equal(ad["index", "y"][mi], y)
+            assert_equal(ad["index", "z"][mi], z)
 
 
 def test_sample_at_min_field_values():
@@ -142,12 +140,12 @@ def test_sample_at_min_field_values():
                 ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")]
             )
 
-            assert_equal(mv, ad[("gas", "density")].min())
+            assert_equal(mv, ad["gas", "density"].min())
 
-            mi = np.argmin(ad[("gas", "density")])
+            mi = np.argmin(ad["gas", "density"])
 
-            assert_equal(ad[("gas", "temperature")][mi], temp)
-            assert_equal(ad[("gas", "velocity_x")][mi], vm)
+            assert_equal(ad["gas", "temperature"][mi], temp)
+            assert_equal(ad["gas", "velocity_x"][mi], vm)
 
 
 def test_sample_at_max_field_values():
@@ -163,12 +161,12 @@ def test_sample_at_max_field_values():
                 ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")]
             )
 
-            assert_equal(mv, ad[("gas", "density")].max())
+            assert_equal(mv, ad["gas", "density"].max())
 
-            mi = np.argmax(ad[("gas", "density")])
+            mi = np.argmax(ad["gas", "density"])
 
-            assert_equal(ad[("gas", "temperature")][mi], temp)
-            assert_equal(ad[("gas", "velocity_x")][mi], vm)
+            assert_equal(ad["gas", "temperature"][mi], temp)
+            assert_equal(ad["gas", "velocity_x"][mi], vm)
 
 
 def test_in_memory_sph_derived_quantities():
@@ -232,7 +230,7 @@ def test_derived_quantities_with_particle_types():
     @particle_filter(requires=["particle_position_x"], filtered_type="all")
     def low_x(pfilter, data):
         return (
-            data[(pfilter.filtered_type, "particle_position_x")].in_units("code_length")
+            data[pfilter.filtered_type, "particle_position_x"].in_units("code_length")
             < 0.5
         )
 
@@ -243,9 +241,9 @@ def test_derived_quantities_with_particle_types():
     for ptype in ["all", "low_x"]:
         # Check bulk velocity
         bulk_vx = (
-            ad[(ptype, "particle_mass")]
-            * ad[(ptype, "particle_velocity_x")]
-            / ad[(ptype, "particle_mass")].sum()
+            ad[ptype, "particle_mass"]
+            * ad[ptype, "particle_velocity_x"]
+            / ad[ptype, "particle_mass"].sum()
         ).sum()
         assert_almost_equal(
             ad.quantities.bulk_velocity(
@@ -257,9 +255,9 @@ def test_derived_quantities_with_particle_types():
 
         # Check center of mass
         com_x = (
-            ad[(ptype, "particle_mass")]
-            * ad[(ptype, "particle_position_x")]
-            / ad[(ptype, "particle_mass")].sum()
+            ad[ptype, "particle_mass"]
+            * ad[ptype, "particle_position_x"]
+            / ad[ptype, "particle_mass"].sum()
         ).sum()
         assert_almost_equal(
             ad.quantities.center_of_mass(
@@ -271,9 +269,9 @@ def test_derived_quantities_with_particle_types():
 
         # Check angular momentum vector
         l_x = (
-            ad[(ptype, "particle_specific_angular_momentum_x")]
-            * ad[(ptype, "particle_mass")]
-            / ad[(ptype, "particle_mass")].sum()
+            ad[ptype, "particle_specific_angular_momentum_x"]
+            * ad[ptype, "particle_mass"]
+            / ad[ptype, "particle_mass"].sum()
         ).sum()
         assert_almost_equal(
             ad.quantities.angular_momentum_vector(

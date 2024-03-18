@@ -648,9 +648,9 @@ to the z direction.
 
     ds.index
     ad = ds.all_data()
-    print(ds.field_info[("raw", "Ex")].nodal_flag)
+    print(ds.field_info["raw", "Ex"].nodal_flag)
     print(ad["raw", "Ex"].shape)
-    print(ds.field_info[("raw", "Bx")].nodal_flag)
+    print(ds.field_info["raw", "Bx"].nodal_flag)
     print(ad["raw", "Bx"].shape)
     print(ds.field_info["raw", "Bx"].nodal_flag)
     print(ad["raw", "Bx"].shape)
@@ -753,11 +753,11 @@ direction.
 
     ds.index
     ad = ds.all_data()
-    print(ds.field_info[("enzo", "Ex")].nodal_flag)
+    print(ds.field_info["enzo", "Ex"].nodal_flag)
     print(ad["enzo", "Ex"].shape)
-    print(ds.field_info[("enzo", "BxF")].nodal_flag)
+    print(ds.field_info["enzo", "BxF"].nodal_flag)
     print(ad["enzo", "Bx"].shape)
-    print(ds.field_info[("enzo", "Bx")].nodal_flag)
+    print(ds.field_info["enzo", "Bx"].nodal_flag)
     print(ad["enzo", "Bx"].shape)
 
 Here, the field ``('enzo', 'Ex')`` is nodal in two directions, so four values
