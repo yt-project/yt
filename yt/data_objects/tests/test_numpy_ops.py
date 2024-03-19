@@ -4,7 +4,7 @@ from numpy.testing import assert_equal
 from yt.testing import fake_amr_ds, fake_random_ds
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True

@@ -10,7 +10,7 @@ left_grid = right_grid = amr_levels = center_grid = data = None
 old_settings = None
 
 
-def setup():
+def setup_module():
     # set up some sample cylindrical grid data, radiating out from center
     global left_grid, right_grid, amr_levels, center_grid, data, old_settings
     old_settings = np.geterr()
@@ -24,7 +24,7 @@ def setup():
     data = np.cos(np.sqrt(np.sum(center_grid[:, :2] ** 2, axis=1))) ** 2  # cos^2
 
 
-def teardown():
+def teardown_module():
     np.seterr(**old_settings)
 
 

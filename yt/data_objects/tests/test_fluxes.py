@@ -9,7 +9,7 @@ from numpy.testing import assert_almost_equal, assert_equal
 from yt.testing import fake_random_ds
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True

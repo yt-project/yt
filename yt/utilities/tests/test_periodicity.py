@@ -5,7 +5,7 @@ from yt.testing import fake_random_ds
 from yt.utilities.math_utils import euclidean_dist, periodic_dist
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True

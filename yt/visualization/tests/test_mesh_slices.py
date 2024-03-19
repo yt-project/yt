@@ -7,7 +7,7 @@ from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 

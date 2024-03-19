@@ -14,7 +14,7 @@ TEST_AUTHOR = "yt test runner"
 TEST_COMMENT = "Testing write_to_gdf"
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 

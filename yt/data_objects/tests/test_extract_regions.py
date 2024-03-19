@@ -10,7 +10,7 @@ from yt.testing import (
 )
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True

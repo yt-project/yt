@@ -9,7 +9,7 @@ from yt.testing import fake_random_ds
 from yt.units.unit_object import Unit
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True

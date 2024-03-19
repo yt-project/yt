@@ -4,7 +4,7 @@ from numpy.testing import assert_equal
 from yt.testing import assert_allclose_units, fake_random_ds
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 

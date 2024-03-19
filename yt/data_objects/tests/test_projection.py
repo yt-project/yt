@@ -11,7 +11,7 @@ from yt.units.unit_object import Unit
 LENGTH_UNIT = 2.0
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
