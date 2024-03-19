@@ -406,6 +406,12 @@ def off_axis_projection(
             axis=-1,
         )
 
+        for idim, periodic in enumerate(data_source.ds.periodicity):
+            if not periodic:
+                continue
+            # Wrap into [-0.5, +0.5]
+            xyz[..., idim] = (xyz[..., idim] + 0.5) % 1 - 0.5
+
         dx = (data_source["index", "dx"] / wmax).to("1").d
 
         if vol.weight_field is None:
