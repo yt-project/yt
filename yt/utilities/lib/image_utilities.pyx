@@ -105,17 +105,17 @@ cdef void _add_cell_to_image_offaxis(
     dx_loc = cell_max_width / jmax
     dy_loc = cell_max_width / kmax
 
-    # with gil: print(jmax, kmax)
-
     for j in range(jmax):
         xx1 = ((j - jmax / 2.) * dx_loc + x) * Nx
         xx2 = ((j + 1 - jmax / 2.) * dx_loc + x) * Nx
 
         jj1 = <int> xx1
         jj2 = <int> xx2
+
         # The subcell is out of the projected area
         if jj2 < 0 or jj1 >= Nx: continue
 
+        # Fraction of overlap with the pixel in x direction
         dvx = fclip((jj2 - xx1) / (xx2 - xx1), 0., 1.)
 
         for k in range(kmax):
@@ -130,14 +130,11 @@ cdef void _add_cell_to_image_offaxis(
             # The subcell is out of the projected area
             if kk2 < 0 or kk1 >= Ny: continue
 
-            # with gil:
-            #     print(f"{j=} {k=} {xx1=} {xx2=} {yy1=} {yy2=} {jj1=} {jj2=} {kk1=} {kk2=}")
-
             tmp = stamp[depth, j, k] * dx3
-
             sw = tmp * w
             sq = tmp * q
 
+            # Fraction of overlap with the pixel in y direction
             dvy = fclip((kk2 - yy1) / (yy2 - yy1), 0., 1.)
 
             if jj1 >= 0 and kk1 >= 0:
@@ -228,7 +225,6 @@ def add_cells_to_image_offaxis(
     # Iterate over all cells, applying the stamp
     cdef np.float64_t x, y, dx
     cdef np.float64_t[:, ::1] rotation_view = np.ascontiguousarray(rotation)
-
     cdef np.float64_t w, q, cell_max_width, sq3
 
     sq3 = sqrt(3.)
