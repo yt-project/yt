@@ -383,12 +383,9 @@ def off_axis_projection(
         fields.append(vol.weight_field)
 
     mylog.debug("Casting rays")
-
-    if (
-        True
-        and isinstance(data_source.ds.index, OctreeIndex)
-        and isinstance(camera.lens, PlaneParallelLens)
-    ):
+    index = data_source.ds.index
+    lens = camera.lens
+    if isinstance(index, OctreeIndex) and isinstance(lens, PlaneParallelLens):
         fields.extend(("index", k) for k in "xyz")
         fields.append(("index", "dx"))
 
