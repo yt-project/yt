@@ -124,6 +124,10 @@ class AthenaPPHierarchy(GridIndex):
             g._setup_dx()
         self.max_level = self._handle.attrs["MaxLevel"]
 
+    @property
+    def grid_tree(self):
+        return None
+
 
 class AthenaPPDataset(Dataset):
     _field_info_class = AthenaPPFieldInfo

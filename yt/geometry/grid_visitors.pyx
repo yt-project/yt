@@ -17,7 +17,7 @@ from yt.utilities.lib.bitarray cimport ba_set_value
 from yt.utilities.lib.fp_utils cimport iclip
 
 
-cdef void free_tuples(GridVisitorData *data) nogil:
+cdef void free_tuples(GridVisitorData *data) noexcept nogil:
     # This wipes out the tuples, which is necessary since they are
     # heap-allocated
     cdef int i
@@ -31,7 +31,7 @@ cdef void free_tuples(GridVisitorData *data) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void setup_tuples(GridVisitorData *data) nogil:
+cdef void setup_tuples(GridVisitorData *data) noexcept nogil:
     # This sets up child-mask tuples.  Rather than a single mask that covers
     # everything, we instead allocate pairs of integers that are start/stop
     # positions for child masks.  This may not be considerably more efficient
@@ -49,8 +49,8 @@ cdef void setup_tuples(GridVisitorData *data) nogil:
         data.child_tuples[i] = <int *>malloc(sizeof(int) * 6)
         # Now we fill them in
         for j in range(3):
-            si = (c.start_index[j] / data.ref_factor) - g.start_index[j]
-            ei = si + c.dims[j]/data.ref_factor - 1
+            si = (c.start_index[j] / data.ref_factor[j]) - g.start_index[j]
+            ei = si + c.dims[j]/data.ref_factor[j] - 1
             data.child_tuples[i][j*2+0] = iclip(si, 0, g.dims[j] - 1)
             data.child_tuples[i][j*2+1] = iclip(ei, 0, g.dims[j] - 1)
     data.n_tuples = g.num_children
@@ -58,7 +58,7 @@ cdef void setup_tuples(GridVisitorData *data) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.uint8_t check_child_masked(GridVisitorData *data) nogil:
+cdef np.uint8_t check_child_masked(GridVisitorData *data) noexcept nogil:
     # This simply checks if we're inside any of the tuples.  Probably not the
     # most efficient way, but the GVD* passed in has a position affiliated with
     # it, and we can very easily look for that inside here.
@@ -80,7 +80,7 @@ cdef np.uint8_t check_child_masked(GridVisitorData *data) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void count_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+cdef void count_cells(GridVisitorData *data, np.uint8_t selected) noexcept nogil:
     # Simply increment for each one, if we've selected it.
     if selected == 0: return
     cdef np.uint64_t *count = <np.uint64_t*> data.array
@@ -89,7 +89,7 @@ cdef void count_cells(GridVisitorData *data, np.uint8_t selected) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void mask_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+cdef void mask_cells(GridVisitorData *data, np.uint8_t selected) noexcept nogil:
     # Set our bitarray -- we're creating a mask -- if we are selected.
     if selected == 0: return
     cdef np.uint8_t *mask = <np.uint8_t*> data.array
@@ -99,7 +99,7 @@ cdef void mask_cells(GridVisitorData *data, np.uint8_t selected) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void icoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+cdef void icoords_cells(GridVisitorData *data, np.uint8_t selected) noexcept nogil:
     # Nice and easy icoord setter.
     if selected == 0: return
     cdef int i
@@ -111,7 +111,7 @@ cdef void icoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void ires_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+cdef void ires_cells(GridVisitorData *data, np.uint8_t selected) noexcept nogil:
     # Fill with the level value.
     if selected == 0: return
     cdef np.int64_t *ires = <np.int64_t*> data.array
@@ -121,7 +121,7 @@ cdef void ires_cells(GridVisitorData *data, np.uint8_t selected) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void fwidth_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+cdef void fwidth_cells(GridVisitorData *data, np.uint8_t selected) noexcept nogil:
     # Fill with our dds.
     if selected == 0: return
     cdef int i
@@ -133,7 +133,7 @@ cdef void fwidth_cells(GridVisitorData *data, np.uint8_t selected) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void fcoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+cdef void fcoords_cells(GridVisitorData *data, np.uint8_t selected) noexcept nogil:
     # Simple cell-centered position filling.
     if selected == 0: return
     cdef int i

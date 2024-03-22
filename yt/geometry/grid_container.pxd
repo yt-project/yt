@@ -31,8 +31,9 @@ cdef class GridTree:
     cdef int num_grids
     cdef int num_root_grids
     cdef int num_leaf_grids
-    cdef public bitarray mask
-    cdef void setup_data(self, GridVisitorData *data)
+    cdef np.uint64_t total_size
+    cdef int refine_by[3]
+    cdef void setup_data(self, GridVisitorData *data) noexcept nogil
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,
                           SelectorObject selector)
@@ -41,7 +42,7 @@ cdef class GridTree:
                           grid_visitor_function *func,
                           SelectorObject selector,
                           GridTreeNode *grid,
-                          np.uint8_t *buf = ?)
+                          bitarray visited_mask) noexcept nogil
 
 cdef class MatchPointsToGrids:
 

@@ -55,12 +55,23 @@ cdef class GridTree:
                   np.ndarray[np.float64_t, ndim=2] left_edge,
                   np.ndarray[np.float64_t, ndim=2] right_edge,
                   np.ndarray[np.int32_t, ndim=2] dimensions,
-                  np.ndarray[np.int64_t, ndim=1] parent_ind,
+                  list[list[float]] parent_ind, # Not an array anymore!
                   np.ndarray[np.int64_t, ndim=1] level,
-                  np.ndarray[np.int64_t, ndim=1] num_children):
+                  np.ndarray[np.int64_t, ndim=1] num_children,
+                  refine_by = 2,
+                  int min_level = 0):
 
         cdef int i, j, k
         cdef np.ndarray[np.int64_t, ndim=1] child_ptr
+        self.total_size = dimensions.prod(axis=1).sum()
+        # This doesn't happen all that often, but it is kind of annoying that
+        # we don't have uniform "refine_by-as-a-list" behavior.
+        try:
+            for i, rf in enumerate(np.squeeze(refine_by)):
+                self.refine_by[i] = rf
+        except TypeError:
+            # Not iterable
+            self.refine_by[0] = self.refine_by[1] = self.refine_by[2] = refine_by
 
         child_ptr = np.zeros(num_grids, dtype='int64')
 
@@ -77,7 +88,7 @@ cdef class GridTree:
                                             dimensions[i,:],
                                             num_children[i],
                                             level[i], i)
-            if level[i] == 0:
+            if level[i] == min_level:
                 self.num_root_grids += 1
             if num_children[i] == 0:
                 self.num_leaf_grids += 1
@@ -86,18 +97,16 @@ cdef class GridTree:
                 sizeof(GridTreeNode) * self.num_root_grids)
         k = 0
         for i in range(num_grids):
-            j = parent_ind[i]
-            if j >= 0:
-                self.grids[j].children[child_ptr[j]] = &self.grids[i]
-                child_ptr[j] += 1
-            else:
-                if k >= self.num_root_grids:
-                    raise RuntimeError
-                self.root_grids[k] = self.grids[i]
-                k = k + 1
-
-    def __init__(self, *args, **kwargs):
-        self.mask = None
+            for j in parent_ind[i]:
+                if j >= 0:
+                    self.grids[j].children[child_ptr[j]] = &self.grids[i]
+                    child_ptr[j] += 1
+                else:
+                    if level[i] < min_level: continue
+                    if k >= self.num_root_grids:
+                        raise RuntimeError(k, self.num_root_grids)
+                    self.root_grids[k] = self.grids[i]
+                    k = k + 1
 
     def __iter__(self):
         yield self
@@ -146,14 +155,16 @@ cdef class GridTree:
             dtn[n] = (f, o)
         return grids_basic.view(dtype=np.dtype(dtn))
 
-    cdef void setup_data(self, GridVisitorData *data):
+    cdef void setup_data(self, GridVisitorData *data) noexcept nogil:
         # Being handed a new GVD object, we initialize it to sane defaults.
         data.index = 0
         data.global_index = 0
         data.n_tuples = 0
         data.child_tuples = NULL
         data.array = NULL
-        data.ref_factor = 2 #### FIX THIS
+        cdef int i
+        for i in range(3):
+            data.ref_factor[i] = self.refine_by[i]
 
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,
@@ -161,49 +172,47 @@ cdef class GridTree:
         # This iterates over all root grids, given a selector+data, and then
         # visits each one and its children.
         cdef int i
-        # Because of confusion about mapping of children to parents, we are
-        # going to do this the stupid way for now.
+        # An issue that arises every so often is what to do
+        # about children that have multiple parents.  We
+        # address that here by ensuring that each grid is only
+        # visited once.  This is a safer solution than
+        # computing the edges of the parent and passing those
+        # down (recursively) because that requires a lot of
+        # additional math *and* arguments between functions.
+        cdef bitarray visited_mask = bitarray(self.num_grids)
         cdef GridTreeNode *grid
-        cdef np.uint8_t *buf = NULL
-        if self.mask is not None:
-            buf = self.mask.buf
         for i in range(self.num_root_grids):
             grid = &self.root_grids[i]
-            self.recursively_visit_grid(data, func, selector, grid, buf)
+            self.recursively_visit_grid(data, func, selector, grid, visited_mask)
         grid_visitors.free_tuples(data)
 
     cdef void recursively_visit_grid(self, GridVisitorData *data,
                                      grid_visitor_function *func,
                                      SelectorObject selector,
                                      GridTreeNode *grid,
-                                     np.uint8_t *buf = NULL):
+                                     bitarray visited_mask) noexcept nogil:
         # Visit this grid and all of its child grids, with a given grid visitor
         # function.  We early terminate if we are not selected by the selector.
         cdef int i
         data.grid = grid
+        if visited_mask._query_value(grid.index):
+            return
         if selector.select_bbox(grid.left_edge, grid.right_edge) == 0:
             # Note that this does not increment the global_index.
             return
         grid_visitors.setup_tuples(data)
-        selector.visit_grid_cells(data, func, buf)
+        selector.visit_grid_cells(data, func)
         for i in range(grid.num_children):
-            self.recursively_visit_grid(data, func, selector, grid.children[i],
-                                        buf)
+            self.recursively_visit_grid(data, func, selector, grid.children[i], visited_mask)
+        visited_mask._set_value(grid.index, 1)
 
     def count(self, SelectorObject selector):
         # Use the counting grid visitor
         cdef GridVisitorData data
         self.setup_data(&data)
-        cdef np.uint64_t size = 0
-        cdef int i
-        for i in range(self.num_grids):
-            size += (self.grids[i].dims[0] *
-                     self.grids[i].dims[1] *
-                     self.grids[i].dims[2])
-        cdef bitarray mask = bitarray(size)
+        cdef bitarray mask = bitarray(self.total_size)
         data.array = <void*>mask.buf
         self.visit_grids(&data, grid_visitors.mask_cells, selector)
-        self.mask = mask
         size = 0
         self.setup_data(&data)
         data.array = <void*>(&size)
