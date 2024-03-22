@@ -2,8 +2,8 @@ cdef class PointSelector(SelectorObject):
     cdef public np.float64_t p[3]
 
     def __init__(self, dobj):
-        cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
-        cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
+        cdef const np.float64_t[:] DLE = dobj.ds.domain_left_edge
+        cdef const np.float64_t[:] DRE = dobj.ds.domain_right_edge
         for i in range(3):
             self.p[i] = _ensure_code(dobj.p[i])
 

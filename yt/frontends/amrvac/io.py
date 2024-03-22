@@ -4,6 +4,7 @@ AMRVAC-specific IO functions
 
 
 """
+
 import os
 
 import numpy as np

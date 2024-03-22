@@ -31,7 +31,7 @@ cdef struct GridTreeNodePadded:
     np.float64_t right_edge_x
     np.float64_t right_edge_y
     np.float64_t right_edge_z
-    np.int_t children_pointers
+    np.int64_t children_pointers
     np.int64_t start_index_x
     np.int64_t start_index_y
     np.int64_t start_index_z

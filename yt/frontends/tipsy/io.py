@@ -208,7 +208,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 continue
             tf = self._fill_fields(field_list, p, hsml, mask, data_file)
             for field in field_list:
-                return_data[(ptype, field)] = tf.pop(field)
+                return_data[ptype, field] = tf.pop(field)
 
         # close all file handles
         f.close()

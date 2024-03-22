@@ -1548,9 +1548,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_off_axis_cartesian(
             pixX,
-            plot.data[("index", "x")].to("code_length"),
-            plot.data[("index", "y")].to("code_length"),
-            plot.data[("index", "z")].to("code_length"),
+            plot.data["index", "x"].to("code_length"),
+            plot.data["index", "y"].to("code_length"),
+            plot.data["index", "z"].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1564,9 +1564,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
         )
         pixelize_off_axis_cartesian(
             pixY,
-            plot.data[("index", "x")].to("code_length"),
-            plot.data[("index", "y")].to("code_length"),
-            plot.data[("index", "z")].to("code_length"),
+            plot.data["index", "x"].to("code_length"),
+            plot.data["index", "y"].to("code_length"),
+            plot.data["index", "z"].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1585,9 +1585,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
             pixC = np.zeros((ny, nx), dtype="f8")
             pixelize_off_axis_cartesian(
                 pixC,
-                plot.data[("index", "x")].to("code_length"),
-                plot.data[("index", "y")].to("code_length"),
-                plot.data[("index", "z")].to("code_length"),
+                plot.data["index", "x"].to("code_length"),
+                plot.data["index", "y"].to("code_length"),
+                plot.data["index", "z"].to("code_length"),
                 plot.data["px"],
                 plot.data["py"],
                 plot.data["pdx"],
@@ -1806,11 +1806,12 @@ class ArrowCallback(PlotCallback):
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         # normalize all of the kwarg lengths to the plot size
         plot_diag = ((yy1 - yy0) ** 2 + (xx1 - xx0) ** 2) ** (0.5)
-        self.length *= plot_diag
-        self.width *= plot_diag
-        self.head_width *= plot_diag
+        length = self.length * plot_diag
+        width = self.width * plot_diag
+        head_width = self.head_width * plot_diag
+        head_length = None
         if self.head_length is not None:
-            self.head_length *= plot_diag
+            head_length = self.head_length * plot_diag
 
         if self.starting_pos is not None:
             start_x, start_y = self._sanitize_coord_system(
@@ -1819,8 +1820,8 @@ class ArrowCallback(PlotCallback):
             dx = x - start_x
             dy = y - start_y
         else:
-            dx = (xx1 - xx0) * 2 ** (0.5) * self.length
-            dy = (yy1 - yy0) * 2 ** (0.5) * self.length
+            dx = (xx1 - xx0) * 2 ** (0.5) * length
+            dy = (yy1 - yy0) * 2 ** (0.5) * length
         # If the arrow is 0 length
         if dx == dy == 0:
             warnings.warn("The arrow has zero length. Not annotating.", stacklevel=2)
@@ -1833,9 +1834,9 @@ class ArrowCallback(PlotCallback):
                 y - dy,
                 dx,
                 dy,
-                width=self.width,
-                head_width=self.head_width,
-                head_length=self.head_length,
+                width=width,
+                head_width=head_width,
+                head_length=head_length,
                 transform=self.transform,
                 length_includes_head=True,
                 **self.plot_args,
@@ -1847,9 +1848,9 @@ class ArrowCallback(PlotCallback):
                     y[i] - dy,
                     dx,
                     dy,
-                    width=self.width,
-                    head_width=self.head_width,
-                    head_length=self.head_length,
+                    width=width,
+                    head_width=head_width,
+                    head_length=head_length,
                     transform=self.transform,
                     length_includes_head=True,
                     **self.plot_args,
@@ -2032,7 +2033,8 @@ class SphereCallback(PlotCallback):
 
         if is_sequence(self.radius):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
-            self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
+            self.radius = self.radius.in_units(plot.xlim[0].units)
+
         if isinstance(self.radius, YTQuantity):
             if isinstance(self.center, YTArray):
                 units = self.center.units
@@ -2045,16 +2047,18 @@ class SphereCallback(PlotCallback):
         # apply a different transform for a length in the same way
         # you can for a coordinate.
         if self.coord_system == "data" or self.coord_system == "plot":
-            self.radius = self.radius * self._pixel_scale(plot)[0]
+            scaled_radius = self.radius * self._pixel_scale(plot)[0]
         else:
-            self.radius /= (plot.xlim[1] - plot.xlim[0]).v
+            scaled_radius = self.radius / (plot.xlim[1] - plot.xlim[0])
 
         x, y = self._sanitize_coord_system(
             plot, self.center, coord_system=self.coord_system
         )
 
         x, y = self._sanitize_xy_order(plot, x, y)
-        cir = Circle((x, y), self.radius, transform=self.transform, **self.circle_args)
+        cir = Circle(
+            (x, y), scaled_radius.v, transform=self.transform, **self.circle_args
+        )
 
         plot._axes.add_patch(cir)
         if self.text is not None:
@@ -2476,8 +2480,8 @@ class TriangleFacetsCallback(PlotCallback):
             # more convenient to swap the x, y values here before final roll
             x0, y0 = l_cy[0]  # x, y values of start points
             x1, y1 = l_cy[1]  # x, y values of end points
-            l_cy[0] = np.row_stack([y0, x0])  # swap x, y for start points
-            l_cy[1] = np.row_stack([y1, x1])  # swap x, y for end points
+            l_cy[0] = np.vstack([y0, x0])  # swap x, y for start points
+            l_cy[1] = np.vstack([y1, x1])  # swap x, y for end points
         # convert back to shape (nlines, 2, 2)
         l_cy = np.rollaxis(l_cy, 2, 0)
         # create line collection and add it to the plot

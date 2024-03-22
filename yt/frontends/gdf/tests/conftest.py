@@ -3,7 +3,6 @@ Title: conftest.py
 Purpose: Contains fixtures for loading data.
 """
 
-
 # Test data
 sedov = "sedov/sedov_tst_0004.h5"
 

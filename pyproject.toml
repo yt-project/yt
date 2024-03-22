@@ -3,22 +3,17 @@
 requires = [
   "setuptools>=61.2",
 
+  # for the upper pin in Cython
   # see https://github.com/yt-project/yt/issues/4044
-  "Cython>=3.0, <3.1",
-
-  # TODO: simplify requirement after numpy 1.26.0 final is released
-  "numpy>=1.25, <2.0 ; python_version < '3.12.0rc1'",
-  "numpy>=1.26.0b1, <2.0; python_version >= '3.12.0rc1'",
-
-  # TODO: simplify requirement after ewah-bool-utils 1.1.0 final is released
-  "ewah-bool-utils>=1.0.2 ; python_version < '3.12.0rc1'",
-  "ewah-bool-utils>=1.1.0rc1 ; python_version >= '3.12.0rc1'",
+  "Cython>=3.0.3, <3.1",
+  "numpy>=1.25, <2.0",
+  "ewah-bool-utils>=1.0.2",
 ]
 build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
 name = "yt"
-version = "4.3.dev0"
+version = "4.4.dev0"
 description = "An analysis and visualization toolkit for volumetric data"
 authors = [
     { name = "The yt project", email = "yt-dev@python.org" },
@@ -38,6 +33,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Visualization",
@@ -45,7 +41,7 @@ classifiers = [
 keywords = [
     "astronomy astrophysics visualization amr adaptivemeshrefinement",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.9.2"
 dependencies = [
     "cmyt>=1.1.2",
     "ewah-bool-utils>=1.0.2",
@@ -57,7 +53,7 @@ dependencies = [
     "pillow>=8.0.0",
     "tomli-w>=0.4.0",
     "tqdm>=3.4.0",
-    "unyt>=2.9.2,<3.0", # see https://github.com/yt-project/yt/issues/4162
+    "unyt>=2.9.2",
     "tomli>=1.2.3;python_version < '3.11'",
     "typing-extensions>=4.4.0;python_version < '3.12'",
 ]
@@ -195,7 +191,7 @@ doc = [
     "jupyter-client>=8.3.1",
     "nbsphinx>=0.9.3",
     "nose~=1.3.7; python_version < '3.10'",
-    "pytest>=6.1",
+    "pytest>=6.1, <8.0",
     "pyx>=0.15",
     "sphinx>=7.2.5",
     "sphinx-bootstrap-theme>=0.8.1",
@@ -221,7 +217,7 @@ minimal = [
 ]
 test = [
     "pyaml>=17.10.0",
-    "pytest>=6.1",
+    "pytest>=6.1, <8.0",
     "pytest-mpl>=0.16.1",
     "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
     "nose~=1.3.7; python_version < '3.10'",
@@ -269,6 +265,7 @@ exclude = '''
 '''
 
 [tool.ruff]
+extend-include = ["*.ipynb"]
 exclude = [
     "doc",
     "benchmarks",
@@ -282,6 +279,8 @@ exclude = [
     "yt/mods.py",
     "yt/visualization/_colormap_data.py",
 ]
+
+[tool.ruff.lint]
 select = [
     "E",
     "F",
@@ -292,6 +291,7 @@ select = [
     "YTT",  # flake8-2020
     "UP",   # pyupgrade
     "I",    # isort
+    "NPY",  # numpy specific rules
 ]
 ignore = [
     "E501",  # line too long
@@ -299,8 +299,10 @@ ignore = [
     "B018",  # Found useless expression. # disabled because ds.index is idiomatic
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"test_*" = ["NPY002"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 known-third-party = [
   "IPython",

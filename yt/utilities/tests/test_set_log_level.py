@@ -2,6 +2,19 @@ from numpy.testing import assert_raises
 
 from yt.utilities.logger import set_log_level
 
+old_level = None
+
+
+def setup():
+    global old_level
+    from yt.utilities.logger import ytLogger
+
+    old_level = ytLogger.level
+
+
+def teardown():
+    set_log_level(old_level)
+
 
 def test_valid_level():
     # test a subset of valid entries to cover

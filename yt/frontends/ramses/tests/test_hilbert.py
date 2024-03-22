@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import assert_equal
 
 import yt
-from yt.frontends.ramses.hilbert import get_cpu_list, hilbert3d
+from yt.frontends.ramses.hilbert import get_cpu_list_cuboid, hilbert3d
 from yt.testing import requires_file
 
 
@@ -44,6 +44,6 @@ def test_get_cpu_list():
 
     for i, o in zip(inputs, outputs):
         bbox = i
-        ls = get_cpu_list(ds, bbox)
+        ls = list(get_cpu_list_cuboid(ds, bbox))
         assert len(ls) > 0
         assert all(np.array(o) == np.array(ls))

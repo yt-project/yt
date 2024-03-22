@@ -4,7 +4,6 @@ on cloud platforms like Travis
 
 """
 
-
 import argparse
 import base64
 import collections

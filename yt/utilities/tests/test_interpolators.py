@@ -110,7 +110,7 @@ def test_ghost_zone_extrapolation():
         [("index", "x"), ("index", "y"), ("index", "z")], no_ghost=True
     )
     for i, ax in enumerate("xyz"):
-        xc = g[("index", ax)]
+        xc = g["index", ax]
 
         tf = lin.TrilinearFieldInterpolator(
             xc,
@@ -143,7 +143,7 @@ def test_ghost_zone_extrapolation():
         )
 
         ii = (lx, ly, lz)[i]
-        assert_array_equal(ii, vec[("index", ax)])
+        assert_array_equal(ii, vec["index", ax])
         assert_array_equal(ii, xi)
         assert_array_equal(ii, xz)
 

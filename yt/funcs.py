@@ -13,7 +13,6 @@ import subprocess
 import sys
 import time
 import traceback
-import urllib
 from collections import UserDict
 from collections.abc import Callable
 from copy import deepcopy
@@ -619,6 +618,8 @@ def fancy_download_file(url, filename, requests=None):
 
 
 def simple_download_file(url, filename):
+    import urllib.request
+
     class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError(
@@ -632,6 +633,8 @@ def simple_download_file(url, filename):
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass=True):
     import getpass
+    import urllib.parse
+    import urllib.request
 
     uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
     # since bitbucket doesn't return the required WWW-Authenticate header when
@@ -1321,9 +1324,8 @@ def parse_center_array(center, ds, axis: Optional[int] = None):
 
     # make sure the return value shares all
     # unit symbols with ds.unit_registry
-    center = ds.arr(center)
     # we rely on unyt to invalidate unit dimensionality here
-    center.convert_to_units("code_length")
+    center = ds.arr(center).in_units("code_length")
 
     if not ds._is_within_domain(center):
         mylog.warning(

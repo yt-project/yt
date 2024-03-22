@@ -62,7 +62,7 @@ cdef class GridTree:
                   int min_level = 0):
 
         cdef int i, j, k
-        cdef np.ndarray[np.int_t, ndim=1] child_ptr
+        cdef np.ndarray[np.int64_t, ndim=1] child_ptr
         self.total_size = dimensions.prod(axis=1).sum()
         # This doesn't happen all that often, but it is kind of annoying that
         # we don't have uniform "refine_by-as-a-list" behavior.
@@ -73,7 +73,7 @@ cdef class GridTree:
             # Not iterable
             self.refine_by[0] = self.refine_by[1] = self.refine_by[2] = refine_by
 
-        child_ptr = np.zeros(num_grids, dtype='int')
+        child_ptr = np.zeros(num_grids, dtype='int64')
 
         self.num_grids = num_grids
         self.num_root_grids = 0

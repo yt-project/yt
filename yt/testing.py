@@ -154,15 +154,19 @@ def amrspace(extent, levels=7, cells=8):
     # fill non-zero dims
     dcell = 1.0 / cells
     left_slice = tuple(
-        slice(extent[2 * n], extent[2 * n + 1], extent[2 * n + 1])
-        if dims_zero[n]
-        else slice(0.0, 1.0, dcell)
+        (
+            slice(extent[2 * n], extent[2 * n + 1], extent[2 * n + 1])
+            if dims_zero[n]
+            else slice(0.0, 1.0, dcell)
+        )
         for n in range(ndims)
     )
     right_slice = tuple(
-        slice(extent[2 * n + 1], extent[2 * n], -extent[2 * n + 1])
-        if dims_zero[n]
-        else slice(dcell, 1.0 + dcell, dcell)
+        (
+            slice(extent[2 * n + 1], extent[2 * n], -extent[2 * n + 1])
+            if dims_zero[n]
+            else slice(dcell, 1.0 + dcell, dcell)
+        )
         for n in range(ndims)
     )
     left_norm_grid = np.reshape(np.mgrid[left_slice].T.flat[ndims:], (-1, ndims))
@@ -434,11 +438,11 @@ def fake_tetrahedral_ds():
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
-    node_data[("connect1", "test")] = dist[_connectivity]
+    node_data["connect1", "test"] = dist[_connectivity]
 
     # each element gets a random number
     elem_data = {}
-    elem_data[("connect1", "elem")] = prng.rand(_connectivity.shape[0])
+    elem_data["connect1", "elem"] = prng.rand(_connectivity.shape[0])
 
     ds = load_unstructured_mesh(
         _connectivity, _coordinates, node_data=node_data, elem_data=elem_data
@@ -457,14 +461,14 @@ def fake_hexahedral_ds(fields=None):
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
-    node_data[("connect1", "test")] = dist[_connectivity - 1]
+    node_data["connect1", "test"] = dist[_connectivity - 1]
 
     for field in always_iterable(fields):
-        node_data[("connect1", field)] = dist[_connectivity - 1]
+        node_data["connect1", field] = dist[_connectivity - 1]
 
     # each element gets a random number
     elem_data = {}
-    elem_data[("connect1", "elem")] = prng.rand(_connectivity.shape[0])
+    elem_data["connect1", "elem"] = prng.rand(_connectivity.shape[0])
 
     ds = load_unstructured_mesh(
         _connectivity - 1, _coordinates, node_data=node_data, elem_data=elem_data
@@ -492,7 +496,7 @@ def small_fake_hexahedral_ds():
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
-    node_data[("connect1", "test")] = dist[_connectivity - 1]
+    node_data["connect1", "test"] = dist[_connectivity - 1]
 
     ds = load_unstructured_mesh(_connectivity - 1, _coordinates, node_data=node_data)
     return ds
@@ -501,7 +505,7 @@ def small_fake_hexahedral_ds():
 def fake_stretched_ds(N=16):
     from yt.loaders import load_uniform_grid
 
-    np.random.seed(0x4D3D3D3)
+    np.random.RandomState().seed(0x4D3D3D3)
     data = {"density": np.random.random((N, N, N))}
 
     cell_widths = []
@@ -731,10 +735,10 @@ def fake_octree_ds(
 
     if quantities is None:
         quantities = {}
-        quantities[("gas", "density")] = prng.random_sample((particles, 1))
-        quantities[("gas", "velocity_x")] = prng.random_sample((particles, 1))
-        quantities[("gas", "velocity_y")] = prng.random_sample((particles, 1))
-        quantities[("gas", "velocity_z")] = prng.random_sample((particles, 1))
+        quantities["gas", "density"] = prng.random_sample((particles, 1))
+        quantities["gas", "velocity_x"] = prng.random_sample((particles, 1))
+        quantities["gas", "velocity_y"] = prng.random_sample((particles, 1))
+        quantities["gas", "velocity_z"] = prng.random_sample((particles, 1))
 
     ds = load_octree(
         octree_mask=octree_mask,
@@ -1441,7 +1445,9 @@ class ParticleSelectionComparison:
             # NULP should be OK.  This is mostly for stuff like Rockstar, where
             # the f32->f64 casting happens at different places depending on
             # which code path we use.
-            assert_array_almost_equal_nulp(sel_pos, obj_results, 5)
+            assert_array_almost_equal_nulp(
+                np.asarray(sel_pos), np.asarray(obj_results), 5
+            )
 
     def run_defaults(self):
         """
@@ -1539,50 +1545,40 @@ def _deprecated_numpy_testing_reexport(func):
 
 
 @_deprecated_numpy_testing_reexport
-def assert_array_equal():
-    ...
+def assert_array_equal(): ...
 
 
 @_deprecated_numpy_testing_reexport
-def assert_almost_equal():
-    ...
+def assert_almost_equal(): ...
 
 
 @_deprecated_numpy_testing_reexport
-def assert_equal():
-    ...
+def assert_equal(): ...
 
 
 @_deprecated_numpy_testing_reexport
-def assert_array_less():
-    ...
+def assert_array_less(): ...
 
 
 @_deprecated_numpy_testing_reexport
-def assert_string_equal():
-    ...
+def assert_string_equal(): ...
 
 
 @_deprecated_numpy_testing_reexport
-def assert_array_almost_equal_nulp():
-    ...
+def assert_array_almost_equal_nulp(): ...
 
 
 @_deprecated_numpy_testing_reexport
-def assert_allclose():
-    ...
+def assert_allclose(): ...
 
 
 @_deprecated_numpy_testing_reexport
-def assert_raises():
-    ...
+def assert_raises(): ...
 
 
 @_deprecated_numpy_testing_reexport
-def assert_approx_equal():
-    ...
+def assert_approx_equal(): ...
 
 
 @_deprecated_numpy_testing_reexport
-def assert_array_almost_equal():
-    ...
+def assert_array_almost_equal(): ...

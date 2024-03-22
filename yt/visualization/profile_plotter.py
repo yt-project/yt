@@ -178,6 +178,7 @@ class ProfilePlot(BaseLinePlot):
     Use set_line_property to change line properties of one or all profiles.
 
     """
+
     _default_figure_size = (10.0, 8.0)
     _default_font_size = 18.0
 
@@ -911,6 +912,7 @@ class PhasePlot(ImagePlotContainer):
     >>> plot.annotate_title("This is a phase plot")
 
     """
+
     x_log = None
     y_log = None
     plot_title = None

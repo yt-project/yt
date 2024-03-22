@@ -23,4 +23,4 @@ interactively.
    streamlines
    colormaps/index
    geographic_projections_and_transforms
-   writing_fits_images
+   FITSImageData

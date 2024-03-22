@@ -140,6 +140,7 @@ class Camera(ParallelAnalysisInterface):
     >>> image = cam.snapshot(fn="my_rendering.png")
 
     """
+
     _sampler_object = VolumeRenderSampler
     _tf_figure = None
     _render_figure = None
@@ -184,8 +185,8 @@ class Camera(ParallelAnalysisInterface):
             center = self.ds.arr(center, units="code_length")
         # Ensure that width and center are in the same units
         # Cf. https://bitbucket.org/yt_analysis/yt/issue/1080
-        width.convert_to_units("code_length")
-        center.convert_to_units("code_length")
+        width = width.in_units("code_length")
+        center = center.in_units("code_length")
         self.orienter = Orientation(
             normal_vector, north_vector=north_vector, steady_north=steady_north
         )

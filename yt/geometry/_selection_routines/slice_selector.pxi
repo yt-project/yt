@@ -60,8 +60,8 @@ cdef class SliceSelector(SelectorObject):
                             if this_level == 1 or child_mask[i, j, k]:
                                 mask[i, j, k] = 1
                                 total += 1
-            if total == 0: return None
-            return mask.astype("bool")
+            if total == 0: return None, 0
+            return mask.astype("bool"), total
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

@@ -39,7 +39,7 @@ class TestGeoProjections(unittest.TestCase):
         assert self.ds.coordinates.data_transform[axis] == "PlateCarree"
         assert isinstance(
             self.slc._projection,
-            type(self.slc.plots[("stream", "Density")].axes.projection),
+            type(self.slc.plots["stream", "Density"].axes.projection),
         )
 
     @requires_module("cartopy")
@@ -63,7 +63,7 @@ class TestGeoProjections(unittest.TestCase):
             assert isinstance(self.slc._projection, proj_type)
             assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
             assert isinstance(
-                self.slc.plots[("stream", "Density")].axes.projection, proj_type
+                self.slc.plots["stream", "Density"].axes.projection, proj_type
             )
 
     @requires_module("cartopy")
@@ -83,7 +83,7 @@ class TestGeoProjections(unittest.TestCase):
             assert isinstance(self.slc._projection, proj_type)
             assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
             assert isinstance(
-                self.slc.plots[("stream", "Density")].axes.projection, proj_type
+                self.slc.plots["stream", "Density"].axes.projection, proj_type
             )
 
     @requires_module("cartopy")
@@ -111,7 +111,7 @@ class TestGeoProjections(unittest.TestCase):
             assert self.ds.coordinates.data_projection[axis] == "Mollweide"
             assert self.ds.coordinates.data_transform[axis] == "Miller"
             assert isinstance(
-                self.slc.plots[("stream", "Density")].axes.projection, proj_type
+                self.slc.plots["stream", "Density"].axes.projection, proj_type
             )
 
     @requires_module("cartopy")
@@ -119,13 +119,13 @@ class TestGeoProjections(unittest.TestCase):
         # checks that the axis extent is narrowed when doing a subselection
         axis = "altitude"
         slc = yt.SlicePlot(self.ds, axis, ("stream", "Density"), origin="native")
-        ax = slc.plots[("stream", "Density")].axes
+        ax = slc.plots["stream", "Density"].axes
         full_extent = np.abs(ax.get_extent())
 
         slc = yt.SlicePlot(
             self.ds, axis, ("stream", "Density"), origin="native", width=(80.0, 50.0)
         )
-        ax = slc.plots[("stream", "Density")].axes
+        ax = slc.plots["stream", "Density"].axes
         extent = np.abs(ax.get_extent())
         assert np.all(extent < full_extent)
 
