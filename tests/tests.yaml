@@ -3,6 +3,28 @@ answer_tests:
   local_art_004: # PR 3081, 3101
     - yt/frontends/art/tests/test_outputs.py:test_d9p
 
+#copied from boxlib frontend
+  local_amrex_012:
+    - yt/frontends/amrex/tests/test_outputs.py:test_radadvect
+    - yt/frontends/amrex/tests/test_outputs.py:test_radtube
+    - yt/frontends/amrex/tests/test_outputs.py:test_star
+    - yt/frontends/amrex/tests/test_outputs.py:test_OrionDataset
+    - yt/frontends/amrex/tests/test_outputs.py:test_CastroDataset
+    - yt/frontends/amrex/tests/test_outputs.py:test_RT_particles
+    - yt/frontends/amrex/tests/test_outputs.py:test_units_override
+    - yt/frontends/amrex/tests/test_outputs.py:test_raw_fields
+
+  local_amrex_particles_010:
+    - yt/frontends/amrex/tests/test_outputs.py:test_LyA
+    - yt/frontends/amrex/tests/test_outputs.py:test_nyx_particle_io
+    - yt/frontends/amrex/tests/test_outputs.py:test_castro_particle_io
+    - yt/frontends/amrex/tests/test_outputs.py:test_langmuir
+    - yt/frontends/amrex/tests/test_outputs.py:test_plasma
+    - yt/frontends/amrex/tests/test_outputs.py:test_beam
+    - yt/frontends/amrex/tests/test_outputs.py:test_warpx_particle_io
+    - yt/frontends/amrex/tests/test_outputs.py:test_NyxDataset
+    - yt/frontends/amrex/tests/test_outputs.py:test_WarpXDataset
+
   local_amrvac_009: # PR 2945
     - yt/frontends/amrvac/tests/test_outputs.py:test_domain_size
     - yt/frontends/amrvac/tests/test_outputs.py:test_bw_polar_2d
@@ -121,23 +143,8 @@ answer_tests:
 
   local_boxlib_012:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
-    - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
-    - yt/frontends/boxlib/tests/test_outputs.py:test_star
-    - yt/frontends/boxlib/tests/test_outputs.py:test_OrionDataset
-    - yt/frontends/boxlib/tests/test_outputs.py:test_CastroDataset
-    - yt/frontends/boxlib/tests/test_outputs.py:test_RT_particles
-    - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
-    - yt/frontends/boxlib/tests/test_outputs.py:test_raw_fields
 
   local_boxlib_particles_010:
-    - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
-    - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
-    - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
-    - yt/frontends/boxlib/tests/test_outputs.py:test_langmuir
-    - yt/frontends/boxlib/tests/test_outputs.py:test_plasma
-    - yt/frontends/boxlib/tests/test_outputs.py:test_beam
-    - yt/frontends/boxlib/tests/test_outputs.py:test_warpx_particle_io
-    - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
 
   local_ramses_005:  # PR 3856
