@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build wheels for CPython
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.16.5
         with:
           output-dir: dist
         env:
@@ -44,9 +44,9 @@ jobs:
           CIBW_ENVIRONMENT: "LDFLAGS='-static-libstdc++'"
           CIBW_BUILD_VERBOSITY: 1
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.os }}
           path: ./dist/*.whl
 
   build_sdist:
@@ -60,7 +60,7 @@ jobs:
         run: pipx run build --sdist
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -74,9 +74,9 @@ jobs:
       with:
         submodules: true
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.12'
     - name: install check-manifest
       run: |
         python -m pip install --upgrade pip
@@ -86,8 +86,8 @@ jobs:
 
       # keep in sync with pyproject.toml
       run: |
-        python -m pip install "Cython>=3.0,<3.1"
-        python -m pip install oldest-supported-numpy
+        python -m pip install "Cython>=3.0.3, <3.1"
+        python -m pip install numpy>=1.25
         python -m pip install ewah-bool-utils>=1.0.2
         python -m pip install --upgrade wheel
         python -m pip install --upgrade setuptools
@@ -106,19 +106,20 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/yt-')
     steps:
       - name: Download sdist
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: sdist
           path: dist
 
       - name: Download wheels
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: wheels
           path: dist
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.10
+        uses: pypa/gh-action-pypi-publish@v1.8.12
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}

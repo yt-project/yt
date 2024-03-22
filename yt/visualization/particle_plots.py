@@ -1,3 +1,6 @@
+import warnings
+from typing import Union
+
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -174,7 +177,7 @@ class ParticleOffAxisDummyDataSource(ParticleDummyDataSource):
         )
 
 
-class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
+class ParticleProjectionPlot(NormalPlot):
     r"""Creates a particle plot from a dataset
 
     Given a ds object, a normal to project along, and a field name
@@ -325,6 +328,48 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
     >>> p.save()
 
     """
+
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
+        cls, ds, normal=None, *args, axis=None, **kwargs
+    ) -> Union["AxisAlignedParticleProjectionPlot", "OffAxisParticleProjectionPlot"]:
+        # TODO: when axis' deprecation expires,
+        # remove default value for normal
+
+        normal = cls._handle_normalaxis_parameters(normal=normal, axis=axis)
+        if cls is ParticleProjectionPlot:
+            normal = cls.sanitize_normal_vector(ds, normal)
+            if isinstance(normal, str):
+                cls = AxisAlignedParticleProjectionPlot
+            else:
+                cls = OffAxisParticleProjectionPlot
+        self = object.__new__(cls)
+        return self  # type: ignore [return-value]
+
+    @staticmethod
+    def _handle_normalaxis_parameters(*, normal, axis) -> None:
+        # TODO: when axis' deprecation expires,
+        # remove this method entirely
+        if axis is not None:
+            issue_deprecation_warning(
+                "Argument 'axis' is a deprecated alias for 'normal'.",
+                since="4.2",
+                stacklevel=4,
+            )
+            if normal is not None:
+                raise TypeError("Received incompatible arguments 'axis' and 'normal'")
+            normal = axis
+
+        if normal is None:
+            raise TypeError("missing required positional argument: 'normal'")
+
+        return normal
+
+
+class AxisAlignedParticleProjectionPlot(ParticleProjectionPlot, PWViewerMPL):
     _plot_type = "Particle"
     _frb_generator = ParticleImageBuffer
 
@@ -351,17 +396,16 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
         north_vector=None,
         axis=None,
     ):
-        if axis is not None:
-            issue_deprecation_warning(
-                "The 'axis' argument is a deprecated alias for the 'normal' argument. ",
-                stacklevel=3,
-                since="4.2",
+        if north_vector is not None:
+            # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
+            mylog.warning(
+                "Ignoring 'north_vector' keyword as it is ill-defined for "
+                "an AxisAlignedParticleProjectionPlot object."
             )
-            normal = axis
-        if normal is None:
-            raise TypeError(
-                "ParticleProjectionPlot() missing 1 required positional argument: 'normal'"
-            )
+            del north_vector
+
+        normal = self._handle_normalaxis_parameters(normal=normal, axis=axis)
+
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
@@ -370,103 +414,172 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
         if field_parameters is None:
             field_parameters = {}
 
-        if axes_unit is None:
-            axes_unit = get_axes_unit(width, ds)
+        self.set_axes_unit(axes_unit or get_axes_unit(width, ds))
 
         # if no fields are passed in, we simply mark the x and
         # y fields using a given color. Use the 'particle_ones'
         # field to do this. We also turn off the colorbar in
         # this case.
-        self._use_cbar = True
+        use_cbar = True
         splat_color = None
         if fields is None:
             fields = [("all", "particle_ones")]
             weight_field = ("all", "particle_ones")
-            self._use_cbar = False
+            use_cbar = False
             splat_color = color
 
-        if isinstance(normal, str):
-            axis = fix_axis(normal, ds)
-            (bounds, center, display_center) = get_window_parameters(
-                axis, center, width, ds
-            )
-            x_coord = ds.coordinates.x_axis[axis]
-            y_coord = ds.coordinates.y_axis[axis]
+        axis = fix_axis(normal, ds)
+        (bounds, center, display_center) = get_window_parameters(
+            axis, center, width, ds
+        )
+        x_coord = ds.coordinates.x_axis[axis]
+        y_coord = ds.coordinates.y_axis[axis]
 
-            depth = ds.coordinates.sanitize_depth(depth)
+        depth = ds.coordinates.sanitize_depth(depth)
 
-            width = np.zeros_like(center)
-            width[x_coord] = bounds[1] - bounds[0]
-            width[y_coord] = bounds[3] - bounds[2]
-            width[axis] = depth[0].in_units(width[x_coord].units)
-
-            ParticleSource = ParticleAxisAlignedDummyDataSource(
-                center,
-                ds,
-                axis,
-                width,
-                fields,
-                weight_field=weight_field,
-                field_parameters=field_parameters,
-                data_source=data_source,
-                deposition=deposition,
-                density=density,
-            )
-
-            oblique = False
-            plt_origin = origin
-            periodic = True
-
-        else:
-            (bounds, center_rot) = get_oblique_window_parameters(
-                normal, center, width, ds, depth=depth
-            )
-
-            width = ds.coordinates.sanitize_width(normal, width, depth)
-
-            ParticleSource = ParticleOffAxisDummyDataSource(
-                center_rot,
-                ds,
-                normal,
-                width,
-                fields,
-                weight_field=weight_field,
-                field_parameters=field_parameters,
-                data_source=None,
-                deposition=deposition,
-                density=density,
-                north_vector=north_vector,
-            )
-
-            oblique = True
-            periodic = False
-            if origin != "center-window":
-                mylog.warning(
-                    "The 'origin' keyword is ignored for off-axis "
-                    "particle projections, it is always 'center-window'"
-                )
-            plt_origin = "center-window"
+        width = np.zeros_like(center)
+        width[x_coord] = bounds[1] - bounds[0]
+        width[y_coord] = bounds[3] - bounds[2]
+        width[axis] = depth[0].in_units(width[x_coord].units)
 
         self.projected = weight_field is None
+
+        ParticleSource = ParticleAxisAlignedDummyDataSource(
+            center,
+            ds,
+            axis,
+            width,
+            fields,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            data_source=data_source,
+            deposition=deposition,
+            density=density,
+        )
 
         PWViewerMPL.__init__(
             self,
             ParticleSource,
             bounds,
-            origin=plt_origin,
+            origin=origin,
             fontsize=fontsize,
             fields=fields,
             window_size=window_size,
             aspect=aspect,
             splat_color=splat_color,
             geometry=ds.geometry,
-            periodic=periodic,
-            oblique=oblique,
+            periodic=True,
+            oblique=False,
         )
 
-        self.set_axes_unit(axes_unit)
+        if not use_cbar:
+            self.hide_colorbar()
 
-        if not self._use_cbar:
+
+class OffAxisParticleProjectionPlot(ParticleProjectionPlot, PWViewerMPL):
+    _plot_type = "Particle"
+    _frb_generator = ParticleImageBuffer
+
+    def __init__(
+        self,
+        ds,
+        normal=None,
+        fields=None,
+        color="b",
+        center="center",
+        width=None,
+        depth=(1, "1"),
+        weight_field=None,
+        axes_unit=None,
+        origin="center-window",
+        fontsize=18,
+        field_parameters=None,
+        window_size=8.0,
+        aspect=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+        *,
+        north_vector=None,
+        axis=None,
+    ):
+        if data_source is not None:
+            warnings.warn(
+                "The 'data_source' argument has no effect for "
+                "off-axis particle projections (not implemented)",
+                stacklevel=2,
+            )
+            del data_source
+        if origin != "center-window":
+            warnings.warn(
+                "The 'origin' argument is ignored for off-axis "
+                "particle projections, it is always 'center-window'",
+                stacklevel=2,
+            )
+            del origin
+
+        normal = self._handle_normalaxis_parameters(normal=normal, axis=axis)
+
+        # this will handle time series data and controllers
+        ts = self._initialize_dataset(ds)
+        self.ts = ts
+        ds = self.ds = ts[0]
+        normal = self.sanitize_normal_vector(ds, normal)
+        if field_parameters is None:
+            field_parameters = {}
+
+        self.set_axes_unit(axes_unit or get_axes_unit(width, ds))
+
+        # if no fields are passed in, we simply mark the x and
+        # y fields using a given color. Use the 'particle_ones'
+        # field to do this. We also turn off the colorbar in
+        # this case.
+        use_cbar = True
+        splat_color = None
+        if fields is None:
+            fields = [("all", "particle_ones")]
+            weight_field = ("all", "particle_ones")
+            use_cbar = False
+            splat_color = color
+
+        (bounds, center_rot) = get_oblique_window_parameters(
+            normal, center, width, ds, depth=depth
+        )
+
+        width = ds.coordinates.sanitize_width(normal, width, depth)
+
+        self.projected = weight_field is None
+
+        ParticleSource = ParticleOffAxisDummyDataSource(
+            center_rot,
+            ds,
+            normal,
+            width,
+            fields,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            data_source=None,
+            deposition=deposition,
+            density=density,
+            north_vector=north_vector,
+        )
+
+        PWViewerMPL.__init__(
+            self,
+            ParticleSource,
+            bounds,
+            origin="center-window",
+            fontsize=fontsize,
+            fields=fields,
+            window_size=window_size,
+            aspect=aspect,
+            splat_color=splat_color,
+            geometry=ds.geometry,
+            periodic=False,
+            oblique=True,
+        )
+
+        if not use_cbar:
             self.hide_colorbar()
 
 
@@ -553,6 +666,7 @@ class ParticlePhasePlot(PhasePlot):
     >>> plot.set_unit("particle_mass", "Msun")
 
     """
+
     _plot_type = "ParticlePhase"
 
     def __init__(

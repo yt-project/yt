@@ -727,6 +727,10 @@ class DarkMatterARTDataset(ARTDataset):
 
 
 class ARTDomainSubset(OctreeSubset):
+    @property
+    def oct_handler(self):
+        return self.domain.oct_handler
+
     def fill(self, content, ftfields, selector):
         """
         This is called from IOHandler. It takes content
@@ -798,7 +802,11 @@ class ARTDomainFile:
         self._level_count = None
         self._level_oct_offsets = None
         self._level_child_offsets = None
-        self.oct_handler = oct_handler
+        self._oct_handler = oct_handler
+
+    @property
+    def oct_handler(self):
+        return self._oct_handler
 
     @property
     def level_count(self):

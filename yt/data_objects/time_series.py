@@ -143,6 +143,7 @@ class DatasetSeries:
     ...     SlicePlot(ds, "x", ("gas", "density")).save()
 
     """
+
     # this annotation should really be Optional[Type[Dataset]]
     # but we cannot import the yt.data_objects.static_output.Dataset
     # class here without creating a circular import for now
@@ -417,13 +418,13 @@ class DatasetSeries:
         ... ]
         >>> ds = load(my_fns[0])
         >>> init_sphere = ds.sphere(ds.domain_center, (0.5, "unitary"))
-        >>> indices = init_sphere[("all", "particle_index")].astype("int64")
+        >>> indices = init_sphere["all", "particle_index"].astype("int64")
         >>> ts = DatasetSeries(my_fns)
         >>> trajs = ts.particle_trajectories(indices, fields=fields)
         >>> for t in trajs:
         ...     print(
-        ...         t[("all", "particle_velocity_x")].max(),
-        ...         t[("all", "particle_velocity_x")].min(),
+        ...         t["all", "particle_velocity_x"].max(),
+        ...         t["all", "particle_velocity_x"].min(),
         ...     )
 
         Notes

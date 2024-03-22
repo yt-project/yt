@@ -66,11 +66,9 @@ class GizmoFieldInfo(GadgetFieldInfo):
         super().setup_gas_particle_fields(ptype)
 
         def _h_p0_density(field, data):
-            x_H = 1.0 - data[(ptype, "He_metallicity")] - data[(ptype, "metallicity")]
+            x_H = 1.0 - data[ptype, "He_metallicity"] - data[ptype, "metallicity"]
             return (
-                x_H
-                * data[(ptype, "density")]
-                * data[(ptype, "NeutralHydrogenAbundance")]
+                x_H * data[ptype, "density"] * data[ptype, "NeutralHydrogenAbundance"]
             )
 
         self.add_field(
@@ -82,11 +80,11 @@ class GizmoFieldInfo(GadgetFieldInfo):
         add_species_field_by_density(self, ptype, "H")
 
         def _h_p1_density(field, data):
-            x_H = 1.0 - data[(ptype, "He_metallicity")] - data[(ptype, "metallicity")]
+            x_H = 1.0 - data[ptype, "He_metallicity"] - data[ptype, "metallicity"]
             return (
                 x_H
-                * data[(ptype, "density")]
-                * (1.0 - data[(ptype, "NeutralHydrogenAbundance")])
+                * data[ptype, "density"]
+                * (1.0 - data[ptype, "NeutralHydrogenAbundance"])
             )
 
         self.add_field(
@@ -151,11 +149,11 @@ class GizmoFieldInfo(GadgetFieldInfo):
     def setup_star_particle_fields(self, ptype):
         def _creation_time(field, data):
             if data.ds.cosmological_simulation:
-                a_form = data[(ptype, "StellarFormationTime")]
+                a_form = data[ptype, "StellarFormationTime"]
                 z_form = 1 / a_form - 1
                 creation_time = data.ds.cosmology.t_from_z(z_form)
             else:
-                t_form = data[(ptype, "StellarFormationTime")]
+                t_form = data[ptype, "StellarFormationTime"]
                 creation_time = data.ds.arr(t_form, "code_time")
             return creation_time
 
@@ -167,7 +165,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         )
 
         def _age(field, data):
-            return data.ds.current_time - data[(ptype, "creation_time")]
+            return data.ds.current_time - data[ptype, "creation_time"]
 
         self.add_field(
             (ptype, "age"),

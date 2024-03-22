@@ -199,7 +199,8 @@ class FieldDetector(defaultdict):
     def mesh_sampling_particle_field(self, *args, **kwargs):
         pos = args[0]
         npart = len(pos)
-        return np.random.rand(npart)
+        rng = np.random.default_rng()
+        return rng.random(npart)
 
     def smooth(self, *args, **kwargs):
         tr = np.random.random((self.nd, self.nd, self.nd))

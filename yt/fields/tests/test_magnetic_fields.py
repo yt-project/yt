@@ -57,53 +57,53 @@ def test_magnetic_fields():
     assert ds4.fields.gas.magnetic_field_toroidal.units == "code_magnetic"
 
     emag0 = (
-        dd0[("gas", "magnetic_field_x")] ** 2
-        + dd0[("gas", "magnetic_field_y")] ** 2
-        + dd0[("gas", "magnetic_field_z")] ** 2
+        dd0["gas", "magnetic_field_x"] ** 2
+        + dd0["gas", "magnetic_field_y"] ** 2
+        + dd0["gas", "magnetic_field_z"] ** 2
     ) / (8.0 * np.pi)
     emag0.convert_to_units("dyne/cm**2")
 
     emag1 = (
-        dd1[("gas", "magnetic_field_x")] ** 2
-        + dd1[("gas", "magnetic_field_y")] ** 2
-        + dd1[("gas", "magnetic_field_z")] ** 2
+        dd1["gas", "magnetic_field_x"] ** 2
+        + dd1["gas", "magnetic_field_y"] ** 2
+        + dd1["gas", "magnetic_field_z"] ** 2
     ) / (8.0 * np.pi)
     emag1.convert_to_units("dyne/cm**2")
 
     emag2 = (
-        dd2[("gas", "magnetic_field_x")] ** 2
-        + dd2[("gas", "magnetic_field_y")] ** 2
-        + dd2[("gas", "magnetic_field_z")] ** 2
+        dd2["gas", "magnetic_field_x"] ** 2
+        + dd2["gas", "magnetic_field_y"] ** 2
+        + dd2["gas", "magnetic_field_z"] ** 2
     ) / (2.0 * mu_0)
     emag2.convert_to_units("Pa")
 
     emag3 = (
-        dd3[("gas", "magnetic_field_x")] ** 2
-        + dd3[("gas", "magnetic_field_y")] ** 2
-        + dd3[("gas", "magnetic_field_z")] ** 2
+        dd3["gas", "magnetic_field_x"] ** 2
+        + dd3["gas", "magnetic_field_y"] ** 2
+        + dd3["gas", "magnetic_field_z"] ** 2
     ) / (8.0 * np.pi)
     emag3.convert_to_units("code_pressure")
 
     emag4 = (
-        dd4[("gas", "magnetic_field_x")] ** 2
-        + dd4[("gas", "magnetic_field_y")] ** 2
-        + dd4[("gas", "magnetic_field_z")] ** 2
+        dd4["gas", "magnetic_field_x"] ** 2
+        + dd4["gas", "magnetic_field_y"] ** 2
+        + dd4["gas", "magnetic_field_z"] ** 2
     ) / (2.0 * mu_0)
     emag4.convert_to_units("code_pressure")
 
     # note that "magnetic_energy_density" and "magnetic_pressure" are aliased
 
-    assert_almost_equal(emag0, dd0[("gas", "magnetic_energy_density")])
-    assert_almost_equal(emag1, dd1[("gas", "magnetic_energy_density")])
-    assert_almost_equal(emag2, dd2[("gas", "magnetic_energy_density")])
-    assert_almost_equal(emag3, dd3[("gas", "magnetic_energy_density")])
-    assert_almost_equal(emag4, dd4[("gas", "magnetic_energy_density")])
+    assert_almost_equal(emag0, dd0["gas", "magnetic_energy_density"])
+    assert_almost_equal(emag1, dd1["gas", "magnetic_energy_density"])
+    assert_almost_equal(emag2, dd2["gas", "magnetic_energy_density"])
+    assert_almost_equal(emag3, dd3["gas", "magnetic_energy_density"])
+    assert_almost_equal(emag4, dd4["gas", "magnetic_energy_density"])
 
-    assert str(emag0.units) == str(dd0[("gas", "magnetic_energy_density")].units)
-    assert str(emag1.units) == str(dd1[("gas", "magnetic_energy_density")].units)
-    assert str(emag2.units) == str(dd2[("gas", "magnetic_energy_density")].units)
-    assert str(emag3.units) == str(dd3[("gas", "magnetic_energy_density")].units)
-    assert str(emag4.units) == str(dd4[("gas", "magnetic_energy_density")].units)
+    assert str(emag0.units) == str(dd0["gas", "magnetic_energy_density"].units)
+    assert str(emag1.units) == str(dd1["gas", "magnetic_energy_density"].units)
+    assert str(emag2.units) == str(dd2["gas", "magnetic_energy_density"].units)
+    assert str(emag3.units) == str(dd3["gas", "magnetic_energy_density"].units)
+    assert str(emag4.units) == str(dd4["gas", "magnetic_energy_density"].units)
 
     assert_almost_equal(emag1.in_cgs(), emag0.in_cgs())
     assert_almost_equal(emag2.in_cgs(), emag0.in_cgs())

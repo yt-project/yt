@@ -493,18 +493,14 @@ def test_on_off_compare():
         ds, L, ("gas", "density"), center=[0, 0, 0], north_vector=north_vector
     )
 
-    assert_array_almost_equal(
-        sl_on.frb[("gas", "density")], sl_off.frb[("gas", "density")]
-    )
+    assert_array_almost_equal(sl_on.frb["gas", "density"], sl_off.frb["gas", "density"])
 
     sl_on.set_buff_size((800, 400))
     sl_on._recreate_frb()
     sl_off.set_buff_size((800, 400))
     sl_off._recreate_frb()
 
-    assert_array_almost_equal(
-        sl_on.frb[("gas", "density")], sl_off.frb[("gas", "density")]
-    )
+    assert_array_almost_equal(sl_on.frb["gas", "density"], sl_off.frb["gas", "density"])
 
 
 def test_plot_particle_field_error():
@@ -592,7 +588,7 @@ def test_setup_origin():
     ]
     for o in origin_inputs:
         slc = SlicePlot(ds, 2, ("gas", "density"), width=w, origin=o)
-        ax = slc.plots[("gas", "density")].axes
+        ax = slc.plots["gas", "density"].axes
         xlims = ax.get_xlim()
         ylims = ax.get_ylim()
         lims = [xlims[0], xlims[1], ylims[0], ylims[1]]
@@ -605,9 +601,9 @@ def test_frb_regen():
     ds = fake_random_ds(32)
     slc = SlicePlot(ds, 2, ("gas", "density"))
     slc.set_buff_size(1200)
-    assert_equal(slc.frb[("gas", "density")].shape, (1200, 1200))
+    assert_equal(slc.frb["gas", "density"].shape, (1200, 1200))
     slc.set_buff_size((400.0, 200.7))
-    assert_equal(slc.frb[("gas", "density")].shape, (200, 400))
+    assert_equal(slc.frb["gas", "density"].shape, (200, 400))
 
 
 def test_set_background_color():
@@ -615,7 +611,7 @@ def test_set_background_color():
     plot = SlicePlot(ds, 2, ("gas", "density"))
     plot.set_background_color(("gas", "density"), "red")
     plot.render()
-    ax = plot.plots[("gas", "density")].axes
+    ax = plot.plots["gas", "density"].axes
     assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
 
 
@@ -689,36 +685,32 @@ def test_plot_2d():
         width=(0.2, "unitary"),
         center=ds.arr([0.4, 0.3], "cm"),
     )
-    assert_array_equal(
-        slc.frb[("gas", "temperature")], slc2.frb[("gas", "temperature")]
-    )
-    assert_array_equal(
-        slc.frb[("gas", "temperature")], slc3.frb[("gas", "temperature")]
-    )
+    assert_array_equal(slc.frb["gas", "temperature"], slc2.frb["gas", "temperature"])
+    assert_array_equal(slc.frb["gas", "temperature"], slc3.frb["gas", "temperature"])
     # Cylindrical
     ds = data_dir_load(WD)
     slc = SlicePlot(ds, "theta", [("gas", "density")], width=(30000.0, "km"))
     slc2 = plot_2d(ds, ("gas", "density"), width=(30000.0, "km"))
-    assert_array_equal(slc.frb[("gas", "density")], slc2.frb[("gas", "density")])
+    assert_array_equal(slc.frb["gas", "density"], slc2.frb["gas", "density"])
 
     # Spherical
     ds = data_dir_load(blast_wave)
     slc = SlicePlot(ds, "phi", [("gas", "density")], width=(1, "unitary"))
     slc2 = plot_2d(ds, ("gas", "density"), width=(1, "unitary"))
-    assert_array_equal(slc.frb[("gas", "density")], slc2.frb[("gas", "density")])
+    assert_array_equal(slc.frb["gas", "density"], slc2.frb["gas", "density"])
 
 
 def test_symlog_colorbar():
     ds = fake_random_ds(16)
 
     def _thresh_density(field, data):
-        wh = data[("gas", "density")] < 0.5
-        ret = data[("gas", "density")]
+        wh = data["gas", "density"] < 0.5
+        ret = data["gas", "density"]
         ret[wh] = 0
         return ret
 
     def _neg_density(field, data):
-        return -data[("gas", "threshold_density")]
+        return -data["gas", "threshold_density"]
 
     ds.add_field(
         ("gas", "threshold_density"),

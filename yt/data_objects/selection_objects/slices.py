@@ -57,7 +57,7 @@ class YTSlice(YTSelectionContainer2D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> slice = ds.slice(0, 0.25)
-    >>> print(slice[("gas", "density")])
+    >>> print(slice["gas", "density"])
     """
 
     _top_node = "/Slices"
@@ -184,7 +184,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> cp = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
-    >>> print(cp[("gas", "density")])
+    >>> print(cp["gas", "density"])
     """
 
     _plane = None
@@ -214,7 +214,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer2D.__init__(self, None, ds, field_parameters, data_source)
         self._set_center(center)
-        self.set_field_parameter("center", center)
+        self.set_field_parameter("center", self.center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
         self.orienter = Orientation(normal, north_vector=north_vector)
@@ -351,7 +351,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         >>> L = sp.quantities.angular_momentum_vector()
         >>> cutting = ds.cutting(L, c)
         >>> frb = cutting.to_frb((1.0, "pc"), 1024)
-        >>> write_image(np.log10(frb[("gas", "density")]), "density_1pc.png")
+        >>> write_image(np.log10(frb["gas", "density"]), "density_1pc.png")
         """
         if is_sequence(width):
             validate_width_tuple(width)

@@ -58,7 +58,7 @@ class IOHandlerART(BaseIOHandler):
                         cp,
                         cp + d.size,
                     )
-                    tr[(ft, f)].append(d)
+                    tr[ft, f].append(d)
                 cp += d.size
         d = {}
         for field in fields:

@@ -3,6 +3,7 @@ class TreeContainer:
     clump-finder trees.
 
     """
+
     _child_attr = "children"
 
     def __init__(self):

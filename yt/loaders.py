@@ -2,6 +2,7 @@
 This module gathers all user-facing functions with a `load_` prefix.
 
 """
+
 import atexit
 import os
 import sys
@@ -287,7 +288,7 @@ def load_uniform_grid(
     cell_widths: list, optional
         If set, cell_widths is a list of arrays with an array for each dimension,
         specificing the cell spacing in that dimension. Must be consistent with
-        the domain_dimensions. nprocs must remain 1 to set cell_widths.
+        the domain_dimensions.
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
@@ -303,7 +304,7 @@ def load_uniform_grid(
     >>> data = dict(density=arr)
     >>> ds = load_uniform_grid(data, arr.shape, length_unit="cm", bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd[("gas", "density")]
+    >>> dd["gas", "density"]
     unyt_array([0.76017901, 0.96855994, 0.49205428, ..., 0.78798258,
                 0.97569432, 0.99453904], 'g/cm**3')
     """
@@ -354,16 +355,30 @@ def load_uniform_grid(
     else:
         particle_types = {}
 
+    if cell_widths is not None:
+        cell_widths = _validate_cell_widths(cell_widths, domain_dimensions)
+
     if nprocs > 1:
         temp = {}
         new_data = {}  # type: ignore [var-annotated]
         for key in data.keys():
             psize = get_psize(np.array(data[key].shape), nprocs)
-            grid_left_edges, grid_right_edges, shapes, slices = decompose_array(
-                data[key].shape, psize, bbox
+            (
+                grid_left_edges,
+                grid_right_edges,
+                shapes,
+                slices,
+                grid_cell_widths,
+            ) = decompose_array(
+                data[key].shape,
+                psize,
+                bbox,
+                cell_widths=cell_widths,
             )
+            cell_widths = grid_cell_widths
             grid_dimensions = np.array(list(shapes), dtype="int32")
             temp[key] = [data[key][slice] for slice in slices]
+
         for gid in range(nprocs):
             new_data[gid] = {}
             for key in temp.keys():
@@ -375,13 +390,10 @@ def load_uniform_grid(
         grid_left_edges = domain_left_edge
         grid_right_edges = domain_right_edge
         grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
-
-    if cell_widths is not None:
-        # cell_widths left as an empty guard value if None
-        if nprocs != 1:
-            # see https://github.com/yt-project/yt/issues/4330
-            raise NotImplementedError("nprocs must equal 1 if supplying cell_widths.")
-        cell_widths = _validate_cell_widths(cell_widths, domain_dimensions)
+        if cell_widths is not None:
+            cell_widths = [
+                cell_widths,
+            ]
 
     if length_unit is None:
         length_unit = "code_length"
@@ -557,7 +569,7 @@ def load_amr_grids(
     ... ]
     ...
     >>> for g in grid_data:
-    ...     g[("gas", "density")] = (
+    ...     g["gas", "density"] = (
     ...         np.random.random(g["dimensions"]) * 2 ** g["level"],
     ...         "g/cm**3",
     ...     )
@@ -1487,14 +1499,6 @@ def _get_sample_data(
     # broadcast to other processes during parallel execution).
     import tarfile
 
-    if fn is None:
-        print(
-            "One can see which sample datasets are available at: https://yt-project.org/data\n"
-            "or alternatively by running: yt.sample_data.api.get_data_registry_table()",
-            file=sys.stderr,
-        )
-        return None
-
     from yt.sample_data.api import (
         _download_sample_data_file,
         _get_test_data_dir_path,
@@ -1596,7 +1600,15 @@ def _get_sample_data(
                     if not is_within_directory(path, member_path):
                         raise Exception("Attempted Path Traversal in Tar File")
 
-                tar.extractall(path, members, numeric_owner=numeric_owner)
+                if sys.version_info >= (3, 12):
+                    # the filter argument is new in Python 3.12, but not specifying it
+                    # explicitly raises a deprecation warning on 3.12 and 3.13
+                    extractall_kwargs = {"filter": "data"}
+                else:
+                    extractall_kwargs = {}
+                tar.extractall(
+                    path, members, numeric_owner=numeric_owner, **extractall_kwargs
+                )
 
             safe_extract(fh, save_dir)
         os.remove(tmp_file)
@@ -1663,6 +1675,15 @@ def load_sample(
     - Corresponding sample data live at https://yt-project.org/data
 
     """
+
+    if fn is None:
+        print(
+            "One can see which sample datasets are available at: https://yt-project.org/data\n"
+            "or alternatively by running: yt.sample_data.api.get_data_registry_table()",
+            file=sys.stderr,
+        )
+        return None
+
     loadable_path, load_kwargs = _get_sample_data(
         fn, progressbar=progressbar, timeout=timeout, **kwargs
     )
@@ -1896,7 +1917,7 @@ def load_hdf5_file(
         mylog.info("Auto-guessing %s chunks from a size of %s", nchunks, full_size)
     grid_data = []
     psize = get_psize(np.array(shape), nchunks)
-    left_edges, right_edges, shapes, _ = decompose_array(shape, psize, bbox)
+    left_edges, right_edges, shapes, _, _ = decompose_array(shape, psize, bbox)
     for le, re, s in zip(left_edges, right_edges, shapes):
         data = {_: reader for _ in fields}
         data.update({"left_edge": le, "right_edge": re, "dimensions": s, "level": 0})

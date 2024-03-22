@@ -18,7 +18,7 @@ ci:
 
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
     - id: trailing-whitespace
     - id: end-of-file-fixer
@@ -28,7 +28,7 @@ repos:
     - id: check-yaml
 
 -   repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 23.9.1
+    rev: 24.1.1
     hooks:
     - id: black-jupyter
 
@@ -39,16 +39,10 @@ repos:
         additional_dependencies: [black==23.9.1]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.0.292
+  rev: v0.2.0
   hooks:
   - id: ruff
-    args: [--fix]
-
-- repo: https://github.com/nbQA-dev/nbQA
-  rev: 1.7.0
-  hooks:
-  - id: nbqa-ruff
-    args: [--fix, --extend-ignore=E402]
+    args: [--fix, "--show-fixes"]
 
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
@@ -56,7 +50,7 @@ repos:
     -   id: rst-backticks
 
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.15.0
+  rev: v0.16.0
   hooks:
   - id: cython-lint
     args: [--no-pycodestyle]

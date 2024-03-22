@@ -85,9 +85,9 @@ else:
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
 
-_cached_datasets: MutableMapping[
-    Union[int, str], "Dataset"
-] = weakref.WeakValueDictionary()
+_cached_datasets: MutableMapping[Union[int, str], "Dataset"] = (
+    weakref.WeakValueDictionary()
+)
 
 # we set this global to None as a place holder
 # its actual instantiation is delayed until after yt.__init__

@@ -42,9 +42,9 @@ Example Notebooks
    custom_colorbar_tickmarks
    yt_gadget_analysis
    yt_gadget_owls_analysis
-   ../visualizing/transfer_function_helper
+   ../visualizing/TransferFunctionHelper_Tutorial
    fits_radio_cubes
    fits_xray_images
    geographic_xforms_and_projections
    tipsy_and_yt
-   ../visualizing/volume_rendering_tutorial
+   ../visualizing/Volume_Rendering_Tutorial

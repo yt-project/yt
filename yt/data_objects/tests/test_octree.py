@@ -12,7 +12,7 @@ def test_building_tree():
     """
     ds = fake_sph_grid_ds()
     octree = ds.octree(n_ref=n_ref)
-    assert octree[("index", "x")].shape[0] == 17
+    assert octree["index", "x"].shape[0] == 17
 
 
 def test_sph_interpolation_scatter():
@@ -28,7 +28,7 @@ def test_sph_interpolation_scatter():
 
     octree = ds.octree(n_ref=n_ref)
 
-    density = octree[("io", "density")]
+    density = octree["io", "density"]
     answers = np.array(
         [
             1.00434706,
@@ -67,7 +67,7 @@ def test_sph_interpolation_gather():
 
     octree = ds.octree(n_ref=n_ref)
 
-    density = octree[("io", "density")]
+    density = octree["io", "density"]
     answers = np.array(
         [
             0.59240874,
@@ -98,7 +98,7 @@ def test_octree_properties():
     ds = fake_sph_grid_ds()
     octree = ds.octree(n_ref=n_ref)
 
-    depth = octree[("index", "depth")]
+    depth = octree["index", "depth"]
     depth_ans = np.array([0] + [1] * 8 + [2] * 8, dtype=np.int64)
     assert_equal(depth, depth_ans)
 
@@ -106,15 +106,15 @@ def test_octree_properties():
     for i in range(size_ans.shape[0]):
         size_ans[i, :] = (ds.domain_right_edge - ds.domain_left_edge) / 2.0 ** depth[i]
 
-    dx = octree[("index", "dx")].d
+    dx = octree["index", "dx"].d
     assert_almost_equal(dx, size_ans[:, 0])
 
-    dy = octree[("index", "dy")].d
+    dy = octree["index", "dy"].d
     assert_almost_equal(dy, size_ans[:, 1])
 
-    dz = octree[("index", "dz")].d
+    dz = octree["index", "dz"].d
     assert_almost_equal(dz, size_ans[:, 2])
 
-    refined = octree[("index", "refined")]
+    refined = octree["index", "refined"]
     refined_ans = np.array([True] + [False] * 7 + [True] + [False] * 8, dtype=np.bool_)
     assert_equal(refined, refined_ans)

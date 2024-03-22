@@ -5,7 +5,6 @@ import os
 import pprint
 import sys
 import textwrap
-import urllib
 from typing import Any, Optional, Union
 
 import numpy as np
@@ -1202,6 +1201,9 @@ class YTDeleteImageCmd(YTCommand):
     name = "delete_image"
 
     def __call__(self, args):
+        import urllib.error
+        import urllib.request
+
         headers = {"Authorization": f"Client-ID {ytcfg.get('yt', 'imagebin_api_key')}"}
 
         delete_url = ytcfg.get("yt", "imagebin_delete_url")
@@ -1235,6 +1237,10 @@ class YTUploadImageCmd(YTCommand):
     name = "upload_image"
 
     def __call__(self, args):
+        import urllib.error
+        import urllib.parse
+        import urllib.request
+
         filename = args.file
         if not filename.endswith(".png"):
             print("File must be a PNG file!")
@@ -1585,6 +1591,8 @@ class YTDownloadData(YTCommand):
         print(f"File: {args.filename} downloaded successfully to {data_file}")
 
     def get_list(self):
+        import urllib.request
+
         data = (
             urllib.request.urlopen("http://yt-project.org/data/datafiles.json")
             .read()

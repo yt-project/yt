@@ -23,7 +23,7 @@ def test_export_frb():
     assert_equal(frb_ds.domain_width.v, np.array([0.5, 0.5, 1.0]))
     assert_equal(frb_ds.domain_dimensions, np.array([64, 64, 1], dtype="int64"))
     assert_allclose_units(
-        frb[("gas", "density")].sum(),
+        frb["gas", "density"].sum(),
         dd_frb.quantities.total_quantity(("gas", "density")),
     )
     assert_equal(frb_ds.index.num_grids, 8)

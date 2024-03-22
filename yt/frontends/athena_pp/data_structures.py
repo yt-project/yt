@@ -153,6 +153,14 @@ class AthenaPPDataset(Dataset):
         zrat = self._handle.attrs["RootGridX3"][2]
         self._nonuniform = xrat != 1.0 or yrat != 1.0 or zrat != 1.0
         self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
+
+        geom = self._handle.attrs["Coordinates"].decode("utf-8")
+        self.geometry = Geometry(geom_map[geom])
+        if self.geometry == "cylindrical":
+            axis_order = ("r", "theta", "z")
+        else:
+            axis_order = None
+
         Dataset.__init__(
             self,
             filename,
@@ -160,6 +168,7 @@ class AthenaPPDataset(Dataset):
             units_override=units_override,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
+            axis_order=axis_order,
         )
         if storage_filename is None:
             storage_filename = self.basename + ".yt"
@@ -200,9 +209,6 @@ class AthenaPPDataset(Dataset):
         self.domain_left_edge = np.array([xmin, ymin, zmin], dtype="float64")
         self.domain_right_edge = np.array([xmax, ymax, zmax], dtype="float64")
 
-        self.geometry = Geometry(
-            geom_map[self._handle.attrs["Coordinates"].decode("utf-8")]
-        )
         self.domain_width = self.domain_right_edge - self.domain_left_edge
         self.domain_dimensions = self._handle.attrs["RootGridSize"]
 
@@ -241,10 +247,10 @@ class AthenaPPDataset(Dataset):
         self.omega_matter = 0.0
         self.hubble_constant = 0.0
         self.cosmological_simulation = 0
-        self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
-        self.parameters[
-            "HydroMethod"
-        ] = 0  # Hardcode for now until field staggering is supported.
+        # Hardcode time conversion for now.
+        self.parameters["Time"] = self.current_time
+        # Hardcode for now until field staggering is supported.
+        self.parameters["HydroMethod"] = 0
         if "gamma" in self.specified_parameters:
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:

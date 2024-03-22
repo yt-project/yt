@@ -30,9 +30,9 @@ def test_cutting_plane():
         center = [0.5, 0.5, 0.5]
         normal = [1, 1, 1]
         cut = ds.cutting(normal, center)
-        assert_equal(cut[("index", "ones")].sum(), cut[("index", "ones")].size)
-        assert_equal(cut[("index", "ones")].min(), 1.0)
-        assert_equal(cut[("index", "ones")].max(), 1.0)
+        assert_equal(cut["index", "ones"].sum(), cut["index", "ones"].size)
+        assert_equal(cut["index", "ones"].min(), 1.0)
+        assert_equal(cut["index", "ones"].max(), 1.0)
         pw = cut.to_pw(fields=("gas", "density"))
         for p in pw.plots.values():
             tmpfd, tmpname = tempfile.mkstemp(suffix=".png")

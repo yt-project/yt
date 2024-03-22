@@ -99,12 +99,12 @@ class ShockTubeTest:
         exact = self.get_analytical_solution()
 
         ad = ds.all_data()
-        position = ad[("index", "x")]
+        position = ad["index", "x"]
         for k in self.fields:
             field = ad[k].d
             for xmin, xmax in zip(self.left_edges, self.right_edges):
                 mask = (position >= xmin) * (position <= xmax)
-                exact_field = np.interp(position[mask], exact["pos"], exact[k])
+                exact_field = np.interp(position[mask].ndview, exact["pos"], exact[k])
                 myname = f"ShockTubeTest_{k}"
                 # yield test vs analytical solution
                 yield AssertWrapper(
@@ -121,8 +121,8 @@ class ShockTubeTest:
         pos, dens, vel, pres, inte = np.loadtxt(self.solution_file, unpack=True)
         exact = {}
         exact["pos"] = pos
-        exact[("gas", "density")] = dens
-        exact[("gas", "velocity_x")] = vel
-        exact[("gas", "pressure")] = pres
-        exact[("gas", "specific_thermal_energy")] = inte
+        exact["gas", "density"] = dens
+        exact["gas", "velocity_x"] = vel
+        exact["gas", "pressure"] = pres
+        exact["gas", "specific_thermal_energy"] = inte
         return exact

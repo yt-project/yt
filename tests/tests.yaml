@@ -76,7 +76,7 @@ answer_tests:
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
     - yt/frontends/gadget/tests/test_outputs.py:test_magneticum
 
-  local_gamer_011:  # PR 3971
+  local_gamer_012:  # PR 4782
     - yt/frontends/gamer/tests/test_outputs.py:test_jet
     - yt/frontends/gamer/tests/test_outputs.py:test_psiDM
     - yt/frontends/gamer/tests/test_outputs.py:test_plummer
@@ -207,6 +207,7 @@ other_tests:
      - "--ignore-file=test_version\\.py"
      - "--ignore-file=test_gadget_pytest\\.py"
      - "--ignore-file=test_vr_orientation\\.py"
+     - "--ignore-file=test_particle_trajectories_pytest\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"

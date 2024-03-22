@@ -27,6 +27,6 @@ def test_ortho_ray():
         )
 
         assert_equal(
-            my_oray[("gas", "density")].sum(),
-            my_all[("gas", "density")][my_cells].sum(),
+            my_oray["gas", "density"].sum(),
+            my_all["gas", "density"][my_cells].sum(),
         )

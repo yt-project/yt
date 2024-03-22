@@ -9,7 +9,7 @@ velocity flow or magnetic field lines, they can be defined to follow
 any three-dimensional vector field.  Once an initial condition and
 total length of the streamline are specified, the streamline is
 uniquely defined.  Relatedly, yt also has the ability to follow
-:ref:`particle-trajectories`.
+:doc:`../analyzing/Particle_Trajectories`.
 
 Method
 ------
