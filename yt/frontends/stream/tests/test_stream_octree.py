@@ -37,7 +37,7 @@ def test_octree():
     octree_mask = np.array(OCT_MASK_LIST, dtype=np.uint8)
 
     quantities = {}
-    quantities[("gas", "density")] = np.random.random((22, 1))
+    quantities["gas", "density"] = np.random.random((22, 1))
 
     bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
@@ -50,7 +50,7 @@ def test_octree():
     )
 
     proj = ds.proj(("gas", "density"), "x")
-    proj[("gas", "density")]
+    proj["gas", "density"]
 
     assert_equal(ds.r[:]["ones"].size, 22)
     rho1 = quantities["gas", "density"].ravel()

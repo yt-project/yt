@@ -18,19 +18,19 @@ def test_point_selector():
     assert all(ds.periodicity)
 
     dd = ds.all_data()
-    positions = np.array([dd[("index", ax)] for ax in "xyz"]).T
-    delta = 0.5 * np.array([dd[("index", f"d{ax}")] for ax in "xyz"]).T
+    positions = np.array([dd["index", ax] for ax in "xyz"]).T
+    delta = 0.5 * np.array([dd["index", f"d{ax}"] for ax in "xyz"]).T
     # ensure cell centers and corners always return one and
     # only one point object
     for p in positions:
         data = ds.point(p)
-        assert_equal(data[("index", "ones")].shape[0], 1)
+        assert_equal(data["index", "ones"].shape[0], 1)
     for p in positions - delta:
         data = ds.point(p)
-        assert_equal(data[("index", "ones")].shape[0], 1)
+        assert_equal(data["index", "ones"].shape[0], 1)
     for p in positions + delta:
         data = ds.point(p)
-        assert_equal(data[("index", "ones")].shape[0], 1)
+        assert_equal(data["index", "ones"].shape[0], 1)
 
 
 def test_sphere_selector():
@@ -46,15 +46,15 @@ def test_sphere_selector():
         # WARNING: this value has not be externally verified
         dd = ds.all_data()
         dd.set_field_parameter("center", ds.arr(center, "code_length"))
-        n_outside = (dd[("index", "radius")] >= 0.25).sum()
+        n_outside = (dd["index", "radius"] >= 0.25).sum()
         assert_equal(
-            data[("index", "radius")].size + n_outside, dd[("index", "radius")].size
+            data["index", "radius"].size + n_outside, dd["index", "radius"].size
         )
 
-        positions = np.array([data[("index", ax)] for ax in "xyz"])
+        positions = np.array([data["index", ax] for ax in "xyz"])
         centers = (
-            np.tile(data.center, data[("index", "x")].shape[0])
-            .reshape(data[("index", "x")].shape[0], 3)
+            np.tile(data.center, data["index", "x"].shape[0])
+            .reshape(data["index", "x"].shape[0], 3)
             .transpose()
         )
         dist = periodic_dist(
@@ -84,12 +84,12 @@ def test_ellipsoid_selector():
 
         dd = ds.all_data()
         dd.set_field_parameter("center", ds.arr(center, "code_length"))
-        n_outside = (dd[("index", "radius")] >= ratios[0]).sum()
+        n_outside = (dd["index", "radius"] >= ratios[0]).sum()
         assert_equal(
-            data[("index", "radius")].size + n_outside, dd[("index", "radius")].size
+            data["index", "radius"].size + n_outside, dd["index", "radius"].size
         )
 
-        positions = np.array([data[("index", ax)] for ax in "xyz"])
+        positions = np.array([data["index", ax] for ax in "xyz"])
         centers = (
             np.tile(data.center, data.shape[0]).reshape(data.shape[0], 3).transpose()
         )
@@ -110,11 +110,11 @@ def test_ellipsoid_selector():
         )
 
         # hack to compute elliptic distance
-        dist2 = np.zeros(data[("index", "ones")].shape[0])
+        dist2 = np.zeros(data["index", "ones"].shape[0])
         for i, ax in enumerate(("index", k) for k in "xyz"):
-            positions = np.zeros((3, data[("index", "ones")].shape[0]))
+            positions = np.zeros((3, data["index", "ones"].shape[0]))
             positions[i, :] = data[ax]
-            centers = np.zeros((3, data[("index", "ones")].shape[0]))
+            centers = np.zeros((3, data["index", "ones"].shape[0]))
             centers[i, :] = center[i]
             dist2 += (
                 periodic_dist(
@@ -140,7 +140,7 @@ def test_slice_selector():
             data.get_data()
             v = data[d].to_ndarray()
             assert_equal(data.shape[0], 64**2)
-            assert_equal(data[("index", "ones")].shape[0], 64**2)
+            assert_equal(data["index", "ones"].shape[0], 64**2)
             assert_array_less(np.abs(v - coord), 1.0 / 128.0 + 1e-6)
 
 
@@ -166,13 +166,13 @@ def test_cutting_plane_selector():
             assert data.shape[0] == data2.shape[0]
 
             cells1 = np.lexsort(
-                (data[("index", "x")], data[("index", "y")], data[("index", "z")])
+                (data["index", "x"], data["index", "y"], data["index", "z"])
             )
             cells2 = np.lexsort(
-                (data2[("index", "x")], data2[("index", "y")], data2[("index", "z")])
+                (data2["index", "x"], data2["index", "y"], data2["index", "z"])
             )
             for d2 in "xyz":
-                assert_equal(data[("index", d2)][cells1], data2[("index", d2)][cells2])
+                assert_equal(data["index", d2][cells1], data2["index", d2][cells2])
 
 
 # def test_region_selector():

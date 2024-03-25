@@ -1,6 +1,7 @@
 --ignore-file=test_add_field\.py
 --ignore-file=test_ambiguous_fields\.py
 --ignore-file=test_callable_grids\.py
+--ignore-file=test_callbacks_geographic\.py
 --ignore-file=test_commons\.py
 --ignore-file=test_cython_fortran_utils\.py
 --ignore-file=test_data_reload\.py
@@ -36,4 +37,4 @@
 --ignore-file=test_version\.py
 --ignore-file=test_gadget_pytest\.py
 --ignore-file=test_vr_orientation\.py
---ignore-file=test_callbacks_geographic\.py
+--ignore-file=test_particle_trajectories_pytest\.py

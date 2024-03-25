@@ -31,6 +31,11 @@ if find_spec("setuptools") is not None:
 else:
     SETUPTOOLS_VERSION = None
 
+if find_spec("pandas") is not None:
+    PANDAS_VERSION = Version(version("pandas"))
+else:
+    PANDAS_VERSION = None
+
 
 def pytest_addoption(parser):
     """
@@ -169,6 +174,12 @@ def pytest_configure(config):
             ),
         )
 
+    if PANDAS_VERSION is not None and PANDAS_VERSION >= Version("2.2.0"):
+        config.addinivalue_line(
+            "filterwarnings",
+            r"ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning",
+        )
+
     if sys.version_info >= (3, 12):
         # already patched (but not released) upstream:
         # https://github.com/dateutil/dateutil/pull/1285
@@ -176,6 +187,16 @@ def pytest_configure(config):
             "filterwarnings",
             r"ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning",
         )
+
+        if find_spec("ratarmount"):
+            # On Python 3.12+, there is a deprecation warning when calling os.fork()
+            # in a multi-threaded process. We use this mechanism to mount archives.
+            config.addinivalue_line(
+                "filterwarnings",
+                r"ignore:This process \(pid=\d+\) is multi-threaded, use of fork\(\) "
+                r"may lead to deadlocks in the child\."
+                ":DeprecationWarning",
+            )
 
 
 def pytest_collection_modifyitems(config, items):

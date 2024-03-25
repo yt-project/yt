@@ -124,7 +124,7 @@ def test_nprocs():
     assert_allclose_units(
         sp1.quantities.bulk_velocity(), sp2.quantities.bulk_velocity()
     )
-    assert_equal(prj1[("gas", "density")], prj2[("gas", "density")])
+    assert_equal(prj1["gas", "density"], prj2["gas", "density"])
 
 
 @requires_file(cloud)

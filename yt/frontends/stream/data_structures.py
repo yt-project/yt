@@ -628,7 +628,7 @@ class StreamParticlesDataset(StreamDataset):
         if not exists(fname):
             hsml = generate_smoothing_length(pos[kdtree.idx], kdtree, n_neighbors)
             hsml = hsml[order]
-            data[(sph_ptype, "smoothing_length")] = (hsml, l_unit)
+            data[sph_ptype, "smoothing_length"] = (hsml, l_unit)
         else:
             hsml = ad[sph_ptype, fname].to(l_unit).d
 
@@ -643,7 +643,7 @@ class StreamParticlesDataset(StreamDataset):
                 kernel_name=kernel,
             )
             dens = dens[order]
-            data[(sph_ptype, "density")] = (dens, d_unit)
+            data[sph_ptype, "density"] = (dens, d_unit)
 
         # Add fields
         self._sph_ptypes = (sph_ptype,)
@@ -766,7 +766,7 @@ class StreamOctreeSubset(OctreeSubset):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
-        self.oct_handler = oct_handler
+        self._oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = "io"
@@ -783,6 +783,10 @@ class StreamOctreeSubset(OctreeSubset):
                 )
             base_grid = StreamOctreeSubset(base_region, ds, oct_handler, num_zones)
             self._base_grid = base_grid
+
+    @property
+    def oct_handler(self):
+        return self._oct_handler
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         try:

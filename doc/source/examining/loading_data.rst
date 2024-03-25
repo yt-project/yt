@@ -648,9 +648,9 @@ to the z direction.
 
     ds.index
     ad = ds.all_data()
-    print(ds.field_info[("raw", "Ex")].nodal_flag)
+    print(ds.field_info["raw", "Ex"].nodal_flag)
     print(ad["raw", "Ex"].shape)
-    print(ds.field_info[("raw", "Bx")].nodal_flag)
+    print(ds.field_info["raw", "Bx"].nodal_flag)
     print(ad["raw", "Bx"].shape)
     print(ds.field_info["raw", "Bx"].nodal_flag)
     print(ad["raw", "Bx"].shape)
@@ -753,11 +753,11 @@ direction.
 
     ds.index
     ad = ds.all_data()
-    print(ds.field_info[("enzo", "Ex")].nodal_flag)
+    print(ds.field_info["enzo", "Ex"].nodal_flag)
     print(ad["enzo", "Ex"].shape)
-    print(ds.field_info[("enzo", "BxF")].nodal_flag)
+    print(ds.field_info["enzo", "BxF"].nodal_flag)
     print(ad["enzo", "Bx"].shape)
-    print(ds.field_info[("enzo", "Bx")].nodal_flag)
+    print(ds.field_info["enzo", "Bx"].nodal_flag)
     print(ad["enzo", "Bx"].shape)
 
 Here, the field ``('enzo', 'Ex')`` is nodal in two directions, so four values
@@ -1868,11 +1868,19 @@ are supported, and the following fields are defined:
 * ``("gas", "four_velocity_[txyz]")``: Four-velocity fields :math:`U_t, U_x, U_y, U_z`
 * ``("gas", "lorentz_factor")``: Lorentz factor :math:`\gamma = \sqrt{1+U_iU^i/c^2}`
   (where :math:`i` runs over the spatial indices)
+* ``("gas", "specific_reduced_enthalpy")``: Specific reduced enthalpy :math:`\tilde{h} = \epsilon + p/\rho`
+* ``("gas", "specific_enthalpy")``: Specific enthalpy :math:`h = c^2 + \epsilon + p/\rho`
 
 These, and other fields following them (3-velocity, energy densities, etc.) are
 computed in the same manner as in the
 `GAMER-SR paper <https://ui.adsabs.harvard.edu/abs/2021MNRAS.504.3298T/abstract>`_
 to avoid catastrophic cancellations.
+
+All of the special relativistic fields will only be available if the ``Temp`` and
+``Enth`` fields are present in the dataset, which can be ensured if the runtime
+options ``OPT__OUTPUT_TEMP = 1`` and ``OPT__OUTPUT_ENTHALPY  = 1`` are set in the
+``Input__Parameter`` file when running the simulation. This greatly speeds up
+calculations of the above derived fields in yt.
 
 .. rubric:: Caveats
 
@@ -2084,9 +2092,8 @@ widths are provided in advance.
 
 .. note::
 
-   At present, support is available for a single grid with varying cell-widths,
-   loaded through the stream handler.  Future versions of yt will have more
-   complete and flexible support!
+   At present, stretched grids are restricted to a single level of refinement.
+   Future versions of yt will have more complete and flexible support!
 
 To load a stretched grid, you use the standard (and now rather-poorly named)
 ``load_uniform_grid`` function, but supplying a ``cell_widths`` argument.  This
@@ -2121,7 +2128,8 @@ demonstrates loading a simple "random" dataset with a random set of cell-widths.
 
 
 This can be modified to load data from a file, as well as to use more (or
-fewer) cells.
+fewer) cells. Like with a standard uniform grid, providing ``nprocs>1`` will
+decompose the domain into multiple grids (without refinement).
 
 Unstructured Grid Data
 ----------------------

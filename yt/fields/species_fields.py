@@ -271,7 +271,7 @@ def _nuclei_density(field, data):
     nuclei_mass_field = f"{element}_nuclei_mass_density"
     if (ftype, nuclei_mass_field) in data.ds.field_info:
         return (
-            data[(ftype, nuclei_mass_field)]
+            data[ftype, nuclei_mass_field]
             / ChemicalFormula(element).weight
             / data.ds.quan(1.0, "amu").in_cgs()
         )
@@ -279,7 +279,7 @@ def _nuclei_density(field, data):
     if (ftype, metal_field) in data.ds.field_info:
         return (
             data[ftype, "density"]
-            * data[(ftype, metal_field)]
+            * data[ftype, metal_field]
             / ChemicalFormula(element).weight
             / data.ds.quan(1.0, "amu").in_cgs()
         )

@@ -260,7 +260,7 @@
     "url": "https://yt-project.org/data/IsothermalSphere.tar.gz"
   },
   "JetICMWall.tar.gz": {
-    "hash": "d0f75569c743836a2d9d140e4bc88f039d6788d3dc53284e8a081cf76b2edbd9",
+    "hash": "4f156be55eb96d994001b64965017abf55728ce406bdbdbf5b0de3b3238b905a",
     "load_kwargs": {},
     "load_name": "Data_000060",
     "url": "https://yt-project.org/data/JetICMWall.tar.gz"
@@ -621,6 +621,12 @@
     "load_kwargs": {},
     "load_name": "c5.h5m",
     "url": "https://yt-project.org/data/c5.tar.gz"
+  },
+  "castro_sedov_1d_cyl_plt00150.tar.gz": {
+    "hash": "c96a8fdf3cd43563a88e34569a6b37e57a0349692a9100ea65252506a167f08f",
+    "load_kwargs": {},
+    "load_name": "",
+    "url": "https://yt-project.org/data/castro_sedov_1d_cyl_plt00150.tar.gz"
   },
   "castro_sedov_2d_cyl_in_cart_plt00150.tar.gz": {
     "hash": "8b73a37a0503dba593af65f8bf16dfcc11ac825d671f11e5a364a2dee63c9047",

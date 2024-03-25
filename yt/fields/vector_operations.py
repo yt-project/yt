@@ -480,81 +480,73 @@ def create_vector_fields(
         if geometry is Geometry.POLAR:
 
             def _cartesian_x(field, data):
-                return data[(ftype, f"{basename}_r")] * np.cos(data[(ftype, "theta")])
+                return data[ftype, f"{basename}_r"] * np.cos(data[ftype, "theta"])
 
             def _cartesian_y(field, data):
-                return data[(ftype, f"{basename}_r")] * np.sin(data[(ftype, "theta")])
+                return data[ftype, f"{basename}_r"] * np.sin(data[ftype, "theta"])
 
             def _cartesian_z(field, data):
-                return data[(ftype, f"{basename}_z")]
+                return data[ftype, f"{basename}_z"]
 
         elif geometry is Geometry.CYLINDRICAL:
 
             def _cartesian_x(field, data):
                 if data.ds.dimensionality == 2:
-                    return data[(ftype, f"{basename}_r")]
+                    return data[ftype, f"{basename}_r"]
                 elif data.ds.dimensionality == 3:
-                    return data[(ftype, f"{basename}_r")] * np.cos(
-                        data[(ftype, "theta")]
-                    ) - data[(ftype, f"{basename}_theta")] * np.sin(
-                        data[(ftype, "theta")]
-                    )
+                    return data[ftype, f"{basename}_r"] * np.cos(
+                        data[ftype, "theta"]
+                    ) - data[ftype, f"{basename}_theta"] * np.sin(data[ftype, "theta"])
 
             def _cartesian_y(field, data):
                 if data.ds.dimensionality == 2:
-                    return data[(ftype, f"{basename}_z")]
+                    return data[ftype, f"{basename}_z"]
                 elif data.ds.dimensionality == 3:
-                    return data[(ftype, f"{basename}_r")] * np.sin(
-                        data[(ftype, "theta")]
-                    ) + data[(ftype, f"{basename}_theta")] * np.cos(
-                        data[(ftype, "theta")]
-                    )
+                    return data[ftype, f"{basename}_r"] * np.sin(
+                        data[ftype, "theta"]
+                    ) + data[ftype, f"{basename}_theta"] * np.cos(data[ftype, "theta"])
 
             def _cartesian_z(field, data):
-                return data[(ftype, f"{basename}_z")]
+                return data[ftype, f"{basename}_z"]
 
         elif geometry is Geometry.SPHERICAL:
 
             def _cartesian_x(field, data):
                 if data.ds.dimensionality == 2:
-                    return data[(ftype, f"{basename}_r")] * np.sin(
-                        data[(ftype, "theta")]
-                    ) + data[(ftype, f"{basename}_theta")] * np.cos(
-                        data[(ftype, "theta")]
-                    )
+                    return data[ftype, f"{basename}_r"] * np.sin(
+                        data[ftype, "theta"]
+                    ) + data[ftype, f"{basename}_theta"] * np.cos(data[ftype, "theta"])
                 elif data.ds.dimensionality == 3:
                     return (
-                        data[(ftype, f"{basename}_r")]
-                        * np.sin(data[(ftype, "theta")])
-                        * np.cos(data[(ftype, "phi")])
-                        + data[(ftype, f"{basename}_theta")]
-                        * np.cos(data[(ftype, "theta")])
-                        * np.cos(data[(ftype, "phi")])
-                        - data[(ftype, f"{basename}_phi")]
-                        * np.sin(data[(ftype, "phi")])
+                        data[ftype, f"{basename}_r"]
+                        * np.sin(data[ftype, "theta"])
+                        * np.cos(data[ftype, "phi"])
+                        + data[ftype, f"{basename}_theta"]
+                        * np.cos(data[ftype, "theta"])
+                        * np.cos(data[ftype, "phi"])
+                        - data[ftype, f"{basename}_phi"] * np.sin(data[ftype, "phi"])
                     )
 
             def _cartesian_y(field, data):
                 if data.ds.dimensionality == 2:
-                    return data[(ftype, f"{basename}_r")] * np.cos(
-                        data[(ftype, "theta")]
-                    ) - data[f"{basename}_theta"] * np.sin(data[(ftype, "theta")])
+                    return data[ftype, f"{basename}_r"] * np.cos(
+                        data[ftype, "theta"]
+                    ) - data[f"{basename}_theta"] * np.sin(data[ftype, "theta"])
                 elif data.ds.dimensionality == 3:
                     return (
-                        data[(ftype, f"{basename}_r")]
-                        * np.sin(data[(ftype, "theta")])
-                        * np.sin(data[(ftype, "phi")])
-                        + data[(ftype, f"{basename}_theta")]
-                        * np.cos(data[(ftype, "theta")])
-                        * np.sin(data[(ftype, "phi")])
-                        + data[(ftype, f"{basename}_phi")]
-                        * np.cos(data[(ftype, "phi")])
+                        data[ftype, f"{basename}_r"]
+                        * np.sin(data[ftype, "theta"])
+                        * np.sin(data[ftype, "phi"])
+                        + data[ftype, f"{basename}_theta"]
+                        * np.cos(data[ftype, "theta"])
+                        * np.sin(data[ftype, "phi"])
+                        + data[ftype, f"{basename}_phi"] * np.cos(data[ftype, "phi"])
                     )
 
             def _cartesian_z(field, data):
-                return data[(ftype, f"{basename}_r")] * np.cos(
-                    data[(ftype, "theta")]
-                ) - data[(ftype, f"{basename}_theta")] * np.sin(data[(ftype, "theta")])
+                return data[ftype, f"{basename}_r"] * np.cos(
+                    data[ftype, "theta"]
+                ) - data[ftype, f"{basename}_theta"] * np.sin(data[ftype, "theta"])
 
         else:
             assert_never(geometry)
@@ -598,8 +590,8 @@ def create_vector_fields(
 
         def _cylindrical_radius_component(field, data):
             return (
-                np.sin(data[(ftype, "theta")]) * data[(ftype, f"{basename}_r")]
-                + np.cos(data[(ftype, "theta")]) * data[(ftype, f"{basename}_theta")]
+                np.sin(data[ftype, "theta"]) * data[ftype, f"{basename}_r"]
+                + np.cos(data[ftype, "theta"]) * data[ftype, f"{basename}_theta"]
             )
 
         registry.add_field(
@@ -632,11 +624,9 @@ def create_vector_fields(
             rax = axis_names.index("r")
             pax = axis_names.index("phi")
             bc = data.get_field_parameter(f"bulk_{basename}")
-            return np.sin(data[(ftype, "phi")]) * (
-                data[(ftype, f"{basename}_r")] - bc[rax]
-            ) + np.cos(data[(ftype, "phi")]) * (
-                data[(ftype, f"{basename}_phi")] - bc[pax]
-            )
+            return np.sin(data[ftype, "phi"]) * (
+                data[ftype, f"{basename}_r"] - bc[rax]
+            ) + np.cos(data[ftype, "phi"]) * (data[ftype, f"{basename}_phi"] - bc[pax])
 
         if registry.ds.dimensionality == 3:
             registry.add_field(
@@ -675,14 +665,14 @@ def create_averaged_field(
             else:
                 return array
 
-        nx, ny, nz, ngrids = atleast_4d(data[(ftype, basename)]).shape
+        nx, ny, nz, ngrids = atleast_4d(data[ftype, basename]).shape
         new_field = data.ds.arr(
             np.zeros((nx - 2, ny - 2, nz - 2, ngrids), dtype=np.float64),
-            (just_one(data[(ftype, basename)]) * just_one(data[(ftype, weight)])).units,
+            (just_one(data[ftype, basename]) * just_one(data[ftype, weight])).units,
         )
         weight_field = data.ds.arr(
             np.zeros((nx - 2, ny - 2, nz - 2, ngrids), dtype=np.float64),
-            data[(ftype, weight)].units,
+            data[ftype, weight].units,
         )
         i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
 
@@ -693,18 +683,18 @@ def create_averaged_field(
                 slice(k, nz - (2 - k)),
             )
             new_field += (
-                atleast_4d(data[(ftype, basename)])[sl]
-                * atleast_4d(data[(ftype, weight)])[sl]
+                atleast_4d(data[ftype, basename])[sl]
+                * atleast_4d(data[ftype, weight])[sl]
             )
-            weight_field += atleast_4d(data[(ftype, weight)])[sl]
+            weight_field += atleast_4d(data[ftype, weight])[sl]
 
         # Now some fancy footwork
         new_field2 = data.ds.arr(
-            np.zeros((nx, ny, nz, ngrids)), data[(ftype, basename)].units
+            np.zeros((nx, ny, nz, ngrids)), data[ftype, basename].units
         )
         new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
 
-        if data[(ftype, basename)].ndim == 3:
+        if data[ftype, basename].ndim == 3:
             return new_field2[..., 0]
         else:
             return new_field2

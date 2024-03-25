@@ -7,6 +7,7 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 * Contribute: https://github.com/yt-project/yt
 
 """
+
 from ._version import __version__, version_info  # isort: skip
 import yt.units as units
 import yt.utilities.physical_constants as physical_constants

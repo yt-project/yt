@@ -4,6 +4,7 @@ AMRVAC data structures
 
 
 """
+
 import os
 import struct
 import warnings

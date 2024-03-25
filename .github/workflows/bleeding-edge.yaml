@@ -35,7 +35,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python (newest testable version)
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         # the '-dev' suffix allows to use pre-releases if no final release is available yet
         # this version should be upgraded as often as possible, typically once a year when

@@ -108,7 +108,7 @@ class IOHandlerSwift(IOHandlerSPH):
 
                 data.astype("float64", copy=False)
 
-                return_data[(ptype, field)] = data
+                return_data[ptype, field] = data
         f.close()
 
         return return_data

@@ -27,13 +27,13 @@ jobs:
           windows-latest,
           ubuntu-latest,
         ]
-        python-version: ['3.11']
+        python-version: ['3.12']
         dependencies: [full]
         tests-type: [unit]
         test-runner: [pytest]
         include:
-          - os: ubuntu-latest
-            python-version: '3.9'
+          - os: ubuntu-20.04
+            python-version: '3.9.2'
             dependencies: minimal
             tests-type: unit
             test-runner: pytest
@@ -54,11 +54,8 @@ jobs:
             tests-type: answer
             test-runner: nose
           - os: ubuntu-latest
-            # minimal tests with Python 3.12 and no optional dependencies
-            # TODO: when all optional dependencies are compatibles,
-            # remove this and bump 3.11 -> 3.12 on all arch with 'full' dependencies
-            # see https://github.com/yt-project/yt/issues/4689
-            python-version: '3.12'
+            # minimal tests with latest Python and no optional dependencies
+            python-version: '3.x'
             dependencies: ''
             tests-type: unit
             test-runner: pytest
@@ -72,7 +69,7 @@ jobs:
 
     steps:
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Checkout repo (bare)
@@ -108,7 +105,7 @@ jobs:
 
     steps:
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
@@ -145,14 +142,14 @@ jobs:
     # (and especially) in case of failure.
     - name: Upload pytest-mpl report
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: yt_pytest_mpl_results
         path: pytest_mpl_results/*
 
     - name: Upload pytest-mpl baseline
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: yt_pytest_mpl_new_baseline
         path: pytest_mpl_new_baseline/*
