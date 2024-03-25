@@ -33,7 +33,6 @@ if TYPE_CHECKING:
     from yt.visualization.fixed_resolution_filters import FixedResolutionBufferFilter
 
 
-
 class FixedResolutionBuffer:
     r"""
     FixedResolutionBuffer(data_source, bounds, buff_size, antialias = True)
