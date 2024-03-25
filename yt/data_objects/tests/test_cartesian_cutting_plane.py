@@ -7,7 +7,7 @@ from yt.geometry.coordinates.spherical_coordinates import spherical_to_cartesian
 from yt.testing import fake_amr_ds
 
 
-def test_cutting_plane_mixed_coords():
+def test_cartesian_cutting_plane():
     ds = fake_amr_ds(geometry="spherical")
     normal = np.array([0.0, 0.0, 1.0])
     plane_center = np.array([0.0, 0.0, 0.5])
@@ -52,17 +52,17 @@ def spherical_ds():
     return ds
 
 
-def test_cutting_plane_mixed_fixed_z(spherical_ds):
+def test_cartesian_cutting_plane_fixed_z(spherical_ds):
     ds = spherical_ds
     normal = np.array([0.0, 0.0, 1.0])
     center = np.array([0.0, 0.0, 0.5])
     slc = ds.cartesian_cutting(normal, center)
-    zvals = slc["index", "z_val"].to("code_length")
-    assert np.allclose(zvals, ds.quan(0.5, "code_length"), atol=0.05)
+    zvals = slc["index", "z_val"].to("code_length").d
+    assert np.allclose(zvals, ds.quan(0.5, "code_length").d, atol=0.05)
 
 
 @pytest.mark.answer_test
-class TestCuttingPlaneMixerdCoords:
+class TestYTCartesianCuttingPlane:
     answer_file = None
     saved_hashes = None
     answer_version = "000"
