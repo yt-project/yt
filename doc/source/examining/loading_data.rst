@@ -665,8 +665,8 @@ volume rendering, and many of the analysis modules will not work.
 
 .. _loading-pluto-data:
 
-Pluto Data
-----------
+Pluto Data (AMR)
+----------------
 
 Support for Pluto AMR data is provided through the Chombo frontend, which
 is currently maintained by Andrew Myers. Pluto output files that don't use
@@ -690,6 +690,18 @@ To load it, you can navigate into that directory and do:
 
 The ``pluto.ini`` file must also be present alongside the HDF5 file.
 By default, all of the Pluto fields will be in code units.
+
+
+.. _loading-idefix-data:
+
+Idefix, Pluto VTK and Pluto XDMF Data
+-------------------------------------
+
+Support for Idefix ``.dmp``, ``.vtk`` data is provided through the ``yt_idefix``
+extension.
+It also supports monogrid ``.vtk`` and ``.h5`` data from Pluto.
+See `the PyPI page <https://pypi.org/project/yt-idefix/>`_ for details.
+
 
 .. _loading-enzo-data:
 
