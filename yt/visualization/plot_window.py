@@ -2277,6 +2277,7 @@ class OffAxisProjectionDummyDataSource:
         data_source=None,
         *,
         moment=1,
+        depth_set=False,
     ):
         validate_moment(moment, weight)
         self.center = center
@@ -2302,6 +2303,11 @@ class OffAxisProjectionDummyDataSource:
         self.method = method
         self.orienter = Orientation(normal_vector, north_vector=north_vector)
         self.moment = moment
+
+        # note: the depth_set bool indicates whether we need to limit particles
+        # by the rotated z-bounds. If using all particles in the rotated x-y
+        # plane (depth_set is False), then we can avoid some computation.
+        self.depth_set = depth_set
 
     def _determine_fields(self, *args):
         return self.dd._determine_fields(*args)
@@ -2443,6 +2449,12 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
                 f"currently supported geometries: {self._supported_geometries!r}"
             )
 
+        depth_set = depth is not None
+        if not depth_set:
+            # need a valid depth for calculating bounds, but those
+            # bounds will not be used to limit particles.
+            depth = (1, "1")
+
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
         )
@@ -2466,6 +2478,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             method=method,
             data_source=data_source,
             moment=moment,
+            depth_set=depth_set,
         )
 
         validate_mesh_fields(OffAxisProj, fields)
