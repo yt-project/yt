@@ -1,4 +1,5 @@
 from yt.utilities.lib.coordinate_utilities cimport spherical_to_cartesian, cartesian_to_spherical
+from numpy.math cimport PI as NPY_PI
 
 cdef class CuttingPlaneSelector(SelectorObject):
     cdef public np.float64_t norm_vec[3]  # the unit-normal for the plane
@@ -142,35 +143,52 @@ cdef class CuttingPlaneTransformed(CuttingPlaneSelector):
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) noexcept nogil:
         # child classes may over-ride if needed
-        return self._select_bbox(left_edge, right_edge)
+        cdef np.int64_t n_points[3]
+        n_points[0] = 2
+        n_points[1] = 2
+        n_points[2] = 2
+        return self._select_bbox(left_edge, right_edge, n_points)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int _select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) noexcept nogil:
+    cdef int _select_bbox(self,
+                          np.float64_t left_edge[3],
+                          np.float64_t right_edge[3],
+                          np.int64_t n_points[3],
+                          ) noexcept nogil:
 
         # the bbox selection here works by calculating the signed-distance from
         # the plane to each vertex of the bounding box. If there is no
         # intersection, the signed-distance for every vertex will have the same
         # sign whereas if the sign flips then the plane must intersect the
         # bounding box.
+        #
+        # left_edge, right_edge
+        #   the left/right bounds of the bounding box
+        # n_points :
+        #   the number of points to check in each dimension.
+        #   (2,2,2) is equivalent to checking the corners of the
+        #   bounding box.
+
         cdef int i, j, k, n
-        cdef np.float64_t *arr[2]
         cdef np.float64_t pos[3]
+        cdef np.float64_t dpos[3]
         cdef np.float64_t pos_cart[3]
-        cdef np.float64_t gd
-        arr[0] = left_edge
-        arr[1] = right_edge
+        cdef np.float64_t gd, n_pts
+
+        for i in range(3):
+            dpos[i] = (right_edge[i] - left_edge[i]) / (<float> n_points[i] - 1.0)
+
         all_under = 1
         all_over = 1
-        # Check each corner
-        for i in range(2):
-            pos[0] = arr[i][0]
-            for j in range(2):
-                pos[1] = arr[j][1]
-                for k in range(2):
-                    pos[2] = arr[k][2]
+
+        for i in range(n_points[0]):
+            pos[0] = left_edge[0] + <float> i * dpos[0]
+            for j in range(n_points[1]):
+                pos[1] = left_edge[1] + <float> j * dpos[1]
+                for k in range(n_points[2]):
+                    pos[2] = left_edge[2] + <float> k * dpos[2]
                     self.transform_vertex_pos(pos, pos_cart)
                     gd = self.d
                     for n in range(3):
@@ -183,6 +201,7 @@ cdef class CuttingPlaneTransformed(CuttingPlaneSelector):
                     else :
                         if gd < 0: all_over = 0
                         if gd > 0: all_under = 0
+
         if all_over == 1 or all_under == 1:
             return 0
         return 1
@@ -225,24 +244,36 @@ cdef class SphericalCuttingPlaneSelector(CuttingPlaneTransformed):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) noexcept nogil:
+    cdef int select_bbox(self,
+                         np.float64_t left_edge[3],
+                         np.float64_t right_edge[3]) noexcept nogil:
          # left/right edge here are in spherical coordinates in (r, theta, phi)
 
-         cdef int selected
-         cdef np.float64_t left_edge_c[3], right_edge_c[3]
+         cdef int selected, idim
+         cdef np.float64_t left_edge_c[3], right_edge_c[3],
+         cdef np.int64_t n_points[3]
+         cdef np.float64_t NPY_PI_4 = NPY_PI / 4.0
+         cdef np.float64_t dangle, PI2
 
-         # first check closest-approach condition
-         if right_edge[0] <= self.r_min:
-             # intersection impossible!
-             return 0
+
+         # set the number of points to check depending on angular range
+         # of element: small elements will only check the bounding box
+         # verts as normal. elements with large angular range, > pi/4, will
+         # add additional vertices.
+         for idim in range(3):
+            n_points[idim] = 2
+         # check the angular ranges and add extra points if too large...
+         for idim in range(1,3):
+            dangle = right_edge[idim] - left_edge[idim]
+            if dangle >= NPY_PI_4:
+                n_points[idim] = 2 + <int> (dangle / NPY_PI_4)
 
          # run the plane-vertex distance check (vertex positions are converted to
-         # cartesian within _select_bbox
-         selected = self._select_bbox(left_edge, right_edge)
+         # cartesian within _select_bbox).
+         selected = self._select_bbox(left_edge, right_edge, n_points)
 
          if selected == 0:
-            # there is one special case to consider!
+            # there is one more special case to consider!
             # When all vertices lie on one side of the plane, intersection
             # is still possible if the plane intersects the outer cusp of the
             # spherical volume element. **BUT** if we've reached this far,

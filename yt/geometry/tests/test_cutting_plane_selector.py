@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
+from yt import load_uniform_grid
 from yt.geometry.selection_routines import cutting_mixed_spherical_selector
+from yt.testing import fake_amr_ds
 
 
 class HelpfulPlaneObject:
@@ -19,6 +21,10 @@ def xy_plane_at_001():
     return HelpfulPlaneObject(normal, plane_center)
 
 
+def _in_rads(x):
+    return x * np.pi / 180
+
+
 def test_spherical_cutting_plane_spots(xy_plane_at_001):
     # a couple of manual spot checks for intersection of a plane
     # with some spherical volume elements
@@ -29,11 +35,8 @@ def test_spherical_cutting_plane_spots(xy_plane_at_001):
 
     # left/right edge values are given in spherical coordinates with
     # order of (r, theta, phi) where
-    #   theta is the azimuthal/latitudinal
-    #   phi is the polar/longitudinal angle (bounds 0 to 2pi).
-
-    def _in_rads(x):
-        return x * np.pi / 180
+    #   theta is the colatitude (bounds 0 to pi)
+    #   phi is the azimuth (bounds 0 to 2pi).
 
     # should intersect
     left_edge = np.array([0.8, _in_rads(5), _in_rads(5)])
@@ -46,10 +49,77 @@ def test_spherical_cutting_plane_spots(xy_plane_at_001):
     assert scp._select_single_bbox(left_edge, right_edge) == 0
 
 
-def test_spherical_cutting_plane(xy_plane_at_001):
-    import numpy as np
+def test_large_angular_range():
+    # check that large elements are still selected
 
-    from yt.testing import fake_amr_ds
+    # these edges define a single element that is a spherical shell of finite
+    # thickness spanning a hemisphere. The bounds of the element all fall on
+    # one side of the test plane, so these checks rely on the additional angular
+    # verts that get added for large elements
+    left_edge = np.array([0.8, 0.01, 0.01])
+    right_edge = np.array([1.0, np.pi - 0.01, np.pi - 0.01])
+
+    for y_pos in np.linspace(0.1, 0.99, 10):
+        normal = np.array([0.0, 1.0, 0.0])
+        plane_center = np.array([0.0, y_pos, 0.0])
+        xz_plane = HelpfulPlaneObject(normal, plane_center)
+        scp = cutting_mixed_spherical_selector(xz_plane)
+
+        selected = scp._select_single_bbox(left_edge, right_edge)
+        assert selected
+
+        lev = np.array(
+            [
+                [
+                    0,
+                ]
+            ],
+            dtype=np.int32,
+        )
+        left_edges = np.array(
+            [
+                left_edge,
+            ]
+        )
+        right_edges = np.array(
+            [
+                right_edge,
+            ]
+        )
+        grid_sel = scp.select_grids(left_edges, right_edges, lev)
+        assert grid_sel
+
+
+def test_large_angular_range_ds():
+    # checks that a ds in spherical coords with a single grid spanning
+    # a large angular range gets selected properly.
+    bbox = np.array([[0.5, 1.0], [0, np.pi], [0, np.pi]])
+
+    shp = (32,) * 3
+    data = {"density": np.random.random(shp)}
+
+    ds = load_uniform_grid(
+        data,
+        shp,
+        bbox=bbox,
+        geometry="spherical",
+        axis_order=("r", "theta", "phi"),
+        length_unit="m",
+        nprocs=1,
+    )
+
+    normal = ds.arr([0.0, 1.0, 0], "code_length")
+    center = ds.arr([0.0, 0.2, 0.0], "code_length")
+    slc = ds.cutting_mixed(normal, center)
+
+    le = ds.index.grid_left_edge
+    re = ds.index.grid_right_edge
+    lev = ds.index.grid_levels
+    selected = slc.selector.select_grids(le, re, lev)
+    assert np.all(selected)
+
+
+def test_spherical_cutting_plane(xy_plane_at_001):
 
     ds = fake_amr_ds(geometry="spherical")
 
