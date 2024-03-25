@@ -74,7 +74,7 @@ def test_geographic_coordinates(geometry):
 
 @pytest.mark.parametrize("geometry", ("geographic", "internal_geographic"))
 def test_geographic_conversions(geometry):
-  
+
     ds = fake_amr_ds(geometry=geometry)
     ad = ds.all_data()
     lats = ad["index", "latitude"]
