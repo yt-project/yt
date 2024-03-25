@@ -132,7 +132,7 @@ class ChollaFieldInfo(FieldInfoContainer):
 
             def _metallicity(field, data):
                 # Ensuring that there are no negative metallicities
-                return np.clip(data[("cholla", "color")], 0, np.inf) * Zsun
+                return np.clip(data["cholla", "color"], 0, np.inf) * Zsun
 
             self.add_field(
                 ("cholla", "metallicity"),

@@ -43,7 +43,7 @@ def test_geographic_coordinates(geometry):
     assert_equal(dd["index", "dphi"], dd["index", "dlongitude"] * np.pi / 180.0)
     # Note our terrible agreement here.
     assert_rel_equal(
-        dd[("index", "cell_volume")].sum(dtype="float64"),
+        dd["index", "cell_volume"].sum(dtype="float64"),
         (4.0 / 3.0) * np.pi * (outer_r**3 - inner_r**3),
         14,
     )
@@ -74,13 +74,13 @@ def test_geographic_coordinates(geometry):
 
 @pytest.mark.parametrize("geometry", ("geographic", "internal_geographic"))
 def test_geographic_conversions(geometry):
-
+  
     ds = fake_amr_ds(geometry=geometry)
     ad = ds.all_data()
-    lats = ad[("index", "latitude")]
-    dlats = ad[("index", "dlatitude")]
-    theta = ad[("index", "theta")]
-    dtheta = ad[("index", "dtheta")]
+    lats = ad["index", "latitude"]
+    dlats = ad["index", "dlatitude"]
+    theta = ad["index", "theta"]
+    dtheta = ad["index", "dtheta"]
 
     # check that theta = 0, pi at latitudes of 90, -90
     south_pole_id = np.where(lats == np.min(lats))[0][0]
@@ -95,10 +95,10 @@ def test_geographic_conversions(geometry):
     assert theta[south_pole_id] + dtheta[south_pole_id] / 2 == np.pi
 
     # check that longitude-phi conversions
-    phi = ad[("index", "phi")]
-    dphi = ad[("index", "dphi")]
-    lons = ad[("index", "longitude")]
-    dlon = ad[("index", "dlongitude")]
+    phi = ad["index", "phi"]
+    dphi = ad["index", "dphi"]
+    lons = ad["index", "longitude"]
+    dlon = ad["index", "dlongitude"]
     lon_180 = np.where(lons == np.max(lons))[0][0]
     lon_neg180 = np.where(lons == np.min(lons))[0][0]
     # check we have -180, 180 exactly

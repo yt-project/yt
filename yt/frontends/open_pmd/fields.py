@@ -15,18 +15,18 @@ def setup_poynting_vector(self):
             u = mu_0**-1
             if axis in "x":
                 return u * (
-                    data[("openPMD", "E_y")] * data[("gas", "magnetic_field_z")]
-                    - data[("openPMD", "E_z")] * data[("gas", "magnetic_field_y")]
+                    data["openPMD", "E_y"] * data["gas", "magnetic_field_z"]
+                    - data["openPMD", "E_z"] * data["gas", "magnetic_field_y"]
                 )
             elif axis in "y":
                 return u * (
-                    data[("openPMD", "E_z")] * data[("gas", "magnetic_field_x")]
-                    - data[("openPMD", "E_x")] * data[("gas", "magnetic_field_z")]
+                    data["openPMD", "E_z"] * data["gas", "magnetic_field_x"]
+                    - data["openPMD", "E_x"] * data["gas", "magnetic_field_z"]
                 )
             elif axis in "z":
                 return u * (
-                    data[("openPMD", "E_x")] * data[("gas", "magnetic_field_y")]
-                    - data[("openPMD", "E_y")] * data[("gas", "magnetic_field_x")]
+                    data["openPMD", "E_x"] * data["gas", "magnetic_field_y"]
+                    - data["openPMD", "E_y"] * data["gas", "magnetic_field_x"]
                 )
 
         return poynting

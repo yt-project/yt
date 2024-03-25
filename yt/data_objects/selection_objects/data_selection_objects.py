@@ -606,7 +606,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
         >>> proj = ds.proj(("gas", "density"), 0)
         >>> frb = proj.to_frb((100.0, "kpc"), 1024)
-        >>> write_image(np.log10(frb[("gas", "density")]), "density_100kpc.png")
+        >>> write_image(np.log10(frb["gas", "density"]), "density_100kpc.png")
         """
 
         if (self.ds.geometry is Geometry.CYLINDRICAL and self.axis == 1) or (
@@ -696,7 +696,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
            A list of conditionals that will be evaluated. In the namespace
            available, these conditionals will have access to 'obj' which is a
            data object of unknown shape, and they must generate a boolean array.
-           For instance, conditionals = ["obj[('gas', 'temperature')] < 1e3"]
+           For instance, conditionals = ["obj['gas', 'temperature'] < 1e3"]
         field_parameters : dictionary
            A dictionary of field parameters to be used when applying the field
            cuts.
@@ -710,7 +710,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.cut_region(["obj[('gas', 'temperature')] > 1e6"])
+        >>> cr = ad.cut_region(["obj['gas', 'temperature'] > 1e6"])
         >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         if locals is None:
@@ -731,7 +731,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds._build_operator_cut(">", ("gas", "density"), 1e-24)
         ... # is equivalent to
-        ... ds.cut_region(['obj[("gas", "density")] > 1e-24'])
+        ... ds.cut_region(['obj["gas", "density"] > 1e-24'])
         """
         ftype, fname = self._determine_fields(field)[0]
         if units is None:
@@ -753,7 +753,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds._build_function_cut("np.isnan", ("gas", "density"), locals={"np": np})
         ... # is equivalent to
-        ... ds.cut_region(['np.isnan(obj[("gas", "density")])'], locals={"np": np})
+        ... ds.cut_region(['np.isnan(obj["gas", "density"])'], locals={"np": np})
         """
         ftype, fname = self._determine_fields(field)[0]
         if units is None:

@@ -39,7 +39,7 @@ def test_periodicity():
 
     # First we test flattened data
     data = ds.all_data()
-    positions = np.array([data[("index", ax)] for ax in "xyz"])
+    positions = np.array([data["index", ax] for ax in "xyz"])
     c = [0.1, 0.1, 0.1]
     n_tup = tuple(1 for i in range(positions.ndim - 1))
     center = np.tile(
@@ -57,7 +57,7 @@ def test_periodicity():
 
     # Then grid-like data
     data = ds.index.grids[0]
-    positions = np.array([data[("index", ax)] for ax in "xyz"])
+    positions = np.array([data["index", ax] for ax in "xyz"])
     c = [0.1, 0.1, 0.1]
     n_tup = tuple(1 for i in range(positions.ndim - 1))
     center = np.tile(

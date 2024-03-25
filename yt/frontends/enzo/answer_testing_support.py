@@ -99,7 +99,7 @@ class ShockTubeTest:
         exact = self.get_analytical_solution()
 
         ad = ds.all_data()
-        position = ad[("index", "x")]
+        position = ad["index", "x"]
         for k in self.fields:
             field = ad[k].d
             for xmin, xmax in zip(self.left_edges, self.right_edges):
@@ -121,8 +121,8 @@ class ShockTubeTest:
         pos, dens, vel, pres, inte = np.loadtxt(self.solution_file, unpack=True)
         exact = {}
         exact["pos"] = pos
-        exact[("gas", "density")] = dens
-        exact[("gas", "velocity_x")] = vel
-        exact[("gas", "pressure")] = pres
-        exact[("gas", "specific_thermal_energy")] = inte
+        exact["gas", "density"] = dens
+        exact["gas", "velocity_x"] = vel
+        exact["gas", "pressure"] = pres
+        exact["gas", "specific_thermal_energy"] = inte
         return exact

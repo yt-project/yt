@@ -40,7 +40,7 @@ class LineBuffer:
     Examples
     --------
     >>> lb = yt.LineBuffer(ds, (0.25, 0, 0), (0.25, 1, 0), 100)
-    >>> lb[("all", "u")].max()
+    >>> lb["all", "u"].max()
     0.11562424257143075 dimensionless
 
     """

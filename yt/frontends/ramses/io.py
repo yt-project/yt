@@ -212,7 +212,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                             d.max(),
                             d.size,
                         )
-                        tr[(ft, f)].append(d)
+                        tr[ft, f].append(d)
         d = {}
         for field in fields:
             tmp = tr.pop(field, None)

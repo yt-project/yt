@@ -438,11 +438,11 @@ def fake_tetrahedral_ds():
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
-    node_data[("connect1", "test")] = dist[_connectivity]
+    node_data["connect1", "test"] = dist[_connectivity]
 
     # each element gets a random number
     elem_data = {}
-    elem_data[("connect1", "elem")] = prng.rand(_connectivity.shape[0])
+    elem_data["connect1", "elem"] = prng.rand(_connectivity.shape[0])
 
     ds = load_unstructured_mesh(
         _connectivity, _coordinates, node_data=node_data, elem_data=elem_data
@@ -461,14 +461,14 @@ def fake_hexahedral_ds(fields=None):
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
-    node_data[("connect1", "test")] = dist[_connectivity - 1]
+    node_data["connect1", "test"] = dist[_connectivity - 1]
 
     for field in always_iterable(fields):
-        node_data[("connect1", field)] = dist[_connectivity - 1]
+        node_data["connect1", field] = dist[_connectivity - 1]
 
     # each element gets a random number
     elem_data = {}
-    elem_data[("connect1", "elem")] = prng.rand(_connectivity.shape[0])
+    elem_data["connect1", "elem"] = prng.rand(_connectivity.shape[0])
 
     ds = load_unstructured_mesh(
         _connectivity - 1, _coordinates, node_data=node_data, elem_data=elem_data
@@ -496,7 +496,7 @@ def small_fake_hexahedral_ds():
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
-    node_data[("connect1", "test")] = dist[_connectivity - 1]
+    node_data["connect1", "test"] = dist[_connectivity - 1]
 
     ds = load_unstructured_mesh(_connectivity - 1, _coordinates, node_data=node_data)
     return ds
@@ -735,10 +735,10 @@ def fake_octree_ds(
 
     if quantities is None:
         quantities = {}
-        quantities[("gas", "density")] = prng.random_sample((particles, 1))
-        quantities[("gas", "velocity_x")] = prng.random_sample((particles, 1))
-        quantities[("gas", "velocity_y")] = prng.random_sample((particles, 1))
-        quantities[("gas", "velocity_z")] = prng.random_sample((particles, 1))
+        quantities["gas", "density"] = prng.random_sample((particles, 1))
+        quantities["gas", "velocity_x"] = prng.random_sample((particles, 1))
+        quantities["gas", "velocity_y"] = prng.random_sample((particles, 1))
+        quantities["gas", "velocity_z"] = prng.random_sample((particles, 1))
 
     ds = load_octree(
         octree_mask=octree_mask,

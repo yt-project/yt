@@ -85,11 +85,11 @@ def test_field_empty_specification(
         coordinate_units="code_length",
     )
     assert_array_equal(
-        dd[("pt1", "relative_particle_position")].d,
+        dd["pt1", "relative_particle_position"].d,
         reader.particleGroups[0].coordinates,
     )
     assert_array_equal(
-        dd[("pt2", "relative_particle_position")].d,
+        dd["pt2", "relative_particle_position"].d,
         reader.particleGroups[1].coordinates,
     )
 
@@ -111,17 +111,17 @@ def test_field_unique_string_specification(firefly_test_dataset):
     pt1 = reader.particleGroups[0]
     pt2 = reader.particleGroups[1]
     assert_array_equal(
-        dd[("pt1", "relative_particle_position")].d,
+        dd["pt1", "relative_particle_position"].d,
         pt1.coordinates,
     )
     assert_array_equal(
-        dd[("pt2", "relative_particle_position")].d,
+        dd["pt2", "relative_particle_position"].d,
         pt2.coordinates,
     )
     assert "pt2only_field" not in pt1.field_names
     assert "pt2only_field" in pt2.field_names
     arrind = np.flatnonzero(pt2.field_names == "pt2only_field")[0]
-    assert_array_equal(dd[("pt2", "pt2only_field")].d, pt2.field_arrays[arrind])
+    assert_array_equal(dd["pt2", "pt2only_field"].d, pt2.field_arrays[arrind])
 
 
 @requires_module("firefly")
@@ -140,19 +140,19 @@ def test_field_common_string_specification(firefly_test_dataset):
     pt1 = reader.particleGroups[0]
     pt2 = reader.particleGroups[1]
     assert_array_equal(
-        dd[("pt1", "relative_particle_position")].d,
+        dd["pt1", "relative_particle_position"].d,
         pt1.coordinates,
     )
     assert_array_equal(
-        dd[("pt2", "relative_particle_position")].d,
+        dd["pt2", "relative_particle_position"].d,
         pt2.coordinates,
     )
     assert "common_field" in pt1.field_names
     assert "common_field" in pt2.field_names
     arrind = np.flatnonzero(pt1.field_names == "common_field")[0]
-    assert_array_equal(dd[("pt1", "common_field")].d, pt1.field_arrays[arrind])
+    assert_array_equal(dd["pt1", "common_field"].d, pt1.field_arrays[arrind])
     arrind = np.flatnonzero(pt2.field_names == "common_field")[0]
-    assert_array_equal(dd[("pt2", "common_field")].d, pt2.field_arrays[arrind])
+    assert_array_equal(dd["pt2", "common_field"].d, pt2.field_arrays[arrind])
 
 
 @requires_module("firefly")
@@ -185,11 +185,11 @@ def test_field_tuple_specification(
         coordinate_units="code_length",
     )
     assert_array_equal(
-        dd[("pt1", "relative_particle_position")].d,
+        dd["pt1", "relative_particle_position"].d,
         reader.particleGroups[0].coordinates,
     )
     assert_array_equal(
-        dd[("pt2", "relative_particle_position")].d,
+        dd["pt2", "relative_particle_position"].d,
         reader.particleGroups[1].coordinates,
     )
     all_pgs = reader.particleGroups
@@ -261,9 +261,9 @@ def test_field_mixed_specification(firefly_test_dataset):
     assert "common_field" in pt1.field_names
     assert "common_field" not in pt2.field_names
     arrind = np.flatnonzero(pt1.field_names == "common_field")[0]
-    assert_array_equal(dd[("pt1", "common_field")].d, pt1.field_arrays[arrind])
+    assert_array_equal(dd["pt1", "common_field"].d, pt1.field_arrays[arrind])
 
     assert "pt2only_field" not in pt1.field_names
     assert "pt2only_field" in pt2.field_names
     arrind = np.flatnonzero(pt2.field_names == "pt2only_field")[0]
-    assert_array_equal(dd[("pt2", "pt2only_field")].d, pt2.field_arrays[arrind])
+    assert_array_equal(dd["pt2", "pt2only_field"].d, pt2.field_arrays[arrind])

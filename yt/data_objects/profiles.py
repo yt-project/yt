@@ -341,11 +341,11 @@ class ProfileND(ParallelAnalysisInterface):
         ... )
         >>> fn = profile.save_as_dataset()
         >>> prof_ds = yt.load(fn)
-        >>> print(prof_ds.data[("gas", "mass")])
+        >>> print(prof_ds.data["gas", "mass"])
         (128, 128)
-        >>> print(prof_ds.data[("index", "x")].shape)  # x bins as 1D array
+        >>> print(prof_ds.data["index", "x"].shape)  # x bins as 1D array
         (128,)
-        >>> print(prof_ds.data[("gas", "density")])  # x bins as 2D array
+        >>> print(prof_ds.data["gas", "density"])  # x bins as 2D array
         (128, 128)
         >>> p = yt.PhasePlot(
         ...     prof_ds.data,
@@ -420,18 +420,18 @@ class ProfileNDFromDataset(ProfileND):
         self.accumulation = ds.parameters.get("accumulation", False)
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[: ds.dimensionality]:
-            setattr(self, ax, ds.data[("data", ax)])
+            setattr(self, ax, ds.data["data", ax])
             ax_bins = f"{ax}_bins"
             ax_field = f"{ax}_field"
             ax_log = f"{ax}_log"
-            setattr(self, ax_bins, ds.data[("data", ax_bins)])
+            setattr(self, ax_bins, ds.data["data", ax_bins])
             field_name = tuple(ds.parameters.get(ax_field, (None, None)))
             setattr(self, ax_field, field_name)
             self.field_info[field_name] = ds.field_info[field_name]
             setattr(self, ax_log, ds.parameters.get(ax_log, False))
             exclude_fields.extend([ax, ax_bins, field_name[1]])
-        self.weight = ds.data[("data", "weight")]
-        self.used = ds.data[("data", "used")].d.astype(bool)
+        self.weight = ds.data["data", "weight"]
+        self.used = ds.data["data", "used"].d.astype(bool)
         profile_fields = [
             f
             for f in ds.field_list

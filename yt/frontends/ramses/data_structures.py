@@ -924,7 +924,7 @@ class RAMSESDataset(Dataset):
 
                 def loc(val):
                     def closure(pfilter, data):
-                        filter = data[(pfilter.filtered_type, "particle_family")] == val
+                        filter = data[pfilter.filtered_type, "particle_family"] == val
                         return filter
 
                     return closure

@@ -17,12 +17,12 @@ grad_fields = ds.add_gradient_fields(("gas", "gravitational_potential"))
 
 def _hse(field, data):
     # Remember that g is the negative of the potential gradient
-    gx = -data[("gas", "density")] * data[("gas", "gravitational_potential_gradient_x")]
-    gy = -data[("gas", "density")] * data[("gas", "gravitational_potential_gradient_y")]
-    gz = -data[("gas", "density")] * data[("gas", "gravitational_potential_gradient_z")]
-    hx = data[("gas", "pressure_gradient_x")] - gx
-    hy = data[("gas", "pressure_gradient_y")] - gy
-    hz = data[("gas", "pressure_gradient_z")] - gz
+    gx = -data["gas", "density"] * data["gas", "gravitational_potential_gradient_x"]
+    gy = -data["gas", "density"] * data["gas", "gravitational_potential_gradient_y"]
+    gz = -data["gas", "density"] * data["gas", "gravitational_potential_gradient_z"]
+    hx = data["gas", "pressure_gradient_x"] - gx
+    hy = data["gas", "pressure_gradient_y"] - gy
+    hz = data["gas", "pressure_gradient_z"] - gz
     h = np.sqrt((hx * hx + hy * hy + hz * hz) / (gx * gx + gy * gy + gz * gz))
     return h
 

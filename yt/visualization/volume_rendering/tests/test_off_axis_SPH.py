@@ -24,12 +24,12 @@ def test_no_rotation():
     right_edge = ds.domain_right_edge
     center = (left_edge + right_edge) / 2
     width = right_edge - left_edge
-    px = ad[("all", "particle_position_x")]
-    py = ad[("all", "particle_position_y")]
-    hsml = ad[("all", "smoothing_length")]
-    quantity_to_smooth = ad[("gas", "density")]
-    density = ad[("io", "density")]
-    mass = ad[("io", "particle_mass")]
+    px = ad["all", "particle_position_x"]
+    py = ad["all", "particle_position_y"]
+    hsml = ad["all", "smoothing_length"]
+    quantity_to_smooth = ad["gas", "density"]
+    density = ad["io", "density"]
+    mass = ad["io", "particle_mass"]
     bounds = [-4, 4, -4, 4, -4, 4]
 
     buf2 = np.zeros(resolution)
