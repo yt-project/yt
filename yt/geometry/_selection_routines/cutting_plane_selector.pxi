@@ -125,7 +125,7 @@ cdef class CuttingPlaneSelector(SelectorObject):
         return ("d", "norm_vec")
 
 
-cdef class CuttingPlaneTransformed(CuttingPlaneSelector):
+cdef class CartesianCuttingPlaneBase(CuttingPlaneSelector):
     # a base class for cartesian cutting planes through data that is not
     # in cartesian coordinates.
 
@@ -207,7 +207,7 @@ cdef class CuttingPlaneTransformed(CuttingPlaneSelector):
         return 1
 
 
-cdef class SphericalCuttingPlaneSelector(CuttingPlaneTransformed):
+cdef class CartesianCuttingPlaneSpherical(CartesianCuttingPlaneBase):
 
     # intersection of a cartesian plane with data in spherical coordinates.
     # expected ordering is (r, theta, phi), where theta is the colatitude
@@ -309,4 +309,4 @@ cdef class SphericalCuttingPlaneSelector(CuttingPlaneTransformed):
 
 cutting_selector = CuttingPlaneSelector
 
-cutting_mixed_spherical_selector = SphericalCuttingPlaneSelector
+cartesian_cutting_spherical_selector = CartesianCuttingPlaneSpherical

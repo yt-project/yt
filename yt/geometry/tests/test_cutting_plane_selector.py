@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from yt import load_uniform_grid
-from yt.geometry.selection_routines import cutting_mixed_spherical_selector
+from yt.geometry.selection_routines import cartesian_cutting_spherical_selector
 from yt.testing import fake_amr_ds
 
 
@@ -30,7 +30,7 @@ def test_spherical_cutting_plane_spots(xy_plane_at_001):
     # with some spherical volume elements
 
     # initialize selector
-    scp = cutting_mixed_spherical_selector(xy_plane_at_001)
+    scp = cartesian_cutting_spherical_selector(xy_plane_at_001)
     assert scp.r_min == 1.0
 
     # left/right edge values are given in spherical coordinates with
@@ -63,7 +63,7 @@ def test_large_angular_range():
         normal = np.array([0.0, 1.0, 0.0])
         plane_center = np.array([0.0, y_pos, 0.0])
         xz_plane = HelpfulPlaneObject(normal, plane_center)
-        scp = cutting_mixed_spherical_selector(xz_plane)
+        scp = cartesian_cutting_spherical_selector(xz_plane)
 
         selected = scp._select_single_bbox(left_edge, right_edge)
         assert selected
@@ -110,7 +110,7 @@ def test_large_angular_range_ds():
 
     normal = ds.arr([0.0, 1.0, 0], "code_length")
     center = ds.arr([0.0, 0.2, 0.0], "code_length")
-    slc = ds.cutting_mixed(normal, center)
+    slc = ds.cartesian_cutting(normal, center)
 
     le = ds.index.grid_left_edge
     re = ds.index.grid_right_edge
@@ -126,13 +126,13 @@ def test_spherical_cutting_plane(xy_plane_at_001):
     # this plane will miss the dataset entirely
     normal = np.array([0.0, 0.0, 1.0])
     plane_center = np.array([0.0, 0.0, 1.1])
-    slc = ds.cutting_mixed(normal, plane_center)
+    slc = ds.cartesian_cutting(normal, plane_center)
     assert len(slc[("stream", "Density")]) == 0
 
     # this one will not.
     normal = np.array([0.0, 0.0, 1.0])
     plane_center = np.array([0.0, 0.0, 0.5])
-    slc = ds.cutting_mixed(normal, plane_center)
+    slc = ds.cartesian_cutting(normal, plane_center)
     r = slc[("index", "r")]
     theta = slc[("index", "theta")]
     # r cannot be smaller than the distance from plane to origin

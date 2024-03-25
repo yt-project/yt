@@ -11,7 +11,7 @@ def test_cutting_plane_mixed_coords():
     ds = fake_amr_ds(geometry="spherical")
     normal = np.array([0.0, 0.0, 1.0])
     plane_center = np.array([0.0, 0.0, 0.5])
-    slc = ds.cutting_mixed(normal, plane_center)
+    slc = ds.cartesian_cutting(normal, plane_center)
     frb = slc.to_frb(2.0, 800)
     bvals = frb[("index", "r")]
     mask = frb.get_mask(("index", "r"))
@@ -56,7 +56,7 @@ def test_cutting_plane_mixed_fixed_z(spherical_ds):
     ds = spherical_ds
     normal = np.array([0.0, 0.0, 1.0])
     center = np.array([0.0, 0.0, 0.5])
-    slc = ds.cutting_mixed(normal, center)
+    slc = ds.cartesian_cutting(normal, center)
     zvals = slc["index", "z_val"].to("code_length")
     assert np.allclose(zvals, ds.quan(0.5, "code_length"), atol=0.05)
 
@@ -72,7 +72,7 @@ class TestCuttingPlaneMixerdCoords:
         ds = spherical_ds
         normal = np.array([0.0, 1.0, 0.0])
         center = np.array([0.0, 0.9, 0.0])
-        slc = ds.cutting_mixed(normal, center)
+        slc = ds.cartesian_cutting(normal, center)
         frb = slc.to_frb(2.0, 50)
         vals = frb["index", "z_val"].to("code_length")
         vals[~frb.get_mask(("index", "z_val"))] = np.nan

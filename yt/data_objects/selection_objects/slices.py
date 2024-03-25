@@ -382,11 +382,11 @@ class YTCuttingPlane(YTSelectionContainer2D):
         return frb
 
 
-class YTCuttingPlaneMixedCoords(YTCuttingPlane):
+class YTCartesianCuttingPlane(YTCuttingPlane):
     """
-    This is similar to YTCutting plane (ds.cutting) but for a cutting plane in
-    cartesian coordinates that slices through data defined in non-cartesian
-    coordinates.
+    A YTCartesianCuttingPlane (ds.cartesian_cutting) is similar to YTCuttingPlane (ds.cutting)
+    but the cutting plane is always defined in cartesian coordinates, allowing arbitrary slices
+    through datasets defined in non-cartesian geometries.
 
     Parameters
     ----------
@@ -413,7 +413,7 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
         try increasing this number a bit.
     """
 
-    _type_name = "cutting_mixed"
+    _type_name = "cartesian_cutting"
     _con_args = ("normal", "center")
     _tds_attrs = ("_inv_mat",)
     _tds_fields = ("x", "y", "z", "dx")
@@ -513,11 +513,10 @@ class YTCuttingPlaneMixedCoords(YTCuttingPlane):
 
     def _get_selector_class(self):
         s_module = getattr(self, "_selector_module", selection_routines)
-        if self.ds.geometry is Geometry.CARTESIAN:
-            type_name = super()._type_name
-        elif self.ds.geometry is Geometry.SPHERICAL:
+        if self.ds.geometry is Geometry.SPHERICAL:
             type_name = self._type_name + "_spherical"
-
+        else:
+            self._raise_unsupported_geometry()
         sclass = getattr(s_module, f"{type_name}_selector", None)
         return sclass
 
