@@ -138,7 +138,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
             # theta = 0 at +90 deg, np.pi at -90
-            return (90.0 - data[("index", "latitude")]) * np.pi / 180.0
+            return (90.0 - data["index", "latitude"]) * np.pi / 180.0
 
         registry.add_field(
             ("index", "theta"),
