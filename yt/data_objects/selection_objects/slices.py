@@ -15,6 +15,7 @@ from yt.funcs import (
     validate_object,
     validate_width_tuple,
 )
+from yt.geometry.api import Geometry
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.minimal_representation import MinimalSliceData
 from yt.utilities.orientation import Orientation
@@ -50,6 +51,11 @@ class YTSlice(YTSelectionContainer2D):
     data_source: optional
         Draw the selection from the provided data source rather than
         all data associated with the data_set
+    offset: array_like, optional
+        Apply an offset to the slicing operation.  Only operable in
+        spherical geometries, to facilitate rotation. This will be added to
+        coordinates as they are compared against the selection routine
+        (and will be supplied to any plot object as well.)
 
     Examples
     --------
@@ -62,11 +68,18 @@ class YTSlice(YTSelectionContainer2D):
 
     _top_node = "/Slices"
     _type_name = "slice"
-    _con_args = ("axis", "coord")
+    _con_args = ("axis", "coord", "offset")
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
 
     def __init__(
-        self, axis, coord, center=None, ds=None, field_parameters=None, data_source=None
+        self,
+        axis,
+        coord,
+        center=None,
+        offset=None,
+        ds=None,
+        field_parameters=None,
+        data_source=None,
     ):
         validate_axis(ds, axis)
         validate_float(coord)
@@ -79,6 +92,14 @@ class YTSlice(YTSelectionContainer2D):
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters, data_source)
         self._set_center(center)
         self.coord = coord
+        if (
+            ds.geometry
+            in (Geometry.SPHERICAL, Geometry.GEOGRAPHIC, Geometry.INTERNAL_GEOGRAPHIC)
+            and offset is not None
+        ):
+            self.offset = offset
+        else:
+            self.offset = [0.0, 0.0, 0.0]
 
     def _generate_container_field(self, field):
         xax = self.ds.coordinates.x_axis[self.axis]
