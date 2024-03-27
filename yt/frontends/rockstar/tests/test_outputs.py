@@ -1,4 +1,5 @@
 import os.path
+from subprocess import PIPE, Popen
 
 from numpy.testing import assert_equal
 
@@ -38,3 +39,32 @@ def test_particle_selection():
     ds = data_dir_load(r1)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
+
+
+@requires_file(r1)
+def test_halo_loading():
+    ds = data_dir_load(r1)
+
+    # Compute sha256sum of the files
+    for fname in ds.index.data_files:
+        sha256sum = (
+            Popen(["sha256sum", fname.filename], stdout=PIPE)
+            .communicate()[0]
+            .split()[0]
+        )
+        print(f"{fname.filename} has sha256sum {sha256sum}")
+
+    for halo_id, Npart in zip(
+        ds.r["halos", "particle_identifier"],
+        ds.r["halos", "num_p"],
+    ):
+        halo = ds.halo("halos", halo_id)
+        assert halo is not None
+
+        # Try accessing properties
+        halo.position
+        halo.velocity
+        halo.mass
+
+        # Make sure we can access the member particles
+        assert_equal(len(halo.member_ids), Npart)
