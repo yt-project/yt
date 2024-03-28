@@ -13,7 +13,7 @@ from yt.utilities.lib.fp_utils cimport fmax, fmin
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef (np.float64_t, np.float64_t, np.float64_t) spherical_to_cartesian(np.float64_t r,
+cdef (np.float64_t, np.float64_t, np.float64_t) _spherical_to_cartesian(np.float64_t r,
                            np.float64_t theta,
                            np.float64_t phi) noexcept nogil:
         # transform a single point in spherical coords to cartesian
@@ -35,7 +35,7 @@ cdef (np.float64_t, np.float64_t, np.float64_t) spherical_to_cartesian(np.float6
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef (np.float64_t, np.float64_t, np.float64_t) cartesian_to_spherical(np.float64_t x,
+cdef (np.float64_t, np.float64_t, np.float64_t) _cartesian_to_spherical(np.float64_t x,
                            np.float64_t y,
                            np.float64_t z) noexcept nogil:
         # transform a single point in cartesian coords to spherical, returns
@@ -55,46 +55,81 @@ cdef (np.float64_t, np.float64_t, np.float64_t) cartesian_to_spherical(np.float6
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cartesian_points_to_spherical(np.float64_t[:] x,
-                                  np.float64_t[:] y,
-                                  np.float64_t[:] z):
+def cartesian_to_spherical(np.ndarray x,
+                           np.ndarray y,
+                           np.ndarray z):
         # transform an array of points in cartesian coords to spherical, returns
         # r : radius
         # theta: colatitude
         # phi: azimuthal angle in range (0, 2pi)
-        cdef np.ndarray[np.float64_t, ndim=1] r, theta, phi
-        cdef int i, n_x
+        cdef np.ndarray[np.float64_t, ndim=1] r1d, th1d, phi1d
+        cdef np.ndarray[np.float64_t, ndim=1] x1d, y1d, z1d
+        cdef int i, n_x, ndim
+        cdef np.int64_t[:] shp
 
-        r = np.zeros(x.shape[0], dtype='float64')
-        theta = np.zeros(x.shape[0], dtype='float64')
-        phi = np.zeros(x.shape[0], dtype='float64')
-        n_x = x.size
+        ndim = x.ndim
+
+        shp = np.zeros((ndim,), dtype=np.int64)
+        for i in range(ndim):
+            shp[i] = x.shape[i]
+
+        x1d = x.reshape(-1)
+        y1d = y.reshape(-1)
+        z1d = z.reshape(-1)
+
+        n_x = x1d.size
+        r1d = np.zeros((n_x,), dtype=np.float64)
+        th1d = np.zeros((n_x,), dtype=np.float64)
+        phi1d = np.zeros((n_x,), dtype=np.float64)
+
+
         with nogil:
             for i in range(n_x):
-                r[i], theta[i], phi[i] = cartesian_to_spherical(x[i], y[i], z[i])
+                r1d[i], th1d[i], phi1d[i] = _cartesian_to_spherical(x1d[i], y1d[i], z1d[i])
 
+        r = r1d.reshape(shp)
+        theta = th1d.reshape(shp)
+        phi = phi1d.reshape(shp)
         return r, theta, phi
 
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def spherical_points_to_cartesian(np.float64_t[:] r,
-                                  np.float64_t[:] theta,
-                                  np.float64_t[:] phi):
-        # transform an array of points in spherical coords to cartesian
-        cdef np.ndarray[np.float64_t, ndim=1] x, y, z
-        cdef int i, n_r
+def spherical_to_cartesian(np.ndarray r,
+                           np.ndarray theta,
+                           np.ndarray phi):
 
-        x = np.zeros(r.shape[0], dtype='float64')
-        y = np.zeros(r.shape[0], dtype='float64')
-        z = np.zeros(r.shape[0], dtype='float64')
-        n_r = r.size
+        # transform an array of points in spherical coords to cartesian
+        cdef np.ndarray[np.float64_t, ndim=1] r1d, th1d, phi1d
+        cdef np.ndarray[np.float64_t, ndim=1] x1d, y1d, z1d
+
+        cdef np.int64_t[:] shp
+        cdef int i, n_r, ndim
+
+        ndim = r.ndim
+
+        shp = np.zeros((ndim,), dtype=np.int64)
+        for i in range(ndim):
+            shp[i] = r.shape[i]
+
+        r1d = r.reshape(-1)
+        th1d = theta.reshape(-1)
+        phi1d = phi.reshape(-1)
+
+        n_r = r1d.size
+        x1d = np.zeros((n_r,), dtype=np.float64)
+        y1d = np.zeros((n_r,), dtype=np.float64)
+        z1d = np.zeros((n_r,), dtype=np.float64)
+
 
         with nogil:
             for i in range(n_r):
-                x[i], y[i], z[i] = spherical_to_cartesian(r[i], theta[i], phi[i])
+                x1d[i], y1d[i], z1d[i] = _spherical_to_cartesian(r1d[i], th1d[i], phi1d[i])
 
+        x = x1d.reshape(shp)
+        y = y1d.reshape(shp)
+        z = z1d.reshape(shp)
         return x, y, z
 
 
@@ -168,7 +203,7 @@ cdef class SphericalMixedCoordBBox(MixedCoordBBox):
                     theta_lr = theta_i + sign_th * h_dtheta
                     phi_lr = phi_i + sign_ph * h_dphi
 
-                    xi, yi, zi = spherical_to_cartesian(r_lr, theta_lr, phi_lr)
+                    xi, yi, zi = _spherical_to_cartesian(r_lr, theta_lr, phi_lr)
 
                     xli = fmin(xli, xi)
                     yli = fmin(yli, yi)

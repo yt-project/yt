@@ -3,8 +3,8 @@ import numpy as np
 from yt.utilities.lib.coordinate_utilities import (
     SphericalMixedCoordBBox,
     cartesian_bboxes,
-    cartesian_points_to_spherical,
-    spherical_points_to_cartesian,
+    cartesian_to_spherical,
+    spherical_to_cartesian,
 )
 
 
@@ -139,8 +139,8 @@ def test_spherical_cartesian_roundtrip():
     xyz = [xyzi.ravel() for xyzi in xyz]
     x, y, z = xyz
 
-    r, theta, phi = cartesian_points_to_spherical(x, y, z)
-    x_out, y_out, z_out = spherical_points_to_cartesian(r, theta, phi)
+    r, theta, phi = cartesian_to_spherical(x, y, z)
+    x_out, y_out, z_out = spherical_to_cartesian(r, theta, phi)
 
     assert np.allclose(x_out, x)
     assert np.allclose(y_out, y)

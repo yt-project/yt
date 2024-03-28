@@ -474,9 +474,7 @@ class YTCartesianCuttingPlane(YTCuttingPlane):
     @property
     def _cartesian_to_native(self):
         if self._ds_geom is Geometry.SPHERICAL:
-            from yt.geometry.coordinates.spherical_coordinates import (
-                cartesian_to_spherical,
-            )
+            from yt.utilities.lib.coordinate_utilities import cartesian_to_spherical
 
             return cartesian_to_spherical
         self._raise_unsupported_geometry()
@@ -484,9 +482,7 @@ class YTCartesianCuttingPlane(YTCuttingPlane):
     @property
     def _native_to_cartesian(self):
         if self._ds_geom is Geometry.SPHERICAL:
-            from yt.geometry.coordinates.spherical_coordinates import (
-                spherical_to_cartesian,
-            )
+            from yt.utilities.lib.coordinate_utilities import spherical_to_cartesian
 
             return spherical_to_cartesian
         self._raise_unsupported_geometry()

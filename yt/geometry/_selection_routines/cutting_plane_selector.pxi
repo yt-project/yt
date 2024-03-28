@@ -1,4 +1,4 @@
-from yt.utilities.lib.coordinate_utilities cimport spherical_to_cartesian, cartesian_to_spherical
+from yt.utilities.lib.coordinate_utilities cimport _spherical_to_cartesian, _cartesian_to_spherical
 from numpy.math cimport PI as NPY_PI
 
 cdef class CuttingPlaneSelector(SelectorObject):
@@ -231,14 +231,14 @@ cdef class CartesianCuttingPlaneSpherical(CartesianCuttingPlaneBase):
         # closest to the origin
         for i in range(3):
             xyz[i] = - self.norm_vec[i] * self.d  # cartesian position
-        self.c_rtp[0],  self.c_rtp[1],  self.c_rtp[2] = cartesian_to_spherical(xyz[0], xyz[1], xyz[2])
+        self.c_rtp[0],  self.c_rtp[1],  self.c_rtp[2] = _cartesian_to_spherical(xyz[0], xyz[1], xyz[2])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void transform_vertex_pos(self, np.float64_t pos_in[3], np.float64_t pos_out[3]) noexcept nogil:
         # r => in_pos[0] theta => in_pos[1] phi => in_pos[2]
-        pos_out[0], pos_out[1], pos_out[2] = spherical_to_cartesian(pos_in[0], pos_in[1], pos_in[2])
+        pos_out[0], pos_out[1], pos_out[2] = _spherical_to_cartesian(pos_in[0], pos_in[1], pos_in[2])
 
 
     @cython.boundscheck(False)
