@@ -14,9 +14,9 @@ from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
 from yt.frontends.open_pmd.misc import get_component, is_const_component
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.file_handler import HDF5FileHandler, valid_hdf5_signature
+from yt.utilities.file_handler import OpenPMDFileHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import _openpmd_api as openpmd_api
 
 ompd_known_versions = [Version(_) for _ in ("1.0.0", "1.0.1", "1.1.0")]
 opmd_required_attributes = ["openPMD", "basePath"]
@@ -26,8 +26,8 @@ class OpenPMDGrid(AMRGridPatch):
     """Represents chunk of data on-disk.
 
     This defines the index and offset for every mesh and particle type.
-    It also defines parents and children grids. Since openPMD does not have multiple
-    levels of refinement there are no parents or children for any grid.
+    It also defines parents and children grids. The previous frontend had no support for
+    multiple levels of refinement so we are working on adding this.
     """
 
     _id_offset = 0
@@ -87,21 +87,23 @@ class OpenPMDHierarchy(GridIndex):
         """
         result = {}
         f = self.dataset._handle
-        bp = self.dataset.base_path
-        pp = self.dataset.particles_path
+        # bp = self.dataset.base_path
+        # pp = self.dataset.particles_path
 
         try:
             for ptype in self.ds.particle_types_raw:
                 if str(ptype) == "io":
-                    spec = list(f[bp + pp].keys())[0]
+                    spec = list(f.particles)[0]
                 else:
                     spec = ptype
-                axis = list(f[bp + pp + "/" + spec + "/position"].keys())[0]
-                pos = f[bp + pp + "/" + spec + "/position/" + axis]
+                part = f.particles[spec]
+                pos = part["position"][list(part["position"])[0]]
                 if is_const_component(pos):
-                    result[ptype] = pos.attrs["shape"]
+                    result[ptype] = pos.shape[
+                        0
+                    ]  # relic from old frontend, should there be a difference
                 else:
-                    result[ptype] = pos.len()
+                    result[ptype] = pos.shape[0]
         except KeyError:
             result["io"] = 0
 
@@ -118,20 +120,14 @@ class OpenPMDHierarchy(GridIndex):
         or (for multiple species of particles) the particle name on-disk.
         """
         f = self.dataset._handle
-        bp = self.dataset.base_path
-        mp = self.dataset.meshes_path
-        pp = self.dataset.particles_path
-
         mesh_fields = []
         try:
-            meshes = f[bp + mp]
-            for mname in meshes.keys():
+            for mname in list(f.meshes):
                 try:
-                    mesh = meshes[mname]
-                    for axis in mesh.keys():
+                    for axis in list(f.meshes[mname]):
                         mesh_fields.append(mname.replace("_", "-") + "_" + axis)
-                except AttributeError:
-                    # This is a h5py.Dataset (i.e. no axes)
+                except AttributeError:  # not sure if this would ever happen
+                    # (i.e. scalar or constant component with no axes)
                     mesh_fields.append(mname.replace("_", "-"))
         except (KeyError, TypeError, AttributeError):
             pass
@@ -139,11 +135,10 @@ class OpenPMDHierarchy(GridIndex):
 
         particle_fields = []
         try:
-            particles = f[bp + pp]
-            for pname in particles.keys():
-                species = particles[pname]
-                for recname in species.keys():
-                    record = species[recname]
+            for pname in list(f.particles):
+                species = list(f.particles[pname])
+                for recname in species:
+                    record = f.particles[pname][recname]
                     if is_const_component(record):
                         # Record itself (e.g. particle_mass) is constant
                         particle_fields.append(
@@ -153,19 +148,22 @@ class OpenPMDHierarchy(GridIndex):
                         try:
                             # Create a field for every axis (x,y,z) of every
                             # property (position) of every species (electrons)
-                            axes = list(record.keys())
+                            axes = list(record)
                             if str(recname) == "position":
                                 recname = "positionCoarse"
-                            for axis in axes:
-                                particle_fields.append(
-                                    pname.replace("_", "-")
-                                    + "_"
-                                    + recname.replace("_", "-")
-                                    + "_"
-                                    + axis
-                                )
+                            if len(axes) > 1:
+                                for axis in axes:
+                                    particle_fields.append(
+                                        pname.replace("_", "-")
+                                        + "_"
+                                        + recname.replace("_", "-")
+                                        + "_"
+                                        + axis
+                                    )  # so we are doing all this, and then raising error which is why we get the noaxes field
+                            else:
+                                raise AttributeError  # in the case that is have no axes
                         except AttributeError:
-                            # Record is a dataset, does not have axes (e.g. weighting)
+                            # Record is a dataset, does not have axes (e.g. weighting) #electrons and ions momentum, positionCoarse, and positionOffset are here
                             particle_fields.append(
                                 pname.replace("_", "-")
                                 + "_"
@@ -174,7 +172,7 @@ class OpenPMDHierarchy(GridIndex):
                             pass
                     else:
                         pass
-            if len(list(particles.keys())) > 1:
+            if len(list(f.particles)) > 1:
                 # There is more than one particle species,
                 # use the specific names as field types
                 self.field_list.extend(
@@ -203,46 +201,72 @@ class OpenPMDHierarchy(GridIndex):
         The number of grids is determined by their respective memory footprint.
         """
         f = self.dataset._handle
-        bp = self.dataset.base_path
-        mp = self.dataset.meshes_path
-        pp = self.dataset.particles_path
-
         self.meshshapes = {}
         self.numparts = {}
 
         self.num_grids = 0
 
         try:
-            meshes = f[bp + mp]
-            for mname in meshes.keys():
-                mesh = meshes[mname]
-                if isinstance(mesh, h5py.Group):
-                    shape = mesh[list(mesh.keys())[0]].shape
+            for mname in list(f.meshes):
+                mesh = f.meshes[mname]
+                if isinstance(mesh, openpmd_api.io.openpmd_api_cxx.Mesh):
+                    """#very much a rough draft, first try, problems with io"""
+                    """
+                    if len(mesh[list(mesh)[0]].available_chunks()) == 1:
+                        #the case for hdf5 data
+                        offset  = mesh[list(mesh)[0]].available_chunks()[0].offset
+                        extent  = mesh[list(mesh)[0]].available_chunks()[0].extent
+                        shape = np.array(extent)- np.array(offset)
+                        shape = tuple(shape.tolist())
+                        grids_in_domain = 1
+                    elif len(mesh[list(mesh)[0]].available_chunks()) > 1:
+                        #the case for adios2 data
+                        chunk_one = mesh[list(mesh)[0]].available_chunks()[0]
+                        #get shape of individual to-be-grid/existing-openpmd-chunk
+                        shape_arr = np.array(chunk_one.extent) - np.array(chunk_one.offset)
+                        shape = tuple(shape_arr.tolist())
+                        print('adios shape')
+                        print(shape)
+                        grids_in_domain = np.array(mesh[list(mesh)[0]].shape)/shape_arr
+                    else:
+                        #unknown
+                        print('back here')
+                        shape = tuple(mesh[list(mesh)[0]].shape)
+                        grids_in_domain = 1
+                        """
+                    shape = tuple(mesh[list(mesh)[0]].shape)
                 else:
-                    shape = mesh.shape
-                spacing = tuple(mesh.attrs["gridSpacing"])
-                offset = tuple(mesh.attrs["gridGlobalOffset"])
-                unit_si = mesh.attrs["gridUnitSI"]
-                self.meshshapes[mname] = (shape, spacing, offset, unit_si)
+                    # shape = tuple(mesh.shape)
+                    # don't think we could get here, a relic from old frontend
+                    raise KeyError
+                spacing = tuple(mesh.grid_spacing)
+                offset = tuple(mesh.grid_global_offset)
+                unit_si = mesh.grid_unit_SI
+                self.meshshapes[mname] = (
+                    shape,
+                    spacing,
+                    offset,
+                    unit_si,
+                )  # grids_in_domain,
         except (KeyError, TypeError, AttributeError):
             pass
         try:
-            particles = f[bp + pp]
-            for pname in particles.keys():
-                species = particles[pname]
-                if "particlePatches" in species.keys():
+            for pname in list(f.particles):
+                species = f.particles[pname]
+                if "particlePatches" in list(
+                    species
+                ):  # haven't been able to test this, likely doesn't work
                     for patch, size in enumerate(
-                        species["/particlePatches/numParticles"]
+                        species.particle_patches["numParticles"]
                     ):
                         self.numparts[f"{pname}#{patch}"] = size
                 else:
-                    axis = list(species["/position"].keys())[0]
-                    if is_const_component(species["/position/" + axis]):
-                        self.numparts[pname] = species["/position/" + axis].attrs[
-                            "shape"
-                        ]
+                    axis = list(species["position"])[0]
+                    if is_const_component(species["position"][axis]):
+                        self.numparts[pname] = species["position"][axis].shape[0]
                     else:
-                        self.numparts[pname] = species["/position/" + axis].len()
+                        self.numparts[pname] = species["position"][axis].shape[0]
+                        # should these be the same? relic from old frontend
         except (KeyError, TypeError, AttributeError):
             pass
 
@@ -250,6 +274,7 @@ class OpenPMDHierarchy(GridIndex):
         self.vpg = int(self.dataset.gridsize / 4)  # 4Byte per value (f32)
 
         # Meshes of the same size do not need separate chunks
+        # we need to make this work with the available_grids() call above
         for shape, *_ in set(self.meshshapes.values()):
             self.num_grids += min(
                 shape[0], int(np.ceil(reduce(mul, shape) * self.vpg**-1))
@@ -283,10 +308,7 @@ class OpenPMDHierarchy(GridIndex):
         only. The others do not have any particles affiliated with them.
         """
         f = self.dataset._handle
-        bp = self.dataset.base_path
-        pp = self.dataset.particles_path
-
-        self.grid_levels.flat[:] = 0
+        self.grid_levels.flat[:] = 0  # this needs to change,
         self.grids = np.empty(self.num_grids, dtype="object")
 
         grid_index_total = 0
@@ -348,9 +370,9 @@ class OpenPMDHierarchy(GridIndex):
         # Particle grids
         for species, count in self.numparts.items():
             if "#" in species:
-                # This is a particlePatch
+                # This is a particlePatch                   Don't have data to test
                 spec = species.split("#")
-                patch = f[bp + pp + "/" + spec[0] + "/particlePatches"]
+                patch = f.particles[spec[0]]["particlePatches"]  # don't know about this
                 domain_dimension = np.ones(3, dtype=np.int32)
                 for ind, axis in enumerate(list(patch["extent"].keys())):
                     domain_dimension[ind] = patch["extent/" + axis][()][int(spec[1])]
@@ -431,7 +453,7 @@ class OpenPMDDataset(Dataset):
     - particle and mesh positions are *absolute* with respect to the simulation origin.
     """
 
-    _load_requirements = ["h5py"]
+    _load_requirements = ["openpmd_api"]
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
@@ -444,11 +466,17 @@ class OpenPMDDataset(Dataset):
         unit_system="mks",
         **kwargs,
     ):
-        self._handle = HDF5FileHandler(filename)
+        try:
+            self._series_handle = OpenPMDFileHandler(filename)
+            self._handle = self._series_handle.handle.iterations[
+                list(self._series_handle.handle.iterations)[0]
+            ]
+        except TypeError:
+            pass
         self.gridsize = kwargs.pop("open_pmd_virtual_gridsize", 10**9)
-        self.standard_version = Version(self._handle.attrs["openPMD"].decode())
+        self.standard_version = Version(self._series_handle.handle.openPMD)
         self.iteration = kwargs.pop("iteration", None)
-        self._set_paths(self._handle, path.dirname(filename), self.iteration)
+        self._set_paths(self._series_handle, path.dirname(filename), self.iteration)
         Dataset.__init__(
             self,
             filename,
@@ -459,10 +487,7 @@ class OpenPMDDataset(Dataset):
         self.storage_filename = storage_filename
         self.fluid_types += ("openPMD",)
         try:
-            particles = tuple(
-                str(c)
-                for c in self._handle[self.base_path + self.particles_path].keys()
-            )
+            particles = tuple(str(c) for c in self._handle.particles)
             if len(particles) > 1:
                 # Only use on-disk particle names if there is more than one species
                 self.particle_types = particles
@@ -473,59 +498,69 @@ class OpenPMDDataset(Dataset):
             pass
 
     def _set_paths(self, handle, path, iteration):
-        """Parses relevant hdf5-paths out of ``handle``.
+        """Parses relevant backend-paths out of ``handle``.
+        Now this should be agnostic to backend format, just handling
+        openpmd-api handle paths
 
         Parameters
         ----------
-        handle : h5py.File
+        handle : openpmd_api.openpmd_api_cxx.Series
         path : str
-            (absolute) filepath for current hdf5 container
+            (absolute) filepath for current hdf5, adios2, or (in the future) json container
         """
         iterations = []
         if iteration is None:
-            iteration = list(handle["/data"].keys())[0]
-        encoding = handle.attrs["iterationEncoding"].decode()
-        if "groupBased" in encoding:
-            iterations = list(handle["/data"].keys())
-            mylog.info("Found %s iterations in file", len(iterations))
-        elif "fileBased" in encoding:
-            itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
-            regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
-            if path == "":
+            iteration = list(handle.handle.iterations)[0]
+            # moved this in
+            encoding = str(handle.handle.iteration_encoding)
+            if "Iteration_Encoding.group_based" in encoding:
+                iterations = list(handle.handle.iterations)
+                mylog.info(
+                    "Single iteration found: %s", iteration
+                )  # because of the groupbased dataset is_valid
+            elif "Iteration_Encoding.file_based" in encoding:
+                itformat = handle.handle.iteration_format
+                regex = (
+                    "^" + itformat.replace("%06T", "[0-9]+") + "$"
+                )  # issues converting between yt and openpmd_api file patterns
+                if path == "":
+                    mylog.warning(
+                        "For file based iterations, please use absolute file paths!"
+                    )
+                    pass
+                for filename in listdir(path):
+                    if match(regex, filename):
+                        iterations.append(filename)
+                mylog.info("Found %s iterations in directory", len(iterations))
+
+            if len(iterations) == 0:
+                mylog.warning("No iterations found!")
+            if "Iteration_Encoding.group_based" in encoding and len(iterations) > 1:
+                # this can happen only when a user doesn't use yt.load
                 mylog.warning(
-                    "For file based iterations, please use absolute file paths!"
+                    "More than one iteration found. Use OpenPMDDatasetSeries to view "
+                    "other iterations. Loaded first iteration (%s)",
+                    iteration,
                 )
-                pass
-            for filename in listdir(path):
-                if match(regex, filename):
-                    iterations.append(filename)
-            mylog.info("Found %s iterations in directory", len(iterations))
-
-        if len(iterations) == 0:
-            mylog.warning("No iterations found!")
-        if "groupBased" in encoding and len(iterations) > 1:
-            mylog.warning("Only chose to load one iteration (%s)", iteration)
-
+        # moved all this in
         self.base_path = f"/data/{iteration}/"
-        try:
-            self.meshes_path = self._handle["/"].attrs["meshesPath"].decode()
-            handle[self.base_path + self.meshes_path]
-        except KeyError:
+        try:  # we could find other ways to do this, but works to convert to iteration
+            self.meshes_path = self._series_handle.handle.meshes_path
+        except openpmd_api.io.ErrorNoSuchAttribute:
             if self.standard_version <= Version("1.1.0"):
                 mylog.info(
-                    "meshesPath not present in file. "
+                    "meshes_path not present in file. "
                     "Assuming file contains no meshes and has a domain extent of 1m^3!"
                 )
                 self.meshes_path = None
             else:
                 raise
         try:
-            self.particles_path = self._handle["/"].attrs["particlesPath"].decode()
-            handle[self.base_path + self.particles_path]
-        except KeyError:
+            self.particles_path = self._series_handle.handle.particles_path
+        except openpmd_api.io.ErrorNoSuchAttribute:
             if self.standard_version <= Version("1.1.0"):
                 mylog.info(
-                    "particlesPath not present in file."
+                    "particles_path not present in file."
                     " Assuming file contains no particles!"
                 )
                 self.particles_path = None
@@ -547,9 +582,7 @@ class OpenPMDDataset(Dataset):
 
     def _parse_parameter_file(self):
         """Read in metadata describing the overall data on-disk."""
-        f = self._handle
-        bp = self.base_path
-        mp = self.meshes_path
+        f = self._handle  # this is an iteration
 
         self.parameters = 0
         self._periodicity = np.zeros(3, dtype="bool")
@@ -560,16 +593,17 @@ class OpenPMDDataset(Dataset):
             shapes = {}
             left_edges = {}
             right_edges = {}
-            meshes = f[bp + mp]
-            for mname in meshes.keys():
-                mesh = meshes[mname]
-                if isinstance(mesh, h5py.Group):
-                    shape = np.asarray(mesh[list(mesh.keys())[0]].shape)
+            for mname in f.meshes:
+                mesh = f.meshes[mname]
+                if isinstance(mesh, openpmd_api.io.openpmd_api_cxx.Mesh):
+                    shape = np.asarray(mesh[list(mesh)[0]].shape)
                 else:
-                    shape = np.asarray(mesh.shape)
-                spacing = np.asarray(mesh.attrs["gridSpacing"])
-                offset = np.asarray(mesh.attrs["gridGlobalOffset"])
-                unit_si = np.asarray(mesh.attrs["gridUnitSI"])
+                    shape = np.asarray(
+                        mesh.shape
+                    )  # if these aren't meshes, what are they?
+                spacing = np.asarray(mesh.grid_spacing)
+                offset = np.asarray(mesh.grid_global_offset)
+                unit_si = np.asarray(mesh.grid_unit_SI)
                 le = offset * unit_si
                 re = le + shape * unit_si * spacing
                 shapes[mname] = shape
@@ -599,32 +633,32 @@ class OpenPMDDataset(Dataset):
             else:
                 raise
 
-        self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
+        self.current_time = f.time * f.time_unit_SI
 
     @classmethod
     def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         """Checks whether the supplied file can be read by this frontend."""
-        if not valid_hdf5_signature(filename):
-            return False
-
         if cls._missing_load_requirements():
             return False
-
         try:
-            with h5py.File(filename, mode="r") as f:
-                attrs = list(f["/"].attrs.keys())
-                for i in opmd_required_attributes:
-                    if i not in attrs:
-                        return False
-
-                if Version(f.attrs["openPMD"].decode()) not in ompd_known_versions:
+            handle = openpmd_api.io.Series(
+                filename, openpmd_api.io.Access_Type.read_only
+            )
+            for i in opmd_required_attributes:
+                if i not in handle.attributes:
+                    handle.close()
                     return False
-
-                if f.attrs["iterationEncoding"].decode() == "fileBased":
-                    return True
-
+            if Version(handle.openPMD) not in ompd_known_versions:
+                handle.close()
                 return False
-        except OSError:
+            if "Iteration_Encoding.group_based" in str(handle.iteration_encoding):
+                iteration = kwargs.pop("iteration", None)
+                if len(list(handle.iterations)) > 1 and iteration is None:
+                    handle.close()
+                    return False
+            handle.close()
+            return True
+        except (OSError, RuntimeError):
             return False
 
 
@@ -637,10 +671,15 @@ class OpenPMDDatasetSeries(DatasetSeries):
 
     def __init__(self, filename):
         super().__init__([])
-        self.handle = h5py.File(filename, mode="r")
+        # lets keep the yt patterns, then convert to %T and %06T for openpmd_api handling
+        self.handle = openpmd_api.io.Series(
+            filename, openpmd_api.io.Access_Type.read_only
+        )
+        if len(self.handle.iterations) < 2:
+            mylog.info("Single iteration found, use OpenPMDDataset")
         self.filename = filename
         self._pre_outputs = sorted(
-            np.asarray(list(self.handle["/data"].keys()), dtype="int64")
+            np.asarray(list(self.handle.iterations), dtype="int64")
         )
 
     def __iter__(self):
@@ -662,36 +701,44 @@ class OpenPMDDatasetSeries(DatasetSeries):
 
 
 class OpenPMDGroupBasedDataset(Dataset):
-    _load_requirements = ["h5py"]
+    _load_requirements = ["openpmd_api"]
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
     def __new__(cls, filename, *args, **kwargs):
         ret = object.__new__(OpenPMDDatasetSeries)
         ret.__init__(filename)
+        mylog.info(
+            "Group Based Dataset was cast to OpenPMDDatasetSeries.\n"
+            "Inspect single interations with dataset_series[iteration]\n"
+            "where iteration is in dataset_series._pre_outputs"
+        )
         return ret
 
     @classmethod
     def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
-        if not valid_hdf5_signature(filename):
-            return False
-
         if cls._missing_load_requirements():
             return False
-
         try:
-            with h5py.File(filename, mode="r") as f:
-                attrs = list(f["/"].attrs.keys())
-                for i in opmd_required_attributes:
-                    if i not in attrs:
-                        return False
-
-                if Version(f.attrs["openPMD"].decode()) not in ompd_known_versions:
+            handle = openpmd_api.io.Series(
+                filename, openpmd_api.io.Access_Type.read_only
+            )
+            for i in opmd_required_attributes:
+                if i not in handle.attributes:
+                    handle.close()
                     return False
-
-                if f.attrs["iterationEncoding"].decode() == "groupBased":
-                    return True
-
+            if Version(handle.openPMD) not in ompd_known_versions:
+                handle.close()
                 return False
-        except OSError:
+            encoding = str(handle.iteration_encoding)
+            iterations = list(handle.iterations)
+            if "Iteration_Encoding.group_based" in encoding:
+                iteration = kwargs.pop("iteration", None)
+                # if iteration is given, not a dataset series
+                if len(iterations) > 1 and iteration is None:
+                    handle.close()
+                    return True
+            handle.close()
+            return False
+        except (OSError, RuntimeError):
             return False

@@ -7,7 +7,7 @@ from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 
 
-class IOHandlerOpenPMDHDF5(BaseIOHandler):
+class IOHandlerOpenPMD(BaseIOHandler):  # Used to be hdf5
     _field_dtype = "float32"
     _dataset_type = "openPMD"
 
@@ -32,20 +32,22 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
         """
         if str((ptype, index, offset)) not in self._cached_ptype:
             self._cached_ptype = str((ptype, index, offset))
-            pds = self._handle[self.base_path + self.particles_path + "/" + ptype]
-            axes = list(pds["position"].keys())
+            pds = self._handle.particles[ptype]
+            axes = list(pds["position"])
             if offset is None:
-                if is_const_component(pds["position/" + axes[0]]):
-                    offset = pds["position/" + axes[0]].attrs["shape"]
+                # relic from old frontend, does it cause bugs?
+                # should they be the same?
+                if is_const_component(pds["position"][axes[0]]):
+                    offset = pds["position"][axes[0]].shape
                 else:
-                    offset = pds["position/" + axes[0]].len()
+                    offset = pds["position"][axes[0]].shape
             self.cache = np.empty((3, offset), dtype=np.float64)
             for i in np.arange(3):
                 ax = "xyz"[i]
                 if ax in axes:
                     np.add(
-                        get_component(pds, "position/" + ax, index, offset),
-                        get_component(pds, "positionOffset/" + ax, index, offset),
+                        get_component(pds["position"], ax, index, offset),
+                        get_component(pds["positionOffset"], ax, index, offset),
                         self.cache[i],
                     )
                 else:
@@ -75,9 +77,9 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
             values are (N,) ndarrays with data from that field
         """
         f = self._handle
-        bp = self.base_path
-        pp = self.particles_path
-        ds = f[bp + pp]
+        # bp = self.base_path
+        # pp = self.particles_path
+        ds = f.particles
         unions = self.ds.particle_unions
         chunks = list(chunks)  # chunks is a generator
 
@@ -108,7 +110,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
             for chunk in chunks:
                 for grid in chunk.objs:
                     if str(ptype) == "io":
-                        species = list(ds.keys())[0]
+                        species = list(ds)[0]
                     else:
                         species = ptype
                     if species not in grid.ptypes:
@@ -122,12 +124,22 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                         continue
                     pds = ds[species]
                     for field in ptf[ptype]:
-                        component = "/".join(field.split("_")[1:])
-                        component = component.replace("positionCoarse", "position")
-                        component = component.replace("-", "_")
-                        data = get_component(pds, component, grid.pindex, grid.poffset)[
-                            mask
-                        ]
+                        # just chop off 'particle',
+                        record = field.split("_")[1:]
+                        component = record[-1]
+                        if len(record) > 1:  # specifying axes here
+                            record = record[-2].replace("positionCoarse", "position")
+                            component = component.replace("-", "_")
+                            data = get_component(
+                                pds[record], component, grid.pindex, grid.poffset
+                            )[mask]
+                        else:  # just particle_mass, charge, weighting,and id
+                            data = get_component(
+                                pds[component],
+                                list(pds[component])[0],
+                                grid.pindex,
+                                grid.poffset,
+                            )[mask]
                         for request_field in rfm[ptype, field]:
                             rv[request_field][
                                 ind[request_field] : ind[request_field] + data.shape[0]
@@ -160,22 +172,24 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
         dict
             keys are tuples (ftype, fname) representing a field
             values are flat (``size``,) ndarrays with data from that field
+
+        PROGRESS note: This is not working, as we have to access openpmd chunks from individual record components
+        and make yt and openpmd agree that yt grids == openpmd_api chunks. Due to recent changes in
+        data_structure.OpenPMDHiercarchy.count_grids the slicing here is incorrect
+
         """
         f = self._handle
-        bp = self.base_path
-        mp = self.meshes_path
-        ds = f[bp + mp]
+        ds = f.meshes
         chunks = list(chunks)
-
         rv = {}
         ind = {}
 
         if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
-
         if size is None:
             size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
+
         for field in fields:
             rv[field] = np.empty(size, dtype=np.float64)
             ind[field] = 0
@@ -183,15 +197,22 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
         for ftype, fname in fields:
             field = (ftype, fname)
             for chunk in chunks:
-                for grid in chunk.objs:
+                for grid in chunk.objs:  # need to figure out grids
                     mask = grid._get_selector_mask(selector)
                     if mask is None:
                         continue
-                    component = fname.replace("_", "/").replace("-", "_")
-                    if component.split("/")[0] not in grid.ftypes:
+                    component = fname.replace("-", "_")
+                    if "_".join(component.split("_")[:-1]) not in grid.ftypes:
                         data = np.full(grid.ActiveDimensions, 0, dtype=np.float64)
                     else:
-                        data = get_component(ds, component, grid.findex, grid.foffset)
+                        component_field = "_".join(component.split("_")[:-1])
+                        component_axes = component.split("_")[-1]
+                        data = get_component(
+                            ds[component_field],
+                            component_axes,
+                            grid.findex,
+                            grid.foffset,
+                        )
                     # The following is a modified AMRGridPatch.select(...)
                     data.shape = (
                         mask.shape
@@ -199,7 +220,6 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                     count = grid.count(selector)
                     rv[field][ind[field] : ind[field] + count] = data[mask]
                     ind[field] += count
-
         for field in fields:
             rv[field] = rv[field][: ind[field]]
             rv[field].flatten()

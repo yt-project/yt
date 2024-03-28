@@ -353,6 +353,17 @@ class h5py_imports(OnDemand):
 _h5py = h5py_imports()
 
 
+class openpmd_api_imports(OnDemand):
+    @safe_import
+    def io(self):
+        import openpmd_api as io
+
+        return io
+
+
+_openpmd_api = openpmd_api_imports()
+
+
 class nose_imports(OnDemand):
     @safe_import
     def run(self):

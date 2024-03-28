@@ -52,11 +52,11 @@ def parse_unit_dimension(unit_dimension):
 
 
 def is_const_component(record_component):
-    """Determines whether a group or dataset in the HDF5 file is constant.
+    """Determines whether an iteration record is constant
 
     Parameters
     ----------
-    record_component : h5py.Group or h5py.Dataset
+    record_component : openpmd_api.openpmd_api_cxx.Record_component
 
     Returns
     -------
@@ -68,17 +68,18 @@ def is_const_component(record_component):
     .. https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md,
        section 'Constant Record Components'
     """
-    return "value" in record_component.attrs.keys()
+    # return record_component.constant #this doesn't work
+    return "value" in record_component.attributes
 
 
-def get_component(group, component_name, index=0, offset=None):
+def get_component(record, record_axis, index=0, offset=None):
     """Grabs a dataset component from a group as a whole or sliced.
 
     Parameters
     ----------
-    group : h5py.Group
-    component_name : str
-        relative path of the component in the group
+    record : openpmd_api_cxx.Record
+    record_axis : str
+        the openpmd_api_cxx.Record_Component string key, not necessarily a physical axis
     index : int, optional
         first entry along the first axis to read
     offset : int, optional
@@ -95,18 +96,23 @@ def get_component(group, component_name, index=0, offset=None):
         (N,) 1D in case of particle data
         (O,P,Q) 1D/2D/3D in case of mesh data
     """
-    record_component = group[component_name]
-    unit_si = record_component.attrs["unitSI"]
+    record_component = record[record_axis]
+    unit_si = record_component.get_attribute("unitSI")
     if is_const_component(record_component):
-        shape = np.asarray(record_component.attrs["shape"])
+        shape = np.asarray(record_component.get_attribute("shape"))
         if offset is None:
             shape[0] -= index
         else:
-            shape[0] = offset
+            shape = offset
         # component is constant, craft an array by hand
-        return np.full(shape, record_component.attrs["value"] * unit_si)
+        registered = record_component.get_attribute("value")
+        return np.full(shape, registered * unit_si)
     else:
         if offset is not None:
             offset += index
-        # component is a dataset, return it (possibly masked)
-        return np.multiply(record_component[index:offset], unit_si)
+            registered = record_component[index : index + offset]
+        else:
+            # when we don't slice we have to .load_chunk()
+            registered = record_component.load_chunk()
+        record_component.series_flush()
+        return np.multiply(registered, unit_si)
