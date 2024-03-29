@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import unyt
@@ -61,20 +62,16 @@ def test_cartesian_cutting_plane_fixed_z(spherical_ds):
     assert np.allclose(zvals, ds.quan(0.5, "code_length").d, atol=0.05)
 
 
-@pytest.mark.answer_test
-class TestYTCartesianCuttingPlane:
-    answer_file = None
-    saved_hashes = None
-    answer_version = "000"
+@pytest.mark.mpl_image_compare
+def test_vertical_slice_at_sphere_edge(spherical_ds):
+    ds = spherical_ds
+    normal = np.array([0.0, 1.0, 0.0])
+    center = np.array([0.0, 0.75, 0.0])
+    slc = ds.cartesian_cutting(normal, center)
+    frb = slc.to_frb(2.0, 50)
+    vals = frb["index", "z_val"].to("code_length")
+    vals[~frb.get_mask(("index", "z_val"))] = np.nan
 
-    @pytest.mark.usefixtures("hashing")
-    def test_vertical_slice_at_sphere_edge(self, spherical_ds):
-        ds = spherical_ds
-        normal = np.array([0.0, 1.0, 0.0])
-        center = np.array([0.0, 0.9, 0.0])
-        slc = ds.cartesian_cutting(normal, center)
-        frb = slc.to_frb(2.0, 50)
-        vals = frb["index", "z_val"].to("code_length")
-        vals[~frb.get_mask(("index", "z_val"))] = np.nan
-        vals = vals.to_ndarray()
-        self.hashes.update({"offset_slice": vals})
+    f, axs = plt.subplots(1)
+    axs.imshow(vals, origin="lower", extent=frb.bounds)
+    return f

@@ -144,8 +144,3 @@ def test_spherical_cutting_plane(xy_plane_at_001):
     z = r * np.cos(theta)
     max_z = np.max(np.abs(z.to("code_length").d - 0.5))
     assert np.isclose(max_z, 0.04212724)
-
-
-def test_spherical_cutting_plane_frb():
-    # future image test
-    pass
