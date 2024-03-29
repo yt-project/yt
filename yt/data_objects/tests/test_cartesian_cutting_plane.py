@@ -1,3 +1,5 @@
+import itertools
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -22,13 +24,9 @@ def test_cartesian_cutting_plane():
     assert np.allclose(bvals[mask].min().d, plane_center[2], atol=0.02)
 
 
-@pytest.fixture
-def spherical_ds():
+def _get_spherical_uniform_grid(shp, bbox, axis_order):
 
-    shp = (32, 32, 32)
     data = {"density": np.random.random(shp)}
-
-    bbox = np.array([[0.0, 1.0], [0, np.pi], [0, 2 * np.pi]])
 
     def _z(field, data):
         r = data["index", "r"]
@@ -42,15 +40,23 @@ def spherical_ds():
         shp,
         bbox=bbox,
         geometry="spherical",
-        axis_order=("r", "theta", "phi"),
+        axis_order=axis_order,
         length_unit="m",
     )
 
     ds.add_field(
         name=("index", "z_val"), function=_z, sampling_type="cell", take_log=False
     )
-
     return ds
+
+
+@pytest.fixture
+def spherical_ds():
+
+    shp = (32, 32, 32)
+    bbox = np.array([[0.0, 1.0], [0, np.pi], [0, 2 * np.pi]])
+    ax_order = ("r", "theta", "phi")
+    return _get_spherical_uniform_grid(shp, bbox, ax_order)
 
 
 def test_cartesian_cutting_plane_fixed_z(spherical_ds):
@@ -75,3 +81,34 @@ def test_vertical_slice_at_sphere_edge(spherical_ds):
     f, axs = plt.subplots(1)
     axs.imshow(vals, origin="lower", extent=frb.bounds)
     return f
+
+
+def test_cartesian_cutting_plane_with_axis_ordering():
+    # check that slicing works with any axis order
+    shp = (32, 32, 32)
+    axes = ["r", "theta", "phi"]
+    bbox_ranges = {"r": [0.0, 1.0], "theta": [0, np.pi], "phi": [0, 2 * np.pi]}
+
+    # set the attributes for the plane, including a north vector found
+    # for an arbitrary point on the plane.
+    normal = np.array([1.0, 1.0, 1.0])
+    center = np.array([0.0, 0.0, 0.0])
+    x, y = 1.0, 1.0
+    z = -x * normal[0] - y * normal[1]
+    north_pt = np.array([x, y, z])
+    assert np.dot(normal, north_pt) == 0.0  # just to be sure...
+
+    frb_vals = []
+    for axis_order in itertools.permutations(axes):
+        bbox = np.zeros((3, 2))
+        for i, ax in enumerate(axis_order):
+            bbox[i, :] = bbox_ranges[ax]
+        ds = _get_spherical_uniform_grid(shp, bbox, tuple(axis_order))
+        slc = ds.cartesian_cutting(normal, center, north_vector=north_pt)
+        frb = slc.to_frb(2.0, 50)
+        vals = frb["index", "z_val"].to("code_length")
+        vals[~frb.get_mask(("index", "z_val"))] = np.nan
+        frb_vals.append(vals.d)
+
+    for frb_z in frb_vals[1:]:
+        np.allclose(frb_z, frb_vals[0])
