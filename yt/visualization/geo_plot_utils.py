@@ -126,4 +126,4 @@ def _geographic_bounds(transform) -> tuple:
 def _check_geographic_bounds(bounds: tuple, transform) -> bool:
     # returns True if any of the bounds match the exact transform bounds
     transform_bounds = _geographic_bounds(transform)
-    return any(bounds[bid].d == transform_bounds[bid] for bid in range(4))
+    return any(b.d == tb for b, tb in zip(bounds, transform_bounds))
