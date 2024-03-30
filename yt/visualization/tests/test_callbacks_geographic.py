@@ -2,28 +2,27 @@ import numpy as np
 import pytest
 
 from yt import SlicePlot, load_uniform_grid
-from yt.testing import assert_fname, fake_amr_ds, requires_module
+from yt.testing import fake_amr_ds, requires_module
 
 
 @requires_module("cartopy")
 @pytest.mark.parametrize("geometry", ["geographic", "internal_geographic"])
-def test_quiver_callback_geographic(geometry, tmp_path):
+def test_quiver_callback_geographic(geometry):
     flds = ("density", "velocity_ew", "velocity_ns")
     units = ("g/cm**3", "m/s", "m/s")
 
     ds = fake_amr_ds(fields=flds, units=units, geometry=geometry)
-    tmpfi = str(tmp_path / "geo_quiver.png")
 
     for ax in ds.coordinates.axis_order:
         slc = SlicePlot(ds, ax, "density", buff_size=(50, 50))
         if ax == ds.coordinates.radial_axis:
+            # avoid the exact transform bounds
             slc.set_width((359.99, 179.99))
         slc.annotate_quiver(("stream", "velocity_ew"), ("stream", "velocity_ns"))
-        slc.save(tmpfi)
-        assert_fname(tmpfi)
+        slc.render()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def ds_geo_uni_grid():
     yc = 0.0
     xc = 0.0
