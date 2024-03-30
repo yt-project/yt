@@ -43,7 +43,6 @@ from yt.visualization._commons import (
     invalidate_plot,
 )
 from yt.visualization.base_plot_types import CallbackWrapper
-from yt.visualization.geo_plot_utils import _check_geographic_bounds
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.plot_window import PWViewerMPL
 
@@ -745,14 +744,16 @@ class BaseQuiverCallback(PlotCallback, ABC):
             # in the coordinate reference system of the data and let cartopy
             # do the transformation. Also check for the exact bounds of the transform
             # which can cause issues with projections.
-            if _check_geographic_bounds(bounds, plot._transform):
+            tform_bnds = plot._transform.x_limits + plot._transform.y_limits
+            if any(b.d == tb for b, tb in zip(bounds, tform_bnds)):
                 # note: cartopy will also raise its own warning, but it is useful to add this
                 # warning as well since the only way to avoid the exact bounds is to change the
                 # extent of the plot.
-                mylog.warning(
+                warnings.warn(
                     "Using the exact bounds of the transform may cause errors at the bounds."
                     " To avoid this warning, adjust the width of your plot object to not include "
-                    "the bounds."
+                    "the bounds.",
+                    stacklevel=2,
                 )
             X, Y = np.meshgrid(
                 np.linspace(bounds[0].d, bounds[1].d, nx, endpoint=True),
@@ -792,6 +793,12 @@ class BaseQuiverCallback(PlotCallback, ABC):
         kwargs.update(self.plot_args)
 
         if plot._transform is not None:
+            if "transform" in kwargs:
+                msg = (
+                    "The base plot already has a transform set, ignoring the provided keyword "
+                    "argument and using the base transform."
+                )
+                warnings.warn(msg, stacklevel=2)
             kwargs["transform"] = plot._transform
 
         return plot._axes.quiver(*args, **kwargs)
