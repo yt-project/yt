@@ -5,14 +5,14 @@ from yt.utilities.logger import set_log_level
 old_level = None
 
 
-def setup():
+def setup_module():
     global old_level
     from yt.utilities.logger import ytLogger
 
     old_level = ytLogger.level
 
 
-def teardown():
+def teardown_module():
     set_log_level(old_level)
 
 
