@@ -4,10 +4,6 @@ from numpy.testing import assert_allclose
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
 
-def setup():
-    pass
-
-
 def test_sample():
     grid = {}
 

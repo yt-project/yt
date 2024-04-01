@@ -6,7 +6,7 @@ from yt.testing import fake_random_ds, periodicity_cases, requires_module
 from yt.utilities.exceptions import YTException, YTFieldNotFound
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
