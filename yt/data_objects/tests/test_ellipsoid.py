@@ -4,7 +4,7 @@ from numpy.testing import assert_array_less
 from yt.testing import fake_random_ds
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "log_level"] = 50

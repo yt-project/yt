@@ -22,7 +22,7 @@ from yt.visualization.api import ParticlePhasePlot, ParticlePlot, ParticleProjec
 from yt.visualization.tests.test_plotwindow import ATTR_ARGS, WIDTH_SPECS
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 

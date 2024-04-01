@@ -6,7 +6,7 @@ from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.answer_testing.framework import GenericArrayTest, requires_ds
 
 
-def setup():
+def setup_module():
     ytcfg["yt", "internals", "within_testing"] = True
 
 

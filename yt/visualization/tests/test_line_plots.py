@@ -6,7 +6,7 @@ from yt.testing import fake_random_ds
 from yt.visualization.line_plot import _validate_point
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 

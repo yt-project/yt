@@ -5,7 +5,7 @@ from yt.loaders import load_uniform_grid
 from yt.utilities.physical_constants import mu_0
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
