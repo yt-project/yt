@@ -1424,9 +1424,8 @@ class YTDataContainer(abc.ABC):
         s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
             try:
-                s += ", {}={}".format(
-                    i,
-                    getattr(self, i).in_base(unit_system=self.ds.unit_system),
+                s += (
+                    f", {i}={getattr(self, i).in_base(unit_system=self.ds.unit_system)}"
                 )
             except AttributeError:
                 s += f", {i}={getattr(self, i)}"

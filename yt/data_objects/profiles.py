@@ -1388,9 +1388,7 @@ def create_profile(
                     field_ex = list(extrema[bin_field])
                 except KeyError:
                     raise RuntimeError(
-                        "Could not find field {} or {} in extrema".format(
-                            bin_field[-1], bin_field
-                        )
+                        f"Could not find field {bin_field[-1]} or {bin_field} in extrema"
                     ) from e
 
             if isinstance(field_ex[0], tuple):
