@@ -21,8 +21,9 @@ class ZBuffer:
     --------
     >>> import numpy as np
     >>> shape = (64, 64)
-    >>> b1 = Zbuffer(np.random.random(shape), np.ones(shape))
-    >>> b2 = Zbuffer(np.random.random(shape), np.zeros(shape))
+    >>> rng = np.random.default_rng()
+    >>> b1 = Zbuffer(rng.random(shape), np.ones(shape))
+    >>> b2 = Zbuffer(rng.random(shape), np.zeros(shape))
     >>> c = b1 + b2
     >>> np.all(c.rgba == b2.rgba)
     True
@@ -76,9 +77,10 @@ class ZBuffer:
 if __name__ == "__main__":
     shape: tuple[int, ...] = (64, 64)
     shapes: list[tuple[int, ...]] = [(64, 64), (16, 16, 4), (128,), (16, 32)]
+    rng = np.random.default_rng()
     for shape in shapes:
-        b1 = ZBuffer(np.random.random(shape), np.ones(shape))
-        b2 = ZBuffer(np.random.random(shape), np.zeros(shape))
+        b1 = ZBuffer(rng.random(shape), np.ones(shape))
+        b2 = ZBuffer(rng.random(shape), np.zeros(shape))
         c = b1 + b2
         assert np.all(c.rgba == b2.rgba)
         assert np.all(c.z == b2.z)
