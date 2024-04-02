@@ -44,7 +44,7 @@ keywords = [
 requires-python = ">=3.9.2"
 dependencies = [
     "cmyt>=1.1.2",
-    "ewah-bool-utils>=1.0.2",
+    "ewah-bool-utils>=1.2.0",
     "ipywidgets>=8.0.0",
     "matplotlib>=3.5",
     "more-itertools>=8.4",
@@ -202,7 +202,7 @@ mapserver = [
 ]
 minimal = [
     "cmyt==1.1.2",
-    "ewah-bool-utils==1.0.2",
+    "ewah-bool-utils==1.2.0",
     "ipywidgets==8.0.0",
     "matplotlib==3.5",
     "more-itertools==8.4",
