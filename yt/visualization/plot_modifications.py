@@ -733,10 +733,32 @@ class BaseQuiverCallback(PlotCallback, ABC):
         nx = plot.raw_image_shape[1] // self.factor[0]
         ny = plot.raw_image_shape[0] // self.factor[1]
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        X, Y = np.meshgrid(
-            np.linspace(xx0, xx1, nx, endpoint=True),
-            np.linspace(yy0, yy1, ny, endpoint=True),
-        )
+
+        if plot._transform is None:
+            X, Y = np.meshgrid(
+                np.linspace(xx0, xx1, nx, endpoint=True),
+                np.linspace(yy0, yy1, ny, endpoint=True),
+            )
+        else:
+            # when we have a cartopy transform, provide the x, y values
+            # in the coordinate reference system of the data and let cartopy
+            # do the transformation. Also check for the exact bounds of the transform
+            # which can cause issues with projections.
+            tform_bnds = plot._transform.x_limits + plot._transform.y_limits
+            if any(b.d == tb for b, tb in zip(bounds, tform_bnds)):
+                # note: cartopy will also raise its own warning, but it is useful to add this
+                # warning as well since the only way to avoid the exact bounds is to change the
+                # extent of the plot.
+                warnings.warn(
+                    "Using the exact bounds of the transform may cause errors at the bounds."
+                    " To avoid this warning, adjust the width of your plot object to not include "
+                    "the bounds.",
+                    stacklevel=2,
+                )
+            X, Y = np.meshgrid(
+                np.linspace(bounds[0].d, bounds[1].d, nx, endpoint=True),
+                np.linspace(bounds[2].d, bounds[3].d, ny, endpoint=True),
+            )
 
         pixX, pixY, pixC = self._get_quiver_data(plot, bounds, nx, ny)
 
@@ -769,6 +791,16 @@ class BaseQuiverCallback(PlotCallback, ABC):
             "scale_units": self.scale_units,
         }
         kwargs.update(self.plot_args)
+
+        if plot._transform is not None:
+            if "transform" in kwargs:
+                msg = (
+                    "The base plot already has a transform set, ignoring the provided keyword "
+                    "argument and using the base transform."
+                )
+                warnings.warn(msg, stacklevel=2)
+            kwargs["transform"] = plot._transform
+
         return plot._axes.quiver(*args, **kwargs)
 
 
@@ -792,6 +824,8 @@ class QuiverCallback(BaseQuiverCallback):
         "polar",
         "cylindrical",
         "spherical",
+        "geographic",
+        "internal_geographic",
     )
 
     def __init__(
