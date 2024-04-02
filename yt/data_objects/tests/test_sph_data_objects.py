@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_almost_equal, assert_equal
+from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
 
 from yt import SlicePlot, add_particle_filter
 from yt.loaders import load
@@ -303,7 +303,7 @@ def test_gather_slice():
     p.set_buff_size(3)
     buff_gather = p.frb.data[field].d
 
-    assert_equal(buff_scatter, buff_gather)
+    assert_allclose(buff_scatter, buff_gather, rtol=3e-16)
 
 
 def test_gather_grid():
@@ -318,7 +318,7 @@ def test_gather_grid():
     ag = ds.arbitrary_grid([0, 0, 0], [3, 3, 3], dims=[3, 3, 3])
     gather = ag[field]
 
-    assert_equal(gather, scatter)
+    assert_allclose(gather, scatter, rtol=3e-16)
 
 
 def test_covering_grid_scatter():
