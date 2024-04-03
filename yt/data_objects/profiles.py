@@ -131,9 +131,9 @@ class ProfileND(ParallelAnalysisInterface):
 
         for i, _field in enumerate(fields):
             # q values are returned as q * weight but we want just q
-            temp_storage.qvalues[..., i][
-                temp_storage.used
-            ] /= temp_storage.weight_values[temp_storage.used]
+            temp_storage.qvalues[..., i][temp_storage.used] /= (
+                temp_storage.weight_values[temp_storage.used]
+            )
 
         # get the profile data from all procs
         all_store = {self.comm.rank: temp_storage}

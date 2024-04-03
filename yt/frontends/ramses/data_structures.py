@@ -629,7 +629,8 @@ class RAMSESIndex(OctreeIndex):
     @cached_property
     def num_grids(self):
         return sum(
-            dom.local_oct_count for dom in self.domains  # + dom.ngridbound.sum()
+            dom.local_oct_count
+            for dom in self.domains  # + dom.ngridbound.sum()
         )
 
     def _detect_output_fields(self):

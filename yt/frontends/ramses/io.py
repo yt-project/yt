@@ -231,11 +231,15 @@ class IOHandlerRAMSES(BaseIOHandler):
             for subset in chunk.objs:
                 rv = self._read_particle_subset(subset, fields)
                 for ptype in sorted(ptf):
-                    yield ptype, (
-                        rv[ptype, pn % "x"],
-                        rv[ptype, pn % "y"],
-                        rv[ptype, pn % "z"],
-                    ), 0.0
+                    yield (
+                        ptype,
+                        (
+                            rv[ptype, pn % "x"],
+                            rv[ptype, pn % "y"],
+                            rv[ptype, pn % "z"],
+                        ),
+                        0.0,
+                    )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         pn = "particle_position_%s"

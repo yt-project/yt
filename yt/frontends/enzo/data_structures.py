@@ -1017,9 +1017,8 @@ class EnzoDatasetInMemory(EnzoDataset):
 
     def _parse_parameter_file(self):
         enzo = self._obtain_enzo()
-        self._input_filename = "cycle%08i" % (
-            enzo.yt_parameter_file["NumberOfPythonCalls"]
-        )
+        ncalls = enzo.yt_parameter_file["NumberOfPythonCalls"]
+        self._input_filename = f"cycle{ncalls:08d}"
         self.parameters["CurrentTimeIdentifier"] = time.time()
         self.parameters.update(enzo.yt_parameter_file)
         self.conversion_factors.update(enzo.conversion_factors)
