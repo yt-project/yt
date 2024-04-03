@@ -242,10 +242,9 @@ zip-safe = false
 [tool.setuptools.packages.find]
 namespaces = false
 
-
 [tool.black]
-line-length = 88
-target-version = ['py39']
+# TODO: drop this section when ruff supports embedded python blocks
+# see https://github.com/astral-sh/ruff/issues/8237
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -278,6 +277,7 @@ exclude = [
     "yt/utilities/lodgeit.py",
     "yt/mods.py",
     "yt/visualization/_colormap_data.py",
+    "yt/exthook.py",
 ]
 
 [tool.ruff.lint]
