@@ -388,7 +388,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
         def _create_field(name, interp_object, unit):
             def _func(field, data):
                 shape = data["gas", "temperature"].shape
-                nH = _X * data["gas", "density"] / mh
+                # Ramses assumes a fraction X of Hydrogen within the non-metal gas.
+                # It has to be corrected by metallicity.
+                Z = data["gas", "metallicity"]
+                nH = (1 - _Y) * (1 - Z) * data["gas", "density"] / mh
                 if data.ds.self_shielding:
                     boost = np.maximum(np.exp(-nH / 0.01), 1e-20)
                 else:
