@@ -323,7 +323,7 @@ def test_particles_outside_domain():
     wh = (posx_arr < bbox[0, 0]).nonzero()[0]
     assert wh.size == 1000 - ds.particle_type_counts["io"]
     ad = ds.all_data()
-    assert ds.particle_type_counts["io"] == ad[("all", "particle_position_x")].size
+    assert ds.particle_type_counts["io"] == ad["all", "particle_position_x"].size
 
 
 def test_stream_sph_projection():

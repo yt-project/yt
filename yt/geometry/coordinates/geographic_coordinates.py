@@ -125,7 +125,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 * data["index", "dlongitude"]
                 * np.pi
                 / 180.0
-                * np.sin((data["index", "latitude"] + 90.0) * np.pi / 180.0)
+                * np.sin((90 - data["index", "latitude"]) * np.pi / 180.0)
             )
 
         registry.add_field(
@@ -137,7 +137,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
-            return (data[("index", "latitude")] + 90) * np.pi / 180.0
+            # theta = 0 at +90 deg, np.pi at -90
+            return (90.0 - data["index", "latitude"]) * np.pi / 180.0
 
         registry.add_field(
             ("index", "theta"),
@@ -147,7 +148,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         )
 
         def _dlatitude_to_dtheta(field, data):
-            return data[("index", "dlatitude")] * np.pi / 180.0
+            return data["index", "dlatitude"] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dtheta"),
@@ -158,14 +159,18 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
-            return (data[("index", "longitude")] + 180) * np.pi / 180.0
+            lonvals = data[("index", "longitude")]
+            neglons = lonvals < 0.0
+            if np.any(neglons):
+                lonvals[neglons] = lonvals[neglons] + 360.0
+            return lonvals * np.pi / 180.0
 
         registry.add_field(
             ("index", "phi"), sampling_type="cell", function=_longitude_to_phi, units=""
         )
 
         def _dlongitude_to_dphi(field, data):
-            return data[("index", "dlongitude")] * np.pi / 180.0
+            return data["index", "dlongitude"] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dphi"),
@@ -186,7 +191,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                     surface_height = data.ds.surface_height
                 else:
                     surface_height = data.ds.quan(0.0, "code_length")
-            return data[("index", "altitude")] + surface_height
+            return data["index", "altitude"] + surface_height
 
         registry.add_field(
             ("index", "r"),
@@ -318,8 +323,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
             lon = self.axis_id["longitude"]
             lat = self.axis_id["latitude"]
             r = factor * coord[:, rad] + offset
-            theta = coord[:, lon] * np.pi / 180
-            phi = coord[:, lat] * np.pi / 180
+            theta = (90.0 - coord[:, lat]) * np.pi / 180
+            phi = coord[:, lon] * np.pi / 180
             nc = np.zeros_like(coord)
             # r, theta, phi
             nc[:, lat] = np.cos(phi) * np.sin(theta) * r
@@ -327,7 +332,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             nc[:, rad] = np.cos(theta) * r
         else:
             a, b, c = coord
-            theta = b * np.pi / 180
+            theta = (90.0 - b) * np.pi / 180
             phi = a * np.pi / 180
             r = factor * c + offset
             nc = (
@@ -480,7 +485,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
                     # so we can look at the domain right edge in depth.
                     rax = self.axis_id[self.radial_axis]
                     outer_radius = data.ds.domain_right_edge[rax]
-            return -1.0 * data[("index", "depth")] + outer_radius
+            return -1.0 * data["index", "depth"] + outer_radius
 
         registry.add_field(
             ("index", "r"),

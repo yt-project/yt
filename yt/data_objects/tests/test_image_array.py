@@ -12,7 +12,7 @@ from yt.testing import requires_module
 old_settings = None
 
 
-def setup():
+def setup_module():
     global old_settings
     from yt.config import ytcfg
 
@@ -21,7 +21,7 @@ def setup():
     np.seterr(all="ignore")
 
 
-def teardown():
+def teardown_module():
     np.seterr(**old_settings)
 
 

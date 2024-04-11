@@ -4,10 +4,6 @@ from numpy.testing import assert_almost_equal, assert_array_equal
 import yt.utilities.decompose as dec
 
 
-def setup():
-    pass
-
-
 def test_psize_2d():
     procs = dec.get_psize(np.array([5, 1, 7]), 6)
     assert_array_equal(procs, np.array([3, 1, 2]))

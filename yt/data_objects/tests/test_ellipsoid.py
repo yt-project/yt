@@ -4,7 +4,7 @@ from numpy.testing import assert_array_less
 from yt.testing import fake_random_ds
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "log_level"] = 50
@@ -43,9 +43,9 @@ def test_ellipsoid():
                 e0 = e0s[:, i]
                 tilt = tilts[i]
                 ell = ds.ellipsoid(c, A, B, C, e0, tilt)
-                assert_array_less(ell[("index", "radius")], A)
+                assert_array_less(ell["index", "radius"], A)
                 p = np.array([ell["index", ax] for ax in "xyz"])
-                dot_evec = [np.zeros_like(ell[("index", "radius")]) for i in range(3)]
+                dot_evec = [np.zeros_like(ell["index", "radius"]) for i in range(3)]
                 vecs = [ell._e0, ell._e1, ell._e2]
                 mags = [ell._A, ell._B, ell._C]
                 my_c = np.array([c] * p.shape[1]).transpose()

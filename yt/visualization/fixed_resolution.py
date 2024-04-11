@@ -77,9 +77,9 @@ class FixedResolutionBuffer:
 
     >>> proj = ds.proj(0, ("gas", "density"))
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
-    >>> print(frb1[("gas", "density")].max())
+    >>> print(frb1["gas", "density"].max())
     1.0914e-9 g/cm**3
-    >>> print(frb1[("gas", "temperature")].max())
+    >>> print(frb1["gas", "temperature"].max())
     104923.1 K
     """
 
@@ -509,7 +509,7 @@ class FixedResolutionBuffer:
         >>> frb = proj.to_frb(1.0, (800, 800))
         >>> fn = frb.save_as_dataset(fields=[("gas", "density")])
         >>> ds2 = yt.load(fn)
-        >>> print(ds2.data[("gas", "density")])
+        >>> print(ds2.data["gas", "density"])
         [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
             7.90820691e-31   7.90820691e-31]
          [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31

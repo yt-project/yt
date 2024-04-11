@@ -40,7 +40,7 @@ for i, SnapNum in enumerate([10, 40]):
     p.set_zlim(("gas", "mass"), 1e42, 1e46)
 
     # This forces the ProjectionPlot to redraw itself on the AxesGrid axes.
-    plot = p.plots[("gas", "mass")]
+    plot = p.plots["gas", "mass"]
     plot.figure = fig
     plot.axes = grid[i].axes
     if i == 0:

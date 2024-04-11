@@ -628,7 +628,7 @@ class StreamParticlesDataset(StreamDataset):
         if not exists(fname):
             hsml = generate_smoothing_length(pos[kdtree.idx], kdtree, n_neighbors)
             hsml = hsml[order]
-            data[(sph_ptype, "smoothing_length")] = (hsml, l_unit)
+            data[sph_ptype, "smoothing_length"] = (hsml, l_unit)
         else:
             hsml = ad[sph_ptype, fname].to(l_unit).d
 
@@ -643,7 +643,7 @@ class StreamParticlesDataset(StreamDataset):
                 kernel_name=kernel,
             )
             dens = dens[order]
-            data[(sph_ptype, "density")] = (dens, d_unit)
+            data[sph_ptype, "density"] = (dens, d_unit)
 
         # Add fields
         self._sph_ptypes = (sph_ptype,)

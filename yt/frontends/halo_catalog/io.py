@@ -141,7 +141,7 @@ class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):  # type: ig
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
-                        field_data = all_data[(ptype, field)]
+                        field_data = all_data[ptype, field]
                         my_data = f["particles"][field][start_index:end_index].astype(
                             "float64"
                         )
@@ -157,5 +157,5 @@ class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):  # type: ig
             for ptype, field_list in sorted(scalar_fields.items()):
                 for field in field_list:
                     data = np.array([f[field][dobj.scalar_index]]).astype("float64")
-                    all_data[(ptype, field)] = data
+                    all_data[ptype, field] = data
         return all_data

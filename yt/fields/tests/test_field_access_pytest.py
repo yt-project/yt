@@ -31,7 +31,7 @@ def test_unexisting_field_access():
             continue
 
         with pytest.raises(YTFieldNotFound) as excinfo:
-            ad[(ft, fn)]
+            ad[ft, fn]
 
         # Make sure the existing field has been suggested
         for possible_ft in fname2ftype[fn]:

@@ -712,10 +712,8 @@ class Dataset(abc.ABC):
                 setattr(self, f"_{format_property}_format", value)
             else:
                 raise ValueError(
-                    "{} not an acceptable value for format_property "
-                    "{}. Choices are {}.".format(
-                        value, format_property, available_formats[format_property]
-                    )
+                    f"{value} not an acceptable value for format_property "
+                    f"{format_property}. Choices are {available_formats[format_property]}."
                 )
         else:
             raise ValueError(

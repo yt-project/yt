@@ -144,7 +144,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
                 if selector:
                     data = data[mask]
 
-                return_data[(ptype, field)] = data
+                return_data[ptype, field] = data
 
         return return_data
 

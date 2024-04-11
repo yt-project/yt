@@ -6,8 +6,8 @@ requires = [
   # for the upper pin in Cython
   # see https://github.com/yt-project/yt/issues/4044
   "Cython>=3.0.3, <3.1",
-  "numpy>=1.25, <2.0",
-  "ewah-bool-utils>=1.0.2",
+  "numpy>=2.0.0rc1",
+  "ewah-bool-utils>=1.2.0",
 ]
 build-backend = "setuptools.build_meta:__legacy__"
 
@@ -44,11 +44,11 @@ keywords = [
 requires-python = ">=3.9.2"
 dependencies = [
     "cmyt>=1.1.2",
-    "ewah-bool-utils>=1.0.2",
+    "ewah-bool-utils>=1.2.0",
     "ipywidgets>=8.0.0",
     "matplotlib>=3.5",
     "more-itertools>=8.4",
-    "numpy>=1.19.3", # keep minimal requirement in sync with NPY_TARGET_VERSION
+    "numpy>=1.19.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
     "packaging>=20.9",
     "pillow>=8.0.0",
     "tomli-w>=0.4.0",
@@ -202,7 +202,7 @@ mapserver = [
 ]
 minimal = [
     "cmyt==1.1.2",
-    "ewah-bool-utils==1.0.2",
+    "ewah-bool-utils==1.2.0",
     "ipywidgets==8.0.0",
     "matplotlib==3.5",
     "more-itertools==8.4",
@@ -279,6 +279,8 @@ exclude = [
     "yt/mods.py",
     "yt/visualization/_colormap_data.py",
 ]
+
+[tool.ruff.lint]
 select = [
     "E",
     "F",
@@ -297,10 +299,10 @@ ignore = [
     "B018",  # Found useless expression. # disabled because ds.index is idiomatic
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "test_*" = ["NPY002"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 known-third-party = [
   "IPython",

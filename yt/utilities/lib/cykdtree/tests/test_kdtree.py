@@ -61,15 +61,11 @@ def test_neighbors(periodic=False):
         out_str = str(leaf.id)
         try:
             for d in range(tree.ndim):
-                out_str += "\nleft:  {} {} {}".format(
-                    d, leaf.left_neighbors[d], left_neighbors[d][leaf.id]
-                )
+                out_str += f"\nleft:  {d} {leaf.left_neighbors[d]} {left_neighbors[d][leaf.id]}"
                 assert len(left_neighbors[d][leaf.id]) == len(leaf.left_neighbors[d])
                 for i in range(len(leaf.left_neighbors[d])):
                     assert left_neighbors[d][leaf.id][i] == leaf.left_neighbors[d][i]
-                out_str += "\nright: {} {} {}".format(
-                    d, leaf.right_neighbors[d], right_neighbors[d][leaf.id]
-                )
+                out_str += f"\nright: {d} {leaf.right_neighbors[d]} {right_neighbors[d][leaf.id]}"
                 assert len(right_neighbors[d][leaf.id]) == len(leaf.right_neighbors[d])
                 for i in range(len(leaf.right_neighbors[d])):
                     assert right_neighbors[d][leaf.id][i] == leaf.right_neighbors[d][i]

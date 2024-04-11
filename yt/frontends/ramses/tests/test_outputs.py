@@ -43,7 +43,7 @@ def test_output_00080():
                     )
             yield FieldValuesTest(output_00080, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj[("index", "ones")].sum()
+        s1 = dobj["index", "ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
@@ -143,7 +143,7 @@ def test_extra_fields():
 
     # Check the family (they should equal 100, for tracer particles)
     dd = ds.all_data()
-    families = dd[("all", "particle_family")]
+    families = dd["all", "particle_family"]
     assert all(families == 100)
 
 
@@ -416,14 +416,14 @@ def test_formation_time():
     assert ("io", "particle_metallicity") in ds.field_list
 
     ad = ds.all_data()
-    whstars = ad[("io", "conformal_birth_time")] != 0
-    assert np.all(ad[("io", "star_age")][whstars] > 0)
+    whstars = ad["io", "conformal_birth_time"] != 0
+    assert np.all(ad["io", "star_age"][whstars] > 0)
 
     # test semantics for non-cosmological new-style output format
     ds = yt.load(ramses_new_format)
     ad = ds.all_data()
     assert ("io", "particle_birth_time") in ds.field_list
-    assert np.all(ad[("io", "particle_birth_time")] > 0)
+    assert np.all(ad["io", "particle_birth_time"] > 0)
 
     # test semantics for non-cosmological old-style output format
     ds = yt.load(ramsesNonCosmo, extra_particle_fields=extra_particle_fields)
@@ -431,9 +431,9 @@ def test_formation_time():
     assert ("io", "particle_birth_time") in ds.field_list
     # the dataset only includes particles with arbitrarily old ages
     # and particles that formed in the very first timestep
-    assert np.all(ad[("io", "particle_birth_time")] <= 0)
-    whdynstars = ad[("io", "particle_birth_time")] == 0
-    assert np.all(ad[("io", "star_age")][whdynstars] == ds.current_time)
+    assert np.all(ad["io", "particle_birth_time"] <= 0)
+    whdynstars = ad["io", "particle_birth_time"] == 0
+    assert np.all(ad["io", "star_age"][whdynstars] == ds.current_time)
 
 
 @requires_file(ramses_new_format)
@@ -471,11 +471,11 @@ def test_cooling_fields():
     def check_unit(array, unit):
         assert str(array.in_cgs().units) == unit
 
-    check_unit(ds.r[("gas", "cooling_total")], "cm**5*g/s**3")
-    check_unit(ds.r[("gas", "cooling_primordial_prime")], "cm**5*g/(K*s**3)")
-    check_unit(ds.r[("gas", "number_density")], "cm**(-3)")
-    check_unit(ds.r[("gas", "mu")], "dimensionless")
-    check_unit(ds.r[("gas", "Electron_number_density")], "cm**(-3)")
+    check_unit(ds.r["gas", "cooling_total"], "cm**5*g/s**3")
+    check_unit(ds.r["gas", "cooling_primordial_prime"], "cm**5*g/(K*s**3)")
+    check_unit(ds.r["gas", "number_density"], "cm**(-3)")
+    check_unit(ds.r["gas", "mu"], "dimensionless")
+    check_unit(ds.r["gas", "Electron_number_density"], "cm**(-3)")
 
 
 @requires_file(ramses_rt)
@@ -490,7 +490,7 @@ def test_ramses_mixed_files():
     ds.add_field(("gas", "mixed_files"), function=_mixed_field, sampling_type="cell")
 
     # Access the field
-    ds.r[("gas", "mixed_files")]
+    ds.r["gas", "mixed_files"]
 
 
 ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
@@ -505,7 +505,7 @@ def test_ramses_empty_record():
     ds.index
 
     # Access some field
-    ds.r[("gas", "density")]
+    ds.r["gas", "density"]
 
 
 @requires_file(ramses_new_format)
@@ -548,7 +548,7 @@ def test_magnetic_field_aliasing():
         "magnetic_field_divergence",
     ]:
         assert ("gas", field) in ds.derived_field_list
-        ad[("gas", field)]
+        ad["gas", field]
 
 
 @requires_file(output_00080)

@@ -27,5 +27,5 @@ def test_cartesian_coordinates():
         assert_equal(dd[fd].max(), (ds.domain_width / ds.domain_dimensions)[i])
         assert_equal(dd[fd], dd[fp])
     assert_equal(
-        dd[("index", "cell_volume")].sum(dtype="float64"), ds.domain_width.prod()
+        dd["index", "cell_volume"].sum(dtype="float64"), ds.domain_width.prod()
     )

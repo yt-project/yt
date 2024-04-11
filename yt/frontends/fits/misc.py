@@ -12,10 +12,10 @@ from yt.utilities.on_demand_imports import _astropy
 
 def _make_counts(emin, emax):
     def _counts(field, data):
-        e = data[("all", "event_energy")].in_units("keV")
+        e = data["all", "event_energy"].in_units("keV")
         mask = np.logical_and(e >= emin, e < emax)
-        x = data[("all", "event_x")][mask]
-        y = data[("all", "event_y")][mask]
+        x = data["all", "event_x"][mask]
+        y = data["all", "event_y"][mask]
         z = np.ones(x.shape)
         pos = np.array([x, y, z]).transpose()
         img = data.deposit(pos, method="count")

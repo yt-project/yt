@@ -50,11 +50,11 @@ def test_ds_hold():
     assert dd.ds.__hash__() == ds1.__hash__()
 
     assert dd.index is ds1.index
-    assert_equal(dd[("index", "ones")].size, 64**3)
+    assert_equal(dd["index", "ones"].size, 64**3)
     with dd._ds_hold(ds2):
         assert dd.ds.__hash__() == ds2.__hash__()
         assert dd.index is ds2.index
-        assert_equal(dd[("index", "ones")].size, 128**3)
+        assert_equal(dd["index", "ones"].size, 128**3)
     assert dd.ds.__hash__() == ds1.__hash__()
     assert dd.index is ds1.index
-    assert_equal(dd[("index", "ones")].size, 64**3)
+    assert_equal(dd["index", "ones"].size, 64**3)

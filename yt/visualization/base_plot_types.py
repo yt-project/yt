@@ -101,6 +101,7 @@ class CallbackWrapper:
         self.font_properties = font_properties
         self.font_color = font_color
         self.field = field
+        self._transform = viewer._transform
 
 
 class PlotMPL:
