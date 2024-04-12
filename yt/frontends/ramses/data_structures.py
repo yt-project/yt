@@ -1122,7 +1122,7 @@ class RAMSESDataset(Dataset):
         has_namelist = self.read_namelist()
 
         if self.self_shielding is None and has_namelist:
-            nml = self.ds.parameters["namelist"]
+            nml = self.parameters["namelist"]
 
             # "self_shielding" is stored in physics_params in older versions of the code
             physics_params = nml.get("physics_params", default={})
