@@ -385,7 +385,20 @@ def off_axis_projection(
     mylog.debug("Casting rays")
     index = data_source.ds.index
     lens = camera.lens
-    if isinstance(index, OctreeIndex) and isinstance(lens, PlaneParallelLens):
+
+    # This implementation is optimized for octrees with plane-parallel lenses
+    # and implicitely assumes that the cells are cubic.
+    # NOTE: we should be able to relax the cubic assumption to a rectangular
+    #       assumption (if all cells have the same aspect ratio) with some
+    #       renormalization of the coordinates and the projection axes.
+    #       This is NOT done in the following.
+    dom_width = data_source.ds.domain_width
+    cubic_domain = dom_width.max() == dom_width.min()
+    if (
+        isinstance(index, OctreeIndex)
+        and isinstance(lens, PlaneParallelLens)
+        and cubic_domain
+    ):
         fields.extend(("index", k) for k in "xyz")
         fields.append(("index", "dx"))
 
