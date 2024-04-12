@@ -91,7 +91,7 @@ cdef void _add_cell_to_image_offaxis(
         return
 
     # Our 'stamp' has multiple resolutions, select the one
-    # that allow that is at a higher resolution than the pixel
+    # that is at a higher resolution than the pixel
     # we are projecting onto with at least 4 pixels on the diagonal
     depth = iclip(
         <int> (ceil(log2(4 * sqrt(3) * dx * fmax(Nx, Ny)))),
