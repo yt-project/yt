@@ -341,26 +341,30 @@ cdef int direct_integrate_cube(
     cdef np.float64_t[::1] Oback = O + u + v + w
 
     cdef np.float64_t[::1] X = np.zeros(2)
-    cdef np.float64_t[::1] OfrontA = np.zeros(2), ObackA = np.zeros(2)
+    cdef np.float64_t[::1] OfrontA = np.zeros(2)
+    cdef np.float64_t[::1] ObackA = np.zeros(2)
 
     cdef np.float64_t inv_dx = 1. / Nx
     cdef np.float64_t inv_dy = 1. / Ny
     cdef np.float64_t[2] nm
     cdef bint within
-    cdef np.float64_t[::1] all_z = np.empty(6)
     cdef np.float64_t zmin, zmax, z
     cdef int Nhit, i, j
     for i in range(Nx):
         X[0] = (i + 0.5) * inv_dx
+
+        OfrontA[0] = X[0] - O[0]
+        ObackA[0] = X[0] - Oback[0]
+
         for j in range(Ny):
             zmin = np.inf
             zmax = -np.inf
             Nhit = 0
             X[1] = (j + 0.5) * inv_dy
 
-            OfrontA[0] = X[0] - O[0]
             OfrontA[1] = X[1] - O[1]
-            all_z[:] = 0
+            ObackA[1] = X[1] - Oback[1]
+
             within = check_in_parallelogram(OfrontA, v2d, u2d, 1, 1, nm)
             if within:
                 z = O[2] + nm[0] * u[2] + nm[1] * v[2]
@@ -382,8 +386,6 @@ cdef int direct_integrate_cube(
                 zmax = fmax(z, zmax)
                 Nhit += 1
 
-            ObackA[0] = X[0] - Oback[0]
-            ObackA[1] = X[1] - Oback[1]
             within = check_in_parallelogram(ObackA, v2d, u2d, -1, -1, nm)
             if within:
                 z = Oback[2] + nm[0] * u[2] + nm[1] * v[2]
