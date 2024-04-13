@@ -147,6 +147,7 @@ class DatasetSeries:
     ...     SlicePlot(ds, "x", ("gas", "density")).save()
 
     """
+
     _dataset_cls: Optional[type["Dataset"]] = None
 
     def __init_subclass__(cls, *args, **kwargs):
