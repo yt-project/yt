@@ -3,34 +3,39 @@ import numpy as np
 from yt.funcs import mylog
 
 
-def receive_and_reduce(comm, incoming_rank, image, add_to_front):
+def receive_and_reduce(comm, incoming_rank, image, add_to_front, use_opacity):
     mylog.debug("Receiving image from %04i", incoming_rank)
     # mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
     arr2 = comm.recv_array(incoming_rank, incoming_rank).reshape(
         (image.shape[0], image.shape[1], image.shape[2])
     )
 
-    if add_to_front:
-        front = arr2
-        back = image
-    else:
-        front = image
-        back = arr2
+    if use_opacity:
+        if add_to_front:
+            front = arr2
+            back = image
+        else:
+            front = image
+            back = arr2
 
-    if image.shape[2] == 3:
-        # Assume Projection Camera, Add
+        if image.shape[2] == 3:
+            # Assume Projection Camera, Add
+            np.add(image, front, image)
+            return image
+
+        ta = 1.0 - front[:, :, 3]
+        np.maximum(ta, 0.0, ta)
+        # This now does the following calculation, but in a memory
+        # conservative fashion
+        # image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]
+        image = back.copy()
+        for i in range(4):
+            np.multiply(image[:, :, i], ta, image[:, :, i])
         np.add(image, front, image)
-        return image
 
-    ta = 1.0 - front[:, :, 3]
-    np.maximum(ta, 0.0, ta)
-    # This now does the following calculation, but in a memory
-    # conservative fashion
-    # image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]
-    image = back.copy()
-    for i in range(4):
-        np.multiply(image[:, :, i], ta, image[:, :, i])
-    np.add(image, front, image)
+    else:
+        np.add(image, arr2, image)
+
     return image
 
 
