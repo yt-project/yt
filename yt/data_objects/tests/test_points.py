@@ -5,7 +5,7 @@ import yt
 from yt.testing import fake_random_ds
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
@@ -29,8 +29,8 @@ def test_domain_point():
     p = ds.point(ds.domain_center)
 
     # ensure accessing one field works, store for comparison later
-    point_den = p[("gas", "density")]
-    point_vel = p[("gas", "velocity_x")]
+    point_den = p["gas", "density"]
+    point_vel = p["gas", "velocity_x"]
 
     ad = ds.all_data()
     ppos = ad["all", "particle_position"]

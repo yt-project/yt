@@ -5,8 +5,7 @@ import os
 import pprint
 import sys
 import textwrap
-import urllib
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 from more_itertools import always_iterable
@@ -186,8 +185,8 @@ class YTCommandSubtype(type):
 
 
 class YTCommand(metaclass=YTCommandSubtype):
-    args: Tuple[Union[str, Dict[str, Any]], ...] = ()
-    name: Optional[Union[str, List[str]]] = None
+    args: tuple[Union[str, dict[str, Any]], ...] = ()
+    name: Optional[Union[str, list[str]]] = None
     description: str = ""
     aliases = ()
     ndatasets: int = 1
@@ -660,10 +659,8 @@ class YTInstInfoCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        if sys.version_info >= (3, 9):
-            import importlib.resources as importlib_resources
-        else:
-            import importlib_resources
+        import importlib.resources as importlib_resources
+
         path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:
@@ -702,7 +699,6 @@ class YTLoadCmd(YTCommand):
             from traitlets.config.loader import Config
         except ImportError:
             from IPython.config.loader import Config
-        import sys
 
         cfg = Config()
         # prepend sys.path with current working directory
@@ -1029,96 +1025,6 @@ class YTRPDBCmd(YTCommand):
         rpdb.run_rpdb(int(args.task))
 
 
-class YTNotebookCmd(YTCommand):
-    name = ["notebook"]
-    args = (
-        {
-            "short": "-o",
-            "longname": "--open-browser",
-            "action": "store_true",
-            "default": False,
-            "dest": "open_browser",
-            "help": "Open a web browser.",
-        },
-        {
-            "short": "-p",
-            "longname": "--port",
-            "action": "store",
-            "default": 0,
-            "dest": "port",
-            "help": "Port to listen on; defaults to auto-detection.",
-        },
-        {
-            "short": "-prof",
-            "longname": "--profile",
-            "action": "store",
-            "default": None,
-            "dest": "profile",
-            "help": "The IPython profile to use when launching the kernel.",
-        },
-        {
-            "short": "-n",
-            "longname": "--no-password",
-            "action": "store_true",
-            "default": False,
-            "dest": "no_password",
-            "help": "If set, do not prompt or use a password.",
-        },
-    )
-    description = """
-        Start the Jupyter Notebook locally.
-        """
-
-    def __call__(self, args):
-        kwargs = {}
-        from notebook.notebookapp import NotebookApp
-
-        print(
-            "You must choose a password so that others cannot connect to "
-            "your notebook."
-        )
-        pw = ytcfg.get("yt", "notebook_password")
-        if len(pw) == 0 and not args.no_password:
-            import IPython.lib
-
-            pw = IPython.lib.passwd()
-            print("If you would like to use this password in the future,")
-            print("place a line like this inside the [yt] section in your")
-            print("yt configuration file at ~/.config/yt/yt.toml")
-            print()
-            print(f"notebook_password = {pw}")
-            print()
-        elif args.no_password:
-            pw = None
-        if args.port != 0:
-            kwargs["port"] = int(args.port)
-        if args.profile is not None:
-            kwargs["profile"] = args.profile
-        if pw is not None:
-            kwargs["password"] = pw
-        app = NotebookApp(open_browser=args.open_browser, **kwargs)
-        app.initialize(argv=[])
-        print()
-        print("***************************************************************")
-        print()
-        print("The notebook is now live at:")
-        print()
-        print(f"     http://127.0.0.1:{app.port}/")
-        print()
-        print("Recall you can create a new SSH tunnel dynamically by pressing")
-        print(f"~C and then typing -L{app.port}:localhost:{app.port}")
-        print("where the first number is the port on your local machine. ")
-        print()
-        print(
-            f"If you are using {app.port} on your machine already, "
-            f"try -L8889:localhost:{app.port}"
-        )
-        print()
-        print("***************************************************************")
-        print()
-        app.start()
-
-
 class YTStatsCmd(YTCommand):
     args = (
         "outputfn",
@@ -1184,10 +1090,8 @@ class YTUpdateCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        if sys.version_info >= (3, 9):
-            import importlib.resources as importlib_resources
-        else:
-            import importlib_resources
+        import importlib.resources as importlib_resources
+
         path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:
@@ -1207,6 +1111,9 @@ class YTDeleteImageCmd(YTCommand):
     name = "delete_image"
 
     def __call__(self, args):
+        import urllib.error
+        import urllib.request
+
         headers = {"Authorization": f"Client-ID {ytcfg.get('yt', 'imagebin_api_key')}"}
 
         delete_url = ytcfg.get("yt", "imagebin_delete_url")
@@ -1240,6 +1147,10 @@ class YTUploadImageCmd(YTCommand):
     name = "upload_image"
 
     def __call__(self, args):
+        import urllib.error
+        import urllib.parse
+        import urllib.request
+
         filename = args.file
         if not filename.endswith(".png"):
             print("File must be a PNG file!")
@@ -1590,6 +1501,8 @@ class YTDownloadData(YTCommand):
         print(f"File: {args.filename} downloaded successfully to {data_file}")
 
     def get_list(self):
+        import urllib.request
+
         data = (
             urllib.request.urlopen("http://yt-project.org/data/datafiles.json")
             .read()

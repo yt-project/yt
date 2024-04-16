@@ -180,7 +180,7 @@ cdef void generate_vector_info_plane_parallel(ImageSampler im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
             # Now outbound
-            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) noexcept nogil:
     cdef int i
     cdef np.float64_t px, py
     px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
@@ -197,7 +197,7 @@ cdef void generate_vector_info_null(ImageSampler im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
             # Now outbound
-            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) noexcept nogil:
     cdef int i
     for i in range(3):
         # Here's a funny thing: we use vi here because our *image* will be

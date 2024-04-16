@@ -1,7 +1,7 @@
 import abc
 import os
 import weakref
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -22,8 +22,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 class Index(ParallelAnalysisInterface, abc.ABC):
     """The base index class"""
 
-    _unsupported_objects: Tuple[str, ...] = ()
-    _index_properties: Tuple[str, ...] = ()
+    _unsupported_objects: tuple[str, ...] = ()
+    _index_properties: tuple[str, ...] = ()
 
     def __init__(self, ds, dataset_type):
         ParallelAnalysisInterface.__init__(self)
@@ -54,8 +54,8 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[Tuple[int, ...]] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        axes: Optional[tuple[int, ...]] = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
         # What's the use of raising NotImplementedError for this, when it's an
         # abstract base class?  Well, only *some* of the subclasses have it --
         # and for those that *don't*, we should not be calling it -- and since
@@ -310,6 +310,10 @@ class YTDataChunk:
             arrs = [arr[0] for arr in arrs]
         elif method == "tcoords":
             arrs = [arr[1] for arr in arrs]
+        if len(arrs) == 0:
+            self.data_size = 0
+            return np.empty((0, 3), dtype="float64")
+
         arrs = uconcatenate(arrs)
         self.data_size = arrs.shape[0]
         return arrs

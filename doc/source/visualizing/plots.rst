@@ -652,16 +652,13 @@ simply pass ``all`` as the first argument of the field tuple:
 Additional Notes for Plotting Particle Data
 -------------------------------------------
 
-Below are some important caveats to note when visualizing particle data.
+An important caveat when visualizing particle data is that off-axis slice plotting is
+not available for any particle data. However, axis-aligned slice plots (as described in
+:ref:`slice-plots`) will work.
 
-1. Off axis slice plotting is not available for any particle data.
-   However, axis-aligned slice plots (as described in :ref:`slice-plots`)
-   will work.
-
-2. Off axis projections (as in :ref:`off-axis-projections`) will only work
-   for SPH particles, i.e., particles that have a defined smoothing length.
-
-Two workaround methods are available for plotting non-SPH particles with off-axis
+Since version 4.2.0, off-axis projections ares supported for non-SPH particle data.
+Previous to that, this operation was only supported for SPH particles. Two historical
+workaround methods were available for plotting non-SPH particles with off-axis
 projections.
 
 1. :ref:`smooth-non-sph` - this method involves extracting particle data to be
@@ -2139,7 +2136,7 @@ type:
 
 .. code-block:: bash
 
-   yt notebook
+   jupyter lab
 
 at the command line.  This will prompt you for a password (so that if you're on
 a shared user machine no one else can pretend to be you!) and then spawn an

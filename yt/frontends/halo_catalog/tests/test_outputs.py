@@ -49,7 +49,7 @@ class HaloCatalogTest(TempDirTest):
         for field in fields:
             f1 = data[field].in_base()
             f1.sort()
-            f2 = ds.r[("all", field)].in_base()
+            f2 = ds.r["all", field].in_base()
             f2.sort()
             assert_array_equal(f1, f2)
 
@@ -79,7 +79,7 @@ class HaloCatalogTest(TempDirTest):
         for field in fields:
             f1 = data[field].in_base()
             f1.sort()
-            f2 = ds.r[("all", field)].in_base()
+            f2 = ds.r["all", field].in_base()
             f2.sort()
             assert_array_equal(f1, f2)
 

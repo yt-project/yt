@@ -1,7 +1,7 @@
+import abc
 from contextlib import contextmanager
 from functools import cached_property
 from itertools import product, repeat
-from typing import Tuple
 
 import numpy as np
 from unyt import unyt_array
@@ -34,12 +34,12 @@ def cell_count_cache(func):
     return cc_cache_func
 
 
-class OctreeSubset(YTSelectionContainer):
+class OctreeSubset(YTSelectionContainer, abc.ABC):
     _spatial = True
     _num_ghost_zones = 0
     _type_name = "octree_subset"
     _skip_add = True
-    _con_args: Tuple[str, ...] = ("base_region", "domain", "ds")
+    _con_args: tuple[str, ...] = ("base_region", "domain", "ds")
     _domain_offset = 0
     _cell_count = -1
     _block_order = "C"
@@ -52,11 +52,16 @@ class OctreeSubset(YTSelectionContainer):
         self.domain_id = domain.domain_id
         self.ds = domain.ds
         self._index = self.ds.index
-        self.oct_handler = domain.oct_handler
         self._last_mask = None
         self._last_selector_id = None
         self.base_region = base_region
         self.base_selector = base_region.selector
+
+    @property
+    @abc.abstractmethod
+    def oct_handler(self):
+        # In charge of returning the oct_handler
+        pass
 
     def __getitem__(self, key):
         tr = super().__getitem__(key)
@@ -167,9 +172,7 @@ class OctreeSubset(YTSelectionContainer):
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
         if np.max(self.domain_ind) >= nvals[-1]:
             print(
-                "nocts, domain_ind >= 0, max {} {} {}".format(
-                    self.oct_handler.nocts, nvals[-1], np.max(self.domain_ind)
-                )
+                f"nocts, domain_ind >= 0, max {self.oct_handler.nocts} {nvals[-1]} {np.max(self.domain_ind)}"
             )
             raise Exception()
         # We allocate number of zones, not number of octs
@@ -234,7 +237,7 @@ class OctreeSubset(YTSelectionContainer):
             positions.shape[0],
             positions.shape[0] ** 0.3333333,
         )
-        pos = positions.to("code_length").value.astype("float64")
+        pos = positions.to_value("code_length").astype("float64", copy=False)
 
         op.process_octree(
             self.oct_handler,

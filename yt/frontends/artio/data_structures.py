@@ -1,7 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.field_parameters = {}
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
-        self.oct_handler = oct_handler
+        self._oct_handler = oct_handler
         self.ds = ds
         self._last_mask = None
         self._last_selector_id = None
@@ -42,6 +42,10 @@ class ARTIOOctreeSubset(OctreeSubset):
         self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
+
+    @property
+    def oct_handler(self):
+        return self._oct_handler
 
     @property
     def min_ind(self):
@@ -192,9 +196,9 @@ class ARTIOIndex(Index):
         Returns (value, center) of location of maximum for a given field.
         """
         if (field, finest_levels) in self._max_locations:
-            return self._max_locations[(field, finest_levels)]
+            return self._max_locations[field, finest_levels]
         mv, pos = self.find_max_cell_location(field, finest_levels)
-        self._max_locations[(field, finest_levels)] = (mv, pos)
+        self._max_locations[field, finest_levels] = (mv, pos)
         return mv, pos
 
     def find_max_cell_location(self, field, finest_levels=3):
@@ -256,7 +260,7 @@ class ARTIOIndex(Index):
             # list_sfc_ranges = [ (v.min(), v.max()) ]
             for start, end in list_sfc_ranges:
                 if (start, end) in self.range_handlers.keys():
-                    range_handler = self.range_handlers[(start, end)]
+                    range_handler = self.range_handlers[start, end]
                 else:
                     range_handler = ARTIOSFCRangeHandler(
                         self.ds.domain_dimensions,
@@ -267,7 +271,7 @@ class ARTIOIndex(Index):
                         end,
                     )
                     range_handler.construct_mesh()
-                    self.range_handlers[(start, end)] = range_handler
+                    self.range_handlers[start, end] = range_handler
                 if nz != 2:
                     ci.append(
                         ARTIORootMeshSubset(
@@ -338,14 +342,14 @@ class ARTIOIndex(Index):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[Tuple[int, ...]] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        axes: Optional[tuple[int, ...]] = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured
         grids.
         """
-        dds = self.ds.domain_width[(axes,)] / (
+        dds = self.ds.domain_width[axes,] / (
             self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
         pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]
@@ -479,9 +483,7 @@ class ARTIODataset(Dataset):
             ]
 
             self.parameters["unit_m"] = self.artio_parameters["mass_unit"][0]
-            self.parameters["unit_t"] = (
-                self.artio_parameters["time_unit"][0] * abox**2
-            )
+            self.parameters["unit_t"] = self.artio_parameters["time_unit"][0] * abox**2
             self.parameters["unit_l"] = self.artio_parameters["length_unit"][0] * abox
 
             if self.artio_parameters["DeltaDC"][0] != 0:
@@ -516,7 +518,7 @@ class ARTIODataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # a valid artio header file starts with a prefix and ends with .art
         name, _, ext = filename.rpartition(".")
         if ext != "art":

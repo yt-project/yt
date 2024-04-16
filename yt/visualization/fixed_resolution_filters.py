@@ -27,7 +27,6 @@ def apply_filter(f):
 
 
 class FixedResolutionBufferFilter(ABC):
-
     """
     This object allows to apply data transformation directly to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
@@ -70,7 +69,6 @@ class FixedResolutionBufferFilter(ABC):
 
 
 class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
-
     """
     This filter convolves
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer` with
@@ -104,7 +102,6 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
 
 
 class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
-
     """
     This filter adds white noise with the amplitude "bg_lvl" to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`.
@@ -123,4 +120,5 @@ class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
         else:
             amp = self.bg_lvl
         npm, nqm = np.shape(buff)
-        return buff + np.random.randn(npm, nqm) * amp
+        rng = np.random.default_rng()
+        return buff + rng.standard_normal((npm, nqm)) * amp

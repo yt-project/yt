@@ -99,11 +99,11 @@ def parse_line(line, grid):
         grid["level"] = int(str23(splitup[time_index + 3]).rstrip(","))
         grid["domain"] = int(str23(splitup[time_index + 5]).rstrip(","))
     elif chk23("DIMENSIONS") in splitup:
-        grid["dimensions"] = np.array(str23(splitup[-3:])).astype("int")
+        grid["dimensions"] = np.array(str23(splitup[-3:]), dtype="int")
     elif chk23("ORIGIN") in splitup:
-        grid["left_edge"] = np.array(str23(splitup[-3:])).astype("float64")
+        grid["left_edge"] = np.array(str23(splitup[-3:]), dtype="float64")
     elif chk23("SPACING") in splitup:
-        grid["dds"] = np.array(str23(splitup[-3:])).astype("float64")
+        grid["dds"] = np.array(str23(splitup[-3:]), dtype="float64")
     elif chk23("CELL_DATA") in splitup or chk23("POINT_DATA") in splitup:
         grid["ncells"] = int(str23(splitup[-1]))
     elif chk23("SCALARS") in splitup:
@@ -147,7 +147,7 @@ class AthenaHierarchy(GridIndex):
             chkp = chk23("POINT_DATA")
             if chkd in splitup:
                 field = str23(splitup[-3:])
-                grid_dims = np.array(field).astype("int")
+                grid_dims = np.array(field, dtype="int64")
                 line = check_readline(f)
             elif chkc in splitup or chkp in splitup:
                 grid_ncells = int(str23(splitup[-1]))
@@ -187,7 +187,7 @@ class AthenaHierarchy(GridIndex):
                 field = str23(splitup[1])
                 dtype = str23(splitup[-1]).lower()
                 for ax in "xyz":
-                    field_map[("athena", f"{field}_{ax}")] = (
+                    field_map["athena", f"{field}_{ax}"] = (
                         "vector",
                         f.tell() - read_table_offset,
                         dtype,
@@ -317,7 +317,7 @@ class AthenaHierarchy(GridIndex):
         # know the extent of all the grids.
         glis = np.round(
             (glis - self.dataset.domain_left_edge.ndarray_view()) / gdds
-        ).astype("int")
+        ).astype("int64")
         new_dre = np.max(gres, axis=0)
         dre_units = self.dataset.domain_right_edge.uq
         self.dataset.domain_right_edge = np.round(new_dre, decimals=12) * dre_units
@@ -327,14 +327,15 @@ class AthenaHierarchy(GridIndex):
         self.dataset.domain_center = 0.5 * (
             self.dataset.domain_left_edge + self.dataset.domain_right_edge
         )
-        self.dataset.domain_dimensions = np.round(
-            self.dataset.domain_width / gdds[0]
-        ).astype("int")
+        domain_dimensions = np.round(self.dataset.domain_width / gdds[0]).astype(
+            "int64"
+        )
 
         if self.dataset.dimensionality <= 2:
-            self.dataset.domain_dimensions[2] = 1
+            domain_dimensions[2] = 1
         if self.dataset.dimensionality == 1:
-            self.dataset.domain_dimensions[1] = 1
+            domain_dimensions[1] = 1
+        self.dataset.domain_dimensions = domain_dimensions
 
         dle = self.dataset.domain_left_edge
         dre = self.dataset.domain_right_edge
@@ -360,7 +361,7 @@ class AthenaHierarchy(GridIndex):
                 )
                 bbox = np.array([[le, re] for le, re in zip(gle_orig, gre_orig)])
                 psize = get_psize(self.ds.domain_dimensions, self.ds.nprocs)
-                gle, gre, shapes, slices = decompose_array(gdims[i], psize, bbox)
+                gle, gre, shapes, slices, _ = decompose_array(gdims[i], psize, bbox)
                 gle_all += gle
                 gre_all += gre
                 shapes_all += shapes
@@ -382,7 +383,7 @@ class AthenaHierarchy(GridIndex):
             gdds = (self.grid_right_edge - self.grid_left_edge) / self.grid_dimensions
             glis = np.round(
                 (self.grid_left_edge - self.ds.domain_left_edge) / gdds
-            ).astype("int")
+            ).astype("int64")
             for i in range(self.num_grids):
                 self.grids[i] = self.grid(
                     i,
@@ -556,9 +557,7 @@ class AthenaDataset(Dataset):
         )
         self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge - self.domain_left_edge
-        self.domain_dimensions = np.round(self.domain_width / grid["dds"]).astype(
-            "int32"
-        )
+        domain_dimensions = np.round(self.domain_width / grid["dds"]).astype("int32")
         refine_by = None
         if refine_by is None:
             refine_by = 2
@@ -569,11 +568,12 @@ class AthenaDataset(Dataset):
         if grid["dimensions"][1] == 1:
             dimensionality = 1
         if dimensionality <= 2:
-            self.domain_dimensions[2] = np.int32(1)
+            domain_dimensions[2] = np.int32(1)
         if dimensionality == 1:
-            self.domain_dimensions[1] = np.int32(1)
+            domain_dimensions[1] = np.int32(1)
         if dimensionality != 3 and self.nprocs > 1:
             raise RuntimeError("Virtual grids are only supported for 3D outputs!")
+        self.domain_dimensions = domain_dimensions
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
         self.cosmological_simulation = False
@@ -615,10 +615,10 @@ class AthenaDataset(Dataset):
         self.omega_matter = 0.0
         self.hubble_constant = 0.0
         self.cosmological_simulation = 0
-        self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
-        self.parameters[
-            "HydroMethod"
-        ] = 0  # Hardcode for now until field staggering is supported.
+        # Hardcode time conversion for now.
+        self.parameters["Time"] = self.current_time
+        # Hardcode for now until field staggering is supported.
+        self.parameters["HydroMethod"] = 0
         if "gamma" in self.specified_parameters:
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
@@ -630,7 +630,7 @@ class AthenaDataset(Dataset):
         )
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".vtk"):
             return False
 

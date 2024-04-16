@@ -13,12 +13,12 @@ import subprocess
 import sys
 import time
 import traceback
-import urllib
 from collections import UserDict
+from collections.abc import Callable
 from copy import deepcopy
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Optional
 
 import numpy as np
 from more_itertools import always_iterable, collapse, first
@@ -547,10 +547,8 @@ def get_git_version(path):
 
 
 def get_yt_version():
-    if sys.version_info >= (3, 9):
-        import importlib.resources as importlib_resources
-    else:
-        import importlib_resources
+    import importlib.resources as importlib_resources
+
     version = get_git_version(os.path.dirname(importlib_resources.files("yt")))
     if version is None:
         return version
@@ -620,6 +618,8 @@ def fancy_download_file(url, filename, requests=None):
 
 
 def simple_download_file(url, filename):
+    import urllib.request
+
     class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError(
@@ -633,6 +633,8 @@ def simple_download_file(url, filename):
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass=True):
     import getpass
+    import urllib.parse
+    import urllib.request
 
     uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
     # since bitbucket doesn't return the required WWW-Authenticate header when
@@ -1002,10 +1004,8 @@ def matplotlib_style_context(style="yt.default", after_reset=False):
     """
     # FUTURE: this function should be deprecated in favour of matplotlib.style.context
     # after support for matplotlib 3.6 and older versions is dropped.
-    if sys.version_info >= (3, 9):
-        import importlib.resources as importlib_resources
-    else:
-        import importlib_resources
+    import importlib.resources as importlib_resources
+
     import matplotlib as mpl
     import matplotlib.style
 
@@ -1324,9 +1324,8 @@ def parse_center_array(center, ds, axis: Optional[int] = None):
 
     # make sure the return value shares all
     # unit symbols with ds.unit_registry
-    center = ds.arr(center)
     # we rely on unyt to invalidate unit dimensionality here
-    center.convert_to_units("code_length")
+    center = ds.arr(center).in_units("code_length")
 
     if not ds._is_within_domain(center):
         mylog.warning(
@@ -1350,7 +1349,7 @@ def sglob(pattern):
     return sorted(glob.glob(pattern))
 
 
-def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
+def dictWithFactory(factory: Callable[[Any], Any]) -> type:
     """
     Create a dictionary class with a default factory function.
     Contrary to `collections.defaultdict`, the factory takes
@@ -1454,7 +1453,7 @@ def validate_moment(moment, weight_field):
         )
 
 
-def setdefault_mpl_metadata(save_kwargs: Dict[str, Any], name: str) -> None:
+def setdefault_mpl_metadata(save_kwargs: dict[str, Any], name: str) -> None:
     """
     Set a default Software metadata entry for use with Matplotlib outputs.
     """

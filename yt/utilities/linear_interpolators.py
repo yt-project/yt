@@ -42,7 +42,7 @@ class UnilinearFieldInterpolator:
             self.x_bins = boundaries
         else:
             x0, x1 = boundaries
-            self.x_bins = np.linspace(x0, x1, table.shape[0]).astype("float64")
+            self.x_bins = np.linspace(x0, x1, table.shape[0], dtype="float64")
 
     def __call__(self, data_object):
         orig_shape = data_object[self.x_name].shape
@@ -99,8 +99,8 @@ class BilinearFieldInterpolator:
         self.x_name, self.y_name = field_names
         if len(boundaries) == 4:
             x0, x1, y0, y1 = boundaries
-            self.x_bins = np.linspace(x0, x1, table.shape[0]).astype("float64")
-            self.y_bins = np.linspace(y0, y1, table.shape[1]).astype("float64")
+            self.x_bins = np.linspace(x0, x1, table.shape[0], dtype="float64")
+            self.y_bins = np.linspace(y0, y1, table.shape[1], dtype="float64")
         elif len(boundaries) == 2:
             if boundaries[0].size != table.shape[0]:
                 mylog.error("X bins array not the same length as the data.")
@@ -179,9 +179,9 @@ class TrilinearFieldInterpolator:
         self.x_name, self.y_name, self.z_name = field_names
         if len(boundaries) == 6:
             x0, x1, y0, y1, z0, z1 = boundaries
-            self.x_bins = np.linspace(x0, x1, table.shape[0]).astype("float64")
-            self.y_bins = np.linspace(y0, y1, table.shape[1]).astype("float64")
-            self.z_bins = np.linspace(z0, z1, table.shape[2]).astype("float64")
+            self.x_bins = np.linspace(x0, x1, table.shape[0], dtype="float64")
+            self.y_bins = np.linspace(y0, y1, table.shape[1], dtype="float64")
+            self.z_bins = np.linspace(z0, z1, table.shape[2], dtype="float64")
         elif len(boundaries) == 3:
             if boundaries[0].size != table.shape[0]:
                 mylog.error("X bins array not the same length as the data.")
@@ -208,9 +208,9 @@ class TrilinearFieldInterpolator:
         y_vals = data_object[self.y_name].ravel().astype("float64")
         z_vals = data_object[self.z_name].ravel().astype("float64")
 
-        x_i = np.digitize(x_vals, self.x_bins).astype("int") - 1
-        y_i = np.digitize(y_vals, self.y_bins).astype("int") - 1
-        z_i = np.digitize(z_vals, self.z_bins).astype("int") - 1
+        x_i = np.digitize(x_vals, self.x_bins).astype("int64") - 1
+        y_i = np.digitize(y_vals, self.y_bins).astype("int64") - 1
+        z_i = np.digitize(z_vals, self.z_bins).astype("int64") - 1
         if (
             np.any((x_i == -1) | (x_i == len(self.x_bins) - 1))
             or np.any((y_i == -1) | (y_i == len(self.y_bins) - 1))
@@ -314,10 +314,10 @@ class QuadrilinearFieldInterpolator:
         z_vals = data_object[self.z_name].ravel().astype("float64")
         w_vals = data_object[self.w_name].ravel().astype("float64")
 
-        x_i = np.digitize(x_vals, self.x_bins).astype("int") - 1
-        y_i = np.digitize(y_vals, self.y_bins).astype("int") - 1
-        z_i = np.digitize(z_vals, self.z_bins).astype("int") - 1
-        w_i = np.digitize(w_vals, self.w_bins).astype("int") - 1
+        x_i = np.digitize(x_vals, self.x_bins).astype("int64") - 1
+        y_i = np.digitize(y_vals, self.y_bins).astype("int64") - 1
+        z_i = np.digitize(z_vals, self.z_bins).astype("int64") - 1
+        w_i = np.digitize(w_vals, self.w_bins).astype("int64") - 1
         if (
             np.any((x_i == -1) | (x_i == len(self.x_bins) - 1))
             or np.any((y_i == -1) | (y_i == len(self.y_bins) - 1))

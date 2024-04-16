@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Union
 
 import cmyt  # noqa: F401
 import matplotlib as mpl
@@ -74,7 +74,7 @@ for k, v in list(_cm.color_map_luts.items()):
         mylog.warning("cannot register colormap '%s' (naming collision)", k)
 
 
-def get_colormap_lut(cmap_id: Union[Tuple[str, str], str]):
+def get_colormap_lut(cmap_id: Union[tuple[str, str], str]):
     # "lut" stands for "lookup table". This function provides a consistent and
     # reusable accessor to a hidden (and by default, uninitialized) attribute
     # (`_lut`) in registered colormaps, from matplotlib or palettable.
@@ -331,9 +331,9 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
         # Use np.round to make sure you're on a discrete index
         interval = int(np.round(next_index) - np.round(rolling_index))
         for j in np.arange(3):
-            cmap[
-                int(np.rint(rolling_index)) : int(np.rint(next_index)), j
-            ] = np.linspace(color[j], next_color[j], num=interval)
+            cmap[int(np.rint(rolling_index)) : int(np.rint(next_index)), j] = (
+                np.linspace(color[j], next_color[j], num=interval)
+            )
 
         rolling_index = next_index
 

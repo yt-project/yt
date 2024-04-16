@@ -1,8 +1,9 @@
 import base64
 import builtins
 import os
+from collections.abc import Iterable
 from functools import wraps
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import matplotlib
 import numpy as np
@@ -177,6 +178,7 @@ class ProfilePlot(BaseLinePlot):
     Use set_line_property to change line properties of one or all profiles.
 
     """
+
     _default_figure_size = (10.0, 8.0)
     _default_font_size = 18.0
 
@@ -270,7 +272,7 @@ class ProfilePlot(BaseLinePlot):
         self,
         name: Optional[str] = None,
         suffix: Optional[str] = None,
-        mpl_kwargs: Optional[Dict[str, Any]] = None,
+        mpl_kwargs: Optional[dict[str, Any]] = None,
     ):
         r"""
         Saves a 1d profile plot.
@@ -291,7 +293,7 @@ class ProfilePlot(BaseLinePlot):
         # Mypy is hardly convinced that we have a `profiles` attribute
         # at this stage, so we're lasily going to deactivate it locally
         unique = set(self.plots.values())
-        iters: Iterable[Tuple[Union[int, FieldKey], PlotMPL]]
+        iters: Iterable[tuple[Union[int, FieldKey], PlotMPL]]
         if len(unique) < len(self.plots):
             iters = enumerate(sorted(unique))
         else:
@@ -363,7 +365,7 @@ class ProfilePlot(BaseLinePlot):
             img = base64.b64encode(img).decode()
             ret += (
                 r'<img style="max-width:100%;max-height:100%;" '
-                r'src="data:image/png;base64,{}"><br>'.format(img)
+                rf'src="data:image/png;base64,{img}"><br>'
             )
         return ret
 
@@ -910,6 +912,7 @@ class PhasePlot(ImagePlotContainer):
     >>> plot.annotate_title("This is a phase plot")
 
     """
+
     x_log = None
     y_log = None
     plot_title = None
@@ -1055,6 +1058,10 @@ class PhasePlot(ImagePlotContainer):
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
                     cax = self.plots[f].cax
+                else:
+                    fig = None
+                    axes = None
+                    cax = None
             else:
                 pnh, cbh = self._get_default_handlers(
                     field=f, default_display_units=self.profile[f].units

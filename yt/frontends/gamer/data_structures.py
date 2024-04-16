@@ -202,6 +202,7 @@ class GAMERHierarchy(GridIndex):
 
 
 class GAMERDataset(Dataset):
+    _load_requirements = ["h5py"]
     _index_class = GAMERHierarchy
     _field_info_class = GAMERFieldInfo
     _handle = None
@@ -254,7 +255,7 @@ class GAMERDataset(Dataset):
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
-        if self.parameters["Opt__Unit"]:
+        if self.opt_unit:
             # GAMER units are always in CGS
             setdefaultattr(
                 self, "length_unit", self.quan(self.parameters["Unit_L"], "cm")
@@ -355,6 +356,7 @@ class GAMERDataset(Dataset):
         # make aliases to some frequently used variables
         if parameters["Model"] == "Hydro":
             self.gamma = parameters["Gamma"]
+            self.gamma_cr = self.parameters.get("CR_Gamma", None)
             self.eos = parameters.get("EoS", 1)  # Assume gamma-law by default
             # default to 0.6 for old data format
             self.mu = parameters.get(
@@ -365,14 +367,18 @@ class GAMERDataset(Dataset):
         else:
             self.mhd = 0
             self.srhd = 0
+            # set dummy value of mu here to avoid more complicated workarounds later
+            self.mu = 1.0
 
         # old data format (version < 2210) did not contain any information of code units
-        self.parameters.setdefault("Opt__Unit", 0)
-
+        self.opt_unit = self.parameters.get("Opt__Unit", 0)
         self.geometry = Geometry(geometry_parameters[parameters.get("Coordinate", 1)])
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             # define a unique way to identify GAMER datasets
             f = HDF5FileHandler(filename)

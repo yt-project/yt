@@ -2,7 +2,7 @@ import abc
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
@@ -66,14 +66,14 @@ class YTDataContainer(abc.ABC):
 
     _chunk_info = None
     _num_ghost_zones = 0
-    _con_args: Tuple[str, ...] = ()
+    _con_args: tuple[str, ...] = ()
     _skip_add = False
-    _container_fields: Tuple[AnyFieldKey, ...] = ()
-    _tds_attrs: Tuple[str, ...] = ()
-    _tds_fields: Tuple[str, ...] = ()
+    _container_fields: tuple[AnyFieldKey, ...] = ()
+    _tds_attrs: tuple[str, ...] = ()
+    _tds_fields: tuple[str, ...] = ()
     _field_cache = None
     _index = None
-    _key_fields: List[str]
+    _key_fields: list[str]
 
     def __init__(self, ds: Optional["Dataset"], field_parameters) -> None:
         """
@@ -558,11 +558,11 @@ class YTDataContainer(abc.ABC):
         >>> fn = sp.save_as_dataset(fields=[("gas", "density"), ("gas", "temperature")])
         >>> sphere_ds = yt.load(fn)
         >>> # the original data container is available as the data attribute
-        >>> print(sds.data[("gas", "density")])
+        >>> print(sds.data["gas", "density"])
         [  4.46237613e-32   4.86830178e-32   4.46335118e-32 ...,   6.43956165e-30
            3.57339907e-30   2.83150720e-30] g/cm**3
         >>> ad = sphere_ds.all_data()
-        >>> print(ad[("gas", "temperature")])
+        >>> print(ad["gas", "temperature"])
         [  1.00000000e+00   1.00000000e+00   1.00000000e+00 ...,   4.40108359e+04
            4.54380547e+04   4.72560117e+04] K
 
@@ -1169,6 +1169,8 @@ class YTDataContainer(abc.ABC):
         accumulation=False,
         fractional=False,
         deposition="ngp",
+        *,
+        override_bins=None,
     ):
         r"""
         Create a 1, 2, or 3D profile object from this data_source.
@@ -1214,8 +1216,11 @@ class YTDataContainer(abc.ABC):
             distribution function.
         deposition : Controls the type of deposition used for ParticlePhasePlots.
             Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
-            ignored the if the input fields are not of particle type.
-
+            ignored if the input fields are not of particle type.
+        override_bins : dict of bins to profile plot with
+            If set, ignores n_bins and extrema settings and uses the
+            supplied bins to profile the field. If a units dict is provided,
+            bins are understood to be in the units specified in the dictionary.
 
         Examples
         --------
@@ -1246,6 +1251,7 @@ class YTDataContainer(abc.ABC):
             accumulation,
             fractional,
             deposition,
+            override_bins=override_bins,
         )
         return p
 
@@ -1404,7 +1410,7 @@ class YTDataContainer(abc.ABC):
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sp = ds.sphere("c", 0.1)
         >>> sp_clone = sp.clone()
-        >>> sp[("gas", "density")]
+        >>> sp["gas", "density"]
         >>> print(sp.field_data.keys())
         [("gas", "density")]
         >>> print(sp_clone.field_data.keys())
@@ -1418,9 +1424,8 @@ class YTDataContainer(abc.ABC):
         s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
             try:
-                s += ", {}={}".format(
-                    i,
-                    getattr(self, i).in_base(unit_system=self.ds.unit_system),
+                s += (
+                    f", {i}={getattr(self, i).in_base(unit_system=self.ds.unit_system)}"
                 )
             except AttributeError:
                 s += f", {i}={getattr(self, i)}"

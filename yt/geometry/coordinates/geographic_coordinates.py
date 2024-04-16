@@ -125,7 +125,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 * data["index", "dlongitude"]
                 * np.pi
                 / 180.0
-                * np.sin((data["index", "latitude"] + 90.0) * np.pi / 180.0)
+                * np.sin((90 - data["index", "latitude"]) * np.pi / 180.0)
             )
 
         registry.add_field(
@@ -137,7 +137,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
-            return (data[("index", "latitude")] + 90) * np.pi / 180.0
+            # theta = 0 at +90 deg, np.pi at -90
+            return (90.0 - data["index", "latitude"]) * np.pi / 180.0
 
         registry.add_field(
             ("index", "theta"),
@@ -147,7 +148,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         )
 
         def _dlatitude_to_dtheta(field, data):
-            return data[("index", "dlatitude")] * np.pi / 180.0
+            return data["index", "dlatitude"] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dtheta"),
@@ -158,14 +159,18 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
-            return (data[("index", "longitude")] + 180) * np.pi / 180.0
+            lonvals = data[("index", "longitude")]
+            neglons = lonvals < 0.0
+            if np.any(neglons):
+                lonvals[neglons] = lonvals[neglons] + 360.0
+            return lonvals * np.pi / 180.0
 
         registry.add_field(
             ("index", "phi"), sampling_type="cell", function=_longitude_to_phi, units=""
         )
 
         def _dlongitude_to_dphi(field, data):
-            return data[("index", "dlongitude")] * np.pi / 180.0
+            return data["index", "dlongitude"] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dphi"),
@@ -186,7 +191,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                     surface_height = data.ds.surface_height
                 else:
                     surface_height = data.ds.quan(0.0, "code_length")
-            return data[("index", "altitude")] + surface_height
+            return data["index", "altitude"] + surface_height
 
         registry.add_field(
             ("index", "r"),
@@ -214,18 +219,33 @@ class GeographicCoordinateHandler(CoordinateHandler):
         return surface_height, 1.0
 
     def pixelize(
-        self, dimension, data_source, field, bounds, size, antialias=True, periodic=True
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask=False,
     ):
         if self.axis_name[dimension] in ("latitude", "longitude"):
-            return self._cyl_pixelize(
+            buff, mask = self._cyl_pixelize(
                 data_source, field, bounds, size, antialias, dimension
             )
         elif self.axis_name[dimension] == self.radial_axis:
-            return self._ortho_pixelize(
+            buff, mask = self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
             )
         else:
             raise NotImplementedError
+
+        if return_mask:
+            assert mask is None or mask.dtype == bool
+            return buff, mask
+        else:
+            return buff
 
     def pixelize_line(self, field, start_point, end_point, npoints):
         raise NotImplementedError
@@ -246,7 +266,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         py = data_source["py"]
         pdy = data_source["pdy"]
         buff = np.full((size[1], size[0]), np.nan, dtype="float64")
-        pixelize_cartesian(
+        mask = pixelize_cartesian(
             buff,
             px,
             py,
@@ -258,7 +278,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             period,
             int(periodic),
         )
-        return buff
+        return buff, mask
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias, dimension):
         offset, factor = self._retrieve_radial_offset(data_source)
@@ -278,12 +298,20 @@ class GeographicCoordinateHandler(CoordinateHandler):
             # We should never get here!
             raise NotImplementedError
         buff = np.full((size[1], size[0]), np.nan, dtype="f8")
-        pixelize_cylinder(
-            buff, r, data_source["pdy"], px, pdx, data_source[field], bounds
+        mask = pixelize_cylinder(
+            buff,
+            r,
+            data_source["pdy"],
+            px,
+            pdx,
+            data_source[field],
+            bounds,
+            return_mask=True,
         )
         if do_transpose:
             buff = buff.transpose()
-        return buff
+            mask = mask.transpose()
+        return buff, mask
 
     def convert_from_cartesian(self, coord):
         raise NotImplementedError
@@ -295,8 +323,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
             lon = self.axis_id["longitude"]
             lat = self.axis_id["latitude"]
             r = factor * coord[:, rad] + offset
-            theta = coord[:, lon] * np.pi / 180
-            phi = coord[:, lat] * np.pi / 180
+            theta = (90.0 - coord[:, lat]) * np.pi / 180
+            phi = coord[:, lon] * np.pi / 180
             nc = np.zeros_like(coord)
             # r, theta, phi
             nc[:, lat] = np.cos(phi) * np.sin(theta) * r
@@ -304,7 +332,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             nc[:, rad] = np.cos(theta) * r
         else:
             a, b, c = coord
-            theta = b * np.pi / 180
+            theta = (90.0 - b) * np.pi / 180
             phi = a * np.pi / 180
             r = factor * c + offset
             nc = (
@@ -457,7 +485,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
                     # so we can look at the domain right edge in depth.
                     rax = self.axis_id[self.radial_axis]
                     outer_radius = data.ds.domain_right_edge[rax]
-            return -1.0 * data[("index", "depth")] + outer_radius
+            return -1.0 * data["index", "depth"] + outer_radius
 
         registry.add_field(
             ("index", "r"),

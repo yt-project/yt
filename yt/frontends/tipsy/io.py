@@ -85,12 +85,8 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         return rv
 
     def _read_particle_coords(self, chunks, ptf):
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
         chunksize = self.ds.index.chunksize
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -212,7 +208,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 continue
             tf = self._fill_fields(field_list, p, hsml, mask, data_file)
             for field in field_list:
-                return_data[(ptype, field)] = tf.pop(field)
+                return_data[ptype, field] = tf.pop(field)
 
         # close all file handles
         f.close()

@@ -148,7 +148,7 @@ following:
     density = ad["gas", "density"]
 
     # full field tuple
-    density = ad[("gas", "density")]
+    density = ad["gas", "density"]
 
     # through the ds.fields object
     density = ad[ds.fields.gas.density]

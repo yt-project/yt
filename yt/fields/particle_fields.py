@@ -31,6 +31,8 @@ sph_whitelist_fields = (
     "thermal_energy",
     "smoothing_length",
     "star_formation_rate",
+    "cold_fraction",
+    "hot_temperature",
     "H_fraction",
     "He_fraction",
     "C_fraction",
@@ -46,6 +48,7 @@ sph_whitelist_fields = (
     "Al_fraction",
     "Ar_fraction",
     "Ni_fraction",
+    "Ej_fraction",
     "H_density",
     "He_density",
     "C_density",
@@ -61,6 +64,7 @@ sph_whitelist_fields = (
     "Al_density",
     "Ar_density",
     "Ni_density",
+    "Ej_density",
 )
 
 
@@ -169,7 +173,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             pos = data[ptype, "particle_position"]
             # Get back into density
             pden = data[ptype, "particle_mass"]
-            top = data.deposit(pos, [pden * data[(ptype, fname)]], method=method)
+            top = data.deposit(pos, [pden * data[ptype, fname]], method=method)
             bottom = data.deposit(pos, [pden], method=method)
             top[bottom == 0] = 0.0
             bnz = bottom.nonzero()
@@ -512,7 +516,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
+        pos = data[ptype, "relative_particle_position"].T
         return data.ds.arr(get_sph_theta(pos, normal), "")
 
     registry.add_field(
@@ -530,7 +534,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
+        pos = data[ptype, "relative_particle_position"].T
         return data.ds.arr(get_sph_phi(pos, normal), "")
 
     registry.add_field(
@@ -549,8 +553,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
-        vel = data[(ptype, "relative_particle_velocity")].T
+        pos = data[ptype, "relative_particle_position"].T
+        vel = data[ptype, "relative_particle_velocity"].T
         theta = get_sph_theta(pos, normal)
         phi = get_sph_phi(pos, normal)
         sphr = get_sph_r_component(vel, theta, phi, normal)
@@ -577,8 +581,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
-        vel = data[(ptype, "relative_particle_velocity")].T
+        pos = data[ptype, "relative_particle_position"].T
+        vel = data[ptype, "relative_particle_velocity"].T
         theta = get_sph_theta(pos, normal)
         phi = get_sph_phi(pos, normal)
         spht = get_sph_theta_component(vel, theta, phi, normal)
@@ -599,8 +603,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
-        vel = data[(ptype, "relative_particle_velocity")].T
+        pos = data[ptype, "relative_particle_position"].T
+        vel = data[ptype, "relative_particle_velocity"].T
         phi = get_sph_phi(pos, normal)
         sphp = get_sph_phi_component(vel, phi, normal)
         return sphp
@@ -620,7 +624,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
+        pos = data[ptype, "relative_particle_position"].T
         pos.convert_to_units("code_length")
         return data.ds.arr(get_cyl_r(pos, normal), "code_length")
 
@@ -639,7 +643,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
+        pos = data[ptype, "relative_particle_position"].T
         return data.ds.arr(get_cyl_theta(pos, normal), "")
 
     registry.add_field(
@@ -657,7 +661,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
+        pos = data[ptype, "relative_particle_position"].T
         pos.convert_to_units("code_length")
         return data.ds.arr(get_cyl_z(pos, normal), "code_length")
 
@@ -676,8 +680,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
-        vel = data[(ptype, "relative_particle_velocity")].T
+        pos = data[ptype, "relative_particle_position"].T
+        vel = data[ptype, "relative_particle_velocity"].T
         theta = get_cyl_theta(pos, normal)
         cylr = get_cyl_r_component(vel, theta, normal)
         return cylr
@@ -697,8 +701,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data[(ptype, "relative_particle_position")].T
-        vel = data[(ptype, "relative_particle_velocity")].T
+        pos = data[ptype, "relative_particle_position"].T
+        vel = data[ptype, "relative_particle_velocity"].T
         theta = get_cyl_theta(pos, normal)
         cylt = get_cyl_theta_component(vel, theta, normal)
         return cylt
@@ -718,7 +722,7 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        vel = data[(ptype, "relative_particle_velocity")].T
+        vel = data[ptype, "relative_particle_velocity"].T
         cylz = get_cyl_z_component(vel, normal)
         return cylz
 

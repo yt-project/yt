@@ -4,7 +4,6 @@ import re
 from collections import namedtuple
 from functools import cached_property
 from stat import ST_CTIME
-from typing import Type
 
 import numpy as np
 
@@ -375,10 +374,8 @@ class BoxlibHierarchy(GridIndex):
             default_ybounds = (0.0, 1.0)
             default_zbounds = (0.0, 1.0)
         elif self.ds.geometry == "cylindrical":
-            # Now we check for dimensionality issues
-            if self.dimensionality != 2:
-                raise RuntimeError("yt needs cylindrical to be 2D")
             self.level_dds[:, 2] = 2 * np.pi
+            default_ybounds = (0.0, 1.0)
             default_zbounds = (0.0, 2 * np.pi)
         elif self.ds.geometry == "spherical":
             # BoxLib only supports 1D spherical, so ensure
@@ -623,7 +620,7 @@ class BoxlibDataset(Dataset):
     """
 
     _index_class = BoxlibHierarchy
-    _field_info_class: Type[FieldInfoContainer] = BoxlibFieldInfo
+    _field_info_class: type[FieldInfoContainer] = BoxlibFieldInfo
     _output_prefix = None
     _default_cparam_filename = "job_info"
 
@@ -742,6 +739,9 @@ class BoxlibDataset(Dataset):
                 param, vals = (s.strip() for s in line.split("="))
             except ValueError:
                 continue
+            # Castro and Maestro mark overridden defaults with a "[*]" before
+            # the parameter name
+            param = param.removeprefix("[*]").strip()
             if param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
@@ -893,7 +893,7 @@ class BoxlibDataset(Dataset):
             self.geometry = Geometry(geom_str)
 
         if self.geometry == "cylindrical":
-            dre = self.domain_right_edge
+            dre = self.domain_right_edge.copy()
             dre[2] = 2.0 * np.pi
             self.domain_right_edge = dre
 
@@ -933,7 +933,7 @@ class AMReXHierarchy(BoxlibHierarchy):
 
 
 class AMReXDataset(BoxlibDataset):
-    _index_class: Type[BoxlibHierarchy] = AMReXHierarchy
+    _index_class: type[BoxlibHierarchy] = AMReXHierarchy
     _subtype_keyword = "amrex"
     _default_cparam_filename = "job_info"
 
@@ -1131,16 +1131,6 @@ class CastroDataset(AMReXDataset):
                     self.parameters[fields[0]] = fields[1].strip()
                 line = next(f)
 
-            # runtime parameters that we overrode follow "Inputs File
-            # Parameters"
-            # skip the "====..." line
-            line = next(f)
-            for line in f:
-                if line.strip() == "" or "fortin parameters" in line:
-                    continue
-                p, v = line.strip().split("=")
-                self.parameters[p] = v.strip()
-
         # hydro method is set by the base class -- override it here
         self.parameters["HydroMethod"] = "Castro"
 
@@ -1202,21 +1192,8 @@ class MaestroDataset(AMReXDataset):
                     fields = line.split(":")
                     self.parameters[fields[0]] = fields[1].strip()
 
-        with open(jobinfo_filename) as f:
-            # get the runtime parameters
-            for line in f:
-                try:
-                    p, v = (_.strip() for _ in line[4:].split("=", 1))
-                    if len(v) == 0:
-                        self.parameters[p] = ""
-                    else:
-                        self.parameters[p] = _guess_pcast(v)
-                except ValueError:
-                    # not a parameter line
-                    pass
-
-            # hydro method is set by the base class -- override it here
-            self.parameters["HydroMethod"] = "Maestro"
+        # hydro method is set by the base class -- override it here
+        self.parameters["HydroMethod"] = "Maestro"
 
         # set the periodicity based on the integer BC runtime parameters
         periodicity = [False, False, False]
@@ -1335,6 +1312,12 @@ class NyxDataset(BoxlibDataset):
             self, "length_unit", self.quan(1.0 / (1 + self.current_redshift), "Mpc")
         )
         setdefaultattr(self, "velocity_unit", self.length_unit / self.time_unit)
+
+
+class QuokkaDataset(AMReXDataset):
+    # match any plotfiles that have a metadata.yaml file in the root
+    _subtype_keyword = ""
+    _default_cparam_filename = "metadata.yaml"
 
 
 def _guess_pcast(vals):

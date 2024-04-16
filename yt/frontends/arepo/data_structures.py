@@ -8,6 +8,7 @@ from .fields import ArepoFieldInfo
 
 
 class ArepoHDF5Dataset(GadgetHDF5Dataset):
+    _load_requirements = ["h5py"]
     _field_info_class = ArepoFieldInfo
 
     def __init__(
@@ -44,7 +45,10 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         self.gamma_cr = self.parameters.get("GammaCR", 4.0 / 3.0)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = ["Header", "Config"]
         veto_groups = ["FOF", "Group", "Subhalo"]
         valid = True

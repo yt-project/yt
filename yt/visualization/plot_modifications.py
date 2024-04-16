@@ -5,7 +5,7 @@ import warnings
 from abc import ABC, abstractmethod
 from functools import update_wrapper
 from numbers import Integral, Number
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 import matplotlib
 import numpy as np
@@ -21,7 +21,8 @@ from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.api import Geometry
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
-from yt.units.yt_array import YTArray, YTQuantity, uhstack  # type: ignore
+from yt.units._numpy_wrapper_functions import uhstack
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import (
     YTDataTypeUnsupported,
     YTFieldNotFound,
@@ -55,10 +56,10 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import assert_never
 
-callback_registry: Dict[str, Type["PlotCallback"]] = {}
+callback_registry: dict[str, type["PlotCallback"]] = {}
 
 
-def _validate_factor_tuple(factor) -> Tuple[int, int]:
+def _validate_factor_tuple(factor) -> tuple[int, int]:
     if (
         is_sequence(factor)
         and len(factor) == 2
@@ -84,8 +85,8 @@ class PlotCallback(ABC):
     # "figure" this is disregarded.  If "force" is included in the tuple, it
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
-    _supported_geometries: Optional[Tuple[str, ...]] = None
-    _incompatible_plot_types: Tuple[str, ...] = ()
+    _supported_geometries: Optional[tuple[str, ...]] = None
+    _incompatible_plot_types: tuple[str, ...] = ()
 
     def __init_subclass__(cls, *args, **kwargs):
         if inspect.isabstract(cls):
@@ -437,7 +438,7 @@ class VelocityCallback(PlotCallback):
 
     def __init__(
         self,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         *,
         scale=None,
         scale_units=None,
@@ -580,7 +581,7 @@ class MagFieldCallback(PlotCallback):
 
     def __init__(
         self,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         *,
         scale=None,
         scale_units=None,
@@ -694,7 +695,7 @@ class BaseQuiverCallback(PlotCallback, ABC):
         field_y,
         field_c=None,
         *,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -732,10 +733,32 @@ class BaseQuiverCallback(PlotCallback, ABC):
         nx = plot.raw_image_shape[1] // self.factor[0]
         ny = plot.raw_image_shape[0] // self.factor[1]
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        X, Y = np.meshgrid(
-            np.linspace(xx0, xx1, nx, endpoint=True),
-            np.linspace(yy0, yy1, ny, endpoint=True),
-        )
+
+        if plot._transform is None:
+            X, Y = np.meshgrid(
+                np.linspace(xx0, xx1, nx, endpoint=True),
+                np.linspace(yy0, yy1, ny, endpoint=True),
+            )
+        else:
+            # when we have a cartopy transform, provide the x, y values
+            # in the coordinate reference system of the data and let cartopy
+            # do the transformation. Also check for the exact bounds of the transform
+            # which can cause issues with projections.
+            tform_bnds = plot._transform.x_limits + plot._transform.y_limits
+            if any(b.d == tb for b, tb in zip(bounds, tform_bnds)):
+                # note: cartopy will also raise its own warning, but it is useful to add this
+                # warning as well since the only way to avoid the exact bounds is to change the
+                # extent of the plot.
+                warnings.warn(
+                    "Using the exact bounds of the transform may cause errors at the bounds."
+                    " To avoid this warning, adjust the width of your plot object to not include "
+                    "the bounds.",
+                    stacklevel=2,
+                )
+            X, Y = np.meshgrid(
+                np.linspace(bounds[0].d, bounds[1].d, nx, endpoint=True),
+                np.linspace(bounds[2].d, bounds[3].d, ny, endpoint=True),
+            )
 
         pixX, pixY, pixC = self._get_quiver_data(plot, bounds, nx, ny)
 
@@ -768,6 +791,16 @@ class BaseQuiverCallback(PlotCallback, ABC):
             "scale_units": self.scale_units,
         }
         kwargs.update(self.plot_args)
+
+        if plot._transform is not None:
+            if "transform" in kwargs:
+                msg = (
+                    "The base plot already has a transform set, ignoring the provided keyword "
+                    "argument and using the base transform."
+                )
+                warnings.warn(msg, stacklevel=2)
+            kwargs["transform"] = plot._transform
+
         return plot._axes.quiver(*args, **kwargs)
 
 
@@ -785,12 +818,14 @@ class QuiverCallback(BaseQuiverCallback):
     """
 
     _type_name = "quiver"
-    _supported_geometries: Tuple[str, ...] = (
+    _supported_geometries: tuple[str, ...] = (
         "cartesian",
         "spectral_cube",
         "polar",
         "cylindrical",
         "spherical",
+        "geographic",
+        "internal_geographic",
     )
 
     def __init__(
@@ -799,7 +834,7 @@ class QuiverCallback(BaseQuiverCallback):
         field_y,
         field_c=None,
         *,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -903,13 +938,13 @@ class ContourCallback(PlotCallback):
         field: AnyFieldKey,
         levels: int = 5,
         *,
-        factor: Union[Tuple[int, int], int] = 4,
-        clim: Optional[Tuple[float, float]] = None,
+        factor: Union[tuple[int, int], int] = 4,
+        clim: Optional[tuple[float, float]] = None,
         label: bool = False,
         take_log: Optional[bool] = None,
         data_source: Optional[YTDataContainer] = None,
-        plot_args: Optional[Dict[str, Any]] = None,
-        text_args: Optional[Dict[str, Any]] = None,
+        plot_args: Optional[dict[str, Any]] = None,
+        text_args: Optional[dict[str, Any]] = None,
         ncont: Optional[int] = None,  # deprecated
     ) -> None:
         if ncont is not None:
@@ -1015,7 +1050,7 @@ class ContourCallback(PlotCallback):
         if take_log:
             zi = np.log10(zi)
 
-        clim: Optional[Tuple[float, float]]
+        clim: Optional[tuple[float, float]]
         if take_log and self.clim is not None:
             clim = np.log10(self.clim[0]), np.log10(self.clim[1])
         else:
@@ -1151,7 +1186,7 @@ class GridBoundaryCallback(PlotCallback):
                 edgecolors = colorConverter.to_rgba(self.edgecolors, alpha=self.alpha)
             else:  # use colormap if not explicitly overridden by edgecolors
                 if self.cmap is not None:
-                    color_bounds = [0, plot.data.ds.index.max_level]
+                    color_bounds = [0, max_level]
                     edgecolors = (
                         apply_colormap(
                             levels[visible] * 1.0,
@@ -1284,7 +1319,7 @@ class StreamlineCallback(PlotCallback):
         linewidth_upscaling: float = 1.0,
         color: Optional[Union[_ColorType, FieldKey]] = None,
         color_threshold: Union[float, unyt_quantity] = float("-inf"),
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         field_color=None,  # deprecated
         display_threshold=None,  # deprecated
         plot_args=None,  # deprecated
@@ -1479,7 +1514,7 @@ class LinePlotCallback(PlotCallback):
     """
 
     _type_name = "line"
-    _supported_geometries: Tuple[str, ...] = (
+    _supported_geometries: tuple[str, ...] = (
         "cartesian",
         "spectral_cube",
         "polar",
@@ -1492,7 +1527,7 @@ class LinePlotCallback(PlotCallback):
         p2,
         *,
         coord_system="data",
-        plot_args: Optional[Dict[str, Any]] = None,
+        plot_args: Optional[dict[str, Any]] = None,
         **kwargs,
     ):
         self.p1 = p1
@@ -1547,9 +1582,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_off_axis_cartesian(
             pixX,
-            plot.data[("index", "x")].to("code_length"),
-            plot.data[("index", "y")].to("code_length"),
-            plot.data[("index", "z")].to("code_length"),
+            plot.data["index", "x"].to("code_length"),
+            plot.data["index", "y"].to("code_length"),
+            plot.data["index", "z"].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1563,9 +1598,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
         )
         pixelize_off_axis_cartesian(
             pixY,
-            plot.data[("index", "x")].to("code_length"),
-            plot.data[("index", "y")].to("code_length"),
-            plot.data[("index", "z")].to("code_length"),
+            plot.data["index", "x"].to("code_length"),
+            plot.data["index", "y"].to("code_length"),
+            plot.data["index", "z"].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1584,9 +1619,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
             pixC = np.zeros((ny, nx), dtype="f8")
             pixelize_off_axis_cartesian(
                 pixC,
-                plot.data[("index", "x")].to("code_length"),
-                plot.data[("index", "y")].to("code_length"),
-                plot.data[("index", "z")].to("code_length"),
+                plot.data["index", "x"].to("code_length"),
+                plot.data["index", "y"].to("code_length"),
+                plot.data["index", "z"].to("code_length"),
                 plot.data["px"],
                 plot.data["py"],
                 plot.data["pdx"],
@@ -1773,7 +1808,7 @@ class ArrowCallback(PlotCallback):
         head_length=0.01,
         starting_pos=None,
         coord_system="data",
-        plot_args: Optional[Dict[str, Any]] = None,  # deprecated
+        plot_args: Optional[dict[str, Any]] = None,  # deprecated
         **kwargs,
     ):
         self.pos = pos
@@ -1805,11 +1840,12 @@ class ArrowCallback(PlotCallback):
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         # normalize all of the kwarg lengths to the plot size
         plot_diag = ((yy1 - yy0) ** 2 + (xx1 - xx0) ** 2) ** (0.5)
-        self.length *= plot_diag
-        self.width *= plot_diag
-        self.head_width *= plot_diag
+        length = self.length * plot_diag
+        width = self.width * plot_diag
+        head_width = self.head_width * plot_diag
+        head_length = None
         if self.head_length is not None:
-            self.head_length *= plot_diag
+            head_length = self.head_length * plot_diag
 
         if self.starting_pos is not None:
             start_x, start_y = self._sanitize_coord_system(
@@ -1818,8 +1854,8 @@ class ArrowCallback(PlotCallback):
             dx = x - start_x
             dy = y - start_y
         else:
-            dx = (xx1 - xx0) * 2 ** (0.5) * self.length
-            dy = (yy1 - yy0) * 2 ** (0.5) * self.length
+            dx = (xx1 - xx0) * 2 ** (0.5) * length
+            dy = (yy1 - yy0) * 2 ** (0.5) * length
         # If the arrow is 0 length
         if dx == dy == 0:
             warnings.warn("The arrow has zero length. Not annotating.", stacklevel=2)
@@ -1832,9 +1868,9 @@ class ArrowCallback(PlotCallback):
                 y - dy,
                 dx,
                 dy,
-                width=self.width,
-                head_width=self.head_width,
-                head_length=self.head_length,
+                width=width,
+                head_width=head_width,
+                head_length=head_length,
                 transform=self.transform,
                 length_includes_head=True,
                 **self.plot_args,
@@ -1846,9 +1882,9 @@ class ArrowCallback(PlotCallback):
                     y[i] - dy,
                     dx,
                     dy,
-                    width=self.width,
-                    head_width=self.head_width,
-                    head_length=self.head_length,
+                    width=width,
+                    head_width=head_width,
+                    head_length=head_length,
                     transform=self.transform,
                     length_includes_head=True,
                     **self.plot_args,
@@ -2031,7 +2067,8 @@ class SphereCallback(PlotCallback):
 
         if is_sequence(self.radius):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
-            self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
+            self.radius = self.radius.in_units(plot.xlim[0].units)
+
         if isinstance(self.radius, YTQuantity):
             if isinstance(self.center, YTArray):
                 units = self.center.units
@@ -2044,16 +2081,18 @@ class SphereCallback(PlotCallback):
         # apply a different transform for a length in the same way
         # you can for a coordinate.
         if self.coord_system == "data" or self.coord_system == "plot":
-            self.radius = self.radius * self._pixel_scale(plot)[0]
+            scaled_radius = self.radius * self._pixel_scale(plot)[0]
         else:
-            self.radius /= (plot.xlim[1] - plot.xlim[0]).v
+            scaled_radius = self.radius / (plot.xlim[1] - plot.xlim[0])
 
         x, y = self._sanitize_coord_system(
             plot, self.center, coord_system=self.coord_system
         )
 
         x, y = self._sanitize_xy_order(plot, x, y)
-        cir = Circle((x, y), self.radius, transform=self.transform, **self.circle_args)
+        cir = Circle(
+            (x, y), scaled_radius.v, transform=self.transform, **self.circle_args
+        )
 
         plot._axes.add_patch(cir)
         if self.text is not None:
@@ -2134,7 +2173,7 @@ class TextLabelCallback(PlotCallback):
     """
 
     _type_name = "text"
-    _supported_geometries: Tuple[str, ...] = (
+    _supported_geometries: tuple[str, ...] = (
         "cartesian",
         "spectral_cube",
         "polar",
@@ -2475,8 +2514,8 @@ class TriangleFacetsCallback(PlotCallback):
             # more convenient to swap the x, y values here before final roll
             x0, y0 = l_cy[0]  # x, y values of start points
             x1, y1 = l_cy[1]  # x, y values of end points
-            l_cy[0] = np.row_stack([y0, x0])  # swap x, y for start points
-            l_cy[1] = np.row_stack([y1, x1])  # swap x, y for end points
+            l_cy[0] = np.vstack([y0, x0])  # swap x, y for start points
+            l_cy[1] = np.vstack([y1, x1])  # swap x, y for end points
         # convert back to shape (nlines, 2, 2)
         l_cy = np.rollaxis(l_cy, 2, 0)
         # create line collection and add it to the plot
@@ -3226,8 +3265,9 @@ class LineIntegralConvolutionCallback(PlotCallback):
                 "with that of output image (%d, %d)" % (nx, ny)
             )
 
-        kernel = np.sin(np.arange(self.kernellen) * np.pi / self.kernellen)
-        kernel = kernel.astype(np.double)
+        kernel = np.sin(
+            np.arange(self.kernellen, dtype="float64") * np.pi / self.kernellen
+        )
 
         lic_data = line_integral_convolution_2d(vectors, self.texture, kernel)
         lic_data = lic_data / lic_data.max()
@@ -3307,7 +3347,7 @@ class CellEdgesCallback(PlotCallback):
         conv = ColorConverter()
         self.line_width = line_width
         self.alpha = alpha
-        self.color = (np.array(conv.to_rgb(color)) * 255).astype("uint8")
+        self.color = np.array(conv.to_rgb(color), dtype="uint8") * 255
 
     def __call__(self, plot):
         if plot.data.ds.geometry == "cylindrical" and plot.data.ds.dimensionality == 3:

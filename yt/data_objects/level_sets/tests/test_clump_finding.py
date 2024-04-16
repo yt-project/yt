@@ -69,19 +69,19 @@ def test_clump_finding():
     assert_equal(len(leaf_clumps), 2)
 
     # check some clump fields
-    assert_equal(master_clump.children[0][("gas", "density")][0].size, 1)
+    assert_equal(master_clump.children[0]["gas", "density"][0].size, 1)
     assert_equal(
-        master_clump.children[0][("gas", "density")][0], ad[("gas", "density")].max()
+        master_clump.children[0]["gas", "density"][0], ad["gas", "density"].max()
     )
-    assert_equal(master_clump.children[0][("all", "particle_mass")].size, 1)
+    assert_equal(master_clump.children[0]["all", "particle_mass"].size, 1)
     assert_array_equal(
-        master_clump.children[0][("all", "particle_mass")], ad[("all", "particle_mass")]
+        master_clump.children[0]["all", "particle_mass"], ad["all", "particle_mass"]
     )
-    assert_equal(master_clump.children[1][("gas", "density")][0].size, 1)
+    assert_equal(master_clump.children[1]["gas", "density"][0].size, 1)
     assert_equal(
-        master_clump.children[1][("gas", "density")][0], ad[("gas", "density")].max()
+        master_clump.children[1]["gas", "density"][0], ad["gas", "density"].max()
     )
-    assert_equal(master_clump.children[1][("all", "particle_mass")].size, 0)
+    assert_equal(master_clump.children[1]["all", "particle_mass"].size, 0)
 
     # clean up global registry to avoid polluting other tests
     del clump_info_registry["total_volume"]
@@ -128,8 +128,8 @@ def test_clump_tree_save():
     t2 = list(ds2.tree)
     mt1 = ds.arr([c.info["cell_mass"][1] for c in t1])
     mt2 = ds2.arr([c["clump", "cell_mass"] for c in t2])
-    it1 = np.array(np.argsort(mt1).astype(int))
-    it2 = np.array(np.argsort(mt2).astype(int))
+    it1 = np.argsort(mt1).astype("int64")
+    it2 = np.argsort(mt2).astype("int64")
     assert_array_equal(mt1[it1], mt2[it2])
 
     for i1, i2 in zip(it1, it2):
@@ -143,8 +143,8 @@ def test_clump_tree_save():
     c2 = list(ds2.leaves)
     mc1 = ds.arr([c.info["cell_mass"][1] for c in c1])
     mc2 = ds2.arr([c["clump", "cell_mass"] for c in c2])
-    ic1 = np.array(np.argsort(mc1).astype(int))
-    ic2 = np.array(np.argsort(mc2).astype(int))
+    ic1 = np.argsort(mc1).astype("int64")
+    ic2 = np.argsort(mc2).astype("int64")
     assert_array_equal(mc1[ic1], mc2[ic2])
 
     os.chdir(curdir)
@@ -163,7 +163,7 @@ def test_clump_field_parameters():
 
     def _also_density(field, data):
         factor = data.get_field_parameter("factor")
-        return factor * data[("gas", "density")]
+        return factor * data["gas", "density"]
 
     ds = data_dir_load(i30)
     ds.add_field(

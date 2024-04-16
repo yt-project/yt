@@ -21,12 +21,7 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype in sorted(ptf):
                     coords = data_file._get_particle_positions(ptype, f=f)
@@ -71,12 +66,7 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
@@ -225,7 +215,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                             findex = int(field[field.rfind("_") + 1 :])
                             field_data = field_data[:, findex]
                     data = np.array([field_data[dobj.scalar_index]])
-                    all_data[(ptype, field)] = data
+                    all_data[ptype, field] = data
         return all_data
 
     def _read_member_fields(self, dobj, member_fields):
@@ -243,7 +233,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
-                        field_data = all_data[(ptype, field)]
+                        field_data = all_data[ptype, field]
                         if field in f["IDs"]:
                             my_data = f["IDs"][field][start_index:end_index].astype(
                                 "float64"

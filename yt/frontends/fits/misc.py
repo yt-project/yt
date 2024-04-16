@@ -12,10 +12,10 @@ from yt.utilities.on_demand_imports import _astropy
 
 def _make_counts(emin, emax):
     def _counts(field, data):
-        e = data[("all", "event_energy")].in_units("keV")
+        e = data["all", "event_energy"].in_units("keV")
         mask = np.logical_and(e >= emin, e < emax)
-        x = data[("all", "event_x")][mask]
-        y = data[("all", "event_y")][mask]
+        x = data["all", "event_x"][mask]
+        y = data["all", "event_y"][mask]
         z = np.ones(x.shape)
         pos = np.array([x, y, z]).transpose()
         img = data.deposit(pos, method="count")
@@ -186,8 +186,8 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
         prefix = ""
 
     def _reg_field(field, data):
-        i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int") - 1
-        j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int") - 1
+        i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int64") - 1
+        j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int64") - 1
         new_mask = mask[i, j]
         ret = np.zeros(data[prefix + "x"].shape)
         ret[new_mask] = 1.0

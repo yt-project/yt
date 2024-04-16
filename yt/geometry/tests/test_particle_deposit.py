@@ -61,7 +61,7 @@ def test_mesh_sampling_for_filtered_particles():
         @yt.particle_filter(requires=["particle_position_x"], filtered_type="io")
         def left(pfilter, data):
             return (
-                data[(pfilter.filtered_type, "particle_position_x")].to("code_length")
+                data[pfilter.filtered_type, "particle_position_x"].to("code_length")
                 < 0.5
             )
 

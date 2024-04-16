@@ -13,6 +13,7 @@ cdef class FortranFile:
     cdef INT64_t get_size(self, str dtype)
     cpdef INT32_t read_int(self) except? -1
     cpdef np.ndarray read_vector(self, str dtype)
+    cdef int read_vector_inplace(self, str dtype, void *data)
     cpdef INT64_t tell(self) except -1
     cpdef INT64_t seek(self, INT64_t pos, INT64_t whence=*) except -1
     cpdef void close(self)

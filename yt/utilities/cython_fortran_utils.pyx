@@ -142,6 +142,38 @@ cdef class FortranFile:
 
         return data
 
+    cdef int read_vector_inplace(self, str dtype, void *data):
+        """Reads a record from the file.
+
+        Parameters
+        ----------
+        d : data type
+            This is the datatype (from the struct module) that we should read.
+        data : void*
+            The pointer where to store the data.
+            It should be preallocated and have the correct size.
+        """
+        cdef INT32_t s1, s2, size
+
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
+
+        size = self.get_size(dtype)
+
+        fread(&s1, INT32_SIZE, 1, self.cfile)
+
+        # Check record is compatible with data type
+        if s1 % size != 0:
+            raise ValueError('Size obtained (%s) does not match with the expected '
+                             'size (%s) of multi-item record' % (s1, size))
+
+        fread(data, size, s1 // size, self.cfile)
+        fread(&s2, INT32_SIZE, 1, self.cfile)
+
+        if s1 != s2:
+            raise IOError('Sizes do not agree in the header and footer for '
+                          'this record - check header dtype')
+
     cpdef INT32_t read_int(self) except? -1:
         """Reads a single int32 from the file and return it.
 

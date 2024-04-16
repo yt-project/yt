@@ -71,8 +71,8 @@ cdef class RaySelector(SelectorObject):
                         mask[i, j, k] = 1
                         total += 1
         free(ia)
-        if total == 0: return None
-        return mask.astype("bool")
+        if total == 0: return None, 0
+        return mask.astype("bool"), total
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

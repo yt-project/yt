@@ -1,7 +1,7 @@
 import builtins
 import functools
 from collections import OrderedDict
-from typing import List, Optional
+from typing import Optional, Union
 
 import numpy as np
 
@@ -29,7 +29,6 @@ from .zbuffer_array import ZBuffer
 
 
 class Scene:
-
     """A virtual landscape for a volume rendering.
 
     The Scene class is meant to be the primary container for the
@@ -345,7 +344,7 @@ class Scene:
             fig = Figure((shape[0] / 100.0, shape[1] / 100.0))
             canvas = get_canvas(fig, fname)
 
-            ax = fig.add_axes([0, 0, 1, 1])
+            ax = fig.add_axes((0, 0, 1, 1))
             ax.set_axis_off()
             out = self._last_render
             if sigma_clip is not None:
@@ -368,7 +367,9 @@ class Scene:
         dpi: int = 100,
         sigma_clip: Optional[float] = None,
         render: bool = True,
-        tf_rect: Optional[List[float]] = None,
+        tf_rect: Optional[list[float]] = None,
+        *,
+        label_fontsize: Union[float, str] = 10,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
@@ -399,6 +400,10 @@ class Scene:
         label_fmt : str, optional
            A format specifier (e.g., label_fmt="%.2g") to use in formatting
            the data values that label the transfer function colorbar.
+        label_fontsize : float or string, optional
+           The fontsize used to display the numbers on the transfer function
+           colorbar.  This can be any matplotlib font size specification, e.g.,
+           "large" or 12. (default: 10)
         text_annotate : list of iterables
            Any text that you wish to display on the image.  This should be an
            list containing a tuple of coordinates (in normalized figure
@@ -460,7 +465,14 @@ class Scene:
             rs = self._get_render_sources()[0]
             tf = rs.transfer_function
             label = rs.data_source.ds._get_field_info(rs.field).get_label()
-            self._annotate(ax.axes, tf, rs, label=label, label_fmt=label_fmt)
+            self._annotate(
+                ax.axes,
+                tf,
+                rs,
+                label=label,
+                label_fmt=label_fmt,
+                label_fontsize=label_fontsize,
+            )
         else:
             # set the origin and width and height of the colorbar region
             if tf_rect is None:
@@ -479,7 +491,14 @@ class Scene:
                     pass
                 else:
                     label = rs.data_source.ds._get_field_info(rs.field).get_label()
-                    self._annotate_multi(ax, tf, rs, label=label, label_fmt=label_fmt)
+                    self._annotate_multi(
+                        ax,
+                        tf,
+                        rs,
+                        label=label,
+                        label_fmt=label_fmt,
+                        label_fontsize=label_fontsize,
+                    )
 
         # any text?
         if text_annotate is not None:
@@ -506,7 +525,9 @@ class Scene:
         from matplotlib.figure import Figure
 
         s = im.shape
-        self._render_figure = Figure(figsize=(s[1] / float(dpi), s[0] / float(dpi)))
+        self._render_figure = Figure(
+            figsize=(s[1] / float(dpi), s[0] / float(dpi)), dpi=dpi
+        )
         self._render_figure.clf()
         ax = self._render_figure.add_subplot(111)
         ax.set_position([0, 0, 1, 1])
@@ -521,7 +542,7 @@ class Scene:
 
         return axim
 
-    def _annotate(self, ax, tf, source, label="", label_fmt=None):
+    def _annotate(self, ax, tf, source, label="", label_fmt=None, label_fontsize=10):
         ax.get_xaxis().set_visible(False)
         ax.get_xaxis().set_ticks([])
         ax.get_yaxis().set_visible(False)
@@ -533,17 +554,19 @@ class Scene:
             ax=cb.ax,
             label=label,
             label_fmt=label_fmt,
+            label_fontsize=label_fontsize,
             resolution=self.camera.resolution[0],
             log_scale=source.log_field,
         )
 
-    def _annotate_multi(self, ax, tf, source, label, label_fmt):
+    def _annotate_multi(self, ax, tf, source, label, label_fmt, label_fontsize=10):
         ax.yaxis.set_label_position("right")
         ax.yaxis.tick_right()
         tf.vert_cbar(
             ax=ax,
             label=label,
             label_fmt=label_fmt,
+            label_fontsize=label_fontsize,
             resolution=self.camera.resolution[0],
             log_scale=source.log_field,
             size=6,

@@ -16,9 +16,7 @@ def _fill_values(values):
         + "<table><thead><tr><th>Name</th><th>Type</th>"
         + "<th>Value</th></tr></thead><tr><td>"
         + "</td></tr><tr><td>".join(
-            "{}</td><td>{}</td><td>{}".format(
-                v, type(values[v]).__name__, str(values[v])
-            )
+            f"{v}</td><td>{type(values[v]).__name__}</td><td>{str(values[v])}"
             for v in sorted(values)
         )
         + "</td></tr></table></div>"

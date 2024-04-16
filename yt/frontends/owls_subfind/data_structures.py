@@ -79,6 +79,7 @@ class OWLSSubfindHDF5File(ParticleFile):
 
 
 class OWLSSubfindDataset(ParticleDataset):
+    _load_requirements = ["h5py"]
     _index_class = OWLSSubfindParticleIndex
     _file_class = OWLSSubfindHDF5File
     _field_info_class = OWLSSubfindFieldInfo
@@ -202,17 +203,16 @@ class OWLSSubfindDataset(ParticleDataset):
         setdefaultattr(self, "time_unit", self.quan(time_unit[0], time_unit[1]))
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = ["Constants", "Header", "Parameters", "Units", "FOF"]
-        veto_groups = []
         valid = True
         try:
             fh = h5py.File(filename, mode="r")
-            valid = all(ng in fh["/"] for ng in need_groups) and not any(
-                vg in fh["/"] for vg in veto_groups
-            )
+            valid = all(ng in fh["/"] for ng in need_groups)
             fh.close()
         except Exception:
             valid = False
-            pass
         return valid

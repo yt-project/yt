@@ -18,22 +18,22 @@ cdef class ElementSampler:
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
 
     cdef double sample_at_real_point(self,
                                      double* vertices,
                                      double* field_values,
-                                     double* physical_x) nogil
+                                     double* physical_x) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
-    cdef int check_mesh_lines(self, double* mapped_coord) nogil
+    cdef int check_mesh_lines(self, double* mapped_coord) noexcept nogil
 
 
 cdef class P1Sampler1D(ElementSampler):
@@ -41,14 +41,14 @@ cdef class P1Sampler1D(ElementSampler):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
 
 cdef class P1Sampler2D(ElementSampler):
@@ -56,14 +56,14 @@ cdef class P1Sampler2D(ElementSampler):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
 
 cdef class P1Sampler3D(ElementSampler):
@@ -71,16 +71,16 @@ cdef class P1Sampler3D(ElementSampler):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
-    cdef int check_mesh_lines(self, double* mapped_coord) nogil
+    cdef int check_mesh_lines(self, double* mapped_coord) noexcept nogil
 
 
 # This typedef defines a function pointer that defines the system
@@ -99,7 +99,7 @@ cdef class P1Sampler3D(ElementSampler):
 ctypedef void (*func_type)(double* fx,
                            double* x,
                            double* vertices,
-                           double* phys_x) nogil
+                           double* phys_x) noexcept nogil
 
 # This typedef defines a function pointer that defines the Jacobian
 # matrix used by the NonlinearSolveSampler3D. Subclasses needed to
@@ -121,7 +121,7 @@ ctypedef void (*jac_type3D)(double* rcol,
                             double* tcol,
                             double* x,
                             double* vertices,
-                            double* phys_x) nogil
+                            double* phys_x) noexcept nogil
 
 
 # This typedef defines a function pointer that defines the Jacobian
@@ -142,7 +142,7 @@ ctypedef void (*jac_type2D)(double* rcol,
                             double* scol,
                             double* x,
                             double* vertices,
-                            double* phys_x) nogil
+                            double* phys_x) noexcept nogil
 
 
 cdef class NonlinearSolveSampler3D(ElementSampler):
@@ -156,7 +156,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
 cdef class Q1Sampler3D(NonlinearSolveSampler3D):
@@ -164,16 +164,16 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
-    cdef int check_mesh_lines(self, double* mapped_coord) nogil
+    cdef int check_mesh_lines(self, double* mapped_coord) noexcept nogil
 
 
 cdef class W1Sampler3D(NonlinearSolveSampler3D):
@@ -181,16 +181,16 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
-    cdef int check_mesh_lines(self, double* mapped_coord) nogil
+    cdef int check_mesh_lines(self, double* mapped_coord) noexcept nogil
 
 
 
@@ -199,16 +199,16 @@ cdef class S2Sampler3D(NonlinearSolveSampler3D):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
-    cdef int check_mesh_lines(self, double* mapped_coord) nogil
+    cdef int check_mesh_lines(self, double* mapped_coord) noexcept nogil
 
 
 
@@ -223,7 +223,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
 cdef class Q1Sampler2D(NonlinearSolveSampler2D):
@@ -231,14 +231,14 @@ cdef class Q1Sampler2D(NonlinearSolveSampler2D):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
 
 cdef class Q2Sampler2D(NonlinearSolveSampler2D):
@@ -246,14 +246,14 @@ cdef class Q2Sampler2D(NonlinearSolveSampler2D):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
 
 cdef class T2Sampler2D(NonlinearSolveSampler2D):
@@ -261,25 +261,25 @@ cdef class T2Sampler2D(NonlinearSolveSampler2D):
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil
 
 cdef class Tet2Sampler3D(NonlinearSolveSampler3D):
 
     cdef void map_real_to_unit(self,
                                double* mapped_x,
                                double* vertices,
-                               double* physical_x) nogil
+                               double* physical_x) noexcept nogil
 
 
     cdef double sample_at_unit_point(self,
                                      double* coord,
-                                     double* vals) nogil
+                                     double* vals) noexcept nogil
 
-    cdef int check_inside(self, double* mapped_coord) nogil
+    cdef int check_inside(self, double* mapped_coord) noexcept nogil

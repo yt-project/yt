@@ -46,13 +46,13 @@ class ParticleTrajectories:
     ... ]
     >>> ds = load(my_fns[0])
     >>> init_sphere = ds.sphere(ds.domain_center, (0.5, "unitary"))
-    >>> indices = init_sphere[("all", "particle_index")].astype("int")
+    >>> indices = init_sphere["all", "particle_index"].astype("int64")
     >>> ts = DatasetSeries(my_fns)
     >>> trajs = ts.particle_trajectories(indices, fields=fields)
     >>> for t in trajs:
     ...     print(
-    ...         t[("all", "particle_velocity_x")].max(),
-    ...         t[("all", "particle_velocity_x")].min(),
+    ...         t["all", "particle_velocity_x"].max(),
+    ...         t["all", "particle_velocity_x"].min(),
     ...     )
     """
 
@@ -99,9 +99,9 @@ class ParticleTrajectories:
         ):
             dd = ds.all_data()
             newtags = dd[fds["particle_index"]].d.astype("int64")
-            mask = np.in1d(newtags, indices, assume_unique=True)
+            mask = np.isin(newtags, indices, assume_unique=True)
             sort = np.argsort(newtags[mask])
-            array_indices = np.where(np.in1d(indices, newtags, assume_unique=True))[0]
+            array_indices = np.where(np.isin(indices, newtags, assume_unique=True))[0]
             self.array_indices.append(array_indices)
             self.masks.append(mask)
             self.sorts.append(sort)
@@ -138,7 +138,7 @@ class ParticleTrajectories:
                     raise YTIllDefinedParticleData(
                         "This dataset contains duplicate particle indices!"
                     ) from e
-            self.field_data[field] = array_like_field(
+            self.field_data[fds[field]] = array_like_field(
                 dd_first, output_field.copy(), fds[field]
             )
             self.particle_fields.append(field)
@@ -234,14 +234,14 @@ class ParticleTrajectories:
             fds[field] = dd_first._determine_fields(field)[0]
             if field not in self.particle_fields:
                 ftype = fds[field][0]
-                if ftype in self.data_series[0].particle_types:
+                if ftype in ds_first.particle_types:
                     self.particle_fields.append(field)
                     new_particle_fields.append(field)
 
         grid_fields = [
             field for field in missing_fields if field not in self.particle_fields
         ]
-        step = int(0)
+        step = 0
         fields_str = ", ".join(str(f) for f in missing_fields)
         pbar = get_pbar(
             f"Generating [{fields_str}] fields in trajectories",
@@ -284,8 +284,8 @@ class ParticleTrajectories:
                             pfield[field],
                             self.num_indices,
                             cube[fds[field]],
-                            np.array(grid.LeftEdge).astype(np.float64),
-                            np.array(grid.ActiveDimensions).astype(np.int32),
+                            np.array(grid.LeftEdge, dtype="float64"),
+                            np.array(grid.ActiveDimensions, dtype="int32"),
                             grid.dds[0],
                         )
             sto.result_id = ds.parameter_filename
@@ -327,20 +327,20 @@ class ParticleTrajectories:
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> traj = trajs.trajectory_from_index(indices[0])
         >>> plt.plot(
-        ...     traj[("all", "particle_time")],
-        ...     traj[("all", "particle_position_x")],
+        ...     traj["all", "particle_time"],
+        ...     traj["all", "particle_position_x"],
         ...     "-x",
         ... )
         >>> plt.savefig("orbit")
         """
-        mask = np.in1d(self.indices, (index,), assume_unique=True)
+        mask = np.isin(self.indices, (index,), assume_unique=True)
         if not np.any(mask):
             print("The particle index %d is not in the list!" % (index))
             raise IndexError
         fields = sorted(self.field_data.keys())
         traj = {}
-        traj["particle_time"] = self.times
-        traj["particle_index"] = index
+        traj[self.ptype, "particle_time"] = self.times
+        traj[self.ptype, "particle_index"] = index
         for field in fields:
             traj[field] = self[field][mask, :][0]
         return traj

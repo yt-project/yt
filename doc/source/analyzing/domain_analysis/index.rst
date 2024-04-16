@@ -24,7 +24,7 @@ These modules exist within yt itself.
 
    cosmology_calculator
    clump_finding
-   xray_emission_fields
+   XrayEmissionFields
    xray_data_README
 
 External Analysis Modules

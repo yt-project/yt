@@ -40,19 +40,19 @@ cdef extern from "cosmology.h":
     void cosmology_set_h(CosmologyParameters *c, double value)
     void cosmology_set_DeltaDC(CosmologyParameters *c, double value)
 
-    double abox_from_auni(CosmologyParameters *c, double a) nogil
-    double tcode_from_auni(CosmologyParameters *c, double a) nogil
-    double tphys_from_auni(CosmologyParameters *c, double a) nogil
+    double abox_from_auni(CosmologyParameters *c, double a) noexcept nogil
+    double tcode_from_auni(CosmologyParameters *c, double a) noexcept nogil
+    double tphys_from_auni(CosmologyParameters *c, double a) noexcept nogil
 
-    double auni_from_abox(CosmologyParameters *c, double v) nogil
-    double auni_from_tcode(CosmologyParameters *c, double v) nogil
-    double auni_from_tphys(CosmologyParameters *c, double v) nogil
+    double auni_from_abox(CosmologyParameters *c, double v) noexcept nogil
+    double auni_from_tcode(CosmologyParameters *c, double v) noexcept nogil
+    double auni_from_tphys(CosmologyParameters *c, double v) noexcept nogil
 
-    double abox_from_tcode(CosmologyParameters *c, double tcode) nogil
-    double tcode_from_abox(CosmologyParameters *c, double abox) nogil
+    double abox_from_tcode(CosmologyParameters *c, double tcode) noexcept nogil
+    double tcode_from_abox(CosmologyParameters *c, double abox) noexcept nogil
 
-    double tphys_from_abox(CosmologyParameters *c, double abox) nogil
-    double tphys_from_tcode(CosmologyParameters *c, double tcode) nogil
+    double tphys_from_abox(CosmologyParameters *c, double abox) noexcept nogil
+    double tphys_from_tcode(CosmologyParameters *c, double tcode) noexcept nogil
 
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
@@ -152,8 +152,8 @@ cdef extern from "artio.h":
 
 
 cdef extern from "artio_internal.h":
-    np.int64_t artio_sfc_index( artio_fileset_handle *handle, int coords[3] ) nogil
-    void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) nogil
+    np.int64_t artio_sfc_index( artio_fileset_handle *handle, int coords[3] ) noexcept nogil
+    void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) noexcept nogil
 
 cdef void check_artio_status(int status, char *fname="[unknown]"):
     if status != ARTIO_SUCCESS:
@@ -464,20 +464,20 @@ cdef class artio_fileset :
             if self.parameters["num_primary_variables"][species] > 0 and \
                     field in self.parameters["species_%02u_primary_variable_labels"%(species,)] :
                 selected_primary[species].append((self.parameters["species_%02u_primary_variable_labels"%(species,)].index(field),(species,field)))
-                data[(species,field)] = np.empty(0,dtype="float64")
+                data[species,field] = np.empty(0,dtype="float64")
             elif self.parameters["num_secondary_variables"][species] > 0 and \
                     field in self.parameters["species_%02u_secondary_variable_labels"%(species,)] :
                 selected_secondary[species].append((self.parameters["species_%02u_secondary_variable_labels"%(species,)].index(field),(species,field)))
-                data[(species,field)] = np.empty(0,dtype="float64")
+                data[species,field] = np.empty(0,dtype="float64")
             elif field == "MASS" :
                 selected_mass[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="float64")
+                data[species,field] = np.empty(0,dtype="float64")
             elif field == "PID" :
                 selected_pid[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="int64")
+                data[species,field] = np.empty(0,dtype="int64")
             elif field == "SPECIES" :
                 selected_species[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="int8")
+                data[species,field] = np.empty(0,dtype="int8")
             else :
                 raise RuntimeError("invalid field name provided to read_particle_chunk")
 
@@ -1154,32 +1154,32 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         vp = &vpoints[species]
         if field == "PID":
             vp.n_pid = 1
-            data[(species, field)] = np.zeros(tp, dtype="int64")
-            npi64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="int64")
+            npi64arr = data[species, field]
             vp.pid = <np.int64_t*> npi64arr.data
         elif field == "SPECIES":
             vp.n_species = 1
-            data[(species, field)] = np.zeros(tp, dtype="int8")
-            npi8arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="int8")
+            npi8arr = data[species, field]
             # We fill this *now*
             npi8arr += species
             vp.species = <np.int8_t*> npi8arr.data
         elif npri_vars[species] > 0 and field in pri_vars :
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="float64")
+            npf64arr = data[species, field]
             vp.p_ind[vp.n_p] = pri_vars.index(field)
             vp.pvars[vp.n_p] = <np.float64_t *> npf64arr.data
             vp.n_p += 1
         elif nsec_vars[species] > 0 and field in sec_vars :
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="float64")
+            npf64arr = data[species, field]
             vp.s_ind[vp.n_s] = sec_vars.index(field)
             vp.svars[vp.n_s] = <np.float64_t *> npf64arr.data
             vp.n_s += 1
         elif field == "MASS":
             vp.n_mass = 1
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="float64")
+            npf64arr = data[species, field]
             # We fill this *now*
             npf64arr += params["particle_species_mass"][species]
             vp.mass = <np.float64_t*> npf64arr.data
@@ -1294,7 +1294,7 @@ cdef class ARTIORootMeshContainer:
         free(self.sfc_mask)
 
     @cython.cdivision(True)
-    cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
+    cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) noexcept nogil:
         # Calculate the index
         cdef int coords[3]
         cdef int i
@@ -1305,7 +1305,7 @@ cdef class ARTIORootMeshContainer:
         return sfc
 
     @cython.cdivision(True)
-    cdef void sfc_to_pos(self, np.int64_t sfc, np.float64_t pos[3]) nogil:
+    cdef void sfc_to_pos(self, np.int64_t sfc, np.float64_t pos[3]) noexcept nogil:
         cdef int coords[3]
         cdef int i
         artio_sfc_coords(self.handle, sfc, coords)

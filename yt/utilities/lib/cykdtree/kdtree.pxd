@@ -78,10 +78,10 @@ cdef extern from "c_kdtree.hpp":
                bool use_sliding_midpoint)
         KDTree(istream &ist)
         void serialize(ostream &os)
-        double* wrap_pos(double* pos) nogil
-        vector[uint32_t] get_neighbor_ids(double* pos) nogil
-        Node* search(double* pos) nogil
-        Node* search(double* pos, bool dont_wrap) nogil
+        double* wrap_pos(double* pos) noexcept nogil
+        vector[uint32_t] get_neighbor_ids(double* pos) noexcept nogil
+        Node* search(double* pos) noexcept nogil
+        Node* search(double* pos, bool dont_wrap) noexcept nogil
         void consolidate_edges(double *leaves_le, double *leaves_re)
 
 

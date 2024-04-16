@@ -33,12 +33,12 @@ git:
    git clone https://github.com/yt-project/yt
 
 Now start the IPython notebook from within the repository (we presume you have
-yt and [jupyter](https://jupyter.org/) installed):
+yt and [jupyterlab](https://jupyterlab.readthedocs.io/en/latest/) installed):
 
 .. code-block:: bash
 
    cd yt/doc/source/quickstart
-   yt notebook
+   jupyter lab
 
 This command will give you information about the notebook server and how to
 access it.  You will basically just pick a password (for security reasons) and then
@@ -55,17 +55,17 @@ Here are the notebooks, which have been filled in for inspection:
 .. toctree::
    :maxdepth: 1
 
-   introduction
-   data_inspection
-   simple_visualization
-   data_objects_and_time_series
-   derived_fields_and_profiles
-   volume_rendering
+   1)_Introduction
+   2)_Data_Inspection
+   3)_Simple_Visualization
+   4)_Data_Objects_and_Time_Series
+   5)_Derived_Fields_and_Profiles
+   6)_Volume_Rendering
 
 .. note::
 
    The notebooks use sample datasets that are available for download at
-   https://yt-project.org/data.  See :ref:`quickstart-introduction` for more
+   https://yt-project.org/data.  See :doc:`1)_Introduction` for more
    details.
 
 Let us know if you would like to contribute other example notebooks, or have

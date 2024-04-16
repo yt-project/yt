@@ -2,7 +2,6 @@ import glob
 import os
 import struct
 import weakref
-from typing import Type
 
 import numpy as np
 
@@ -133,7 +132,7 @@ class ARTIndex(OctreeIndex):
 
 
 class ARTDataset(Dataset):
-    _index_class: Type[Index] = ARTIndex
+    _index_class: type[Index] = ARTIndex
     _field_info_class = ARTFieldInfo
 
     def __init__(
@@ -373,7 +372,7 @@ class ARTDataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
@@ -666,7 +665,7 @@ class DarkMatterARTDataset(ARTDataset):
         pass
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
@@ -728,6 +727,10 @@ class DarkMatterARTDataset(ARTDataset):
 
 
 class ARTDomainSubset(OctreeSubset):
+    @property
+    def oct_handler(self):
+        return self.domain.oct_handler
+
     def fill(self, content, ftfields, selector):
         """
         This is called from IOHandler. It takes content
@@ -799,7 +802,11 @@ class ARTDomainFile:
         self._level_count = None
         self._level_oct_offsets = None
         self._level_child_offsets = None
-        self.oct_handler = oct_handler
+        self._oct_handler = oct_handler
+
+    @property
+    def oct_handler(self):
+        return self._oct_handler
 
     @property
     def level_count(self):

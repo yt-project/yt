@@ -36,7 +36,7 @@ def scale_image(image, mi=None, ma=None):
         mi = image.min()
     if ma is None:
         ma = image.max()
-    image = (np.clip((image - mi) / (ma - mi) * 255, 0, 255)).astype("uint8")
+    image = np.clip((image - mi) / (ma - mi) * 255, 0, 255).astype("uint8")
     return image
 
 
@@ -83,8 +83,8 @@ def multi_image_composite(
     Examples
     --------
 
-        >>> red_channel = np.log10(frb[("gas", "temperature")])
-        >>> blue_channel = np.log10(frb[("gas", "density")])
+        >>> red_channel = np.log10(frb["gas", "temperature"])
+        >>> blue_channel = np.log10(frb["gas", "density"])
         >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
     """
@@ -149,6 +149,9 @@ def write_bitmap(bitmap_array, filename, max_val=None, transpose=False):
             alpha_channel.shape = s1, s2, 1
         if max_val is None:
             max_val = bitmap_array[:, :, :3].max()
+            if max_val == 0.0:
+                # avoid dividing by zero for blank images
+                max_val = 1.0
         bitmap_array = np.clip(bitmap_array[:, :, :3] / max_val, 0.0, 1.0) * 255
         bitmap_array = np.concatenate(
             [bitmap_array.astype("uint8"), alpha_channel], axis=-1
@@ -195,7 +198,7 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
 
     >>> sl = ds.slice(0, 0.5, "Density")
     >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
-    >>> write_image(frb1[("gas", "density")], "saved.png")
+    >>> write_image(frb1["gas", "density"], "saved.png")
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")

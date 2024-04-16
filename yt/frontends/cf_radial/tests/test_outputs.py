@@ -4,6 +4,7 @@ CF-Radial frontend tests
 
 
 """
+
 import os
 import shutil
 import tempfile
@@ -146,7 +147,7 @@ def test_grid_parameters():
         expected_width.append(maxval - minval)
     expected_width = np.array(expected_width)
 
-    actual_width = ds.domain_width.to("m").value
+    actual_width = ds.domain_width.to_value("m")
     assert all(expected_width == actual_width)
     assert all(ds.domain_dimensions == cfkwargs["grid_shape"])
 

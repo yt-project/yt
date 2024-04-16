@@ -49,11 +49,11 @@ class AthenaDistributedConverter(Converter):
             grid["domain"] = int(splitup[8].rstrip(","))
             self.current_time = grid["time"]
         elif "DIMENSIONS" in splitup:
-            grid["dimensions"] = np.array(splitup[-3:]).astype("int")
+            grid["dimensions"] = np.array(splitup[-3:], dtype="int64")
         elif "ORIGIN" in splitup:
-            grid["left_edge"] = np.array(splitup[-3:]).astype("float64")
+            grid["left_edge"] = np.array(splitup[-3:], dtype="float64")
         elif "SPACING" in splitup:
-            grid["dds"] = np.array(splitup[-3:]).astype("float64")
+            grid["dds"] = np.array(splitup[-3:], dtype="float64")
         elif "CELL_DATA" in splitup:
             grid["ncells"] = int(splitup[-1])
         elif "SCALARS" in splitup:
@@ -224,7 +224,7 @@ class AthenaDistributedConverter(Converter):
                 splitup = line.strip().split()
 
                 if "DIMENSIONS" in splitup:
-                    grid_dims = np.array(splitup[-3:]).astype("int")
+                    grid_dims = np.array(splitup[-3:], dtype="int64")
                     line = f.readline()
                     continue
                 elif "CELL_DATA" in splitup:
@@ -330,11 +330,11 @@ class AthenaConverter(Converter):
         elif "Really" in splitup:
             grid["time"] = splitup[-1]
         elif "DIMENSIONS" in splitup:
-            grid["dimensions"] = np.array(splitup[-3:]).astype("int")
+            grid["dimensions"] = np.array(splitup[-3:], dtype="int64")
         elif "ORIGIN" in splitup:
-            grid["left_edge"] = np.array(splitup[-3:]).astype("float64")
+            grid["left_edge"] = np.array(splitup[-3:], dtype="float64")
         elif "SPACING" in splitup:
-            grid["dds"] = np.array(splitup[-3:]).astype("float64")
+            grid["dds"] = np.array(splitup[-3:], dtype="float64")
         elif "CELL_DATA" in splitup:
             grid["ncells"] = int(splitup[-1])
         elif "SCALARS" in splitup:
@@ -429,18 +429,18 @@ class AthenaConverter(Converter):
         # grid_dimensions
         f.create_dataset("grid_dimensions", data=gdims)
 
-        levels = np.array([0]).astype("int64")  # unigrid example
+        levels = np.array([0], dtype="int64")  # unigrid example
         # grid_level
         f.create_dataset("grid_level", data=levels)
 
         ## ----------QUESTIONABLE NEXT LINE--------- ##
         # This data needs two dimensions for now.
-        n_particles = np.array([[0]]).astype("int64")
+        n_particles = np.array([[0]], dtype="int64")
         # grid_particle_count
         f.create_dataset("grid_particle_count", data=n_particles)
 
         # Assume -1 means no parent.
-        parent_ids = np.array([-1]).astype("int64")
+        parent_ids = np.array([-1], dtype="int64")
         # grid_parent_id
         f.create_dataset("grid_parent_id", data=parent_ids)
 

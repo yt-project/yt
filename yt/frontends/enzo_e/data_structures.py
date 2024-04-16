@@ -1,6 +1,5 @@
 import os
 from functools import cached_property
-from typing import Tuple
 
 import numpy as np
 
@@ -285,11 +284,12 @@ class EnzoEDataset(Dataset):
     Enzo-E-specific output, set at a fixed time.
     """
 
+    _load_requirements = ["h5py", "libconf"]
     refine_by = 2
     _index_class = EnzoEHierarchy
     _field_info_class = EnzoEFieldInfo
     _suffix = ".block_list"
-    particle_types: Tuple[str, ...] = ()
+    particle_types: tuple[str, ...] = ()
     particle_types_raw = None
 
     def __init__(
@@ -498,10 +498,14 @@ class EnzoEDataset(Dataset):
         return self.basename[: -len(self._suffix)]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         ddir = os.path.dirname(filename)
         if not filename.endswith(cls._suffix):
             return False
+
+        if cls._missing_load_requirements():
+            return False
+
         try:
             with open(filename) as f:
                 block, block_file = f.readline().strip().split()

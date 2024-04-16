@@ -15,7 +15,7 @@ import numpy as np
 cimport cython
 
 
-cdef int Neighbor_compare(void *on1, void *on2) nogil:
+cdef int Neighbor_compare(void *on1, void *on2) noexcept nogil:
     cdef NeighborList *n1
     cdef NeighborList *n2
     n1 = <NeighborList *> on1
