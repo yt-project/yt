@@ -74,7 +74,7 @@ def get_intersecting_cpus(
     dx: float = 1.0,
     dx_cond: Optional[float] = None,
     factor: float = 4.0,
-    bound_keys: "np.ndarray[Any, np.dtype[np.float64]]" = None,
+    bound_keys: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
 ) -> set[int]:
     """
     Find the subset of CPUs that intersect the bbox in a recursive fashion.
