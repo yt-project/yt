@@ -64,7 +64,7 @@ def hilbert3d(
     # A note here: there is a freedom in the way hilbert indices are
     # being computed (should it be xyz or yzx or zxy etc.)
     # and the yt convention is not the same as the RAMSES one.
-    return get_hilbert_indices(bit_length, ijk[:, [1, 2, 0]])
+    return get_hilbert_indices(bit_length, ijk[:, [1, 2, 0]].astype(np.int64))
 
 
 def get_intersecting_cpus(
