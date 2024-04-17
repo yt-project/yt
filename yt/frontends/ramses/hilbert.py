@@ -164,7 +164,7 @@ def get_cpu_list_cuboid(
     if bit_length > 0:
         ndom = 8
 
-    ijkdom = idom, jdom, kdom = np.empty((3, 8), dtype="int64")
+    ijkdom = idom, jdom, kdom = np.empty((3, 8), dtype=np.int64)
 
     idom[0], idom[1] = imin, imax
     idom[2], idom[3] = imin, imax
