@@ -49,22 +49,22 @@ _STATE_DIAGRAM = np.array(
 
 
 def hilbert3d(
-    X: "np.ndarray[Any, np.dtype[np.float64]]", bit_length: int
+    ijk: "np.ndarray[Any, np.dtype[np.int64]]", bit_length: int
 ) -> "np.ndarray[Any, np.dtype[np.float64]]":
     """Compute the order using Hilbert indexing.
 
     Arguments
     ---------
-    X : (N, ndim) float array
+    ijk : (N, ndim) integer array
       The positions
     bit_length : integer
       The bit_length for the indexing.
     """
-    X = np.atleast_2d(X)
+    ijk = np.atleast_2d(ijk)
     # A note here: there is a freedom in the way hilbert indices are
     # being computed (should it be xyz or yzx or zxy etc.)
     # and the yt convention is not the same as the RAMSES one.
-    return get_hilbert_indices(bit_length, X[:, [1, 2, 0]])
+    return get_hilbert_indices(bit_length, ijk[:, [1, 2, 0]])
 
 
 def get_intersecting_cpus(
