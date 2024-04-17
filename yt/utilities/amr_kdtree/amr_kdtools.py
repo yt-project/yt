@@ -10,31 +10,31 @@ def receive_and_reduce(comm, incoming_rank, image, add_to_front, *, use_opacity=
         (image.shape[0], image.shape[1], image.shape[2])
     )
 
-    if use_opacity:
-        if add_to_front:
-            front = arr2
-            back = image
-        else:
-            front = image
-            back = arr2
-
-        if image.shape[2] == 3:
-            # Assume Projection Camera, Add
-            np.add(image, front, image)
-            return image
-
-        ta = 1.0 - front[:, :, 3]
-        np.maximum(ta, 0.0, ta)
-        # This now does the following calculation, but in a memory
-        # conservative fashion
-        # image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]
-        image = back.copy()
-        for i in range(4):
-            np.multiply(image[:, :, i], ta, image[:, :, i])
-        np.add(image, front, image)
-
-    else:
+    if not use_opacity:
         np.add(image, arr2, image)
+        return image
+
+    if add_to_front:
+        front = arr2
+        back = image
+    else:
+        front = image
+        back = arr2
+
+    if image.shape[2] == 3:
+        # Assume Projection Camera, Add
+        np.add(image, front, image)
+        return image
+
+    ta = 1.0 - front[:, :, 3]
+    np.maximum(ta, 0.0, ta)
+    # This now does the following calculation, but in a memory
+    # conservative fashion
+    # image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]
+    image = back.copy()
+    for i in range(4):
+        np.multiply(image[:, :, i], ta, image[:, :, i])
+    np.add(image, front, image)
 
     return image
 
