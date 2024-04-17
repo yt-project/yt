@@ -3,7 +3,7 @@ import numpy as np
 from yt.funcs import mylog
 
 
-def receive_and_reduce(comm, incoming_rank, image, add_to_front, use_opacity):
+def receive_and_reduce(comm, incoming_rank, image, add_to_front, *, use_opacity=True):
     mylog.debug("Receiving image from %04i", incoming_rank)
     # mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
     arr2 = comm.recv_array(incoming_rank, incoming_rank).reshape(
