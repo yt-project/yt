@@ -49,8 +49,8 @@ BACKEND_SPECS = {
     "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
     "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
     "MacOSX": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
-    "Qt4Agg": ["backend_qt4agg", "FigureCanvasQTAgg", None],
     "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
+    "QtAgg": ["backend_qtagg", "FigureCanvasQTAgg", None],
     "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg", None],
     "WX": ["backend_wx", "FigureCanvasWx", None],
     "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg", None],
@@ -157,8 +157,9 @@ class PlotMPL:
 
         try:
             module, fig_canvas, fig_manager = BACKEND_SPECS[key]
-        except KeyError:
-            return
+        except KeyError as err:
+            msg = f"{key} is not in list of valid backends: {list(BACKEND_SPECS)}."
+            raise KeyError(msg) from err
 
         mod = __import__(
             "matplotlib.backends",
