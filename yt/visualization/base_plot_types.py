@@ -155,11 +155,7 @@ class PlotMPL:
         else:
             key = "agg"
 
-        try:
-            module, fig_canvas, fig_manager = BACKEND_SPECS[key]
-        except KeyError as err:
-            msg = f"{key} is not in list of valid backends: {list(BACKEND_SPECS)}."
-            raise KeyError(msg) from err
+        module, fig_canvas, fig_manager = BACKEND_SPECS[key]
 
         mod = __import__(
             "matplotlib.backends",
