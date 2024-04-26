@@ -54,9 +54,14 @@ cdef class bitarray:
             if size != arr.size:
                 raise RuntimeError
         self.buf_size = (size >> 3)
+        cdef np.uint8_t bitmask = 255
         if (size & 7) != 0:
             # We need an extra one if we've got any lingering bits
             self.buf_size += 1
+            bitmask = 0
+            for i in range(size & 7):
+                bitmask |= (1<<i)
+        self.final_bitmask = bitmask
         cdef np.ndarray[np.uint8_t] ibuf_t
         ibuf_t = self.ibuf = np.zeros(self.buf_size, "uint8")
         self.buf = <np.uint8_t *> ibuf_t.data
@@ -163,3 +168,128 @@ cdef class bitarray:
 
         """
         return ba_get_value(self.buf, ind)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void _set_range(self, np.uint64_t start, np.uint64_t stop, np.uint8_t val):
+        ba_set_range(self.buf, start, stop, val)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def set_range(self, np.uint64_t start, np.uint64_t stop, np.uint8_t val):
+        r"""Set a range of values to on/off.  Uses slice-style indexing.
+
+        No return value.
+
+        Parameters
+        ----------
+        start : int
+            The starting component of a slice.
+        stop : int
+            The ending component of a slice.
+        val : bool or uint8_t
+            What to set the range to
+
+        Examples
+        --------
+
+        >>> arr_in = np.array([True, True, False, True, True, False])
+        >>> a = ba.bitarray(arr = arr_in)
+        >>> a.set_range(0, 3, 0)
+
+        """
+        ba_set_range(self.buf, start, stop, val)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef np.uint64_t _count(self):
+        cdef np.uint64_t count = 0
+        cdef np.uint64_t i
+        self.buf[self.buf_size - 1] &= self.final_bitmask
+        for i in range(self.buf_size):
+            count += _num_set_bits(self.buf[i])
+        return count
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count(self):
+        r"""Count the number of values set in the array.
+
+        Parameters
+        ----------
+
+        Examples
+        --------
+
+        >>> arr_in = np.array([True, True, False, True, True, False])
+        >>> a = ba.bitarray(arr = arr_in)
+        >>> a.count()
+
+        """
+        return self._count()
+
+    cdef bitarray _logical_and(self, bitarray other, bitarray result = None):
+        # Create a place to put it.  Note that we might have trailing values,
+        # we actually need to reset the ending set.
+        if other.size != self.size:
+            raise IndexError
+        if result is None:
+            result = bitarray(self.size)
+        for i in range(self.buf_size):
+            result.buf[i] = other.buf[i] & self.buf[i]
+        result.buf[self.buf_size - 1] &= self.final_bitmask
+        return result
+
+    def logical_and(self, bitarray other, bitarray result = None):
+        return self._logical_and(other, result)
+
+    def __and__(self, bitarray other):
+        # Wrap it directly here.
+        return self.logical_and(other)
+
+    def __iand__(self, bitarray other):
+        rv = self.logical_and(other, self)
+        return rv
+
+    cdef bitarray _logical_or(self, bitarray other, bitarray result = None):
+        if other.size != self.size:
+            raise IndexError
+        if result is None:
+            result = bitarray(self.size)
+        for i in range(self.buf_size):
+            result.buf[i] = other.buf[i] | self.buf[i]
+        result.buf[self.buf_size - 1] &= self.final_bitmask
+        return result
+
+    def logical_or(self, bitarray other, bitarray result = None):
+        return self._logical_or(other, result)
+
+    def __or__(self, bitarray other):
+        return self.logical_or(other)
+
+    def __ior__(self, bitarray other):
+        return self.logical_or(other, self)
+
+    cdef bitarray _logical_xor(self, bitarray other, bitarray result = None):
+        if other.size != self.size:
+            raise IndexError
+        if result is None:
+            result = bitarray(self.size)
+        for i in range(self.buf_size):
+            result.buf[i] = other.buf[i] ^ self.buf[i]
+        result.buf[self.buf_size - 1] &= self.final_bitmask
+        return result
+
+    def logical_xor(self, bitarray other, bitarray result = None):
+        return self._logical_xor(other, result)
+
+    def __xor__(self, bitarray other):
+        return self.logical_xor(other)
+
+    def __ixor__(self, bitarray other):
+        return self.logical_xor(other, self)
