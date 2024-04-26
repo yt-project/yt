@@ -128,8 +128,8 @@ def strong_scaling(
         perstr = "_periodic"
     if suppress_final_output:
         outstr = "_noout"
-    fname_plot = "plot_strong_scaling_nproc_{}part{}_{}leafsize{}.png".format(
-        npart, perstr, leafsize, outstr
+    fname_plot = (
+        f"plot_strong_scaling_nproc_{npart}part{perstr}_{leafsize}leafsize{outstr}.png"
     )
     nproc_list = [1, 2, 4, 8]  # , 16]
     ndim_list = [2, 3, 4]
@@ -201,8 +201,8 @@ def weak_scaling(
         perstr = "_periodic"
     if suppress_final_output:
         outstr = "_noout"
-    fname_plot = "plot_weak_scaling_nproc_{}part{}_{}leafsize{}.png".format(
-        npart, perstr, leafsize, outstr
+    fname_plot = (
+        f"plot_weak_scaling_nproc_{npart}part{perstr}_{leafsize}leafsize{outstr}.png"
     )
     nproc_list = [1, 2, 4, 8, 16]
     ndim_list = [2, 3]

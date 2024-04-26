@@ -6,8 +6,8 @@ requires = [
   # for the upper pin in Cython
   # see https://github.com/yt-project/yt/issues/4044
   "Cython>=3.0.3, <3.1",
-  "numpy>=1.25, <2.0",
-  "ewah-bool-utils>=1.0.2",
+  "numpy>=2.0.0rc1",
+  "ewah-bool-utils>=1.2.0",
 ]
 build-backend = "setuptools.build_meta:__legacy__"
 
@@ -44,11 +44,11 @@ keywords = [
 requires-python = ">=3.9.2"
 dependencies = [
     "cmyt>=1.1.2",
-    "ewah-bool-utils>=1.0.2",
+    "ewah-bool-utils>=1.2.0",
     "ipywidgets>=8.0.0",
     "matplotlib>=3.5",
     "more-itertools>=8.4",
-    "numpy>=1.19.3", # keep minimal requirement in sync with NPY_TARGET_VERSION
+    "numpy>=1.19.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
     "packaging>=20.9",
     "pillow>=8.0.0",
     "tomli-w>=0.4.0",
@@ -113,6 +113,7 @@ gdf = ["yt[HDF5]"]
 gizmo = ["yt[HDF5]"]
 halo-catalog = ["yt[HDF5]"]
 http-stream = ["requests>=2.20.0"]
+idefix = ["yt_idefix[HDF5]>=2.3.0"] # externally packaged frontend
 moab = ["yt[HDF5]"]
 nc4-cm1 = ["yt[netCDF4]"]
 open-pmd = ["yt[HDF5]"]
@@ -169,6 +170,7 @@ full = [
     "yt[gizmo]",
     "yt[halo_catalog]",
     "yt[http_stream]",
+    "yt[idefix]",
     "yt[moab]",
     "yt[nc4_cm1]",
     "yt[open_pmd]",
@@ -191,7 +193,7 @@ doc = [
     "jupyter-client>=8.3.1",
     "nbsphinx>=0.9.3",
     "nose~=1.3.7; python_version < '3.10'",
-    "pytest>=6.1, <8.0",
+    "pytest>=6.1",
     "pyx>=0.15",
     "sphinx>=7.2.5",
     "sphinx-bootstrap-theme>=0.8.1",
@@ -202,7 +204,7 @@ mapserver = [
 ]
 minimal = [
     "cmyt==1.1.2",
-    "ewah-bool-utils==1.0.2",
+    "ewah-bool-utils==1.2.0",
     "ipywidgets==8.0.0",
     "matplotlib==3.5",
     "more-itertools==8.4",
@@ -217,7 +219,7 @@ minimal = [
 ]
 test = [
     "pyaml>=17.10.0",
-    "pytest>=6.1, <8.0",
+    "pytest>=6.1",
     "pytest-mpl>=0.16.1",
     "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
     "nose~=1.3.7; python_version < '3.10'",

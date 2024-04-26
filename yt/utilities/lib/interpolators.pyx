@@ -19,7 +19,7 @@ from yt.utilities.lib.fp_utils cimport iclip
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def UnilinearlyInterpolate(np.ndarray[np.float64_t, ndim=1] table,
+cpdef void UnilinearlyInterpolate(np.ndarray[np.float64_t, ndim=1] table,
                            np.ndarray[np.float64_t, ndim=1] x_vals,
                            np.ndarray[np.float64_t, ndim=1] x_bins,
                            np.ndarray[np.int32_t, ndim=1] x_is,
@@ -38,7 +38,7 @@ def UnilinearlyInterpolate(np.ndarray[np.float64_t, ndim=1] table,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def BilinearlyInterpolate(np.ndarray[np.float64_t, ndim=2] table,
+cpdef void BilinearlyInterpolate(np.ndarray[np.float64_t, ndim=2] table,
                           np.ndarray[np.float64_t, ndim=1] x_vals,
                           np.ndarray[np.float64_t, ndim=1] y_vals,
                           np.ndarray[np.float64_t, ndim=1] x_bins,
@@ -69,7 +69,7 @@ def BilinearlyInterpolate(np.ndarray[np.float64_t, ndim=2] table,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
+cpdef void TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
                            np.ndarray[np.float64_t, ndim=1] x_vals,
                            np.ndarray[np.float64_t, ndim=1] y_vals,
                            np.ndarray[np.float64_t, ndim=1] z_vals,
@@ -113,7 +113,7 @@ def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def QuadrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=4] table,
+cpdef void QuadrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=4] table,
                               np.ndarray[np.float64_t, ndim=1] x_vals,
                               np.ndarray[np.float64_t, ndim=1] y_vals,
                               np.ndarray[np.float64_t, ndim=1] z_vals,
@@ -174,7 +174,7 @@ def QuadrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=4] table,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ghost_zone_interpolate(int rf,
+cpdef void ghost_zone_interpolate(int rf,
                            np.ndarray[np.float64_t, ndim=3] input_field,
                            np.ndarray[np.float64_t, ndim=1] input_left,
                            np.ndarray[np.float64_t, ndim=3] output_field,

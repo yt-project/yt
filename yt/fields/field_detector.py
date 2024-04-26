@@ -81,17 +81,18 @@ class FieldDetector(defaultdict):
         self.index = fake_index()
         self.requested = []
         self.requested_parameters = []
+        rng = np.random.default_rng()
         if not self.flat:
             defaultdict.__init__(
                 self,
                 lambda: np.ones((nd, nd, nd), dtype="float64")
-                + 1e-4 * np.random.random((nd, nd, nd)),
+                + 1e-4 * rng.random((nd, nd, nd)),
             )
         else:
             defaultdict.__init__(
                 self,
                 lambda: np.ones((nd * nd * nd), dtype="float64")
-                + 1e-4 * np.random.random(nd * nd * nd),
+                + 1e-4 * rng.random(nd * nd * nd),
             )
 
     def _reshape_vals(self, arr):
@@ -194,7 +195,8 @@ class FieldDetector(defaultdict):
         if kwargs["method"] == "mesh_id":
             if isinstance(self.ds, (StreamParticlesDataset, ParticleDataset)):
                 raise ValueError
-        return np.random.random((self.nd, self.nd, self.nd))
+        rng = np.random.default_rng()
+        return rng.random((self.nd, self.nd, self.nd))
 
     def mesh_sampling_particle_field(self, *args, **kwargs):
         pos = args[0]
@@ -203,7 +205,8 @@ class FieldDetector(defaultdict):
         return rng.random(npart)
 
     def smooth(self, *args, **kwargs):
-        tr = np.random.random((self.nd, self.nd, self.nd))
+        rng = np.random.default_rng()
+        tr = rng.random((self.nd, self.nd, self.nd))
         if kwargs["method"] == "volume_weighted":
             return [tr]
 
@@ -236,7 +239,8 @@ class FieldDetector(defaultdict):
                     unit = "G"
             else:
                 unit = fp_units[param]
-            return self.ds.arr(np.random.random(3) * 1e-2, unit)
+            rng = np.random.default_rng()
+            return self.ds.arr(rng.random(3) * 1e-2, unit)
         elif param in ["surface_height"]:
             return self.ds.quan(0.0, "code_length")
         elif param in ["axis"]:
@@ -280,7 +284,8 @@ class FieldDetector(defaultdict):
 
     @property
     def fcoords_vertex(self):
-        fc = np.random.random((self.nd, self.nd, self.nd, 8, 3))
+        rng = np.random.default_rng()
+        fc = rng.random((self.nd, self.nd, self.nd, 8, 3))
         if self.flat:
             fc.shape = (self.nd * self.nd * self.nd, 8, 3)
         return self.ds.arr(fc, units="code_length")

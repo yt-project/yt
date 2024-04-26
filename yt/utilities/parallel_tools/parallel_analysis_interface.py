@@ -100,7 +100,9 @@ def enable_parallelism(suppress_logging: bool = False, communicator=None) -> boo
 
     # if no communicator specified, set to COMM_WORLD
     if communicator is None:
-        communicator = MPI.COMM_WORLD
+        communicator = MPI.COMM_WORLD.Dup()
+    else:
+        communicator = communicator.Dup()
 
     parallel_capable = communicator.size > 1
     if not parallel_capable:

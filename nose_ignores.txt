@@ -1,6 +1,7 @@
 --ignore-file=test_add_field\.py
 --ignore-file=test_ambiguous_fields\.py
 --ignore-file=test_callable_grids\.py
+--ignore-file=test_callbacks_geographic\.py
 --ignore-file=test_commons\.py
 --ignore-file=test_cython_fortran_utils\.py
 --ignore-file=test_data_reload\.py
@@ -11,6 +12,7 @@
 --ignore-file=test_file_sanitizer\.py
 --ignore-file=test_firefly\.py
 --ignore-file=test_geometries\.py
+--ignore-file=test_geographic_coordinates\.py
 --ignore-file=test_glue\.py
 --ignore-file=test_image_comp_2D_plots\.py
 --ignore-file=test_image_comp_geo\.py
@@ -37,3 +39,7 @@
 --ignore-file=test_gadget_pytest\.py
 --ignore-file=test_vr_orientation\.py
 --ignore-file=test_particle_trajectories_pytest\.py
+--ignore-file=test_image_array\.py
+--ignore-file=test_alt_ray_tracers\.py
+--ignore-file=test_minimal_representation\.py
+--ignore-file=test_set_log_level\.py

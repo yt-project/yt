@@ -137,7 +137,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_angular_momentum_y", (ang_mom_units, [], None)),
         ("particle_angular_momentum_z", (ang_mom_units, [], None)),
         ("particle_formation_time", ("code_time", [], None)),
-        ("particle_accretion_Rate", ("code_mass/code_time", [], None)),
+        ("particle_accretion_rate", ("code_mass/code_time", [], None)),
         ("particle_delta_mass", ("code_mass", [], None)),
         ("particle_rho_gas", (rho_units, [], None)),
         ("particle_cs**2", (vel_units, [], None)),

@@ -8,13 +8,17 @@ from yt.testing import requires_file, requires_module
 
 G30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
+old_serialize = None
 
-def setup():
+
+def setup_module():
+    global old_serialize
+    old_serialize = ytcfg.get("yt", "serialize")
     ytcfg["yt", "serialize"] = True
 
 
-def teardown():
-    ytcfg["yt", "serialize"] = False
+def teardown_module():
+    ytcfg["yt", "serialize"] = old_serialize
 
 
 @requires_module("h5py")

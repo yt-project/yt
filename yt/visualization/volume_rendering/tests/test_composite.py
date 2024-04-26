@@ -15,7 +15,7 @@ from yt.visualization.volume_rendering.api import (
 )
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 

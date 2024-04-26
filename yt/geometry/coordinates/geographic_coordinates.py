@@ -125,7 +125,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 * data["index", "dlongitude"]
                 * np.pi
                 / 180.0
-                * np.sin((data["index", "latitude"] + 90.0) * np.pi / 180.0)
+                * np.sin((90 - data["index", "latitude"]) * np.pi / 180.0)
             )
 
         registry.add_field(
@@ -137,7 +137,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
-            return (data["index", "latitude"] + 90) * np.pi / 180.0
+            # theta = 0 at +90 deg, np.pi at -90
+            return (90.0 - data["index", "latitude"]) * np.pi / 180.0
 
         registry.add_field(
             ("index", "theta"),
@@ -158,7 +159,11 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
-            return (data["index", "longitude"] + 180) * np.pi / 180.0
+            lonvals = data[("index", "longitude")]
+            neglons = lonvals < 0.0
+            if np.any(neglons):
+                lonvals[neglons] = lonvals[neglons] + 360.0
+            return lonvals * np.pi / 180.0
 
         registry.add_field(
             ("index", "phi"), sampling_type="cell", function=_longitude_to_phi, units=""
@@ -318,8 +323,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
             lon = self.axis_id["longitude"]
             lat = self.axis_id["latitude"]
             r = factor * coord[:, rad] + offset
-            theta = coord[:, lon] * np.pi / 180
-            phi = coord[:, lat] * np.pi / 180
+            theta = (90.0 - coord[:, lat]) * np.pi / 180
+            phi = coord[:, lon] * np.pi / 180
             nc = np.zeros_like(coord)
             # r, theta, phi
             nc[:, lat] = np.cos(phi) * np.sin(theta) * r
@@ -327,7 +332,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             nc[:, rad] = np.cos(theta) * r
         else:
             a, b, c = coord
-            theta = b * np.pi / 180
+            theta = (90.0 - b) * np.pi / 180
             phi = a * np.pi / 180
             r = factor * c + offset
             nc = (

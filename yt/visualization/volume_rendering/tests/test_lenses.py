@@ -9,7 +9,7 @@ from yt.testing import fake_random_ds
 from yt.visualization.volume_rendering.api import Scene, create_volume_source
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 

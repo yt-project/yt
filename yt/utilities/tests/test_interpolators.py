@@ -6,10 +6,6 @@ from yt.testing import fake_random_ds
 from yt.utilities.lib.interpolators import ghost_zone_interpolate
 
 
-def setup():
-    pass
-
-
 def test_linear_interpolator_1d():
     random_data = np.random.random(64)
     fv = {"x": np.mgrid[0.0:1.0:64j]}
