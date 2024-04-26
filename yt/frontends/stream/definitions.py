@@ -47,7 +47,6 @@ def assign_particle_data(ds, pdata, bbox):
     if len(ds.stream_handler.fields) > 1:
         pdata.pop("number_of_particles", None)
         num_grids = len(ds.stream_handler.fields)
-        # We have to convert these to a list of lists
         num_children = np.zeros(num_grids, dtype="int64")
         # We're going to do this the slow way
         mask = np.empty(num_grids, dtype="bool")
@@ -55,6 +54,7 @@ def assign_particle_data(ds, pdata, bbox):
             np.equal(ds.stream_handler.parent_ids, i, mask)
             num_children[i] = mask.sum()
         levels = ds.stream_handler.levels.astype("int64").ravel()
+        # We have to convert these to a list of lists
         parent_ids = [[_] for _ in ds.stream_handler.parent_ids]
         grid_tree = GridTree(
             num_grids,
