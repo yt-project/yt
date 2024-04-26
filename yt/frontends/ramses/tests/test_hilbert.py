@@ -42,8 +42,14 @@ def test_get_cpu_list():
     )
     outputs = ([0, 15], [0, 15], [0, 1, 15], [0, 13, 14, 15], [0])
 
+    ncpu = ds.parameters["ncpu"]
+    bound_keys = np.array(
+        [ds.hilbert_indices[icpu][0] for icpu in range(1, ncpu + 1)]
+        + [ds.hilbert_indices[ds.parameters["ncpu"]][1]],
+        dtype="float64",
+    )
     for i, o in zip(inputs, outputs):
         bbox = i
-        ls = list(get_cpu_list_cuboid(ds, bbox))
+        ls = list(get_cpu_list_cuboid(ds, bbox, bound_keys=bound_keys))
         assert len(ls) > 0
         assert all(np.array(o) == np.array(ls))

@@ -113,6 +113,7 @@ gdf = ["yt[HDF5]"]
 gizmo = ["yt[HDF5]"]
 halo-catalog = ["yt[HDF5]"]
 http-stream = ["requests>=2.20.0"]
+idefix = ["yt_idefix[HDF5]>=2.3.0"] # externally packaged frontend
 moab = ["yt[HDF5]"]
 nc4-cm1 = ["yt[netCDF4]"]
 open-pmd = ["yt[HDF5]"]
@@ -169,6 +170,7 @@ full = [
     "yt[gizmo]",
     "yt[halo_catalog]",
     "yt[http_stream]",
+    "yt[idefix]",
     "yt[moab]",
     "yt[nc4_cm1]",
     "yt[open_pmd]",
