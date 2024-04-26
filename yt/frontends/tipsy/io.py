@@ -178,14 +178,11 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                         )
                     )
                 else:
-                    par = self.ds.parameters
-                    nlines = 1 + par["nsph"] + par["ndark"] + par["nstar"]
                     aux_fh[afield].seek(0)
                     sh = aux_fields_offsets[afield][ptype]
-                    sf = nlines - count - sh
                     if tp[ptype] > 0:
                         aux = np.genfromtxt(
-                            aux_fh[afield], skip_header=sh, skip_footer=sf
+                            aux_fh[afield], skip_header=sh, max_rows=count
                         )
                         if aux.ndim < 1:
                             aux = np.array([aux])
