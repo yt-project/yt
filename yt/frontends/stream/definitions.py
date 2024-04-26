@@ -61,7 +61,7 @@ def assign_particle_data(ds, pdata, bbox):
             ds.stream_handler.left_edges,
             ds.stream_handler.right_edges,
             ds.stream_handler.dimensions,
-            parent_ids,  # This is a list of lists
+            parent_ids,
             levels,
             num_children,
         )
