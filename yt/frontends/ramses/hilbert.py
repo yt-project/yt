@@ -7,6 +7,7 @@ from yt.geometry.selection_routines import (
     bbox_intersects,
     fully_contains,
 )
+from yt.utilities.lib.geometry_utils import get_hilbert_indices
 
 # State diagram to compute the hilbert curve
 _STATE_DIAGRAM = np.array(
@@ -48,63 +49,22 @@ _STATE_DIAGRAM = np.array(
 
 
 def hilbert3d(
-    X: "np.ndarray[Any, np.dtype[np.float64]]", bit_length: int
+    ijk: "np.ndarray[Any, np.dtype[np.int64]]", bit_length: int
 ) -> "np.ndarray[Any, np.dtype[np.float64]]":
     """Compute the order using Hilbert indexing.
 
     Arguments
     ---------
-    X : (N, ndim) float array
+    ijk : (N, ndim) integer array
       The positions
     bit_length : integer
       The bit_length for the indexing.
     """
-    X = np.atleast_2d(X)
-
-    x_bit_mask, y_bit_mask, z_bit_mask = (
-        np.zeros(bit_length, dtype=bool) for _ in range(3)
-    )
-    i_bit_mask = np.zeros(3 * bit_length, dtype=bool)
-
-    npoint = X.shape[0]
-    order = np.zeros(npoint)
-
-    # Convert positions to binary
-    for ip in range(npoint):
-        for i in range(bit_length):
-            mask = 0b01 << i
-            x_bit_mask[i] = X[ip, 0] & mask
-            y_bit_mask[i] = X[ip, 1] & mask
-            z_bit_mask[i] = X[ip, 2] & mask
-
-        for i in range(bit_length):
-            # Interleave bits
-            i_bit_mask[3 * i + 2] = x_bit_mask[i]
-            i_bit_mask[3 * i + 1] = y_bit_mask[i]
-            i_bit_mask[3 * i] = z_bit_mask[i]
-
-        # Build Hilbert ordering using state diagram
-        cstate = 0
-        for i in range(bit_length - 1, -1, -1):
-            sdigit = (
-                4 * i_bit_mask[3 * i + 2]
-                + 2 * i_bit_mask[3 * i + 1]
-                + 1 * i_bit_mask[3 * i]
-            )
-            nstate = _STATE_DIAGRAM[sdigit, 0, cstate]
-            hdigit = _STATE_DIAGRAM[sdigit, 1, cstate]
-
-            i_bit_mask[3 * i + 2] = hdigit & 0b100
-            i_bit_mask[3 * i + 1] = hdigit & 0b010
-            i_bit_mask[3 * i] = hdigit & 0b001
-
-            cstate = nstate
-
-        # Compute ordering
-        for i in range(3 * bit_length):
-            order[ip] = order[ip] + i_bit_mask[i] * 2**i
-
-    return order
+    ijk = np.atleast_2d(ijk)
+    # A note here: there is a freedom in the way hilbert indices are
+    # being computed (should it be xyz or yzx or zxy etc.)
+    # and the yt convention is not the same as the RAMSES one.
+    return get_hilbert_indices(bit_length, ijk[:, [1, 2, 0]].astype(np.int64))
 
 
 def get_intersecting_cpus(
@@ -114,6 +74,7 @@ def get_intersecting_cpus(
     dx: float = 1.0,
     dx_cond: Optional[float] = None,
     factor: float = 4.0,
+    bound_keys: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
 ) -> set[int]:
     """
     Find the subset of CPUs that intersect the bbox in a recursive fashion.
@@ -123,15 +84,20 @@ def get_intersecting_cpus(
     if dx_cond is None:
         bbox = region.get_bbox()
         dx_cond = float((bbox[1] - bbox[0]).min().to("code_length"))
+    if bound_keys is None:
+        ncpu = ds.parameters["ncpu"]
+        bound_keys = np.empty(ncpu + 1, dtype="float64")
+        bound_keys[:ncpu] = [ds.hilbert_indices[icpu + 1][0] for icpu in range(ncpu)]
+        bound_keys[ncpu] = ds.hilbert_indices[ncpu][1]
 
     # If the current dx is smaller than the smallest size of the bbox
     if dx < dx_cond / factor:
         # Finish recursion
-        return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]))
+        return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]), bound_keys)
 
     # If the current cell is fully within the selected region, stop recursion
     if fully_contains(region.selector, LE, dx):
-        return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]))
+        return get_cpu_list_cuboid(ds, np.asarray([LE, LE + dx]), bound_keys)
 
     dx /= 2
 
@@ -144,12 +110,18 @@ def get_intersecting_cpus(
 
                 if bbox_intersects(region.selector, LE_new, dx):
                     ret.update(
-                        get_intersecting_cpus(ds, region, LE_new, dx, dx_cond, factor)
+                        get_intersecting_cpus(
+                            ds, region, LE_new, dx, dx_cond, factor, bound_keys
+                        )
                     )
     return ret
 
 
-def get_cpu_list_cuboid(ds, X: "np.ndarray[Any, np.dtype[np.float64]]") -> set[int]:
+def get_cpu_list_cuboid(
+    ds,
+    X: "np.ndarray[Any, np.dtype[np.float64]]",
+    bound_keys: "np.ndarray[Any, np.dtype[np.float64]]",
+) -> set[int]:
     """
     Return the list of the CPU intersecting with the cuboid containing the positions.
     Note that it will be 0-indexed.
@@ -166,7 +138,6 @@ def get_cpu_list_cuboid(ds, X: "np.ndarray[Any, np.dtype[np.float64]]") -> set[i
         raise NotImplementedError("This function is only implemented in 3D.")
 
     levelmax = ds.parameters["levelmax"]
-    ncpu = ds.parameters["ncpu"]
     ndim = ds.parameters["ndim"]
 
     xmin, ymin, zmin = X.min(axis=0)
@@ -193,7 +164,7 @@ def get_cpu_list_cuboid(ds, X: "np.ndarray[Any, np.dtype[np.float64]]") -> set[i
     if bit_length > 0:
         ndom = 8
 
-    ijkdom = idom, jdom, kdom = np.empty((3, 8), dtype="int64")
+    ijkdom = idom, jdom, kdom = np.empty((3, 8), dtype=np.int64)
 
     idom[0], idom[1] = imin, imax
     idom[2], idom[3] = imin, imax
@@ -221,12 +192,8 @@ def get_cpu_list_cuboid(ds, X: "np.ndarray[Any, np.dtype[np.float64]]") -> set[i
         bounding_min[i] = omin * dkey
         bounding_max[i] = (omin + 1) * dkey
 
-    bound_key = np.empty(ncpu + 1, dtype="float64")
-    for icpu in range(1, ncpu + 1):
-        bound_key[icpu - 1], bound_key[icpu] = ds.hilbert_indices[icpu]
-
-    cpu_min = np.searchsorted(bound_key, bounding_min, side="right") - 1
-    cpu_max = np.searchsorted(bound_key, bounding_max, side="right")
+    cpu_min = np.searchsorted(bound_keys, bounding_min, side="right") - 1
+    cpu_max = np.searchsorted(bound_keys, bounding_max, side="right")
 
     cpu_read: set[int] = set()
 
