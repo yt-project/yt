@@ -318,9 +318,7 @@ def test_ramses_part_count():
 @requires_file(ramsesCosmo)
 def test_custom_particle_def():
     ytcfg.add_section("ramses-particles")
-    ytcfg[
-        "ramses-particles", "fields"
-    ] = """particle_position_x, d
+    ytcfg["ramses-particles", "fields"] = """particle_position_x, d
          particle_position_y, d
          particle_position_z, d
          particle_velocity_x, d

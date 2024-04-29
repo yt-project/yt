@@ -46,12 +46,12 @@ def test_region_from_d():
     assert_equal(reg1["gas", "density"], reg2["gas", "density"])
 
     # Now, string units in some -- 1.0 == cm
-    reg1 = ds.r[(0.1, "cm"):(0.5, "cm"), :, (0.25, "cm"):(0.35, "cm")]
+    reg1 = ds.r[(0.1, "cm") : (0.5, "cm"), :, (0.25, "cm") : (0.35, "cm")]
     reg2 = ds.region([0.3, 0.5, 0.3], [0.1, 0.0, 0.25], [0.5, 1.0, 0.35])
     assert_equal(reg1["gas", "density"], reg2["gas", "density"])
 
     # Now, string units in some -- 1.0 == cm
-    reg1 = ds.r[(0.1, "cm"):(0.5, "cm"), :, 0.25:0.35]
+    reg1 = ds.r[(0.1, "cm") : (0.5, "cm"), :, 0.25:0.35]
     reg2 = ds.region([0.3, 0.5, 0.3], [0.1, 0.0, 0.25], [0.5, 1.0, 0.35])
     assert_equal(reg1["gas", "density"], reg2["gas", "density"])
 
@@ -127,7 +127,7 @@ def test_point_from_r():
 
 def test_ray_from_r():
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
-    ray1 = ds.r[(0.1, 0.2, 0.3):(0.4, 0.5, 0.6)]
+    ray1 = ds.r[(0.1, 0.2, 0.3) : (0.4, 0.5, 0.6)]
     ray2 = ds.ray((0.1, 0.2, 0.3), (0.4, 0.5, 0.6))
     assert_equal(ray1["gas", "density"], ray2["gas", "density"])
 

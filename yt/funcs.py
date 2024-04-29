@@ -220,8 +220,7 @@ def rootonly(func):
     .. code-block:: python
 
        @rootonly
-       def some_root_only_function(*args, **kwargs):
-           ...
+       def some_root_only_function(*args, **kwargs): ...
     """
 
     @wraps(func)
@@ -1090,8 +1089,9 @@ def array_like_field(data, x, field):
 def validate_3d_array(obj):
     if not is_sequence(obj) or len(obj) != 3:
         raise TypeError(
-            "Expected an array of size (3,), received '{}' of "
-            "length {}".format(str(type(obj)).split("'")[1], len(obj))
+            "Expected an array of size (3,), received '{}' of length {}".format(
+                str(type(obj)).split("'")[1], len(obj)
+            )
         )
 
 

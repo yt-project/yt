@@ -264,8 +264,7 @@ class EnzoSimulation(SimulationTimeSeries):
             my_outputs = my_all_outputs[
                 int(
                     np.ceil(float(initial_cycle) / self.parameters["CycleSkipDataDump"])
-                ) : (final_cycle / self.parameters["CycleSkipDataDump"])
-                + 1
+                ) : (final_cycle / self.parameters["CycleSkipDataDump"]) + 1
             ]
 
         else:

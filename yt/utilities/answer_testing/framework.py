@@ -613,7 +613,7 @@ class ProjectionValuesTest(AnswerTestingTest):
                 assert_equal(nres, ores, err_msg=err_msg)
             else:
                 assert_allclose_units(
-                    nres, ores, 10.0 ** -(self.decimals), err_msg=err_msg
+                    nres, ores, 10.0**-(self.decimals), err_msg=err_msg
                 )
 
 

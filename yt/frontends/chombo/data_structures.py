@@ -511,8 +511,7 @@ class PlutoDataset(ChomboDataset):
             domain_right_edge = np.zeros(self.dimensionality)
             for il, ll in enumerate(
                 lines[
-                    lines.index("[Grid]")
-                    + 2 : lines.index("[Grid]")
+                    lines.index("[Grid]") + 2 : lines.index("[Grid]")
                     + 2
                     + self.dimensionality
                 ]
@@ -522,8 +521,7 @@ class PlutoDataset(ChomboDataset):
             self._periodicity = [0] * 3
             for il, ll in enumerate(
                 lines[
-                    lines.index("[Boundary]")
-                    + 2 : lines.index("[Boundary]")
+                    lines.index("[Boundary]") + 2 : lines.index("[Boundary]")
                     + 2
                     + 6 : 2
                 ]

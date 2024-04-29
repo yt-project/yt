@@ -20,11 +20,15 @@ class IOHandlerSDF(BaseParticleIOHandler):
         data_files = self._get_data_files(chunks)
         assert len(data_files) == 1
         for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            yield "dark_matter", (
-                self._handle["x"],
-                self._handle["y"],
-                self._handle["z"],
-            ), 0.0
+            yield (
+                "dark_matter",
+                (
+                    self._handle["x"],
+                    self._handle["y"],
+                    self._handle["z"],
+                ),
+                0.0,
+            )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         assert len(ptf) == 1
@@ -78,11 +82,15 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
         assert len(data_files) == 1
         for _data_file in data_files:
             pcount = self._handle["x"].size
-            yield "dark_matter", (
-                self._handle["x"][:pcount],
-                self._handle["y"][:pcount],
-                self._handle["z"][:pcount],
-            ), 0.0
+            yield (
+                "dark_matter",
+                (
+                    self._handle["x"][:pcount],
+                    self._handle["y"][:pcount],
+                    self._handle["z"][:pcount],
+                ),
+                0.0,
+            )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)

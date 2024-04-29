@@ -334,9 +334,9 @@ class Clump(TreeContainer):
                                 np.int64
                             )
                             ftypes[cfield] = ptype
-                        field_data[cfield][
-                            clump.data._part_ind(ptype)
-                        ] = clump.contour_id
+                        field_data[cfield][clump.data._part_ind(ptype)] = (
+                            clump.contour_id
+                        )
 
             if need_grid_positions:
                 for ax in "xyz":

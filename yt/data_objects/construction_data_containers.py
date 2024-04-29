@@ -1136,22 +1136,19 @@ class YTCoveringGrid(YTSelectionContainer3D):
             np.multiply(rv, self.dds[2], rv)
         elif field == ("index", axis_name[0]):
             x = np.mgrid[
-                self.left_edge[0]
-                + 0.5 * self.dds[0] : self.right_edge[0]
+                self.left_edge[0] + 0.5 * self.dds[0] : self.right_edge[0]
                 - 0.5 * self.dds[0] : self.ActiveDimensions[0] * 1j
             ]
             np.multiply(rv, x[:, None, None], rv)
         elif field == ("index", axis_name[1]):
             y = np.mgrid[
-                self.left_edge[1]
-                + 0.5 * self.dds[1] : self.right_edge[1]
+                self.left_edge[1] + 0.5 * self.dds[1] : self.right_edge[1]
                 - 0.5 * self.dds[1] : self.ActiveDimensions[1] * 1j
             ]
             np.multiply(rv, y[None, :, None], rv)
         elif field == ("index", axis_name[2]):
             z = np.mgrid[
-                self.left_edge[2]
-                + 0.5 * self.dds[2] : self.right_edge[2]
+                self.left_edge[2] + 0.5 * self.dds[2] : self.right_edge[2]
                 - 0.5 * self.dds[2] : self.ActiveDimensions[2] * 1j
             ]
             np.multiply(rv, z[None, None, :], rv)

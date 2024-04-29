@@ -27,21 +27,21 @@ repos:
     - id: check-executables-have-shebangs
     - id: check-yaml
 
--   repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 24.3.0
-    hooks:
-    - id: black-jupyter
-
+# TODO: replace this with ruff when it supports embedded python blocks
+# see https://github.com/astral-sh/ruff/issues/8237
 -   repo: https://github.com/adamchainz/blacken-docs
     rev: 1.16.0
     hooks:
     -   id: blacken-docs
-        additional_dependencies: [black==23.9.1]
+        additional_dependencies: [black==24.3.0]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.3.4
+  rev: v0.4.0
   hooks:
+  - id: ruff-format
+    types_or: [ python, pyi, jupyter ]
   - id: ruff
+    types_or: [ python, pyi, jupyter ]
     args: [--fix, "--show-fixes"]
 
 -   repo: https://github.com/pre-commit/pygrep-hooks
