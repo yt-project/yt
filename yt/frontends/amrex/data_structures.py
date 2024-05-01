@@ -385,8 +385,10 @@ class BoxlibHierarchy(GridIndex):
             default_ybounds = (0.0, np.pi)
             default_zbounds = (0.0, 2 * np.pi)
         else:
+            header_file.close()
             raise RuntimeError("Unknown BoxLib coordinate system.")
         if int(next(header_file)) != 0:
+            header_file.close()
             raise RuntimeError("INTERNAL ERROR! This should be a zero.")
 
         # each level is one group with ngrids on it.
@@ -453,9 +455,11 @@ class BoxlibHierarchy(GridIndex):
                 go = self.grid(grid_counter + gi, int(offset), filename, self)
                 go.Level = self.grid_levels[grid_counter + gi, :] = level
                 self.grids.append(go)
+            level_header_file.close()
             grid_counter += ngrids
             # already read the filenames above...
         self.float_type = "float64"
+        header_file.close()
 
     def _cache_endianness(self, test_grid):
         """
@@ -543,6 +547,7 @@ class BoxlibHierarchy(GridIndex):
             if len(line.split()) != 3:
                 continue
             self.num_grids += int(line.split()[1])
+        header_file.close()
 
     def _initialize_grid_arrays(self):
         super()._initialize_grid_arrays()
@@ -698,7 +703,8 @@ class BoxlibDataset(Dataset):
         if cparam_filepath is None:
             return False
 
-        lines = [line.lower() for line in open(cparam_filepath).readlines()]
+        with open(cparam_filepath) as f:
+            lines = [line.lower() for line in f]
         return any(cls._subtype_keyword in line for line in lines)
 
     @classmethod
@@ -734,39 +740,41 @@ class BoxlibDataset(Dataset):
     def _parse_cparams(self):
         if self.cparam_filename is None:
             return
-        for line in (line.split("#")[0].strip() for line in open(self.cparam_filename)):
-            try:
-                param, vals = (s.strip() for s in line.split("="))
-            except ValueError:
-                continue
-            # Castro and Maestro mark overridden defaults with a "[*]" before
-            # the parameter name
-            param = param.removeprefix("[*]").strip()
-            if param == "amr.ref_ratio":
-                vals = self.refine_by = int(vals[0])
-            elif param == "Prob.lo_bc":
-                vals = tuple(p == "1" for p in vals.split())
-                assert len(vals) == self.dimensionality
-                periodicity = [False, False, False]  # default to non periodic
-                periodicity[: self.dimensionality] = vals  # fill in ndim parsed values
-                self._periodicity = tuple(periodicity)
-            elif param == "castro.use_comoving":
-                vals = self.cosmological_simulation = int(vals)
-            else:
+        with open(self.cparam_filename) as param_file:
+            for line in (line.split("#")[0].strip() for line in param_file):
                 try:
-                    vals = _guess_pcast(vals)
-                except (IndexError, ValueError):
-                    # hitting an empty string or a comment
-                    vals = None
-            self.parameters[param] = vals
+                    param, vals = (s.strip() for s in line.split("="))
+                except ValueError:
+                    continue
+                # Castro and Maestro mark overridden defaults with a "[*]"
+                # before the parameter name
+                param = param.removeprefix("[*]").strip()
+                if param == "amr.ref_ratio":
+                    vals = self.refine_by = int(vals[0])
+                elif param == "Prob.lo_bc":
+                    vals = tuple(p == "1" for p in vals.split())
+                    assert len(vals) == self.dimensionality
+                    # default to non periodic
+                    periodicity = [False, False, False]
+                    # fill in ndim parsed values
+                    periodicity[: self.dimensionality] = vals
+                    self._periodicity = tuple(periodicity)
+                elif param == "castro.use_comoving":
+                    vals = self.cosmological_simulation = int(vals)
+                else:
+                    try:
+                        vals = _guess_pcast(vals)
+                    except (IndexError, ValueError):
+                        # hitting an empty string or a comment
+                        vals = None
+                self.parameters[param] = vals
 
         if getattr(self, "cosmological_simulation", 0) == 1:
             self.omega_lambda = self.parameters["comoving_OmL"]
             self.omega_matter = self.parameters["comoving_OmM"]
             self.hubble_constant = self.parameters["comoving_h"]
-            a_file = open(os.path.join(self.output_dir, "comoving_a"))
-            line = a_file.readline().strip()
-            a_file.close()
+            with open(os.path.join(self.output_dir, "comoving_a")) as a_file:
+                line = a_file.readline().strip()
             self.current_redshift = 1 / float(line) - 1
         else:
             self.current_redshift = 0.0
@@ -783,7 +791,8 @@ class BoxlibDataset(Dataset):
         """
         if self.fparam_filename is None:
             return
-        for line in (l for l in open(self.fparam_filename) if "=" in l):
+        param_file = open(self.fparam_filename)
+        for line in (l for l in param_file if "=" in l):
             param, vals = (v.strip() for v in line.split("="))
             # Now, there are a couple different types of parameters.
             # Some will be where you only have floating point values, others
@@ -798,6 +807,7 @@ class BoxlibDataset(Dataset):
             if len(vals) == 1:
                 vals = vals[0]
             self.parameters[param] = vals
+        param_file.close()
 
     def _parse_header_file(self):
         """
@@ -845,6 +855,7 @@ class BoxlibDataset(Dataset):
                 float(rf) / self.refine_by == int(float(rf) / self.refine_by)
                 for rf in ref_factors
             ):
+                header_file.close()
                 raise RuntimeError
             base_log = np.log2(self.refine_by)
             self.level_offsets = [0]  # level 0 has to have 0 offset
@@ -888,6 +899,7 @@ class BoxlibDataset(Dataset):
         try:
             geom_str = known_types[coordinate_type]
         except KeyError as err:
+            header_file.close()
             raise ValueError(f"Unknown BoxLib coord_type `{coordinate_type}`.") from err
         else:
             self.geometry = Geometry(geom_str)
@@ -896,6 +908,8 @@ class BoxlibDataset(Dataset):
             dre = self.domain_right_edge.copy()
             dre[2] = 2.0 * np.pi
             self.domain_right_edge = dre
+
+        header_file.close()
 
     def _set_code_unit_attributes(self):
         setdefaultattr(self, "length_unit", self.quan(1.0, "cm"))
@@ -1289,9 +1303,8 @@ class NyxDataset(BoxlibDataset):
 
         # Read in the `comoving_a` file and parse the value. We should fix this
         # in the new Nyx output format...
-        a_file = open(os.path.join(self.output_dir, "comoving_a"))
-        a_string = a_file.readline().strip()
-        a_file.close()
+        with open(os.path.join(self.output_dir, "comoving_a")) as a_file:
+            a_string = a_file.readline().strip()
 
         # Set the scale factor and redshift
         self.cosmological_scale_factor = float(a_string)
