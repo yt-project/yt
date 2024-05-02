@@ -123,7 +123,6 @@ def test_geographic_conversions(geometry):
 
 @pytest.mark.parametrize("geometry", ("geographic", "internal_geographic"))
 def test_geographic_conversions_with_units(geometry):
-
     ds = fake_amr_ds(geometry=geometry)
 
     # _sanitize_center will give all values in 'code_length'
