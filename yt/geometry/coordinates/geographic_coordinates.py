@@ -1,4 +1,5 @@
 import numpy as np
+import unyt
 
 from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
 
@@ -318,12 +319,13 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def convert_to_cartesian(self, coord):
         offset, factor = self._retrieve_radial_offset()
+
         if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
             rad = self.axis_id[self.radial_axis]
             lon = self.axis_id["longitude"]
             lat = self.axis_id["latitude"]
             r = factor * coord[:, rad] + offset
-            theta = (90.0 - coord[:, lat]) * np.pi / 180
+            theta = _lat_to_theta(coord[:, lat])
             phi = coord[:, lon] * np.pi / 180
             nc = np.zeros_like(coord)
             # r, theta, phi
@@ -332,7 +334,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             nc[:, rad] = np.cos(theta) * r
         else:
             a, b, c = coord
-            theta = (90.0 - b) * np.pi / 180
+            theta = _lat_to_theta(b)
             phi = a * np.pi / 180
             r = factor * c + offset
             nc = (
@@ -568,3 +570,16 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
             outermost = factor * self.ds.domain_left_edge[ri] + offset
             width = [outermost, 2.0 * outermost]
         return width
+
+
+def _lat_to_theta(lat_vals):
+    # convert latitude to theta, accounting for units,
+    # including the case where the units are code_length
+    # due to how yt stores the domain_center units for
+    # geographic coordinates.
+    if isinstance(lat_vals, unyt.unyt_array):
+        if lat_vals.units.dimensions == unyt.dimensions.length:
+            return (90.0 - lat_vals.d) * np.pi / 180.0
+        ninety = unyt.unyt_quantity(90.0, "degree")
+        return (ninety - lat_vals).to("radian")
+    return (90 - lat_vals) * np.pi / 180.0
