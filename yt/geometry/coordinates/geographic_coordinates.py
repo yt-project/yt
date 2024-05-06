@@ -325,22 +325,22 @@ class GeographicCoordinateHandler(CoordinateHandler):
             lon = self.axis_id["longitude"]
             lat = self.axis_id["latitude"]
             r = factor * coord[:, rad] + offset
-            theta = _lat_to_theta(coord[:, lat])
+            colatitude = _latitude_to_colatitude(coord[:, lat])
             phi = coord[:, lon] * np.pi / 180
             nc = np.zeros_like(coord)
             # r, theta, phi
-            nc[:, lat] = np.cos(phi) * np.sin(theta) * r
-            nc[:, lon] = np.sin(phi) * np.sin(theta) * r
-            nc[:, rad] = np.cos(theta) * r
+            nc[:, lat] = np.cos(phi) * np.sin(colatitude) * r
+            nc[:, lon] = np.sin(phi) * np.sin(colatitude) * r
+            nc[:, rad] = np.cos(colatitude) * r
         else:
             a, b, c = coord
-            theta = _lat_to_theta(b)
+            colatitude = _latitude_to_colatitude(b)
             phi = a * np.pi / 180
             r = factor * c + offset
             nc = (
-                np.cos(phi) * np.sin(theta) * r,
-                np.sin(phi) * np.sin(theta) * r,
-                np.cos(theta) * r,
+                np.cos(phi) * np.sin(colatitude) * r,
+                np.sin(phi) * np.sin(colatitude) * r,
+                np.cos(colatitude) * r,
             )
         return nc
 
@@ -572,7 +572,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
         return width
 
 
-def _lat_to_theta(lat_vals):
+def _latitude_to_colatitude(lat_vals):
     # convert latitude to theta, accounting for units,
     # including the case where the units are code_length
     # due to how yt stores the domain_center units for
