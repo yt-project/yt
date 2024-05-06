@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import unyt
 from numpy.testing import assert_equal
 
 from yt.testing import assert_rel_equal, fake_amr_ds
@@ -117,3 +118,30 @@ def test_geographic_conversions(geometry):
     z = xyz[:, 2]
     assert z[0] == r_val
     assert z[1] == -r_val
+
+
+@pytest.mark.parametrize("geometry", ("geographic", "internal_geographic"))
+def test_geographic_conversions_with_units(geometry):
+    ds = fake_amr_ds(geometry=geometry)
+
+    # _sanitize_center will give all values in 'code_length'
+    coords = ds.arr(np.zeros((2, 3)), "code_length")
+    xyz_u = ds.coordinates.convert_to_cartesian(coords)
+    xyz = ds.coordinates.convert_to_cartesian(coords.d)
+    assert_equal(xyz, xyz_u)
+
+    coords = ds.arr(np.zeros((3,)), "code_length")
+    xyz_u = ds.coordinates.convert_to_cartesian(coords)
+    xyz = ds.coordinates.convert_to_cartesian(coords.d)
+    assert_equal(xyz, xyz_u)
+
+    # also check that if correct units are supplied, the
+    # result has dimensions of length.
+    coords = [
+        ds.arr(np.zeros((10,)), "degree"),
+        ds.arr(np.zeros((10,)), "degree"),
+        ds.arr(np.linspace(0, 100, 10), "code_length"),
+    ]
+    xyz = ds.coordinates.convert_to_cartesian(coords)
+    for dim in xyz:
+        assert dim.units.dimensions == unyt.dimensions.length
