@@ -1244,9 +1244,9 @@ class GridBoundaryCallback(PlotCallback):
                         y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
                     else:
                         raise RuntimeError(
-                            "Unrecognized id_loc value ('%s'). "
+                            f"Unrecognized id_loc value ({self.id_loc!r}). "
                             "Allowed values are 'lower left', lower right', "
-                            "'upper left', and 'upper right'." % self.id_loc
+                            "'upper left', and 'upper right'."
                         )
                     xi, yi = self._sanitize_xy_order(plot, x[i], y[i])
                     plot._axes.text(xi, yi, "%d" % block_ids[n], clip_on=True)

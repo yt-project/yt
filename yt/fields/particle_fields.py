@@ -110,7 +110,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         function=particle_count,
         validators=[ValidateSpatial()],
         units="",
-        display_name=r"\mathrm{%s Count}" % ptype_dn,
+        display_name=rf"\mathrm{{{ptype_dn} Count}}",
     )
 
     def particle_mass(field, data):
@@ -125,7 +125,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         sampling_type="cell",
         function=particle_mass,
         validators=[ValidateSpatial()],
-        display_name=r"\mathrm{%s Mass}" % ptype_dn,
+        display_name=rf"\mathrm{{{ptype_dn} Mass}}",
         units=unit_system["mass"],
     )
 
@@ -144,7 +144,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         sampling_type="cell",
         function=particle_density,
         validators=[ValidateSpatial()],
-        display_name=r"\mathrm{%s Density}" % ptype_dn,
+        display_name=rf"\mathrm{{{ptype_dn} Density}}",
         units=unit_system["density"],
     )
 
@@ -160,7 +160,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         sampling_type="cell",
         function=particle_cic,
         validators=[ValidateSpatial()],
-        display_name=r"\mathrm{%s CIC Density}" % ptype_dn,
+        display_name=rf"\mathrm{{{ptype_dn} CIC Density}}",
         units=unit_system["density"],
     )
 

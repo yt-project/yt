@@ -1086,12 +1086,20 @@ def array_like_field(data, x, field):
         return data.ds.quan(x, units)
 
 
+def _full_type_name(obj: object = None, /, *, cls: Optional[type] = None) -> str:
+    if cls is not None and obj is not None:
+        raise TypeError("_full_type_name takes an object or a class, but not both")
+    if cls is None:
+        cls = obj.__class__
+    prefix = f"{cls.__module__}." if cls.__module__ != "builtins" else ""
+    return f"{prefix}{cls.__name__}"
+
+
 def validate_3d_array(obj):
     if not is_sequence(obj) or len(obj) != 3:
         raise TypeError(
-            "Expected an array of size (3,), received '{}' of length {}".format(
-                str(type(obj)).split("'")[1], len(obj)
-            )
+            f"Expected an array of size (3,), "
+            f"received {_full_type_name(obj)!r} of length {len(obj)}"
         )
 
 
@@ -1135,23 +1143,21 @@ def validate_float(obj):
         ):
             raise TypeError(
                 "Expected a numeric value (or tuple of format "
-                "(float, String)), received an inconsistent tuple "
-                "'%s'." % str(obj)
+                f"(float, String)), received an inconsistent tuple {str(obj)!r}."
             )
         else:
             return
     if is_sequence(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
-            "received '{}' of length {}".format(str(type(obj)).split("'")[1], len(obj))
+            f"received {_full_type_name(obj)!r} of length {len(obj)}"
         )
 
 
 def validate_sequence(obj):
     if obj is not None and not is_sequence(obj):
         raise TypeError(
-            "Expected an iterable object, "
-            "received '%s'" % str(type(obj)).split("'")[1]
+            "Expected an iterable object, " f"received {_full_type_name(obj)!r}"
         )
 
 
@@ -1181,9 +1187,8 @@ def is_valid_field_key(key):
 def validate_object(obj, data_type):
     if obj is not None and not isinstance(obj, data_type):
         raise TypeError(
-            "Expected an object of '{}' type, received '{}'".format(
-                str(data_type).split("'")[1], str(type(obj)).split("'")[1]
-            )
+            f"Expected an object of {_full_type_name(cls=data_type)!r} type, "
+            f"received {_full_type_name(obj)!r}"
         )
 
 
@@ -1209,13 +1214,13 @@ def validate_center(center):
             raise TypeError(
                 "Expected 'center' to be in ['c', 'center', "
                 "'m', 'max', 'min'] or the prefix to be "
-                "'max_'/'min_', received '%s'." % center
+                f"'max_'/'min_', received {center!r}."
             )
     elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sequence(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "
-            "received '%s'." % str(type(center)).split("'")[1]
+            f"received {_full_type_name(center)}."
         )
 
 

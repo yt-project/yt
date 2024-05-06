@@ -880,10 +880,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
             fill, gen, part, alias = self._split_fields(fields_to_get)
         except NeedsGridType as e:
             if self._num_ghost_zones == 0:
+                num_ghost_zones = self._num_ghost_zones
                 raise RuntimeError(
                     "Attempting to access a field that needs ghost zones, but "
-                    "num_ghost_zones = %s. You should create the covering grid "
-                    "with nonzero num_ghost_zones." % self._num_ghost_zones
+                    f"{num_ghost_zones = }. You should create the covering grid "
+                    "with nonzero num_ghost_zones."
                 ) from e
             else:
                 raise

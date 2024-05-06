@@ -141,8 +141,8 @@ class Scene:
             lens_str = str(self.camera.lens)
             if "fisheye" in lens_str or "spherical" in lens_str:
                 raise NotImplementedError(
-                    "Line annotation sources are not supported for %s."
-                    % (type(self.camera.lens).__name__),
+                    "Line annotation sources are not supported "
+                    f"for {type(self.camera.lens).__name__}."
                 )
 
         if isinstance(render_source, (LineSource, PointSource)):

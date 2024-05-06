@@ -52,7 +52,7 @@ else:
             if len(values) == 3:
                 # check that errors argument is a string
                 if not isinstance(values[2], str):
-                    raise TypeError("errors must be a string, not %r" % (values[2]))
+                    raise TypeError("errors must be a string, not %r" % (values[2]))  # noqa: UP031
             value = str(*values)
             member = str.__new__(cls, value)
             member._value_ = value

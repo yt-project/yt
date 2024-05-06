@@ -137,10 +137,11 @@ class PlaneParallelLens(Lens):
         return px, py, dz
 
     def __repr__(self):
-        disp = "<Lens Object>:\n\tlens_type:plane-parallel\n\tviewpoint:%s" % (
-            self.viewpoint
+        return (
+            "<Lens Object>:\n"
+            "\tlens_type:plane-parallel\n"
+            f"\tviewpoint:{self.viewpoint}"
         )
-        return disp
 
 
 class PerspectiveLens(Lens):

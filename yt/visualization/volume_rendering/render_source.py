@@ -290,7 +290,7 @@ class VolumeSource(RenderSource, abc.ABC):
         if not isinstance(value, valid_types):
             raise RuntimeError(
                 "transfer_function not a valid type, "
-                "received object of type %s" % type(value)
+                f"received object of type {type(value)}"
             )
         if isinstance(value, ProjectionTransferFunction):
             self.sampler_type = "projection"

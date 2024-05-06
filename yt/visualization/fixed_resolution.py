@@ -825,7 +825,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             norm = self.ds.quan(dpx * dpy, "code_length**2").in_base()
             buff /= norm.v
             units = data.units / norm.units
-            info["label"] = "%s $\\rm{Density}$" % info["label"]
+            info["label"] += " $\\rm{Density}$"
         else:
             units = data.units
 
