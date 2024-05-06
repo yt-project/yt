@@ -9,6 +9,7 @@ import sys
 import tempfile
 from textwrap import dedent
 from concurrent.futures import ThreadPoolExecutor
+from distutils import sysconfig
 from distutils.ccompiler import CCompiler, new_compiler
 from distutils.sysconfig import customize_compiler
 from subprocess import PIPE, Popen
@@ -366,6 +367,31 @@ def install_ccompiler():
         return objects
 
     CCompiler.compile = _compile
+
+
+def get_python_include_dirs():
+    """Extracted from distutils.command.build_ext.build_ext#finalize_options(),
+    https://github.com/python/cpython/blob/812245ecce2d8344c3748228047bab456816180a/Lib/distutils/command/build_ext.py#L148-L167
+    """
+    include_dirs = []
+
+    # Make sure Python's include directories (for Python.h, pyconfig.h,
+    # etc.) are in the include search path.
+    py_include = sysconfig.get_python_inc()
+    plat_py_include = sysconfig.get_python_inc(plat_specific=1)
+
+    # If in a virtualenv, add its include directory
+    # Issue 16116
+    if sys.exec_prefix != sys.base_exec_prefix:
+        include_dirs.append(os.path.join(sys.exec_prefix, 'include'))
+
+    # Put the Python "system" include dir at the end, so that
+    # any local include dirs take precedence.
+    include_dirs.extend(py_include.split(os.path.pathsep))
+    if plat_py_include != py_include:
+        include_dirs.extend(plat_py_include.split(os.path.pathsep))
+
+    return include_dirs
 
 
 def create_build_ext(lib_exts, cythonize_aliases):
