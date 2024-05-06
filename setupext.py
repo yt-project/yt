@@ -370,7 +370,7 @@ def install_ccompiler():
 
 
 def get_python_include_dirs():
-    """Extracted from distutils.command.build_ext.build_ext#finalize_options(),
+    """Extracted from distutils.command.build_ext.build_ext.finalize_options(),
     https://github.com/python/cpython/blob/812245ecce2d8344c3748228047bab456816180a/Lib/distutils/command/build_ext.py#L148-L167
     """
     include_dirs = []
