@@ -7,13 +7,13 @@ from importlib import resources as importlib_resources
 from setuptools import Distribution, setup
 
 from setupext import (
+    NUMPY_MACROS,
     check_CPP14_flags,
     check_for_openmp,
     check_for_pyembree,
     create_build_ext,
     get_python_include_dirs,
     install_ccompiler,
-    NUMPY_MACROS,
 )
 
 install_ccompiler()
