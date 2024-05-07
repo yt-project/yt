@@ -13,6 +13,7 @@ from setupext import (
     create_build_ext,
     get_python_include_dirs,
     install_ccompiler,
+    NUMPY_MACROS,
 )
 
 install_ccompiler()
@@ -111,6 +112,7 @@ if __name__ == "__main__":
         {
             "sources": ["yt/utilities/lib/fixed_interpolator.cpp"],
             "include_dirs": clib_include_dirs,
+            "define_macros": NUMPY_MACROS,
         },
     )
 
