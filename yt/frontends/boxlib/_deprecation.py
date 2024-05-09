@@ -8,6 +8,6 @@ def boxlib_deprecation():
             "The historic 'boxlib' frontend is \n"
             "deprecated as it has been renamed 'amrex'. "
             "Existing and future work should instead reference the 'amrex' frontend.",
-            stacklevel=3,
-            since="TBD",
+            stacklevel=4,
+            since="4.4.0",
         )
