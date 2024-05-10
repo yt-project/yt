@@ -105,7 +105,7 @@ class HaloDatasetIOHandler:
     _read_particle_selection = IOHandlerGadgetFOFHaloHDF5._read_particle_selection
 
 
-# ignoring type in this mixing to circunvent this error from mypy
+# ignoring type in this mixing to circumvent this error from mypy
 # Definition of "_read_particle_fields" in base class "HaloDatasetIOHandler"
 # is incompatible with definition in base class "IOHandlerYTHaloCatalog"
 #
