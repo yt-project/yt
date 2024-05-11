@@ -515,7 +515,7 @@ def update_git(path):
 def rebuild_modules(path, f):
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen(
-        [sys.executable, "setup.py", "build_ext", "-i"],
+        [sys.executable, "setup.py", "build_clib", "build_ext", "-i"],
         cwd=path,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

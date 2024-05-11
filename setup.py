@@ -7,6 +7,7 @@ from importlib import resources as importlib_resources
 from setuptools import Distribution, setup
 
 from setupext import (
+    NUMPY_MACROS,
     check_CPP14_flags,
     check_for_openmp,
     check_for_pyembree,
@@ -111,6 +112,7 @@ if __name__ == "__main__":
         {
             "sources": ["yt/utilities/lib/fixed_interpolator.cpp"],
             "include_dirs": clib_include_dirs,
+            "define_macros": NUMPY_MACROS,
         },
     )
 

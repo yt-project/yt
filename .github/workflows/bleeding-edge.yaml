@@ -61,8 +61,7 @@ jobs:
       # are not installed by pip as specified from pyproject.toml, hence we get
       # to use the dev version of numpy at build time.
       run: |
-        python setup.py build_ext -q -j2
-        python -m pip install -e .[test] --no-build-isolation
+        python -m pip -v install -e .[test] --no-build-isolation
 
     - run: python -m pip list
 

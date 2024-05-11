@@ -394,6 +394,13 @@ def get_python_include_dirs():
     return include_dirs
 
 
+NUMPY_MACROS = [
+    ("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION"),
+    # keep in sync with runtime requirements (pyproject.toml)
+    ("NPY_TARGET_VERSION", "NPY_1_19_API_VERSION"),
+]
+
+
 def create_build_ext(lib_exts, cythonize_aliases):
     class build_ext(_build_ext):
         # subclass setuptools extension builder to avoid importing cython and numpy
@@ -425,11 +432,7 @@ def create_build_ext(lib_exts, cythonize_aliases):
             self.include_dirs.append(numpy.get_include())
             self.include_dirs.append(ewah_bool_utils.get_include())
 
-            define_macros = [
-                ("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION"),
-                # keep in sync with runtime requirements (pyproject.toml)
-                ("NPY_TARGET_VERSION", "NPY_1_19_API_VERSION"),
-            ]
+            define_macros = NUMPY_MACROS
 
             if self.define is None:
                 self.define = define_macros
