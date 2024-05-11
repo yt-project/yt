@@ -76,8 +76,8 @@ def test_suffix_clashing(ext, simple_sliceplot, tmp_path):
 
     target = (tmp_path / "myfile").with_suffix(ext)
     expected_warning = re.compile(
-        r"Received two valid image formats '%s' \(from filename\) "
-        r"and 'png' \(from suffix\)\. The former is ignored\." % ext[1:]
+        rf"Received two valid image formats {ext.removeprefix('.')!r} "
+        r"\(from filename\) and 'png' \(from suffix\)\. The former is ignored\."
     )
 
     with pytest.warns(UserWarning, match=expected_warning):

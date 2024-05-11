@@ -417,7 +417,7 @@ class RAMSESDomainSubset(OctreeSubset):
         elif num_ghost_zones < 0:
             raise RuntimeError(
                 "Cannot initialize a domain subset with a negative number "
-                "of ghost zones, was called with num_ghost_zones=%s" % num_ghost_zones
+                f"of ghost zones, was called with {num_ghost_zones=}"
             )
 
     @property
@@ -1038,8 +1038,8 @@ class RAMSESDataset(Dataset):
 
         if rheader["ordering type"] != "hilbert" and self._bbox is not None:
             raise NotImplementedError(
-                "The ordering %s is not compatible with the `bbox` argument."
-                % rheader["ordering type"]
+                f"The ordering {rheader['ordering type']} "
+                "is not compatible with the `bbox` argument."
             )
         self.parameters.update(rheader)
         self.domain_left_edge = np.zeros(3, dtype="float64")

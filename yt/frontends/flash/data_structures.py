@@ -246,7 +246,7 @@ class FLASHDataset(Dataset):
             else:
                 raise RuntimeError(
                     "Runtime parameter unitsystem with "
-                    "value %s is unrecognized" % self["unitsystem"]
+                    f"value {self['unitsystem']} is unrecognized"
                 )
         else:
             b_factor = 1.0

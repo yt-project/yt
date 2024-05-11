@@ -287,6 +287,6 @@ class PlotWindowWCS:
             img = base64.b64encode(f.read()).decode()
             ret += (
                 r'<img style="max-width:100%%;max-height:100%%;" '
-                r'src="data:image/png;base64,%s"><br>' % img
+                rf'src="data:image/png;base64,{img}"><br>'
             )
         return ret

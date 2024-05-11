@@ -593,8 +593,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         mask = mask.transpose()
             else:
                 raise NotImplementedError(
-                    "A pixelization routine has not been implemented for %s "
-                    "data objects" % str(type(data_source))
+                    "A pixelization routine has not been implemented for "
+                    f"{type(data_source)} data objects"
                 )
             buff = buff.transpose()
             mask = mask.transpose()

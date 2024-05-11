@@ -59,8 +59,8 @@ class SPHDataset(ParticleDataset):
     def sph_smoothing_style(self, value):
         if value not in self._sph_smoothing_styles:
             raise ValueError(
-                "Smoothing style not implemented: %s, please "
-                "select one of the following: " % value,
+                f"Smoothing style not implemented: {value}, "
+                "please select one of the following: ",
                 self._sph_smoothing_styles,
             )
 

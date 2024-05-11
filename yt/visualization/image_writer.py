@@ -137,7 +137,7 @@ def write_bitmap(bitmap_array, filename, max_val=None, transpose=False):
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3, 4):
         raise RuntimeError(
             "Expecting image array of shape (N,M,3) or "
-            "(N,M,4), received %s" % str(bitmap_array.shape)
+            f"(N,M,4), received {str(bitmap_array.shape)}"
         )
 
     if bitmap_array.dtype != np.uint8:
