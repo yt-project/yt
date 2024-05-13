@@ -368,7 +368,7 @@ second sets the corresponding ``value``. Currently available format properties a
 
 .. _efields:
 
-Energy and Momemtum Fields
+Energy and Momentum Fields
 --------------------------
 
 Fields in yt representing energy and momentum quantities follow a specific
