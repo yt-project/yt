@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 
 
 def sanitize_weight_field(ds, field, weight):
-    field_object = ds._get_field_info(field)
     if weight is None:
+        field_object = ds._get_field_info(field)
         if field_object.sampling_type == "particle":
             if field_object.name[0] == "gas":
                 ptype = ds._sph_ptypes[0]
