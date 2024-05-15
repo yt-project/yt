@@ -18,4 +18,3 @@ def test_imports():
                 issubclass(w[2].category, DeprecationWarning),
             ]
         )
-    warnings.resetwarnings()
