@@ -607,7 +607,11 @@ class KDTreeVolumeSource(VolumeSource):
 
     def finalize_image(self, camera, image):
         if self._volume is not None:
-            image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
+            image = self.volume.reduce_tree_images(
+                image,
+                camera.lens.viewpoint,
+                use_opacity=self.transfer_function.grey_opacity,
+            )
 
         return super().finalize_image(camera, image)
 

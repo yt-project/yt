@@ -294,7 +294,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 owners[temp.node_id] = owners[temp.left.node_id]
         return owners
 
-    def reduce_tree_images(self, image, viewpoint):
+    def reduce_tree_images(self, image, viewpoint, *, use_opacity=True):
         if self.comm.size <= 1:
             return image
         myrank = self.comm.rank
@@ -307,7 +307,11 @@ class AMRKDTree(ParallelAnalysisInterface):
             split_pos = node.parent.get_split_pos()
             add_to_front = viewpoint[split_dim] >= split_pos
             image = receive_and_reduce(
-                self.comm, owners[node.parent.right.node_id], image, add_to_front
+                self.comm,
+                owners[node.parent.right.node_id],
+                image,
+                add_to_front,
+                use_opacity=use_opacity,
             )
             if node.parent.node_id == 1:
                 break
