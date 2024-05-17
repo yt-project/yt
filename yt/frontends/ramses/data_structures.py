@@ -640,10 +640,6 @@ class RAMSESIndex(OctreeIndex):
             dsl.update(set(ph.field_offsets.keys()))
 
         self.particle_field_list = list(dsl)
-        cosmo = self.ds.cosmological_simulation
-        for f in self.particle_field_list[:]:
-            if f[1] == "particle_birth_time" and cosmo:
-                self.particle_field_list.append((f[0], "conformal_birth_time"))
 
         # Get the detected fields
         dsl = set()
@@ -809,6 +805,7 @@ class RAMSESDataset(Dataset):
         max_level=None,
         max_level_convention=None,
         default_species_fields=None,
+        use_conformal_time=None,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -833,6 +830,10 @@ class RAMSESDataset(Dataset):
         self._extra_particle_fields = extra_particle_fields
         self.force_cosmological = cosmological
         self._bbox = bbox
+        if use_conformal_time is not None:
+            self.use_conformal_time = use_conformal_time
+        else:
+            self.use_conformal_time = cosmological
 
         self._force_max_level = self._sanitize_max_level(
             max_level, max_level_convention

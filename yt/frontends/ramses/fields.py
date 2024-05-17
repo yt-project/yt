@@ -180,7 +180,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         super().setup_particle_fields(ptype)
 
         def star_age(field, data):
-            if data.ds.cosmological_simulation:
+            if data.ds.cosmological_simulation and data.ds.use_conformal_time:
                 conformal_age = data[ptype, "conformal_birth_time"]
                 physical_age = convert_ramses_conformal_time_to_physical_age(
                     data.ds, conformal_age

@@ -2,6 +2,7 @@ import abc
 import os
 import struct
 from collections.abc import Callable
+from functools import cached_property
 from itertools import chain, count
 from typing import TYPE_CHECKING, Any
 
@@ -18,6 +19,7 @@ from .io import (
     _ramses_particle_csv_file_handler,
     _read_part_binary_file_descriptor,
     _read_part_csv_file_descriptor,
+    convert_ramses_conformal_time_to_physical_age,
 )
 
 if TYPE_CHECKING:
@@ -156,6 +158,26 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
         self.read_header()
         return self._header
 
+    def handle_field(
+        self, field: tuple[str, str], data_dict: dict[tuple[str, str], np.ndarray]
+    ):
+        """
+        This function allows custom code to be called to handle special cases,
+        such as the particle birth time.
+
+        It updates the `data_dict` dictionary with the new data.
+
+        Parameters
+        ----------
+        field : tuple[str, str]
+            The field name.
+        data_dict : dict[tuple[str, str], np.ndarray]
+            A dictionary containing the data.
+
+        By default, this function does nothing.
+        """
+        pass
+
 
 _default_dtypes: dict[int, str] = {
     1: "c",  # char
@@ -293,8 +315,66 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             )
             self.ds._warned_extra_fields["io"] = True
 
+        if self.has_birth_file:
+            # Sentinel value: this will prevent birth times from being read from
+            # the partXXXXX.outYYYYY files
+            field_offsets[ptype, "particle_birth_time"] = -1
+            _pfields[ptype, "particle_birth_time"] = "d"
+            self.ds.use_conformal_time = False
+        elif (
+            self.ds.use_conformal_time
+            and (ptype, "particle_birth_time") in field_offsets
+        ):
+            field_offsets[ptype, "conformal_birth_time"] = field_offsets[
+                ptype, "particle_birth_time"
+            ]
+            _pfields[ptype, "conformal_birth_time"] = _pfields[
+                ptype, "particle_birth_time"
+            ]
+
         self._field_offsets = field_offsets
         self._field_types = _pfields
+
+    @property
+    def birth_file_fname(self):
+        basename = os.path.abspath(self.ds.root_folder)
+        iout = int(
+            os.path.basename(self.ds.parameter_filename).split(".")[0].split("_")[1]
+        )
+        icpu = self.domain_id
+
+        fname = os.path.join(basename, f"birth_{iout:05d}.out{icpu:05d}")
+        return fname
+
+    @cached_property
+    def has_birth_file(self):
+        return os.path.exists(self.birth_file_fname)
+
+    def handle_field(
+        self, field: tuple[str, str], data_dict: dict[tuple[str, str], np.ndarray]
+    ):
+        _ptype, fname = field
+        if not (fname == "particle_birth_time" and self.ds.cosmological_simulation):
+            return
+
+        # If the birth files exist, read from them
+        if self.has_birth_file:
+            with FortranFile(self.birth_file_fname) as fd:
+                # Note: values are written in Gyr, so we need to convert back to code_time
+                data_dict[field] = (
+                    self.ds.arr(fd.read_vector("d"), "Gyr").to("code_time").v
+                )
+
+            return
+
+        # Otherwise, convert conformal time to physical age
+        ds = self.ds
+        conformal_time = data_dict[field]
+        physical_age = convert_ramses_conformal_time_to_physical_age(ds, conformal_time)
+        current_time = ds.current_time.in_units("code_time").v
+        # arbitrarily set particles with zero conformal_age to zero
+        # particle_age. This corresponds to DM particles.
+        data_dict[field] = np.where(conformal_time > 0, current_time - physical_age, 0)
 
 
 class SinkParticleFileHandler(ParticleFileHandler):
@@ -414,3 +494,19 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
 
         self._field_offsets = field_offsets
         self._field_types = _pfields
+
+    def handle_field(
+        self, field: tuple[str, str], data_dict: dict[tuple[str, str], np.ndarray]
+    ):
+        _ptype, fname = field
+        if not (fname == "particle_birth_time" and self.ds.cosmological_simulation):
+            return
+
+        # onvert conformal time to physical age
+        ds = self.ds
+        conformal_time = data_dict[field]
+        physical_age = convert_ramses_conformal_time_to_physical_age(ds, conformal_time)
+        current_time = ds.current_time.in_units("code_time").v
+        # arbitrarily set particles with zero conformal_age to zero
+        # particle_age. This corresponds to DM particles.
+        data_dict[field] = np.where(conformal_time > 0, current_time - physical_age, 0)
