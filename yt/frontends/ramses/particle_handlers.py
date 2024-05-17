@@ -370,7 +370,11 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         # Otherwise, convert conformal time to physical age
         ds = self.ds
         conformal_time = data_dict[field]
-        physical_age = convert_ramses_conformal_time_to_physical_age(ds, conformal_time).to("code_time").v
+        physical_age = (
+            convert_ramses_conformal_time_to_physical_age(ds, conformal_time)
+            .to("code_time")
+            .v
+        )
         current_time = ds.current_time.in_units("code_time").v
         # arbitrarily set particles with zero conformal_age to zero
         # particle_age. This corresponds to DM particles.
