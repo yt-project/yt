@@ -7,7 +7,6 @@ import numpy as np
 
 from libc.math cimport sqrt
 import cython
-from scipy.integrate import quad
 
 
 
