@@ -15,6 +15,7 @@ from yt.utilities.exceptions import (
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
+from unyt import unyt_array
 
 if TYPE_CHECKING:
     import os
@@ -34,7 +35,7 @@ def convert_ramses_ages(ds, conformal_ages):
 
 def convert_ramses_conformal_time_to_physical_age(
     ds, conformal_time: np.ndarray
-) -> np.ndarray:
+) -> unyt_array:
     """
     Convert conformal times (as defined in RAMSES) to physical age.
 
