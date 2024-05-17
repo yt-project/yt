@@ -44,6 +44,8 @@ jobs:
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_ENVIRONMENT: "LDFLAGS='-static-libstdc++'"
           CIBW_BUILD_VERBOSITY: 1
+          CIBW_TEST_EXTRAS: test
+          CIBW_TEST_COMMAND: pytest -c {project}/pyproject.toml --color=yes --pyargs yt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -57,8 +59,21 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
       - name: Build sdist
         run: pipx run build --sdist
+
+      - name: Test sdist
+        run: |
+          python -m pip install "$(echo dist/*.tar.gz)[test]"
+          python -m pip list
+          project_dir=$(pwd)
+          cd ../../
+          pytest --color=yes --pyargs yt -c $project_dir/pyproject.toml
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
