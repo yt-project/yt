@@ -3,6 +3,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Union
 
 import numpy as np
+from unyt import unyt_array
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.frontends.ramses.definitions import VAR_DESC_RE, VERSION_RE
@@ -14,8 +15,6 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
-from unyt import unyt_array
 
 if TYPE_CHECKING:
     import os
@@ -55,31 +54,12 @@ def convert_ramses_conformal_time_to_physical_age(
     tau_bins = ds.tau_frw * h0
     t_bins = ds.t_frw
 
-    return ds.arr(np.interp(conformal_time, tau_bins, t_bins, right=0.0), t_bins.units)
-
-    tf = ds.t_frw
-    dtau = ds.dtau
-    tauf = ds.tau_frw
-    h100 = ds.hubble_constant
-    nOver2 = ds.n_frw / 2
-    unit_t = ds.parameters["unit_t"]
-    tsim = ds.time_simu
-
-    t_scale = 1.0 / (h100 * 100 * cm_per_km / cm_per_mpc) / unit_t
-
-    # calculate index into lookup table (n_frw elements in
-    # lookup table)
-    dage = 1 + (10 * conformal_time / dtau)
-    dage = np.minimum(dage, nOver2 + (dage - nOver2) / 10.0)
-    iage = np.array(dage, dtype=np.int32)
-
-    # linearly interpolate physical times from tf and tauf lookup
-    # tables.
-    t = tf[iage] * (conformal_time - tauf[iage - 1]) / (tauf[iage] - tauf[iage - 1])
-    t = t + (
-        tf[iage - 1] * (conformal_time - tauf[iage]) / (tauf[iage - 1] - tauf[iage])
+    return ds.arr(
+        np.interp(
+            conformal_time, tau_bins, t_bins, right=t_bins.max(), left=t_bins.min()
+        ),
+        t_bins.units,
     )
-    return (tsim - t) * t_scale
 
 
 def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count):
