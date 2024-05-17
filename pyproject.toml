@@ -119,7 +119,7 @@ nc4-cm1 = ["yt[netCDF4]"]
 open-pmd = ["yt[HDF5]"]
 owls = ["yt[HDF5]"]
 owls-subfind = ["yt[HDF5]"]
-ramses = ["yt[Fortran]"]
+ramses = ["yt[Fortran]", "scipy"]
 rockstar = []
 sdf = ["requests>=2.20.0"]
 stream = []
@@ -225,7 +225,6 @@ test = [
     "nose~=1.3.7; python_version < '3.10'",
     "nose-exclude; python_version < '3.10'",
     "nose-timer~=1.0.0; python_version < '3.10'",
-    "scipy~=1.11.4",
 ]
 typecheck = [
     "mypy==1.5.1",
