@@ -2,12 +2,9 @@
 #include <algorithm>
 #include <memory>
 #include <array>
-#include <iostream>
 #include <cassert>
 #include <math.h>
 #include <random>
-#include <string>
-#include <fstream>
 
 
 typedef double F;
