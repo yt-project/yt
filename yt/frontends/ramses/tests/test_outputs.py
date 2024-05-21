@@ -644,3 +644,42 @@ def test_print_stats():
     ds.print_stats()
 
     # FIXME #3197: use `capsys` with pytest to make sure the print_stats function works as intended
+
+
+@requires_file(output_00080)
+def test_reading_order():
+    # This checks the bug unvovered in #4880
+    # This checks that the result of field accession doesn't
+    # depend on the order
+
+    def _dummy_field(field, data):
+        # Note: this is a dummy field
+        # that doesn't really have any physical meaning
+        # but may trigger some bug in the field
+        # handling.
+        T = data["gas", "temperature"]
+        Z = data["gas", "metallicity"]
+        return T * 1**Z
+
+    fields = [
+        "Density",
+        "x-velocity",
+        "y-velocity",
+        "z-velocity",
+        "Pressure",
+        "Metallicity",
+    ]
+    ds = yt.load(output_00080, fields=fields)
+
+    ds.add_field(
+        ("gas", "test"), function=_dummy_field, units=None, sampling_type="cell"
+    )
+
+    ad = ds.all_data()
+    v0 = ad["gas", "test"]
+
+    ad = ds.all_data()
+    ad["gas", "temperature"]
+    v1 = ad["gas", "test"]
+
+    np.testing.assert_allclose(v0, v1)
