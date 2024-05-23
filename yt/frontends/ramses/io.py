@@ -54,9 +54,14 @@ def convert_ramses_conformal_time_to_physical_age(
     tau_bins = ds.tau_frw * h0
     t_bins = ds.t_frw
 
+    min_time = 0
+    max_time = ds.current_time.to(t_bins.units)
+
     return ds.arr(
-        np.interp(
-            conformal_time, tau_bins, t_bins, right=t_bins.max(), left=t_bins.min()
+        np.clip(
+            np.interp(conformal_time, tau_bins, t_bins, right=max_time, left=min_time),
+            min_time,
+            max_time.value,
         ),
         t_bins.units,
     )
