@@ -42,9 +42,7 @@ jobs:
           CIBW_ARCHS_MACOS: auto
           MACOSX_DEPLOYMENT_TARGET: "10.9" # as of CIBW 2.9, this is the default value, pin it so it can't be bumped silently
           CIBW_ARCHS_WINDOWS: auto64
-          CIBW_ENVIRONMENT: "LDFLAGS='-static-libstdc++'"
           CIBW_BUILD_VERBOSITY: 1
-          CIBW_TEST_SKIP: "*-manylinux*" # https://github.com/yt-project/yt/issues/4910
           CIBW_TEST_COMMAND: python -c "import yt"
 
       - uses: actions/upload-artifact@v4
