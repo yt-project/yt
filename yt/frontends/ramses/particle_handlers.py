@@ -19,7 +19,7 @@ from .io import (
     _ramses_particle_csv_file_handler,
     _read_part_binary_file_descriptor,
     _read_part_csv_file_descriptor,
-    convert_ramses_conformal_time_to_physical_age,
+    convert_ramses_conformal_time_to_physical_time,
 )
 
 if TYPE_CHECKING:
@@ -370,15 +370,14 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         # Otherwise, convert conformal time to physical age
         ds = self.ds
         conformal_time = data_dict[field]
-        physical_age = (
-            convert_ramses_conformal_time_to_physical_age(ds, conformal_time)
+        physical_time = (
+            convert_ramses_conformal_time_to_physical_time(ds, conformal_time)
             .to("code_time")
             .v
         )
-        current_time = ds.current_time.in_units("code_time").v
         # arbitrarily set particles with zero conformal_age to zero
         # particle_age. This corresponds to DM particles.
-        data_dict[field] = np.where(conformal_time > 0, current_time - physical_age, 0)
+        data_dict[field] = np.where(conformal_time != 0, physical_time, 0)
 
 
 class SinkParticleFileHandler(ParticleFileHandler):
@@ -509,8 +508,9 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
         # onvert conformal time to physical age
         ds = self.ds
         conformal_time = data_dict[field]
-        physical_age = convert_ramses_conformal_time_to_physical_age(ds, conformal_time)
-        current_time = ds.current_time.in_units("code_time").v
+        physical_time = convert_ramses_conformal_time_to_physical_time(
+            ds, conformal_time
+        )
         # arbitrarily set particles with zero conformal_age to zero
         # particle_age. This corresponds to DM particles.
-        data_dict[field] = np.where(conformal_time > 0, current_time - physical_age, 0)
+        data_dict[field] = np.where(conformal_time > 0, physical_time, 0)

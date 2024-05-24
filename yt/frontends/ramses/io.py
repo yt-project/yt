@@ -29,14 +29,14 @@ def convert_ramses_ages(ds, conformal_ages):
         stacklevel=3,
         since="4.0.3",
     )
-    return convert_ramses_conformal_time_to_physical_age(ds, conformal_ages)
+    return convert_ramses_conformal_time_to_physical_time(ds, conformal_ages)
 
 
-def convert_ramses_conformal_time_to_physical_age(
+def convert_ramses_conformal_time_to_physical_time(
     ds, conformal_time: np.ndarray
 ) -> unyt_array:
     """
-    Convert conformal times (as defined in RAMSES) to physical age.
+    Convert conformal times (as defined in RAMSES) to physical times.
 
     Arguments
     ---------
@@ -60,7 +60,7 @@ def convert_ramses_conformal_time_to_physical_age(
     return ds.arr(
         np.clip(
             np.interp(
-                conformal_time.value,
+                conformal_time,
                 tau_bins,
                 t_bins.value,
                 right=max_time,

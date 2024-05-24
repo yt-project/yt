@@ -8,7 +8,7 @@ from yt import units
 from yt._typing import KnownFieldsT
 from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.frontends.ramses.io import convert_ramses_conformal_time_to_physical_age
+from yt.frontends.ramses.io import convert_ramses_conformal_time_to_physical_time
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.lib.cosmology_time import t_frw
 from yt.utilities.linear_interpolators import BilinearFieldInterpolator
@@ -182,7 +182,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         def star_age_from_conformal_cosmo(field, data):
             conformal_age = data[ptype, "conformal_birth_time"]
-            birth_time = convert_ramses_conformal_time_to_physical_age(
+            birth_time = convert_ramses_conformal_time_to_physical_time(
                 data.ds, conformal_age
             )
             return data.ds.current_time - birth_time
