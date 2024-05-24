@@ -59,7 +59,13 @@ def convert_ramses_conformal_time_to_physical_age(
 
     return ds.arr(
         np.clip(
-            np.interp(conformal_time, tau_bins, t_bins, right=max_time, left=min_time),
+            np.interp(
+                conformal_time.value,
+                tau_bins,
+                t_bins.value,
+                right=max_time,
+                left=min_time,
+            ),
             min_time,
             max_time.value,
         ),
