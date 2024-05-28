@@ -161,19 +161,6 @@ def pytest_configure(config):
                 ":DeprecationWarning",
             )
 
-    if find_spec("astropy") is not None:
-        # at the time of writing, astropy's wheels are behind numpy's latest
-        # version but this doesn't cause actual problems in our test suite
-        # last updated with astropy 5.0 + numpy 1.22 + pytest 6.2.5
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                "ignore:numpy.ndarray size changed, may indicate binary incompatibility. Expected "
-                r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
-                " from PyObject:RuntimeWarning"
-            ),
-        )
-
     if PANDAS_VERSION is not None and PANDAS_VERSION >= Version("2.2.0"):
         config.addinivalue_line(
             "filterwarnings",
