@@ -1,12 +1,13 @@
 __all__ = [
     "adaptahop",
     "ahf",
+    "amrex",
     "amrvac",
     "art",
     "artio",
     "athena",
     "athena_pp",
-    "boxlib",
+    "boxlib",  # the boxlib frontend is deprecated, use 'amrex'
     "cf_radial",
     "chimera",
     "chombo",

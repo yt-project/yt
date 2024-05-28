@@ -1,6 +1,5 @@
-from ..amrex import tests
-from ..amrex import data_structures
-from ..amrex.data_structures import (
+from . import tests
+from .data_structures import (
     AMReXDataset,
     AMReXHierarchy,
     BoxlibDataset,
@@ -15,11 +14,11 @@ from ..amrex.data_structures import (
     WarpXDataset,
     WarpXHierarchy,
 )
-from ..amrex.fields import (
+from .fields import (
     BoxlibFieldInfo,
     CastroFieldInfo,
     MaestroFieldInfo,
     NyxFieldInfo,
     WarpXFieldInfo,
 )
-from ..amrex.io import IOHandlerBoxlib
+from .io import IOHandlerBoxlib

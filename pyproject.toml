@@ -89,6 +89,7 @@ Fortran = ["f90nml>=1.1"]
 # We also normalize all target names to lower case for consistency.
 adaptahop = []
 ahf = []
+amrex = []
 amrvac = ["yt[Fortran]"]
 art = []
 arepo = ["yt[HDF5]"]
@@ -146,6 +147,7 @@ full = [
     "ratarmount~=0.8.1;platform_system!='Windows' and platform_system!='Darwin'",
     "yt[adaptahop]",
     "yt[ahf]",
+    "yt[amrex]",
     "yt[amrvac]",
     "yt[art]",
     "yt[arepo]",
@@ -348,6 +350,7 @@ addopts = '''
     --ignore='yt/fields/tests/test_xray_fields.py'
     --ignore='yt/frontends/adaptahop/tests/test_outputs.py'
     --ignore='yt/frontends/ahf/tests/test_outputs.py'
+    --ignore='yt/frontends/amrex/tests/test_outputs.py'
     --ignore='yt/frontends/amrvac/tests/test_outputs.py'
     --ignore='yt/frontends/amrvac/tests/test_units_override.py'
     --ignore='yt/frontends/arepo/tests/test_outputs.py'
