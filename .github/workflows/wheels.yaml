@@ -43,7 +43,8 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "10.9" # as of CIBW 2.9, this is the default value, pin it so it can't be bumped silently
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_BUILD_VERBOSITY: 1
-          CIBW_TEST_COMMAND: python -c "import yt"
+          CIBW_TEST_EXTRAS: test
+          CIBW_TEST_COMMAND: pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -67,11 +68,11 @@ jobs:
 
       - name: Test sdist
         run: |
-          python -m pip install "$(echo dist/*.tar.gz)"
+          python -m pip install "$(echo dist/*.tar.gz)[test]"
           python -m pip list
           project_dir=$(pwd)
           cd ../../
-          python -c "import yt"
+          pytest -c $project_dir/pyproject.toml --rootdir . --color=yes --pyargs yt
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
