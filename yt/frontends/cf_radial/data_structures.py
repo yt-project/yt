@@ -311,10 +311,10 @@ class CFRadialDataset(Dataset):
             with nc4_file.open_ds(keepweakref=True) as ds:
                 con = "Conventions"  # the attribute to check for file conventions
                 cons = ""  # the value of the Conventions attribute
-                for c in [con, con.lower()]:
+                for c in [con, con.lower(), "Sub_" + con.lower()]:
                     if hasattr(ds, c):
                         cons += getattr(ds, c)
-                is_cfrad = "CF/Radial" in cons
+                is_cfrad = "CF/Radial" in cons or "CF-Radial" in cons
         except (OSError, AttributeError, ImportError):
             return False
 
