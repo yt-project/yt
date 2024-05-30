@@ -1,5 +1,4 @@
 import re
-import string
 
 import numpy as np
 
@@ -369,14 +368,6 @@ class CastroFieldInfo(FieldInfoContainer):
                     function=func,
                     units=self.ds.unit_system["density"],
                 )
-                # We know this will either have one letter, or two.
-                if field[3] in string.ascii_letters:
-                    element, weight = field[2:4], field[4:-1]
-                else:
-                    element, weight = field[2:3], field[3:-1]  # NOQA
-
-                # Here we can, later, add number density
-                # right now element and weight inferred above are unused
 
 
 class MaestroFieldInfo(FieldInfoContainer):
@@ -490,20 +481,6 @@ class MaestroFieldInfo(FieldInfoContainer):
                     units=unit_system["density"],
                     display_name=rf"\rho {tex_label}",
                 )
-
-                # Most of the time our species will be of the form
-                # element name + atomic weight (e.g. C12), but
-                # sometimes we make up descriptive names (e.g. ash)
-                if any(char.isdigit() for char in field):
-                    # We know this will either have one letter, or two.
-                    if field[3] in string.ascii_letters:
-                        element, weight = field[2:4], field[4:-1]
-                    else:
-                        element, weight = field[2:3], field[3:-1]  # NOQA
-                    weight = int(weight)
-
-                # Here we can, later, add number density using 'element' and
-                # 'weight' inferred above
 
             elif field.startswith("omegadot("):
                 nice_name, tex_label = _nice_species_name(field)
