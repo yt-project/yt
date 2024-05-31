@@ -310,6 +310,9 @@ class CFRadialDataset(Dataset):
             nc4_file = NetCDF4FileHandler(filename)
             with nc4_file.open_ds(keepweakref=True) as ds:
                 con = "Conventions"  # the attribute to check for file conventions
+                # note that the attributes here are potentially space- or
+                # comma-delimited strings, so we concatenate a single string
+                # to search for a substring.
                 cons = ""  # the value of the Conventions attribute
                 for c in [con, con.lower(), "Sub_" + con.lower()]:
                     if hasattr(ds, c):
