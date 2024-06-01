@@ -440,6 +440,8 @@ class YTGrid(AMRGridPatch):
 
 
 class YTDataHierarchy(GridIndex):
+    min_level = 0
+
     def __init__(self, ds, dataset_type=None):
         self.dataset_type = dataset_type
         self.float_type = "float64"
@@ -709,6 +711,7 @@ class YTNonspatialGrid(AMRGridPatch):
 
 class YTNonspatialHierarchy(YTDataHierarchy):
     grid = YTNonspatialGrid
+    min_level = 0
 
     def _populate_grid_objects(self):
         for g in self.grids:

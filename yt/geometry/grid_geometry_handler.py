@@ -1,9 +1,11 @@
 import abc
 import weakref
 from collections import defaultdict
+from functools import cached_property
 from typing import Optional
 
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
@@ -29,6 +31,7 @@ class GridIndex(Index, abc.ABC):
         "grid_particle_count",
         "grid_dimensions",
     )
+    min_level = 0  # Will be overridden where appropriate
 
     def _setup_geometry(self):
         mylog.debug("Counting grids.")
@@ -287,29 +290,39 @@ class GridIndex(Index, abc.ABC):
         if not len(x) == len(y) == len(z):
             raise ValueError("Arrays of indices must be of the same size")
 
-        grid_tree = self._get_grid_tree()
-        pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
+        pts = MatchPointsToGrids(self.grid_tree, len(x), x, y, z)
         ind = pts.find_points_in_tree()
         return self.grids[ind], ind
 
-    def _get_grid_tree(self):
+    @cached_property
+    def grid_tree(self):
+        # For order-of-import, we import this here
+        if self.ds.dimensionality < 3:
+            return None
+        from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         right_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         level = np.zeros((self.num_grids), dtype="int64")
-        parent_ind = np.zeros((self.num_grids), dtype="int64")
+        parent_ind = []
         num_children = np.zeros((self.num_grids), dtype="int64")
         dimensions = np.zeros((self.num_grids, 3), dtype="int32")
+        # Some things become slightly more complicated because in some
+        # frontends, the parent relationship can be 1:N.  So we need to
+        # construct a list of lists.
 
         for i, grid in enumerate(self.grids):
             left_edge[i, :] = grid.LeftEdge
             right_edge[i, :] = grid.RightEdge
             level[i] = grid.Level
-            if grid.Parent is None:
-                parent_ind[i] = -1
+            parents = list(always_iterable(grid.Parent, base_type=(AMRGridPatch,)))
+            if len(parents) == 0 or parents[0] is None:
+                parent_ind.append([-1])
             else:
-                parent_ind[i] = grid.Parent.id - grid.Parent._id_offset
+                parent_ind.append([_.id - _._id_offset for _ in parents])
             num_children[i] = np.int64(len(grid.Children))
             dimensions[i, :] = grid.ActiveDimensions
+        # Now we need to convert the list of parents into an array
 
         return GridTree(
             self.num_grids,
@@ -319,6 +332,8 @@ class GridIndex(Index, abc.ABC):
             parent_ind,
             level,
             num_children,
+            self.ds.refine_by,
+            self.min_level,
         )
 
     def convert(self, unit):
@@ -345,7 +360,7 @@ class GridIndex(Index, abc.ABC):
         # if dobj._type_name != "grid":
         #    fast_index = self._get_grid_tree()
         if getattr(dobj, "size", None) is None:
-            dobj.size = self._count_selection(dobj, fast_index=fast_index)
+            dobj.size = self._count_selection(dobj, fast_index=self.grid_tree)
         if getattr(dobj, "shape", None) is None:
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(
@@ -353,7 +368,11 @@ class GridIndex(Index, abc.ABC):
         )[0]
 
     def _count_selection(self, dobj, grids=None, fast_index=None):
-        if fast_index is not None:
+        if fast_index is not None and dobj._type_name not in (
+            "grid",
+            "data_collection",
+            "ray",
+        ):
             return fast_index.count(dobj.selector)
         if grids is None:
             grids = dobj._chunk_info

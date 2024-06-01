@@ -121,7 +121,7 @@ cdef class bitarray:
                 j = 0
         return output.astype("bool")
 
-    cdef void _set_value(self, np.uint64_t ind, np.uint8_t val):
+    cdef void _set_value(self, np.uint64_t ind, np.uint8_t val) noexcept nogil:
         ba_set_value(self.buf, ind, val)
 
     def set_value(self, np.uint64_t ind, np.uint8_t val):
@@ -146,7 +146,7 @@ cdef class bitarray:
         """
         ba_set_value(self.buf, ind, val)
 
-    cdef np.uint8_t _query_value(self, np.uint64_t ind):
+    cdef np.uint8_t _query_value(self, np.uint64_t ind) noexcept nogil:
         return ba_get_value(self.buf, ind)
 
     def query_value(self, np.uint64_t ind):

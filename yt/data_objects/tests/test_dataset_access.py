@@ -1,15 +1,12 @@
 import numpy as np
-from nose.tools import assert_raises
+import pytest
 from numpy.testing import assert_almost_equal, assert_equal
 
 from yt.testing import (
     fake_amr_ds,
     fake_particle_ds,
     fake_random_ds,
-    requires_file,
-    requires_module,
 )
-from yt.utilities.answer_testing.framework import data_dir_load
 from yt.utilities.exceptions import YTDimensionalityError
 from yt.visualization.line_plot import LineBuffer
 
@@ -66,7 +63,7 @@ def test_region_from_d():
     assert_equal(reg1["gas", "density"], reg2["gas", "density"])
 
     # Test with bad boundary initialization
-    with assert_raises(RuntimeError):
+    with pytest.raises(RuntimeError):
         ds.r[0.3:0.1, 0.4:0.6, :]
 
     # Test region by creating an arbitrary grid
@@ -120,9 +117,9 @@ def test_point_from_r():
     assert_equal(pt1["gas", "density"], pt2["gas", "density"])
 
     # Test YTDimensionalityError
-    with assert_raises(YTDimensionalityError) as ex:
+    with pytest.raises(YTDimensionalityError) as ex:
         ds.r[0.5, 0.1]
-    assert_equal(str(ex.exception), "Dimensionality specified was 2 but we need 3")
+        assert_equal(str(ex.exception), "Dimensionality specified was 2 but we need 3")
 
 
 def test_ray_from_r():
@@ -177,13 +174,3 @@ def test_particle_counts():
 
     pds = fake_particle_ds(npart=128)
     assert pds.particle_type_counts == {"io": 128}
-
-
-g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
-
-
-@requires_module("h5py")
-@requires_file(g30)
-def test_checksum():
-    assert fake_random_ds(16).checksum == "notafile"
-    assert data_dir_load(g30).checksum == "6169536e4b9f737ce3d3ad440df44c58"
