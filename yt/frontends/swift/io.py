@@ -66,7 +66,7 @@ class IOHandlerSwift(IOHandlerSPH):
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int64")
             pcount = np.clip(pcount - si, 0, ei - si)
             # we upscale to float64
-            hsml = f[ptype]["SmoothingLength"][si:ei, ...]
+            hsml = f[ptype]["SmoothingLengths"][si:ei, ...]
             hsml = hsml.astype("float64", copy=False)
             return hsml
 
