@@ -87,7 +87,7 @@ class YTDataContainer(abc.ABC):
         # constructor, in which case it will override the default.
         # This code ensures it is never not set.
 
-        self.ds: "Dataset"
+        self.ds: Dataset
         if ds is not None:
             self.ds = ds
         else:

@@ -431,7 +431,7 @@ class ColorbarHandler:
         self._draw_minorticks = draw_minorticks
         self._cmap: Optional[Colormap] = None
         self._set_cmap(cmap)
-        self._background_color: Optional["ColorType"] = background_color
+        self._background_color: Optional[ColorType] = background_color
 
     @property
     def draw_cbar(self) -> bool:

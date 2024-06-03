@@ -483,7 +483,7 @@ class VelocityCallback(PlotCallback):
                 )
             else:
                 assert_never(geometry)
-        qcb: "BaseQuiverCallback"
+        qcb: BaseQuiverCallback
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback(
                 (ftype, "cutting_plane_velocity_x"),
@@ -609,7 +609,7 @@ class MagFieldCallback(PlotCallback):
         ftype = plot.data._current_fluid_type
         # Instantiation of these is cheap
         geometry: Geometry = plot.data.ds.geometry
-        qcb: "BaseQuiverCallback"
+        qcb: BaseQuiverCallback
         if plot._type_name == "CuttingPlane":
             if geometry is Geometry.CARTESIAN:
                 pass

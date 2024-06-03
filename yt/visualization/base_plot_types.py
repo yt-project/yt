@@ -247,7 +247,7 @@ class ImagePlotMPL(PlotMPL, ABC):
     ):
         """Initialize ImagePlotMPL class object"""
 
-        self._transform: Optional["Transform"]
+        self._transform: Optional[Transform]
         setdefaultattr(self, "_transform", None)
 
         self.colorbar_handler = colorbar_handler
@@ -332,7 +332,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         self._set_axes()
 
     def _set_axes(self) -> None:
-        fmt_kwargs: "FormatKwargs" = {
+        fmt_kwargs: FormatKwargs = {
             "style": "scientific",
             "scilimits": (-2, 3),
             "useMathText": True,
@@ -343,7 +343,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         self.cax.tick_params(which="both", direction="in")
         self.cb = self.figure.colorbar(self.image, self.cax)
 
-        cb_axis: "Axis"
+        cb_axis: Axis
         if self.cb.orientation == "vertical":
             cb_axis = self.cb.ax.yaxis
         else:
