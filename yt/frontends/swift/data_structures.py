@@ -2,10 +2,11 @@ import numpy as np
 
 from yt.data_objects.static_output import ParticleFile
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
-from yt.frontends.sph.fields import SPHFieldInfo
 from yt.funcs import only_on_root
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
+
+from .fields import SwiftFieldInfo
 
 
 class SwiftParticleFile(ParticleFile):
@@ -15,7 +16,7 @@ class SwiftParticleFile(ParticleFile):
 class SwiftDataset(SPHDataset):
     _load_requirements = ["h5py"]
     _index_class = SPHParticleIndex
-    _field_info_class = SPHFieldInfo
+    _field_info_class = SwiftFieldInfo
     _file_class = SwiftParticleFile
 
     _particle_mass_name = "Masses"
