@@ -120,7 +120,7 @@ def load(
     for entrypoint in external_frontends:
         entrypoint.load()
 
-    candidates: list[type["Dataset"]] = []
+    candidates: list[type[Dataset]] = []
     for cls in output_type_registry.values():
         if cls._is_valid(fn, *args, **kwargs):
             candidates.append(cls)
