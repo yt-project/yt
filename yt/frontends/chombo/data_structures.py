@@ -219,7 +219,7 @@ class ChomboHierarchy(GridIndex):
             get_box_grids_level(
                 self.grid_left_edge[i, :],
                 self.grid_right_edge[i, :],
-                self.grid_levels[i] + 1,
+                self.grid_levels[i].item() + 1,
                 self.grid_left_edge,
                 self.grid_right_edge,
                 self.grid_levels,

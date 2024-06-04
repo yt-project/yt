@@ -115,7 +115,7 @@ class GDFHierarchy(GridIndex):
             get_box_grids_level(
                 self.grid_left_edge[gi, :],
                 self.grid_right_edge[gi, :],
-                self.grid_levels[gi],
+                self.grid_levels[gi].item(),
                 self.grid_left_edge,
                 self.grid_right_edge,
                 self.grid_levels,
