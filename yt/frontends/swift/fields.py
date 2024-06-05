@@ -1,11 +1,9 @@
-from yt._typing import KnownFieldsT
 from yt.frontends.sph.fields import SPHFieldInfo
 
 
 class SwiftFieldInfo(SPHFieldInfo):
     def __init__(self, ds, field_list, slice_info=None):
         self.known_particle_fields += (
-            ("Mass", ("code_mass", ["particle_mass", "mass"], None)),
             (
                 "InternalEnergies",
                 ("code_specific_energy", ["specific_thermal_energy"], None),
