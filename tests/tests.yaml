@@ -171,6 +171,11 @@ answer_tests:
   local_nc4_cm1_002: # PR  2176, 2998
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
+  local_parthenon_001: # PR 4323
+    - yt/frontends/parthenon/tests/test_outputs.py:test_loading_data
+    - yt/frontends/parthenon/tests/test_outputs.py:test_cluster
+    - yt/frontends/parthenon/tests/test_outputs.py:test_derived_fields
+
 other_tests:
   unittests:
      # keep in sync with nose_ignores.txt
