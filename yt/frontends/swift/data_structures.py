@@ -98,6 +98,12 @@ class SwiftDataset(SPHDataset):
         # Read from the HDF5 file, this gives us all the info we need. The rest
         # of this function is just parsing.
         header = self._get_info_attributes("Header")
+        # RuntimePars were removed from snapshots at SWIFT commit 6271388
+        with h5py.File(self.filename, mode="r") as handle:
+            has_runtime_pars = "RuntimePars" in handle.keys()
+
+        if has_runtime_pars:
+            runtime_parameters = self._get_info_attributes("RuntimePars")
 
         policy = self._get_info_attributes("Policy")
         # These are the parameterfile parameters from *.yml at runtime
@@ -113,7 +119,10 @@ class SwiftDataset(SPHDataset):
         self.dimensionality = int(header["Dimension"])
 
         # SWIFT is either all periodic, or not periodic at all
-        periodic = int(parameters["InitialConditions:periodic"])
+        if has_runtime_pars:
+            periodic = int(runtime_parameters["PeriodicBoundariesOn"])
+        else:
+            periodic = int(parameters["InitialConditions:periodic"])
 
         if periodic:
             self._periodicity = [True] * self.dimensionality
@@ -131,9 +140,13 @@ class SwiftDataset(SPHDataset):
                 self.current_redshift = float(header["Redshift"])
                 # These won't be present if self.cosmological_simulation is false
                 self.omega_lambda = float(parameters["Cosmology:Omega_lambda"])
-                self.omega_matter = float(parameters["Cosmology:Omega_b"]) + float(
-                    parameters["Cosmology:Omega_cdm"]
-                )
+                # Cosmology:Omega_m parameter deprecated at SWIFT commit d2783c2
+                if "Cosmology:Omega_m" in parameters:
+                    self.omega_matter = float(parameters["Cosmology:Omega_m"])
+                else:
+                    self.omega_matter = float(parameters["Cosmology:Omega_b"]) + float(
+                        parameters["Cosmology:Omega_cdm"]
+                    )
                 # This is "little h"
                 self.hubble_constant = float(parameters["Cosmology:h"])
             except KeyError:
@@ -162,6 +175,9 @@ class SwiftDataset(SPHDataset):
             "hydro": hydro,
             "subgrid": subgrid,
         }
+
+        if has_runtime_pars:
+            self.parameters["runtime_parameters"] = runtime_parameters
 
         # SWIFT never has multi file snapshots
         self.file_count = 1
