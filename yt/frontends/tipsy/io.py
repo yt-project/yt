@@ -181,11 +181,11 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                         )
                     )
                 else:
-                    aux_fh[afield].seek(0)
+                    aux_fh(afield).seek(0)
                     sh = aux_fields_offsets[afield][ptype]
                     if tp[ptype] > 0:
                         aux = np.genfromtxt(
-                            aux_fh[afield], skip_header=sh, max_rows=count
+                            aux_fh(afield), skip_header=sh, max_rows=count
                         )
                         if aux.ndim < 1:
                             aux = np.array([aux])
@@ -212,7 +212,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
         # close all file handles
         f.close()
-        for fh in list(_aux_fh.values()):
+        for fh in _aux_fh.values():
             fh.close()
 
         return return_data
