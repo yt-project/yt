@@ -105,6 +105,8 @@ class SwiftDataset(SPHDataset):
 
         if has_runtime_pars:
             runtime_parameters = self._get_info_attributes("RuntimePars")
+        else:
+            runtime_parameters = {}
 
         policy = self._get_info_attributes("Policy")
         # These are the parameterfile parameters from *.yml at runtime
@@ -174,12 +176,11 @@ class SwiftDataset(SPHDataset):
             "header": header,
             "policy": policy,
             "parameters": parameters,
+            # NOTE: runtime_parameters may be empty
+            "runtime_parameters": runtime_parameters,
             "hydro": hydro,
             "subgrid": subgrid,
         }
-
-        if has_runtime_pars:
-            self.parameters["runtime_parameters"] = runtime_parameters
 
         # SWIFT never has multi file snapshots
         self.file_count = 1
