@@ -141,12 +141,12 @@ class SwiftDataset(SPHDataset):
                 # These won't be present if self.cosmological_simulation is false
                 self.omega_lambda = float(parameters["Cosmology:Omega_lambda"])
                 # Cosmology:Omega_m parameter deprecated at SWIFT commit d2783c2
-                if "Cosmology:Omega_m" in parameters:
-                    self.omega_matter = float(parameters["Cosmology:Omega_m"])
-                else:
+                if "Cosmology:Omega_cdm" in parameters:
                     self.omega_matter = float(parameters["Cosmology:Omega_b"]) + float(
                         parameters["Cosmology:Omega_cdm"]
                     )
+                else:
+                    self.omega_matter = float(parameters["Cosmology:Omega_m"])
                 # This is "little h"
                 self.hubble_constant = float(parameters["Cosmology:h"])
             except KeyError:
