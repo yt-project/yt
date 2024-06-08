@@ -99,6 +99,7 @@ class SwiftDataset(SPHDataset):
         # of this function is just parsing.
         header = self._get_info_attributes("Header")
         # RuntimePars were removed from snapshots at SWIFT commit 6271388
+        # between SWIFT versions 0.8.5 and 0.9.0
         with h5py.File(self.filename, mode="r") as handle:
             has_runtime_pars = "RuntimePars" in handle.keys()
 
@@ -141,6 +142,7 @@ class SwiftDataset(SPHDataset):
                 # These won't be present if self.cosmological_simulation is false
                 self.omega_lambda = float(parameters["Cosmology:Omega_lambda"])
                 # Cosmology:Omega_m parameter deprecated at SWIFT commit d2783c2
+                # Between SWIFT versions 0.9.0 and 1.0.0
                 if "Cosmology:Omega_cdm" in parameters:
                     self.omega_matter = float(parameters["Cosmology:Omega_b"]) + float(
                         parameters["Cosmology:Omega_cdm"]
