@@ -8,7 +8,16 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_simple_proxy,
 )
 
-_field_names = ("hash", "bn", "fp", "tt", "ctid", "class_name", "last_seen")
+_field_names = (
+    "hash",
+    "bn",
+    "fp",
+    "tt",
+    "ctid",
+    "class_name",
+    "module_name",
+    "last_seen",
+)
 
 
 class NoParameterShelf(Exception):
@@ -104,6 +113,7 @@ class ParameterFileStore:
             "tt": ds.current_time,
             "ctid": ds.unique_identifier,
             "class_name": ds.__class__.__name__,
+            "module_name": ds.__module__,
             "last_seen": ds._instantiated,
         }
 
@@ -114,7 +124,17 @@ class ParameterFileStore:
         fn = os.path.join(fp, bn)
         class_name = ds_dict["class_name"]
         if class_name not in output_type_registry:
-            raise UnknownDatasetType(class_name)
+            # first check that the relevant frontend is imported:
+            # the output_type_registry is refreshed between sessions as
+            # frontends are imported on-demand now.
+            import importlib
+
+            module = ds_dict["module_name"]
+            fe_api = ".".join(module.split(".")[0:3]) + ".api"
+            _ = importlib.import_module(fe_api)
+            # if it is **still** not in the registry, error
+            if class_name not in output_type_registry:
+                raise UnknownDatasetType(class_name)
         mylog.info("Checking %s", fn)
         if os.path.exists(fn):
             ds = output_type_registry[class_name](os.path.join(fp, bn))
