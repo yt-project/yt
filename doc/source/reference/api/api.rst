@@ -217,18 +217,18 @@ AMReX/Boxlib
 
 .. autosummary::
 
-   ~yt.frontends.boxlib.data_structures.BoxlibGrid
-   ~yt.frontends.boxlib.data_structures.BoxlibHierarchy
-   ~yt.frontends.boxlib.data_structures.BoxlibDataset
-   ~yt.frontends.boxlib.data_structures.CastroDataset
-   ~yt.frontends.boxlib.data_structures.MaestroDataset
-   ~yt.frontends.boxlib.data_structures.NyxHierarchy
-   ~yt.frontends.boxlib.data_structures.NyxDataset
-   ~yt.frontends.boxlib.data_structures.OrionHierarchy
-   ~yt.frontends.boxlib.data_structures.OrionDataset
-   ~yt.frontends.boxlib.fields.BoxlibFieldInfo
-   ~yt.frontends.boxlib.io.IOHandlerBoxlib
-   ~yt.frontends.boxlib.io.IOHandlerOrion
+   ~yt.frontends.amrex.data_structures.BoxlibGrid
+   ~yt.frontends.amrex.data_structures.BoxlibHierarchy
+   ~yt.frontends.amrex.data_structures.BoxlibDataset
+   ~yt.frontends.amrex.data_structures.CastroDataset
+   ~yt.frontends.amrex.data_structures.MaestroDataset
+   ~yt.frontends.amrex.data_structures.NyxHierarchy
+   ~yt.frontends.amrex.data_structures.NyxDataset
+   ~yt.frontends.amrex.data_structures.OrionHierarchy
+   ~yt.frontends.amrex.data_structures.OrionDataset
+   ~yt.frontends.amrex.fields.BoxlibFieldInfo
+   ~yt.frontends.amrex.io.IOHandlerBoxlib
+   ~yt.frontends.amrex.io.IOHandlerOrion
 
 CfRadial
 ^^^^^^^^
