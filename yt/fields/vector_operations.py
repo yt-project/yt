@@ -87,6 +87,7 @@ def create_relative_field(
             iax = axis_order.index(ax)
             d = data[field_components[iax]]
             bulk = get_bulk(data, basename, d.unit_quantity)
+            bulk = bulk.astype(d.dtype)
             return d - bulk[iax]
 
         return _relative_vector
