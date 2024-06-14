@@ -39,7 +39,7 @@ elif [[ ${dependencies} == "cartopy" ]]; then
     python -m pip install scipy
     python -m pip install -e ".[test]"
 elif [[ ${dependencies} == "full" ]]; then
-    python -m pip install astropy --pre --extra-index-url=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
+    #python -m pip install astropy --pre --extra-index-url=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
     # test with all optional runtime dependencies
     python -m pip install -e ".[test,full]"
 else
