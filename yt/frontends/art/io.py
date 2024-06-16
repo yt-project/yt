@@ -635,7 +635,7 @@ def b2t(tb, n=1e2, logger=None, **kwargs):
         return a2t(b2a(tb))
     if len(tb) < n:
         n = len(tb)
-    tbs = -1.0 * np.logspace(np.log10(-tb.min()), np.log10(-tb.max()), n)
+    tbs = -1.0 * np.logspace(np.log10(-tb.min()), np.log10(-tb.max()), int(n))
     ages = []
     for i, tbi in enumerate(tbs):
         ages += (a2t(b2a(tbi)),)
