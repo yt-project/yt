@@ -9,4 +9,4 @@ NUMPY_VERSION = Version(version("numpy"))
 if NUMPY_VERSION >= Version("2.0.0dev0"):
     from numpy import trapezoid as trapezoid  # type: ignore [attr-defined]
 else:
-    from numpy import trapz as trapezoid  # noqa: F401
+    from numpy import trapz as trapezoid  # type: ignore [attr-defined] # noqa: F401
