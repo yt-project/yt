@@ -362,7 +362,7 @@ def create_vector_fields(
             ds = div_fac * just_one(data["index", "dz"])
             f += data[zn[0], f"relative_{zn[1]}"][1:-1, 1:-1, sl_right] / ds
             f -= data[zn[0], f"relative_{zn[1]}"][1:-1, 1:-1, sl_left] / ds
-            new_field = data.ds.arr(np.zeros(data[xn].shape, dtype=np.float64), f.units)
+            new_field = data.ds.arr(np.zeros(data[xn].shape, dtype="f8"), str(f.units))
             new_field[1:-1, 1:-1, 1:-1] = f
             return new_field
 
