@@ -406,8 +406,9 @@ class EnzoEDataset(Dataset):
         ablock = fh[list(fh.keys())[0]]
         self.current_time = ablock.attrs["time"][0]
         self.parameters["current_cycle"] = ablock.attrs["cycle"][0]
-        gsi = ablock.attrs["enzo_GridStartIndex"]  # <- always has 3 elements
+        gsi = ablock.attrs["enzo_GridStartIndex"]
         gei = ablock.attrs["enzo_GridEndIndex"]
+        assert len(gsi) == len(gei) == 3  # sanity check
         # Enzo-E technically allows each axis to have different ghost zone
         # depths (this feature is not really used in practice)
         self.ghost_zones = gsi
