@@ -97,7 +97,12 @@ artio = []
 athena = []
 athena-pp = []
 boxlib = []
-cf-radial = ["xarray>=0.16.1", "arm-pyart!=1.12.5,>=1.11.4"]
+cf-radial = [
+    "xarray>=0.16.1",
+    "arm-pyart!=1.12.5,>=1.11.4",
+    # https://github.com/ARM-DOE/pyart/issues/1602
+    "arm-pyart!=1.18.5 ; platform_system=='Darwin'"
+]
 chimera = ["yt[HDF5]"]
 chombo = ["yt[HDF5]"]
 cholla = ["yt[HDF5]"]
