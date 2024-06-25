@@ -65,8 +65,14 @@ class IOHandlerSwift(IOHandlerSPH):
         with h5py.File(sub_file.filename, mode="r") as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int64")
             pcount = np.clip(pcount - si, 0, ei - si)
+            keys = f[ptype].keys()
+            # SWIFT commit a94cc81 changed from "SmoothingLength" to "SmoothingLengths"
+            # between SWIFT versions 0.8.2 and 0.8.3
+            if "SmoothingLengths" in keys:
+                hsml = f[ptype]["SmoothingLengths"][si:ei, ...]
+            else:
+                hsml = f[ptype]["SmoothingLength"][si:ei, ...]
             # we upscale to float64
-            hsml = f[ptype]["SmoothingLength"][si:ei, ...]
             hsml = hsml.astype("float64", copy=False)
             return hsml
 
