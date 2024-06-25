@@ -69,7 +69,7 @@ answer_tests:
     - yt/frontends/chombo/tests/test_outputs.py:test_zp
     - yt/frontends/chombo/tests/test_outputs.py:test_kho
 
-  local_enzo_009:  # PR 3856
+  local_enzo_011:  # PR 4930
     - yt/frontends/enzo/tests/test_outputs.py:test_moving7
     - yt/frontends/enzo/tests/test_outputs.py:test_galaxy0030
     - yt/frontends/enzo/tests/test_outputs.py:test_toro1d
