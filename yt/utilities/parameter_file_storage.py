@@ -91,6 +91,8 @@ class ParameterFileStore:
 
     def _get_db_name(self):
         base_file_name = ytcfg.get("yt", "parameter_file_store")
+        if os.path.isfile(base_file_name):
+            return os.path.abspath(base_file_name)
         if not os.access(os.path.expanduser("~/"), os.W_OK):
             return os.path.abspath(base_file_name)
         return os.path.expanduser(f"~/.yt/{base_file_name}")
