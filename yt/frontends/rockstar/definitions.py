@@ -108,7 +108,7 @@ for rev in KNOWN_REVISIONS:
         if len(item) == 2:
             halo_dts_tmp[rev].append(item)
         elif len(item) == 3:
-            mi, ma = item[2]  # type: ignore
+            mi, ma = item[2]
             if (mi <= rev) and (rev <= ma):
                 halo_dts_tmp[rev].append(item[:2])
     halo_dts[rev] = np.dtype(halo_dts_tmp[rev], align=True)
