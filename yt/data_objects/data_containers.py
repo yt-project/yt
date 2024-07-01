@@ -297,7 +297,7 @@ class YTDataContainer(abc.ABC):
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
         try:
-            rv = self.ds.arr(np.zeros(self.ires.size, dtype="float64"), units)
+            rv = np.zeros(self.ires.size, dtype="float64")
             accumulate = False
         except YTNonIndexedDataContainer:
             # In this case, we'll generate many tiny arrays of unknown size and
@@ -312,7 +312,7 @@ class YTDataContainer(abc.ABC):
                 for _chunk in self.chunks([], "spatial", ngz=0, preload_fields=deps):
                     o = self._current_chunk.objs[0]
                     if accumulate:
-                        rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"), units)
+                        rv = np.empty(o.ires.size, dtype="float64")
                         outputs.append(rv)
                         ind = 0  # Does this work with mesh?
                     with o._activate_cache():
@@ -327,9 +327,7 @@ class YTDataContainer(abc.ABC):
                     gz.field_parameters = self.field_parameters
                     wogz = gz._base_grid
                     if accumulate:
-                        rv = self.ds.arr(
-                            np.empty(wogz.ires.size, dtype="float64"), units
-                        )
+                        rv = np.empty(wogz.ires.size, dtype="float64")
                         outputs.append(rv)
                     ind += wogz.select(
                         self.selector,
@@ -337,6 +335,7 @@ class YTDataContainer(abc.ABC):
                         dest=rv,
                         offset=ind,
                     )
+        rv = self.ds.arr(rv, units)
         if accumulate:
             rv = uconcatenate(outputs)
         return rv
