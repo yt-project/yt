@@ -1927,7 +1927,6 @@ def rotate_particle_coord(np.float64_t[:] px,
     cdef np.float64_t rot_bounds_y1 = rotated_center[1] + 0.5 * width[1]
     cdef np.float64_t rot_bounds_z0 = rotated_center[2] - 0.5 * depth
     cdef np.float64_t rot_bounds_z1 = rotated_center[2] + 0.5 * depth
-
     for i in range(num_particles):
         coordinate_matrix[0] = px[i]
         coordinate_matrix[1] = py[i]
@@ -1938,9 +1937,10 @@ def rotate_particle_coord(np.float64_t[:] px,
         # added consequence: the center is placed at the origin
         # (might as well keep it there in these temporary coordinates)
         for ax in range(3):
+            # assumed center is zero even if non-periodic
+            coordinate_matrix[ax] -= center[ax] 
             if not periodic[ax]: continue
             period = bounds[2 * ax + 1] - bounds[2 * ax]
-            coordinate_matrix[ax] -= center[ax]
             # abs. difference between points in the volume is <= period
             if coordinate_matrix[ax] < -0.5 * period:
                 coordinate_matrix[ax] += period
@@ -1961,6 +1961,7 @@ def rotate_particle_coord(np.float64_t[:] px,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+
 def off_axis_projection_SPH(np.float64_t[:] px,
                             np.float64_t[:] py,
                             np.float64_t[:] pz,
@@ -1997,7 +1998,9 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                                          width, depth,
                                                          normal_vector,
                                                          north_vector)
-
+    # check_period=0: assumed to be a small region compared to the box
+    # size. The rotation already ensures that a center close to a 
+    # periodic edge works out fine.
     pixelize_sph_kernel_projection(projection_array,
                                    mask,
                                    px_rotated,
