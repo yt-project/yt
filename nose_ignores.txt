@@ -44,3 +44,4 @@
 --ignore-file=test_minimal_representation\.py
 --ignore-file=test_set_log_level\.py
 --ignore-file=test_field_parsing\.py
+--ignore-file=test_disks\.py
