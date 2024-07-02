@@ -203,13 +203,8 @@ class AMRVACDataset(Dataset):
         # note: geometry_override and parfiles are specific to this frontend
 
         self._geometry_override = geometry_override
+        self._parfiles = None
 
-        self._parfiles = parfiles
-
-        namelist = None
-        namelist_gamma = None
-        c_adiab = None
-        e_is_internal = None
         if parfiles is not None:
             parfiles = list(always_iterable(parfiles))
             ppf = Path(parfiles[0])
@@ -221,7 +216,22 @@ class AMRVACDataset(Dataset):
                     filename,
                 )
                 parfiles = [Path(ytcfg["yt", "test_data_dir"]) / pf for pf in parfiles]
+            self._parfiles = parfiles
 
+        super().__init__(
+            filename,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+            default_species_fields=default_species_fields,
+        )
+
+        namelist = None
+        namelist_gamma = None
+        c_adiab = None
+        e_is_internal = None
+
+        if parfiles is not None:
             namelist = read_amrvac_namelist(parfiles)
             if "hd_list" in namelist:
                 c_adiab = namelist["hd_list"].get("hd_adiab", 1.0)
@@ -239,14 +249,6 @@ class AMRVACDataset(Dataset):
 
             if "method_list" in namelist:
                 e_is_internal = namelist["method_list"].get("solve_internal_e", False)
-
-        super().__init__(
-            filename,
-            dataset_type,
-            units_override=units_override,
-            unit_system=unit_system,
-            default_species_fields=default_species_fields,
-        )
 
         if c_adiab is not None:
             # this complicated unit is required for the adiabatic equation
@@ -377,8 +379,11 @@ class AMRVACDataset(Dataset):
 
         # get self.length_unit if overrides are supplied, otherwise use default
         length_unit = getattr(self, "length_unit", self.quan(1, "cm"))
-        namelist = read_amrvac_namelist(self._parfiles)
-        He_abundance = namelist.get("mhd_list", {}).get("he_abundance", 0.1)
+        if self._parfiles is not None:
+            namelist = read_amrvac_namelist(self._parfiles)
+            He_abundance = namelist.get("mhd_list", {}).get("he_abundance", 0.1)
+        else:
+            He_abundance = 0.1
 
         # 1. calculations for mass, density, numberdensity
         if "mass_unit" in self.units_override:
