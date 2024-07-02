@@ -203,13 +203,6 @@ class AMRVACDataset(Dataset):
         # note: geometry_override and parfiles are specific to this frontend
 
         self._geometry_override = geometry_override
-        super().__init__(
-            filename,
-            dataset_type,
-            units_override=units_override,
-            unit_system=unit_system,
-            default_species_fields=default_species_fields,
-        )
 
         self._parfiles = parfiles
 
@@ -236,6 +229,7 @@ class AMRVACDataset(Dataset):
             elif "mhd_list" in namelist:
                 c_adiab = namelist["mhd_list"].get("mhd_adiab", 1.0)
                 namelist_gamma = namelist["mhd_list"].get("mhd_gamma")
+                self._He_abundance = namelist["mhd_list"].get("he_abundance", 0.1)
 
             if namelist_gamma is not None and self.gamma != namelist_gamma:
                 mylog.error(
@@ -246,6 +240,14 @@ class AMRVACDataset(Dataset):
 
             if "method_list" in namelist:
                 e_is_internal = namelist["method_list"].get("solve_internal_e", False)
+
+        super().__init__(
+            filename,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+            default_species_fields=default_species_fields,
+        )
 
         if c_adiab is not None:
             # this complicated unit is required for the adiabatic equation
@@ -373,7 +375,6 @@ class AMRVACDataset(Dataset):
 
         # note: yt sets hydrogen mass equal to proton mass, amrvac doesn't.
         mp_cgs = self.quan(1.672621898e-24, "g")  # This value is taken from AstroPy
-        He_abundance = 0.1  # hardcoded parameter in AMRVAC
 
         # get self.length_unit if overrides are supplied, otherwise use default
         length_unit = getattr(self, "length_unit", self.quan(1, "cm"))
@@ -383,7 +384,7 @@ class AMRVACDataset(Dataset):
             # in this case unit_mass is supplied (and has been set as attribute)
             mass_unit = self.mass_unit
             density_unit = mass_unit / length_unit**3
-            nd_unit = density_unit / ((1.0 + 4.0 * He_abundance) * mp_cgs)
+            nd_unit = density_unit / ((1.0 + 4.0 * self._He_abundance) * mp_cgs)
         else:
             # other case: numberdensity is supplied.
             # Fall back to one (default) if no overrides supplied
@@ -393,7 +394,7 @@ class AMRVACDataset(Dataset):
                 nd_unit = self.quan(
                     1.0, self.__class__.default_units["numberdensity_unit"]
                 )
-            density_unit = (1.0 + 4.0 * He_abundance) * mp_cgs * nd_unit
+            density_unit = (1.0 + 4.0 * self._He_abundance) * mp_cgs * nd_unit
             mass_unit = density_unit * length_unit**3
 
         # 2. calculations for velocity
@@ -411,14 +412,14 @@ class AMRVACDataset(Dataset):
             # Fall back to one (default) if not
             temperature_unit = getattr(self, "temperature_unit", self.quan(1, "K"))
             pressure_unit = (
-                (2.0 + 3.0 * He_abundance) * nd_unit * kb_cgs * temperature_unit
+                (2.0 + 3.0 * self._He_abundance) * nd_unit * kb_cgs * temperature_unit
             ).in_cgs()
             velocity_unit = (np.sqrt(pressure_unit / density_unit)).in_cgs()
         else:
             # velocity is not zero if either time was given OR velocity was given
             pressure_unit = (density_unit * velocity_unit**2).in_cgs()
             temperature_unit = (
-                pressure_unit / ((2.0 + 3.0 * He_abundance) * nd_unit * kb_cgs)
+                pressure_unit / ((2.0 + 3.0 * self._He_abundance) * nd_unit * kb_cgs)
             ).in_cgs()
 
         # 4. calculations for magnetic unit and time
