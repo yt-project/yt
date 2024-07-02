@@ -266,7 +266,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
                     if record_len != exp_len:
                         # Guess record vtype from length
                         nbytes = record_len // hvals["npart"]
-                        vtype = _default_dtypes[nbytes]
+                        vtype = _default_dtypes.get(nbytes, "d")
 
                         mylog.warning(
                             "Supposed that `%s` has type %s given record size",
