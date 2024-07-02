@@ -229,7 +229,6 @@ class AMRVACDataset(Dataset):
             elif "mhd_list" in namelist:
                 c_adiab = namelist["mhd_list"].get("mhd_adiab", 1.0)
                 namelist_gamma = namelist["mhd_list"].get("mhd_gamma")
-                self._He_abundance = namelist["mhd_list"].get("he_abundance", 0.1)
 
             if namelist_gamma is not None and self.gamma != namelist_gamma:
                 mylog.error(
@@ -378,13 +377,18 @@ class AMRVACDataset(Dataset):
 
         # get self.length_unit if overrides are supplied, otherwise use default
         length_unit = getattr(self, "length_unit", self.quan(1, "cm"))
+        namelist = read_amrvac_namelist(self._parfiles)
+        if "mhd_list" in namelist:
+            He_abundance = namelist["mhd_list"].get("he_abundance", 0.1)
+        else:
+            He_abundance = 0.1  # default
 
         # 1. calculations for mass, density, numberdensity
         if "mass_unit" in self.units_override:
             # in this case unit_mass is supplied (and has been set as attribute)
             mass_unit = self.mass_unit
             density_unit = mass_unit / length_unit**3
-            nd_unit = density_unit / ((1.0 + 4.0 * self._He_abundance) * mp_cgs)
+            nd_unit = density_unit / ((1.0 + 4.0 * He_abundance) * mp_cgs)
         else:
             # other case: numberdensity is supplied.
             # Fall back to one (default) if no overrides supplied
@@ -394,7 +398,7 @@ class AMRVACDataset(Dataset):
                 nd_unit = self.quan(
                     1.0, self.__class__.default_units["numberdensity_unit"]
                 )
-            density_unit = (1.0 + 4.0 * self._He_abundance) * mp_cgs * nd_unit
+            density_unit = (1.0 + 4.0 * He_abundance) * mp_cgs * nd_unit
             mass_unit = density_unit * length_unit**3
 
         # 2. calculations for velocity
@@ -412,14 +416,14 @@ class AMRVACDataset(Dataset):
             # Fall back to one (default) if not
             temperature_unit = getattr(self, "temperature_unit", self.quan(1, "K"))
             pressure_unit = (
-                (2.0 + 3.0 * self._He_abundance) * nd_unit * kb_cgs * temperature_unit
+                (2.0 + 3.0 * He_abundance) * nd_unit * kb_cgs * temperature_unit
             ).in_cgs()
             velocity_unit = (np.sqrt(pressure_unit / density_unit)).in_cgs()
         else:
             # velocity is not zero if either time was given OR velocity was given
             pressure_unit = (density_unit * velocity_unit**2).in_cgs()
             temperature_unit = (
-                pressure_unit / ((2.0 + 3.0 * self._He_abundance) * nd_unit * kb_cgs)
+                pressure_unit / ((2.0 + 3.0 * He_abundance) * nd_unit * kb_cgs)
             ).in_cgs()
 
         # 4. calculations for magnetic unit and time
