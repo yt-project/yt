@@ -975,7 +975,7 @@ class RAMSESDataset(Dataset):
         setdefaultattr(self, "temperature_unit", temperature_unit.in_units("K"))
 
         # Only the length unit get scales by a factor of boxlen
-        setdefaultattr(self, "length_unit", self.quan(length_unit * boxlen, "cm"))
+        setdefaultattr(self, "length_unit", self.quan(length_unit, "cm"))
 
     def _parse_parameter_file(self):
         # hardcoded for now
@@ -1044,7 +1044,7 @@ class RAMSESDataset(Dataset):
         self.parameters.update(rheader)
         self.domain_left_edge = np.zeros(3, dtype="float64")
         self.domain_dimensions = np.ones(3, dtype="int32") * 2 ** (self.min_level + 1)
-        self.domain_right_edge = np.ones(3, dtype="float64")
+        self.domain_right_edge = np.ones(3, dtype="float64") * self.parameters["boxlen"]
         # This is likely not true, but it's not clear
         # how to determine the boundary conditions
         self._periodicity = (True, True, True)
