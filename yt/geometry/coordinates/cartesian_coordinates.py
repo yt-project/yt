@@ -516,20 +516,21 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     mask_uint8 = np.zeros_like(buff, dtype="uint8")
                     if normalize:
                         buff_den = np.zeros(size, dtype="float64")
-
+              
                     for chunk in data_source.chunks([], "io"):
                         pixelize_sph_kernel_slice(
                             buff,
                             mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
+                            chunk[ptype, pz_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
-                            bnds,
+                            bnds, data_source.coord,
                             check_period=int(periodic),
-                            period=period2,
+                            period=period3,
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
@@ -537,13 +538,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 mask_uint8,
                                 chunk[ptype, px_name].to("code_length"),
                                 chunk[ptype, py_name].to("code_length"),
+                                chunk[ptype, pz_name].to("code_length"),
                                 chunk[ptype, "smoothing_length"].to("code_length"),
                                 chunk[ptype, "mass"].to("code_mass"),
                                 chunk[ptype, "density"].to("code_density"),
                                 np.ones(chunk[ptype, "density"].shape[0]),
-                                bnds,
+                                bnds, data_source.coord,
                                 check_period=int(periodic),
-                                period=period2,
+                                period=period3,
                             )
 
                     if normalize:

@@ -1498,7 +1498,8 @@ def pixelize_sph_kernel_slice(
         kernel_name="cubic",
         int check_period=1,
         period=None):
-
+    # bounds are [x0, x1, y0, y1], slicez is the single coordinate
+    # of the slice along the normal direction. 
     # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
