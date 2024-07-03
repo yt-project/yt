@@ -379,11 +379,8 @@ class AMRVACDataset(Dataset):
 
         # get self.length_unit if overrides are supplied, otherwise use default
         length_unit = getattr(self, "length_unit", self.quan(1, "cm"))
-        if self._parfiles is not None:
-            namelist = read_amrvac_namelist(self._parfiles)
-            He_abundance = namelist.get("mhd_list", {}).get("he_abundance", 0.1)
-        else:
-            He_abundance = 0.1
+     namelist = read_amrvac_namelist(self._parfiles)
+     He_abundance = namelist.get("mhd_list", {}).get("he_abundance", 0.1)
 
         # 1. calculations for mass, density, numberdensity
         if "mass_unit" in self.units_override:
