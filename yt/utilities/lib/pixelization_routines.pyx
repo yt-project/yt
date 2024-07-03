@@ -2038,6 +2038,45 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                    weight_field=weight_field,
                                    check_period=0)
 
+# like slice pixelization, but for off-axis planes
+def pixelize_sph_kernel_cutting(
+        np.float64_t[:, :] buff,
+        np.uint8_t[:, :] mask,
+        np.float64_t[:] posx, np.float64_t[:] posy, 
+        np.float64_t[:] posz, 
+        np.float64_t[:] hsml, np.float64_t[:] pmass,
+        np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth,
+        np.float64_t[3] center, np.float64_t[2] widthxy,
+        np.float64_t[3] normal_vector, np.float64_t[3] north_vector,
+        boxbounds, periodic,
+        kernel_name="cubic",
+        int check_period=1):
+
+    if check_period == 0:
+        periodic = np.zeros(3, dtype=bool)
+    
+    posx_rot, posy_rot, posz_rot, \
+    rot_bounds_x0, rot_bounds_x1, \
+    rot_bounds_y0, rot_bounds_y1, \
+    rot_bounds_z0, rot_bounds_z1 = rotate_particle_coord(posx, posy, posz,
+                                                         center, boxbounds,
+                                                         periodic,
+                                                         widthxy, 0.,
+                                                         normal_vector,
+                                                         north_vector)
+    bounds_rot = np.array([rot_bounds_x0, rot_bounds_x1, 
+                           rot_bounds_y0, rot_bounds_y1])
+    slicez_rot = rot_bounds_z0
+    pixelize_sph_kernel_slice(buff, mask,
+                              posx_rot, posy_rot, posz_rot,
+                              hsml, pmass, pdens, quantity_to_smooth,
+                              bounds_rot, slicez_rot, 
+                              kernel_name=kernel_name,
+                              check_period=0,
+                              period=None)
+
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
