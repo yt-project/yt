@@ -1489,11 +1489,13 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
 def pixelize_sph_kernel_slice(
         np.float64_t[:, :] buff,
         np.uint8_t[:, :] mask,
-        np.float64_t[:] posx, np.float64_t[:] posy,
+        np.float64_t[:] posx, np.float64_t[:] posy, 
+        np.float64_t[:] posz, 
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        bounds, kernel_name="cubic",
+        bounds, np.float64_t slicez, 
+        kernel_name="cubic",
         int check_period=1,
         period=None):
 
@@ -1501,10 +1503,10 @@ def pixelize_sph_kernel_slice(
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
-    cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
-    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j, px, py
+    cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff, ih_j
+    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j, px, py, pz
     cdef int i, j, ii, jj
-    cdef np.float64_t period_x = 0, period_y = 0
+    cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
     cdef int * xiter
     cdef int * yiter
     cdef np.float64_t * xiterv
@@ -1513,6 +1515,7 @@ def pixelize_sph_kernel_slice(
     if period is not None:
         period_x = period[0]
         period_y = period[1]
+        period_z = period[2]
 
     xsize, ysize = buff.shape[0], buff.shape[1]
 
@@ -1560,10 +1563,23 @@ def pixelize_sph_kernel_slice(
                 elif posy[j] + hsml[j] > y_max:
                     yiter[1] = -1
                     yiterv[1] = -period_y
+                # z of particle might be < hsml from the slice plane
+                # but across a periodic boundary
+                if posz[j] - hsml[j] > slicez:
+                    pz = posz[j] - period_z
+                elif posz[j] + hsml[j] < slicez:
+                    pz = posz[j] + period_z
+                else:
+                    pz = posz[j]
 
-            h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
-            h_j = math.sqrt(h_j2)
+            h_j2 = hsml[j] * hsml[j] #fmax(hsml[j]*hsml[j], dx*dy)
+            h_j =  hsml[j] #math.sqrt(h_j2)
             ih_j = 1.0/h_j
+
+            posz_diff = pz - slicez
+            posz_diff = posz_diff * posz_diff
+            if posz_diff > h_j2:
+                continue
 
             prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
             prefactor_j *= quantity_to_smooth[j]
@@ -1606,7 +1622,9 @@ def pixelize_sph_kernel_slice(
                                 continue
 
                             # see equation 4 of the SPLASH paper
-                            q_ij = math.sqrt(posx_diff + posy_diff) * ih_j
+                            q_ij = math.sqrt(posx_diff 
+                                             + posy_diff 
+                                             + posz_diff) * ih_j
                             if q_ij >= 1:
                                 continue
 
