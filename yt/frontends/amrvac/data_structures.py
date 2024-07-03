@@ -203,7 +203,7 @@ class AMRVACDataset(Dataset):
         # note: geometry_override and parfiles are specific to this frontend
 
         self._geometry_override = geometry_override
-        self._parfiles = None
+        self._parfiles = []
 
         if parfiles is not None:
             parfiles = list(always_iterable(parfiles))
