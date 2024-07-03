@@ -1984,11 +1984,10 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     if np.allclose(normal_vector, 0.):
         return
     if depth is None:
-        # set to volume diagonal -> won't exclude anything
-        depth = np.sqrt((bounds[1] - bounds[0])**2
-                        + (bounds[3] - bounds[2])**2
-                        + (bounds[5] - bounds[4])**2)
-
+        # set to volume diagonal + margin -> won't exclude anything
+        depth = 2. * np.sqrt((bounds[1] - bounds[0])**2
+                           + (bounds[3] - bounds[2])**2
+                           + (bounds[5] - bounds[4])**2)
     px_rotated, py_rotated, pz_rotated, \
     rot_bounds_x0, rot_bounds_x1, \
     rot_bounds_y0, rot_bounds_y1, \
@@ -2001,6 +2000,10 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     # check_period=0: assumed to be a small region compared to the box
     # size. The rotation already ensures that a center close to a 
     # periodic edge works out fine.
+    # since the simple single-coordinate modulo math periodicity
+    # does not apply to the *rotated* coordinates, the periodicity
+    # approach implemented for this along-axis projection method
+    # would fail here
     pixelize_sph_kernel_projection(projection_array,
                                    mask,
                                    px_rotated,

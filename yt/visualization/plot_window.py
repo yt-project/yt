@@ -13,6 +13,8 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import AlphaT
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
+from yt.frontends.sph.data_structures import ParticleDataset
+from yt.frontends.stream.data_structures import StreamParticlesDataset
 from yt.funcs import (
     fix_axis,
     fix_unitary,
@@ -2446,16 +2448,32 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
                 f"off-axis slices are not supported for {ds.geometry!r} geometry\n"
                 f"currently supported geometries: {self._supported_geometries!r}"
             )
-
+        # center_rot normalizes the center to (0,0),
+        # units match bounds
+        # for SPH data, we want to input the original center
+        # the cython backend handles centering to this point and
+        # rotation
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
         )
+        # will probably fail if you try to project an SPH and non-SPH
+        # field in a single call
+        # checks for SPH fields copied from the 
+        # _ortho_pixelize method in cartesian_coordinates.py
+        field = data_source._determine_fields(fields)[0]
+        finfo = data_source.ds.field_info[field]
+        particle_datasets = (ParticleDataset, StreamParticlesDataset)
+        is_sph_field = finfo.is_sph_field
+        if  isinstance(data_source.ds, particle_datasets) and is_sph_field:
+            center_use = center
+        else:
+            center_use = center_rot
         fields = list(iter_fields(fields))[:]
         oap_width = ds.arr(
             (bounds[1] - bounds[0], bounds[3] - bounds[2])
         )
         OffAxisProj = OffAxisProjectionDummyDataSource(
-            center_rot,
+            center_use,
             ds,
             normal,
             oap_width,
