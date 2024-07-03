@@ -42,6 +42,9 @@ def read_amrvac_namelist(parfiles):
     for nml in namelists:
         unified_namelist.patch(nml)
 
+    if "filelist" not in unified_namelist:
+        return unified_namelist
+
     # accumulate `&filelist:base_filename`
     base_filename = "".join(
         nml.get("filelist", {}).get("base_filename", "") for nml in namelists
