@@ -682,6 +682,17 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 ptype = data_source.ds._sph_ptypes[0]
             axorder = data_source.ds.coordinates.axis_order
             ounits = data_source.ds.field_info[field].output_units
+            widthxy = np.array(((bounds[1] - bounds[0]).to("code_length"),
+                                (bounds[3] - bounds[2]).to("code_length")))
+            kernel_name = None
+            if hasattr(data_source.ds, "kernel_name"):
+                kernel_name = data_source.ds.kernel_name
+            if kernel_name is None:
+                kernel_name = "cubic"
+            # data_source should be a YTCuttingPlane object
+            normal_vector = data_source.normal 
+            north_vector = data_source._y_vec
+            center = data_source.center.to("code_length")
 
             buff = np.zeros(size, dtype="float64")
             mask_uint8 = np.zeros_like(buff, dtype="uint8")
@@ -690,7 +701,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
         
             for chunk in data_source.chunks([], "io"):
                 pixelize_sph_kernel_cutting(
-                    buff, mask_uint8,
+                    buff,
+                    mask_uint8,
                     chunk[ptype, axorder[0]].to("code_length"),
                     chunk[ptype, axorder[1]].to("code_length"),
                     chunk[ptype, axorder[2]].to("code_length"),
@@ -701,22 +713,25 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     center, widthxy,
                     normal_vector, north_vector,
                     boxbounds, periodic,
-            kernel_name="cubic",
-                          check_period=1)
+                    kernel_name=kernel_name,
+                    check_period=1,
+                )
                 if normalize:
-                    pixelize_sph_kernel_slice(
+                    pixelize_sph_kernel_cutting(
                         buff_den,
                         mask_uint8,
-                        chunk[ptype, px_name].to("code_length"),
-                        chunk[ptype, py_name].to("code_length"),
-                        chunk[ptype, pz_name].to("code_length"),
+                        chunk[ptype, axorder[0]].to("code_length"),
+                        chunk[ptype, axorder[1]].to("code_length"),
+                        chunk[ptype, axorder[2]].to("code_length"),
                         chunk[ptype, "smoothing_length"].to("code_length"),
                         chunk[ptype, "mass"].to("code_mass"),
                         chunk[ptype, "density"].to("code_density"),
                         np.ones(chunk[ptype, "density"].shape[0]),
-                        bnds, data_source.coord,
-                        check_period=int(periodic),
-                        period=period3,
+                        center, widthxy,
+                        normal_vector, north_vector,
+                        boxbounds, periodic,
+                        kernel_name=kernel_name,
+                        check_period=1
                     )
 
             if normalize:
