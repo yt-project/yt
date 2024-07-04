@@ -2222,7 +2222,9 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
                 f"off-axis slices are not supported for {ds.geometry!r} geometry\n"
                 f"currently supported geometries: {self._supported_geometries!r}"
             )
-
+        # bounds are in cutting plane coordinates, centered on 0:
+        # [xmin, xmax, ymin, ymax]. Can derive width/height back
+        # from these.
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, ds)
         if field_parameters is None:
             field_parameters = {}

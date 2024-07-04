@@ -12,6 +12,7 @@ from yt.utilities.lib.pixelization_routines import (
     pixelize_element_mesh,
     pixelize_element_mesh_line,
     pixelize_off_axis_cartesian,
+    pixelize_sph_kernel_cutting,
     pixelize_sph_kernel_projection,
     pixelize_sph_kernel_slice,
 )
@@ -374,6 +375,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
             
             ounits = data_source.ds.field_info[field].output_units
             bnds = data_source.ds.arr(bounds, "code_length").tolist()
+            kernel_name = None
+            if hasattr(data_source.ds, "kernel_name"):
+                kernel_name = data_source.ds.kernel_name
+            if kernel_name is None:
+                kernel_name = "cubic"
 
             if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
@@ -427,6 +433,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             bnds3,
                             check_period=int(periodic),
                             period=period3,
+                            kernel_name=kernel_name
                         )
                     # We use code length here, but to get the path length right
                     # we need to multiply by the conversion factor between
@@ -460,6 +467,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             check_period=int(periodic),
                             period=period3,
                             weight_field=chunk[weight].in_units(wounits),
+                            kernel_name=kernel_name
                         )
                     mylog.info(
                         "Making a fixed resolution buffer of (%s) %d by %d",
@@ -482,6 +490,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             bnds3,
                             check_period=int(periodic),
                             period=period3,
+                            kernel_name=kernel_name
                         )
                     normalization_2d_utility(buff, weight_buff)
                     if moment == 2:
@@ -503,6 +512,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 check_period=int(periodic),
                                 period=period3,
                                 weight_field=chunk[weight].in_units(wounits),
+                                kernel_name=kernel_name
                             )
                         normalization_2d_utility(buff2, weight_buff)
                         buff = compute_stddev_image(buff2, buff)
@@ -531,6 +541,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             bnds, data_source.coord,
                             check_period=int(periodic),
                             period=period3,
+                            kernel_name=kernel_name
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
@@ -546,6 +557,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 bnds, data_source.coord,
                                 check_period=int(periodic),
                                 period=period3,
+                                kernel_name=kernel_name
                             )
 
                     if normalize:
@@ -643,28 +655,99 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
+        from yt.data_objects.selection_objects.slices import YTSlice
+        from yt.frontends.sph.data_structures import ParticleDataset
+        from yt.frontends.stream.data_structures import StreamParticlesDataset
 
-        indices = np.argsort(data_source["pdx"])[::-1].astype("int64", copy=False)
-        buff = np.full((size[1], size[0]), np.nan, dtype="float64")
-        ftype = "index"
-        if isinstance(data_source.ds, YTSpatialPlotDataset):
-            ftype = "gas"
-        mask = pixelize_off_axis_cartesian(
-            buff,
-            data_source[ftype, "x"],
-            data_source[ftype, "y"],
-            data_source[ftype, "z"],
-            data_source["px"],
-            data_source["py"],
-            data_source["pdx"],
-            data_source["pdy"],
-            data_source["pdz"],
-            data_source.center,
-            data_source._inv_mat,
-            indices,
-            data_source[field],
-            bounds,
-        )
+        # Determine what sort of data we're dealing with
+        # -> what backend to use
+        # copied from the _ortho_pixelize method
+        field = data_source._determine_fields(field)[0]
+        _finfo = data_source.ds.field_info[field]
+        is_sph_field = _finfo.is_sph_field
+        particle_datasets = (ParticleDataset, StreamParticlesDataset)
+        #finfo = self.ds._get_field_info(field)
+        
+        # SPH data 
+        # only for slices: a function in off_axis_projection.py 
+        # handles projections
+        if isinstance(data_source.ds, particle_datasets) and is_sph_field \
+                and isinstance(data_source, YTSlice):
+            normalize = getattr(self.ds, "use_sph_normalization", True)
+            le, re = data_source.data_source.get_bbox()
+            boxbounds = np.array([le[0], re[0], le[1], re[1], le[2], re[2]])
+            periodic = data_source.ds.coordinates.period.astype(bool).v
+            ptype = field[0]
+            if ptype == "gas":
+                ptype = data_source.ds._sph_ptypes[0]
+            axorder = data_source.ds.coordinates.axis_order
+            ounits = data_source.ds.field_info[field].output_units
+
+            buff = np.zeros(size, dtype="float64")
+            mask_uint8 = np.zeros_like(buff, dtype="uint8")
+            if normalize:
+                buff_den = np.zeros(size, dtype="float64")
+        
+            for chunk in data_source.chunks([], "io"):
+                pixelize_sph_kernel_cutting(
+                    buff, mask_uint8,
+                    chunk[ptype, axorder[0]].to("code_length"),
+                    chunk[ptype, axorder[1]].to("code_length"),
+                    chunk[ptype, axorder[2]].to("code_length"),
+                    chunk[ptype, "smoothing_length"].to("code_length"),
+                    chunk[ptype, "mass"].to("code_mass"),
+                    chunk[ptype, "density"].to("code_density"),
+                    chunk[field].in_units(ounits),
+                    center, widthxy,
+                    normal_vector, north_vector,
+                    boxbounds, periodic,
+            kernel_name="cubic",
+                          check_period=1)
+                if normalize:
+                    pixelize_sph_kernel_slice(
+                        buff_den,
+                        mask_uint8,
+                        chunk[ptype, px_name].to("code_length"),
+                        chunk[ptype, py_name].to("code_length"),
+                        chunk[ptype, pz_name].to("code_length"),
+                        chunk[ptype, "smoothing_length"].to("code_length"),
+                        chunk[ptype, "mass"].to("code_mass"),
+                        chunk[ptype, "density"].to("code_density"),
+                        np.ones(chunk[ptype, "density"].shape[0]),
+                        bnds, data_source.coord,
+                        check_period=int(periodic),
+                        period=period3,
+                    )
+
+            if normalize:
+                normalization_2d_utility(buff, buff_den)
+
+            mask = mask_uint8.astype("bool", copy=False)
+            
+        # whatever other data this code could handle before the
+        # SPH option was added
+        else:
+            indices = np.argsort(data_source["pdx"])[::-1].astype(np.int_)
+            buff = np.full((size[1], size[0]), np.nan, dtype="float64")
+            ftype = "index"
+            if isinstance(data_source.ds, YTSpatialPlotDataset):
+                ftype = "gas"
+            mask = pixelize_off_axis_cartesian(
+                buff,
+                data_source[ftype, "x"],
+                data_source[ftype, "y"],
+                data_source[ftype, "z"],
+                data_source["px"],
+                data_source["py"],
+                data_source["pdx"],
+                data_source["pdy"],
+                data_source["pdz"],
+                data_source.center,
+                data_source._inv_mat,
+                indices,
+                data_source[field],
+                bounds,
+            )
         return buff, mask
 
     def convert_from_cartesian(self, coord):

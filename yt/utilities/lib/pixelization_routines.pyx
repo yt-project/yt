@@ -1997,7 +1997,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                             normal_vector,
                             north_vector,
                             weight_field=None,
-                            depth=None):
+                            depth=None,
+                            kernel_name="cubic"):
     # periodic: periodicity of the data set: 
     # Do nothing in event of a 0 normal vector
     if np.allclose(normal_vector, 0.):
@@ -2036,7 +2037,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                     rot_bounds_y0, rot_bounds_y1,
                                     rot_bounds_z0, rot_bounds_z1],
                                    weight_field=weight_field,
-                                   check_period=0)
+                                   check_period=0,
+                                   kernel_name=kernel_name)
 
 # like slice pixelization, but for off-axis planes
 def pixelize_sph_kernel_cutting(

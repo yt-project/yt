@@ -235,6 +235,12 @@ def off_axis_projection(
         bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
         finfo = data_source.ds.field_info[item]
         ounits = finfo.output_units
+        kernel_name = None
+        if hasattr(data_source.ds, "kernel_name"):
+            kernel_name = data_source.ds.kernel_name
+        if kernel_name is None:
+            kernel_name = "cubic"
+
         if weight is None:
             for chunk in data_source.chunks([], "io"):
                 off_axis_projection_SPH(
@@ -253,7 +259,8 @@ def off_axis_projection(
                     mask,
                     normal_vector,
                     north,
-                    depth=depth
+                    depth=depth,
+                    kernel_name=kernel_name,
                 )
 
             # Assure that the path length unit is in the default length units
@@ -295,6 +302,7 @@ def off_axis_projection(
                     north,
                     weight_field=chunk[weight].in_units(wounits),
                     depth=depth,
+                    kernel_name=kernel_name,
                 )
 
             for chunk in data_source.chunks([], "io"):
@@ -315,6 +323,7 @@ def off_axis_projection(
                     normal_vector,
                     north,
                     depth=depth,
+                    kernel_name=kernel_name,
                 )
 
             normalization_2d_utility(buf, weight_buff)
