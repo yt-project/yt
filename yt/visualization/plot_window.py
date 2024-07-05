@@ -2230,7 +2230,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
             )
         # bounds are in cutting plane coordinates, centered on 0:
         # [xmin, xmax, ymin, ymax]. Can derive width/height back
-        # from these.
+        # from these. unit is code_length
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, ds)
         if field_parameters is None:
             field_parameters = {}

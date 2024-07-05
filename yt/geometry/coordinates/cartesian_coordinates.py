@@ -655,7 +655,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-        from yt.data_objects.selection_objects.slices import YTSlice
+        from yt.data_objects.selection_objects.slices import YTCuttingPlane
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
 
@@ -672,9 +672,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
         # only for slices: a function in off_axis_projection.py 
         # handles projections
         if isinstance(data_source.ds, particle_datasets) and is_sph_field \
-                and isinstance(data_source, YTSlice):
+                      and isinstance(data_source, YTCuttingPlane):
             normalize = getattr(self.ds, "use_sph_normalization", True)
-            le, re = data_source.data_source.get_bbox()
+            le = data_source.ds.domain_left_edge.to("code_length")
+            re = data_source.ds.domain_right_edge.to("code_length")
             boxbounds = np.array([le[0], re[0], le[1], re[1], le[2], re[2]])
             periodic = data_source.ds.coordinates.period.astype(bool).v
             ptype = field[0]
@@ -682,16 +683,19 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 ptype = data_source.ds._sph_ptypes[0]
             axorder = data_source.ds.coordinates.axis_order
             ounits = data_source.ds.field_info[field].output_units
-            widthxy = np.array(((bounds[1] - bounds[0]).to("code_length"),
-                                (bounds[3] - bounds[2]).to("code_length")))
+            # input bounds are in code length units already
+            widthxy = np.array((bounds[1] - bounds[0],
+                                bounds[3] - bounds[2]))
             kernel_name = None
             if hasattr(data_source.ds, "kernel_name"):
                 kernel_name = data_source.ds.kernel_name
             if kernel_name is None:
                 kernel_name = "cubic"
             # data_source should be a YTCuttingPlane object
-            normal_vector = data_source.normal 
-            north_vector = data_source._y_vec
+            # dimensionless unyt normal/north 
+            # -> numpy array cython can deal with
+            normal_vector = data_source.normal.v 
+            north_vector = data_source._y_vec.v
             center = data_source.center.to("code_length")
 
             buff = np.zeros(size, dtype="float64")
@@ -703,10 +707,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 pixelize_sph_kernel_cutting(
                     buff,
                     mask_uint8,
-                    chunk[ptype, axorder[0]].to("code_length"),
-                    chunk[ptype, axorder[1]].to("code_length"),
-                    chunk[ptype, axorder[2]].to("code_length"),
-                    chunk[ptype, "smoothing_length"].to("code_length"),
+                    chunk[ptype, axorder[0]].to("code_length").v,
+                    chunk[ptype, axorder[1]].to("code_length").v,
+                    chunk[ptype, axorder[2]].to("code_length").v,
+                    chunk[ptype, "smoothing_length"].to("code_length").v,
                     chunk[ptype, "mass"].to("code_mass"),
                     chunk[ptype, "density"].to("code_density"),
                     chunk[field].in_units(ounits),
