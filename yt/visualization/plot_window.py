@@ -1595,6 +1595,7 @@ class SlicePlot(NormalPlot):
     def __new__(  # type: ignore
         cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedSlicePlot", "OffAxisSlicePlot"]:
+        print('SlicePlot call cls: ', cls)
         if cls is SlicePlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):
@@ -1602,6 +1603,8 @@ class SlicePlot(NormalPlot):
             else:
                 cls = OffAxisSlicePlot
         self = object.__new__(cls)
+        print('SlicePlot result cls: ', cls)
+        print('Sliceplot return self: ', self)
         return self  # type: ignore [return-value]
 
 
@@ -1822,9 +1825,12 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
         axis = fix_axis(normal, ds)
+        #print('center at SlicePlot init: ', center)
+        #print('current domain left edge: ', ds.domain_left_edge)
         (bounds, center, display_center) = get_window_parameters(
             axis, center, width, ds
         )
+       # print('center after get_window_parameters: ', center)
         if field_parameters is None:
             field_parameters = {}
 

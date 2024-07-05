@@ -2049,8 +2049,8 @@ def pixelize_sph_kernel_cutting(
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        np.float64_t[3] center, np.float64_t[2] widthxy,
-        np.float64_t[3] normal_vector, np.float64_t[3] north_vector,
+        center, widthxy,
+        normal_vector, north_vector,
         boxbounds, periodic,
         kernel_name="cubic",
         int check_period=1):
