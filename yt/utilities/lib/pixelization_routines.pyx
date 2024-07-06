@@ -2061,12 +2061,12 @@ def pixelize_sph_kernel_cutting(
     posx_rot, posy_rot, posz_rot, \
     rot_bounds_x0, rot_bounds_x1, \
     rot_bounds_y0, rot_bounds_y1, \
-    rot_bounds_z0, rot_bounds_z1 = rotate_particle_coord(posx, posy, posz,
-                                                         center, boxbounds,
-                                                         periodic,
-                                                         widthxy, 0.,
-                                                         normal_vector,
-                                                         north_vector)
+    rot_bounds_z0, _ = rotate_particle_coord(posx, posy, posz,
+                                             center, boxbounds,
+                                             periodic,
+                                             widthxy, 0.,
+                                             normal_vector,
+                                             north_vector)
     bounds_rot = np.array([rot_bounds_x0, rot_bounds_x1, 
                            rot_bounds_y0, rot_bounds_y1])
     slicez_rot = rot_bounds_z0
