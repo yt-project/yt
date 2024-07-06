@@ -412,7 +412,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 proj_reg.set_field_parameter("axis", data_source.axis)
                 # need some z bounds for SPH projection 
                 # -> use source bounds
-                zax = list({0, 1, 2} - set([xa, ya]))[0]
+                zax = list({0, 1, 2} - {xa, ya})[0]
                 bnds3 = bnds + [le[zax], re[zax]]
                 
                 buff = np.zeros(size, dtype="float64")
