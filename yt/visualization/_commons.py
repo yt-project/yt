@@ -10,9 +10,7 @@ from more_itertools import always_iterable
 
 from yt.config import ytcfg
 
-if sys.version_info >= (3, 10):
-    pass
-else:
+if sys.version_info < (3, 10):
     from yt._maintenance.backports import zip
 
 if TYPE_CHECKING:

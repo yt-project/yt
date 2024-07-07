@@ -1,6 +1,7 @@
 import itertools as it
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 
@@ -16,6 +17,9 @@ from yt.testing import (
 from yt.visualization.api import OffAxisProjectionPlot, OffAxisSlicePlot
 from yt.visualization.image_writer import write_projection
 from yt.visualization.volume_rendering.api import off_axis_projection
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 # TODO: replace this with pytest.mark.parametrize
@@ -85,7 +89,7 @@ def expand_keywords(keywords, full=False):
         keys = sorted(keywords)
         list_of_kwarg_dicts = np.array(
             [
-                dict(zip(keys, prod))
+                dict(zip(keys, prod, strict=True))
                 for prod in it.product(*(keywords[key] for key in keys))
             ]
         )

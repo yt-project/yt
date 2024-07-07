@@ -1,8 +1,12 @@
 import io
 import os
 import struct
+import sys
 
 import numpy as np
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def read_attrs(f, attrs, endian="="):
@@ -77,7 +81,7 @@ def read_attrs(f, attrs, endian="="):
                     len(a),
                     len(v),
                 )
-            for k, val in zip(a, v):
+            for k, val in zip(a, v, strict=True):
                 vv[k] = val
         else:
             vv[a] = v
@@ -145,7 +149,7 @@ def read_cattrs(f, attrs, endian="="):
                     len(v),
                 )
 
-            for k, val in zip(a, v):
+            for k, val in zip(a, v, strict=True):
                 vv[k] = val
         else:
             vv[a] = v

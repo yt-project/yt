@@ -1,8 +1,13 @@
+import sys
+
 import numpy as np
 
 from .data_structures import GadgetBinaryHeader, GadgetDataset
 from .definitions import gadget_field_specs, gadget_ptype_specs
 from .io import IOHandlerGadgetBinary
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 vector_fields = dict(IOHandlerGadgetBinary._vector_fields)
 
@@ -72,7 +77,7 @@ def fake_gadget_binary(
                 header["HubbleParam"] = 1
             write_block(fp, header, endian, fmt, "HEAD")
 
-        npart = dict(zip(ptype_spec, npart))
+        npart = dict(zip(ptype_spec, npart, strict=True))
         for fs in field_spec:
             # Parse field name and particle type
             if isinstance(fs, str):

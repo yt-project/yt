@@ -23,6 +23,9 @@ from yt.funcs import is_sequence
 from yt.loaders import load
 from yt.units.yt_array import YTArray, YTQuantity
 
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
+
 ANSWER_TEST_TAG = "answer_test"
 
 
@@ -270,14 +273,14 @@ def fake_random_ds(
         else:
             offsets.append(0.0)
     data = {}
-    for field, offset, u in zip(fields, offsets, units):
+    for field, offset, u in zip(fields, offsets, units, strict=True):
         v = (prng.random_sample(ndims) - offset) * peak_value
         if field[0] == "all":
             v = v.ravel()
         data[field] = (v, u)
     if particles:
         if particle_fields is not None:
-            for field, unit in zip(particle_fields, particle_field_units):
+            for field, unit in zip(particle_fields, particle_field_units, strict=True):
                 if field in ("particle_position", "particle_velocity"):
                     data["io", field] = (prng.random_sample((int(particles), 3)), unit)
                 else:
@@ -347,7 +350,7 @@ def fake_amr_ds(
             "right_edge": right_edge,
             "dimensions": dims,
         }
-        for f, u in zip(fields, units):
+        for f, u in zip(fields, units, strict=True):
             gdata[f] = (prng.random_sample(dims), u)
         if particles:
             for i, f in enumerate(f"particle_position_{ax}" for ax in "xyz"):
@@ -412,7 +415,7 @@ def fake_particle_ds(
         else:
             offsets.append(0.0)
     data = data if data else {}
-    for field, offset, u in zip(fields, offsets, units):
+    for field, offset, u in zip(fields, offsets, units, strict=True):
         if field in data:
             v = data[field]
             continue
@@ -856,7 +859,7 @@ def expand_keywords(keywords, full=False):
         keys = sorted(keywords)
         list_of_kwarg_dicts = np.array(
             [
-                dict(zip(keys, prod))
+                dict(zip(keys, prod, strict=True))
                 for prod in it.product(*(keywords[key] for key in keys))
             ]
         )

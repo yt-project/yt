@@ -10,6 +10,9 @@ from yt.units import dimensions
 
 from .field_plugin_registry import register_field_plugin
 
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
+
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:
@@ -330,7 +333,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
 
             return _mag_field
 
-        for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
+        for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields, strict=False):
             registry.add_field(
                 (ftype, f"magnetic_field_{ax}"),
                 sampling_type=sampling_type,

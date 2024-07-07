@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import weakref
 
 import numpy as np
@@ -16,6 +17,9 @@ from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 
 from .fields import AthenaFieldInfo
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def chk23(strin):
@@ -359,7 +363,9 @@ class AthenaHierarchy(GridIndex):
                 gre_orig = self.ds.arr(
                     np.round(gle_orig + dx * gdims[i], decimals=12), "code_length"
                 )
-                bbox = np.array([[le, re] for le, re in zip(gle_orig, gre_orig)])
+                bbox = np.array(
+                    [[le, re] for le, re in zip(gle_orig, gre_orig, strict=True)]
+                )
                 psize = get_psize(self.ds.domain_dimensions, self.ds.nprocs)
                 gle, gre, shapes, slices, _ = decompose_array(gdims[i], psize, bbox)
                 gle_all += gle

@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+import sys
 from collections import namedtuple
 from functools import cached_property
 from stat import ST_CTIME
@@ -24,6 +25,11 @@ from .fields import (
     NyxFieldInfo,
     WarpXFieldInfo,
 )
+
+if sys.version_info >= (3, 10):
+    pass
+else:
+    from yt._maintenance.backports import zip
 
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -833,7 +839,7 @@ class BoxlibDataset(Dataset):
         # in a slightly hidden variable.
         self._max_level = int(header_file.readline())
 
-        for side, init in zip(["left", "right"], [np.zeros, np.ones]):
+        for side, init in zip(["left", "right"], [np.zeros, np.ones], strict=True):
             domain_edge = init(3, dtype="float64")
             domain_edge[: self.dimensionality] = header_file.readline().split()
             setattr(self, f"domain_{side}_edge", domain_edge)

@@ -1,7 +1,12 @@
+import sys
+
 import numpy as np
 
 from yt.utilities.file_handler import NetCDF4FileHandler
 from yt.utilities.io_handler import BaseIOHandler
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class IOHandlerExodusII(BaseIOHandler):
@@ -69,7 +74,7 @@ class IOHandlerExodusII(BaseIOHandler):
                         ind += g.select(selector, data, rv[field], ind)  # caches
                 if fname in self.elem_fields:
                     field_ind = self.elem_fields.index(fname)
-                    for g, mesh_id in zip(objs, mesh_ids):
+                    for g, mesh_id in zip(objs, mesh_ids, strict=True):
                         fdata = ds.variables[
                             "vals_elem_var%deb%s" % (field_ind + 1, mesh_id)
                         ][:]

@@ -7,6 +7,7 @@ AMRVAC data structures
 
 import os
 import struct
+import sys
 import warnings
 import weakref
 from pathlib import Path
@@ -25,6 +26,9 @@ from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 from .datfile_utils import get_header, get_tree_info
 from .fields import AMRVACFieldInfo
 from .io import read_amrvac_namelist
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def _parse_geometry(geometry_tag: str) -> Geometry:
@@ -142,7 +146,9 @@ class AMRVACHierarchy(GridIndex):
         dim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype="object")
-        for igrid, (ytlevel, morton_index) in enumerate(zip(ytlevels, morton_indices)):
+        for igrid, (ytlevel, morton_index) in enumerate(
+            zip(ytlevels, morton_indices, strict=True)
+        ):
             dx = dx0 / self.dataset.refine_by**ytlevel
             left_edge = xmin + (morton_index - 1) * block_nx * dx
 

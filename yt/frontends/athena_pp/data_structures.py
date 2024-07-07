@@ -1,4 +1,5 @@
 import os
+import sys
 import weakref
 
 import numpy as np
@@ -14,6 +15,9 @@ from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import AthenaPPFieldInfo
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 geom_map = {
     "cartesian": "cartesian",
@@ -215,7 +219,9 @@ class AthenaPPDataset(Dataset):
         self._field_map = {}
         k = 0
         for dname, num_var in zip(
-            self._handle.attrs["DatasetNames"], self._handle.attrs["NumVariables"]
+            self._handle.attrs["DatasetNames"],
+            self._handle.attrs["NumVariables"],
+            strict=True,
         ):
             for j in range(num_var):
                 fname = self._handle.attrs["VariableNames"][k].decode("ascii", "ignore")

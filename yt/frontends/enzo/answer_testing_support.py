@@ -1,4 +1,5 @@
 import os
+import sys
 from functools import wraps
 
 import numpy as np
@@ -14,6 +15,9 @@ from yt.utilities.answer_testing.framework import (
     can_run_ds,
     temp_cwd,
 )
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class AssertWrapper:
@@ -102,7 +106,7 @@ class ShockTubeTest:
         position = ad["index", "x"]
         for k in self.fields:
             field = ad[k].d
-            for xmin, xmax in zip(self.left_edges, self.right_edges):
+            for xmin, xmax in zip(self.left_edges, self.right_edges, strict=True):
                 mask = (position >= xmin) * (position <= xmax)
                 exact_field = np.interp(position[mask].ndview, exact["pos"], exact[k])
                 myname = f"ShockTubeTest_{k}"

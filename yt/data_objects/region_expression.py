@@ -1,3 +1,4 @@
+import sys
 import weakref
 from functools import cached_property
 
@@ -11,6 +12,9 @@ from yt.utilities.exceptions import (
 from yt.visualization.line_plot import LineBuffer
 
 from .data_containers import _get_ipython_key_completion
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class RegionExpression:
@@ -166,7 +170,7 @@ class RegionExpression:
             if d is not None:
                 d = int(d)
             dims[ax] = d
-        center = [(cl + cr) / 2.0 for cl, cr in zip(left_edge, right_edge)]
+        center = [(cl + cr) / 2.0 for cl, cr in zip(left_edge, right_edge, strict=True)]
         if None not in dims:
             return self.ds.arbitrary_grid(left_edge, right_edge, dims)
         return self.ds.region(center, left_edge, right_edge)

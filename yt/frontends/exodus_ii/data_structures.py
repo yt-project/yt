@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import UnstructuredMesh
@@ -10,6 +12,9 @@ from yt.utilities.logger import ytLogger as mylog
 
 from .fields import ExodusIIFieldInfo
 from .util import get_num_pseudo_dims, load_info_records, sanitize_string
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):
@@ -220,7 +225,7 @@ class ExodusIIDataset(Dataset):
             return
         with self._handle.open_ds() as ds:
             values = ds.variables["vals_glo_var"][:].transpose()
-            for name, value in zip(names, values):
+            for name, value in zip(names, values, strict=True):
                 self.parameters[name] = value
 
     def _load_info_records(self):

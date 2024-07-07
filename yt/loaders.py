@@ -44,6 +44,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_root_only_then_broadcast,
 )
 
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
+
 if TYPE_CHECKING:
     from multiprocessing.connection import Connection
 
@@ -798,7 +801,7 @@ def load_particles(
         le, re = data_source.get_bbox()
         le = le.to_value("code_length")
         re = re.to_value("code_length")
-        bbox = list(zip(le, re))
+        bbox = list(zip(le, re, strict=True))
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], "float64")
     else:
@@ -1382,10 +1385,10 @@ def load_unstructured_mesh(
     node_data = list(always_iterable(node_data, base_type=dict)) or [{}] * num_meshes
 
     data = [{} for i in range(num_meshes)]  # type: ignore [var-annotated]
-    for elem_dict, data_dict in zip(elem_data, data):
+    for elem_dict, data_dict in zip(elem_data, data, strict=True):
         for field, values in elem_dict.items():
             data_dict[field] = values
-    for node_dict, data_dict in zip(node_data, data):
+    for node_dict, data_dict in zip(node_data, data, strict=True):
         for field, values in node_dict.items():
             data_dict[field] = values
 
@@ -1918,7 +1921,7 @@ def load_hdf5_file(
     grid_data = []
     psize = get_psize(np.array(shape), nchunks)
     left_edges, right_edges, shapes, _, _ = decompose_array(shape, psize, bbox)
-    for le, re, s in zip(left_edges, right_edges, shapes):
+    for le, re, s in zip(left_edges, right_edges, shapes, strict=True):
         data = {_: reader for _ in fields}
         data.update({"left_edge": le, "right_edge": re, "dimensions": s, "level": 0})
         grid_data.append(data)

@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 from yt.funcs import camelcase_to_underscore, iter_fields
@@ -10,6 +12,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 )
 from yt.utilities.physical_constants import gravitational_constant_cgs
 from yt.utilities.physical_ratios import HUGE
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def get_position_fields(field, data):
@@ -415,7 +420,7 @@ class WeightedStandardDeviation(DerivedQuantity):
         fields = list(iter_fields(fields))
         units = [self.data_source.ds._get_field_info(field).units for field in fields]
         rv = super().__call__(fields, weight)
-        rv = [self.data_source.ds.arr(v, u) for v, u in zip(rv, units)]
+        rv = [self.data_source.ds.arr(v, u) for v, u in zip(rv, units, strict=True)]
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -431,7 +436,7 @@ class WeightedStandardDeviation(DerivedQuantity):
         my_var2s = [
             (data[weight].d * (data[field].d - my_mean) ** 2).sum(dtype=np.float64)
             / my_weight
-            for field, my_mean in zip(fields, my_means)
+            for field, my_mean in zip(fields, my_means, strict=True)
         ]
         return my_means + my_var2s + [my_weight]
 
@@ -623,7 +628,7 @@ class Extrema(DerivedQuantity):
         # The values get turned into arrays here.
         return [
             self.data_source.ds.arr([mis.min(), mas.max()])
-            for mis, mas in zip(values[::2], values[1::2])
+            for mis, mas in zip(values[::2], values[1::2], strict=True)
         ]
 
 
