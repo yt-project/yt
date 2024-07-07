@@ -24,7 +24,7 @@ class IOHandlerAthena(BaseIOHandler):
 
     def _field_dict(self, fhandle):
         keys = fhandle["field_types"].keys()
-        val = fhandle["field_types"].keys()
+        val = fhandle["field_types"].values()
         return dict(zip(keys, val, strict=True))
 
     def _read_field_names(self, grid):
