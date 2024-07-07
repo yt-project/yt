@@ -1,5 +1,4 @@
 import os
-import sys
 from functools import cached_property
 
 import numpy as np
@@ -23,11 +22,6 @@ from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
-
-if sys.version_info >= (3, 10):
-    pass
-else:
-    from yt._maintenance.backports import zip
 
 
 class EnzoEGrid(AMRGridPatch):
@@ -481,7 +475,7 @@ class EnzoEDataset(Dataset):
             setdefaultattr(self, "velocity_unit", self.quan(k["uvel"], "cm/s"))
         else:
             p = self.parameters
-            for d, u in zip(("length", "time"), ("cm", "s"), strict=True):
+            for d, u in [("length", "cm"), ("time", "s")]:
                 val = nested_dict_get(p, ("Units", d), default=1)
                 setdefaultattr(self, f"{d}_unit", self.quan(val, u))
             mass = nested_dict_get(p, ("Units", "mass"))

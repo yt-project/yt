@@ -1,12 +1,5 @@
-import sys
-
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
-
-if sys.version_info >= (3, 10):
-    pass
-else:
-    from yt._maintenance.backports import zip
 
 
 class FITSFieldInfo(FieldInfoContainer):
@@ -77,11 +70,10 @@ class WCSFITSFieldInfo(FITSFieldInfo):
 
             return _world_f
 
-        for (i, axis), name in zip(
-            enumerate([self.ds.lon_axis, self.ds.lat_axis]),
-            [self.ds.lon_name, self.ds.lat_name],
-            strict=True,
-        ):
+        for i, axis, name in [
+            (0, self.ds.lon_axis, self.ds.lon_name),
+            (1, self.ds.lat_axis, self.ds.lat_name),
+        ]:
             unit = str(wcs_2d.wcs.cunit[i])
             if unit.lower() == "deg":
                 unit = "degree"

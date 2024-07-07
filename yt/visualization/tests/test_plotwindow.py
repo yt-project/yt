@@ -390,18 +390,13 @@ class TestPlotWindowSave(unittest.TestCase):
             ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
             pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
 
-            [
+            for px, x in zip(plot.xlim, xlim, strict=True):
                 assert_array_almost_equal(px, x, 14)
-                for px, x in zip(plot.xlim, xlim, strict=True)
-            ]
-            [
+            for py, y in zip(plot.ylim, ylim, strict=True):
                 assert_array_almost_equal(py, y, 14)
-                for py, y in zip(plot.ylim, ylim, strict=True)
-            ]
-            [
+            for pw, w in zip(plot.width, pwidth, strict=True):
                 assert_array_almost_equal(pw, w, 14)
-                for pw, w in zip(plot.width, pwidth, strict=True)
-            ]
+
             assert aun == plot._axes_unit_names
 
 

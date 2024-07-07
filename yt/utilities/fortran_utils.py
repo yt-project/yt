@@ -1,12 +1,8 @@
 import io
 import os
 import struct
-import sys
 
 import numpy as np
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def read_attrs(f, attrs, endian="="):
@@ -77,9 +73,7 @@ def read_attrs(f, attrs, endian="="):
                 raise OSError(
                     "An error occurred while reading a Fortran "
                     "record. Record length is not equal to expected "
-                    "length: %s %s",
-                    len(a),
-                    len(v),
+                    f"length: {len(a)} {len(v)}"
                 )
             for k, val in zip(a, v, strict=True):
                 vv[k] = val
@@ -144,11 +138,8 @@ def read_cattrs(f, attrs, endian="="):
                 raise OSError(
                     "An error occurred while reading a Fortran "
                     "record. Record length is not equal to expected "
-                    "length: %s %s",
-                    len(a),
-                    len(v),
+                    f"length: {len(a)} {len(v)}"
                 )
-
             for k, val in zip(a, v, strict=True):
                 vv[k] = val
         else:

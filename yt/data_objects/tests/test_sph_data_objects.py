@@ -1,16 +1,9 @@
-import sys
-
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
 
 from yt import SlicePlot, add_particle_filter
 from yt.loaders import load
 from yt.testing import fake_sph_grid_ds, fake_sph_orientation_ds, requires_file
-
-if sys.version_info >= (3, 10):
-    pass
-else:
-    from yt._maintenance.backports import zip
 
 
 def test_point():
@@ -99,7 +92,7 @@ def test_periodic_region():
         for y in coords:
             for z in coords:
                 center = np.array([x, y, z])
-                for n, w in zip((8, 27), (1.0, 2.0), strict=True):
+                for n, w in [(8, 1.0), (27, 2.0)]:
                     le = center - 0.5 * w
                     re = center + 0.5 * w
                     box = ds.box(le, re)
