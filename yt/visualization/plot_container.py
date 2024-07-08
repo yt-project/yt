@@ -1,6 +1,5 @@
 import abc
 import base64
-import builtins
 import os
 import warnings
 from collections import defaultdict
@@ -12,6 +11,7 @@ from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from unyt.dimensions import length
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt._typing import FieldKey, Quantity
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
@@ -634,7 +634,7 @@ class PlotContainer(abc.ABC):
             for v in sorted(self.plots.values()):
                 v.show()
         else:
-            if "__IPYTHON__" in dir(builtins):
+            if IS_IPYTHON:
                 from IPython.display import display
 
                 display(self)
