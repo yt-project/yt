@@ -1,5 +1,4 @@
 import base64
-import builtins
 import contextlib
 import copy
 import errno
@@ -24,6 +23,7 @@ import numpy as np
 from more_itertools import always_iterable, collapse, first
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt.config import ytcfg
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTFieldNotFound, YTInvalidWidthError
@@ -1023,7 +1023,7 @@ def toggle_interactivity():
     global interactivity
     interactivity = not interactivity
     if interactivity:
-        if "__IPYTHON__" in dir(builtins):
+        if IS_IPYTHON:
             import IPython
 
             shell = IPython.get_ipython()
