@@ -54,7 +54,11 @@ from .selection_routines cimport AlwaysSelector, SelectorObject
 
 from yt.funcs import get_pbar
 
-from ewah_bool_utils.ewah_bool_wrap cimport BoolArrayCollection
+from ewah_bool_utils.ewah_bool_wrap cimport BoolArrayCollection as _BoolArrayCollection
+
+# re-export the class so it can be imported at runtime without
+# requiring ewah-bool-utils as a runtime dependency
+from ewah_bool_utils.ewah_bool_wrap import BoolArrayCollection  # no-cython-lint
 
 import os
 
@@ -358,7 +362,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 next = NULL
         return cur
 
-    def apply_domain(self, int domain_id, BoolArrayCollection mask,
+    def apply_domain(self, int domain_id, _BoolArrayCollection mask,
                      int masklevel):
         cdef SelectorObject selector = AlwaysSelector(None)
         ind = self.domain_ind(selector, mask = mask, masklevel = masklevel)
@@ -368,7 +372,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         super(ParticleOctreeContainer,self).domain_ind(selector, domain_id = domain_id)
 
     def domain_ind(self, selector, int domain_id = -1,
-                   BoolArrayCollection mask = None, int masklevel = 99):
+                   _BoolArrayCollection mask = None, int masklevel = 99):
         if mask is None:
             return super(ParticleOctreeContainer,self).domain_ind(selector, domain_id = domain_id)
         # Create mask for octs that are touched by the mask
@@ -443,7 +447,7 @@ cdef class ParticleBitmap:
     cdef np.uint64_t n_file_markers
     cdef np.uint64_t file_marker_i
     cdef public FileBitmasks bitmasks
-    cdef public BoolArrayCollection collisions
+    cdef public _BoolArrayCollection collisions
     cdef public int _used_mi2
 
     def __init__(self, left_edge, right_edge, periodicity, file_hash, nfiles,
@@ -477,7 +481,7 @@ cdef class ParticleBitmap:
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
         self.particle_counts = np.zeros(1 << (index_order1 * 3), dtype="uint64")
         self.bitmasks = FileBitmasks(self.nfiles)
-        self.collisions = BoolArrayCollection()
+        self.collisions = _BoolArrayCollection()
         hash_data = bytearray()
         hash_data.extend(self.file_hash.to_bytes(8, "little", signed=True))
         hash_data.extend(np.array(self.left_edge).tobytes())
@@ -660,7 +664,7 @@ cdef class ParticleBitmap:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     def _refined_index_data_file(self,
-                                 BoolArrayCollection in_collection,
+                                 _BoolArrayCollection in_collection,
                                  np.ndarray[cython.floating, ndim=2] pos,
                                  np.ndarray[cython.floating, ndim=1] hsml,
                                  np.ndarray[np.uint8_t, ndim=1] mask,
@@ -671,8 +675,8 @@ cdef class ParticleBitmap:
                                  np.uint8_t mask_threshold = 2):
         self._used_mi2 = 1
         if in_collection is None:
-            in_collection = BoolArrayCollection()
-        cdef BoolArrayCollection _in_coll = in_collection
+            in_collection = _BoolArrayCollection()
+        cdef _BoolArrayCollection _in_coll = in_collection
         out_collection = self.__refined_index_data_file(_in_coll, pos, hsml, mask,
                                               count_threshold, mask_threshold)
         return 0, out_collection
@@ -681,9 +685,9 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef BoolArrayCollection __refined_index_data_file(
+    cdef _BoolArrayCollection __refined_index_data_file(
         self,
-        BoolArrayCollection in_collection,
+        _BoolArrayCollection in_collection,
         np.ndarray[cython.floating, ndim=2] pos,
         np.ndarray[cython.floating, ndim=1] hsml,
         np.ndarray[np.uint8_t, ndim=1] mask,
@@ -696,7 +700,7 @@ cdef class ParticleBitmap:
         cdef np.float64_t ppos[3]
         cdef np.float64_t s_ppos[3] # shifted ppos
         cdef int skip
-        cdef BoolArrayCollection this_collection, out_collection
+        cdef _BoolArrayCollection this_collection, out_collection
         cdef np.uint64_t bounds[2][3]
         cdef np.uint8_t fully_enclosed
         cdef np.float64_t LE[3]
@@ -841,7 +845,7 @@ cdef class ParticleBitmap:
         cdef np.uint64_t vec_i
         cdef bool_array *buf = NULL
         cdef ewah_word_type w
-        this_collection = BoolArrayCollection()
+        this_collection = _BoolArrayCollection()
         cdef ewah_bool_array *refined_arr = NULL
         for it1 in coarse_refined_map:
             mi1 = it1.first
@@ -852,7 +856,7 @@ cdef class ParticleBitmap:
             for vec_i in range(buf.sizeInBytes() / sizeof(ewah_word_type)):
                 w = buf.getWord(vec_i)
                 refined_arr.addWord(w)
-        out_collection = BoolArrayCollection()
+        out_collection = _BoolArrayCollection()
         in_collection._logicalor(this_collection, out_collection)
         return out_collection
 
@@ -959,8 +963,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_uncontaminated(self, np.uint32_t ifile, BoolArrayCollection mask,
-                            BoolArrayCollection mask2 = None):
+    def find_uncontaminated(self, np.uint32_t ifile, _BoolArrayCollection mask,
+                            _BoolArrayCollection mask2 = None):
         cdef np.ndarray[np.uint8_t, ndim=1] arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
         cdef np.uint8_t[:] arr_view = arr
         self.bitmasks._select_uncontaminated(ifile, mask, arr_view, mask2)
@@ -970,8 +974,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_contaminated(self, np.uint32_t ifile, BoolArrayCollection mask,
-                          BoolArrayCollection mask2 = None):
+    def find_contaminated(self, np.uint32_t ifile, _BoolArrayCollection mask,
+                          _BoolArrayCollection mask2 = None):
         cdef np.ndarray[np.uint8_t, ndim=1] arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
         cdef np.uint8_t[:] arr_view = arr
         cdef np.ndarray[np.uint8_t, ndim=1] sfiles = np.zeros(self.nfiles,'uint8')
@@ -1130,7 +1134,7 @@ cdef class ParticleBitmap:
         return np.array(mi,'uint64')
 
     def file_ownership_mask(self, fid):
-        cdef BoolArrayCollection out
+        cdef _BoolArrayCollection out
         out = self.bitmasks._get_bitmask(<np.uint32_t> fid)
         return out
 
@@ -1167,23 +1171,23 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def get_ghost_zones(self, SelectorObject selector, int ngz,
-                        BoolArrayCollection dmask = None, bint coarse_ghosts = False):
-        cdef BoolArrayCollection gmask, gmask2, out
+                        _BoolArrayCollection dmask = None, bint coarse_ghosts = False):
+        cdef _BoolArrayCollection gmask, gmask2, out
         cdef np.ndarray[np.uint8_t, ndim=1] periodic = selector.get_periodicity()
         cdef bint periodicity[3]
         cdef int i
         for i in range(3):
             periodicity[i] = periodic[i]
         if dmask is None:
-            dmask = BoolArrayCollection()
-            gmask2 = BoolArrayCollection()
+            dmask = _BoolArrayCollection()
+            gmask2 = _BoolArrayCollection()
             morton_selector = ParticleBitmapSelector(selector,self,ngz=0)
             morton_selector.fill_masks(dmask, gmask2)
-        gmask = BoolArrayCollection()
+        gmask = _BoolArrayCollection()
         dmask._get_ghost_zones(ngz, self.index_order1, self.index_order2,
                                periodicity, gmask, <bint>coarse_ghosts)
         _dfiles, gfiles = self.masks_to_files(dmask, gmask)
-        out = BoolArrayCollection()
+        out = _BoolArrayCollection()
         gmask._logicalor(dmask, out)
         return gfiles, out
 
@@ -1191,7 +1195,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def selector2mask(self, SelectorObject selector):
-        cdef BoolArrayCollection cmask = BoolArrayCollection()
+        cdef _BoolArrayCollection cmask = _BoolArrayCollection()
         cdef ParticleBitmapSelector morton_selector
         morton_selector = ParticleBitmapSelector(selector,self,ngz=0)
         morton_selector.fill_masks(cmask)
@@ -1200,7 +1204,7 @@ cdef class ParticleBitmap:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def mask2files(self, BoolArrayCollection cmask):
+    def mask2files(self, _BoolArrayCollection cmask):
         cdef np.ndarray[np.uint32_t, ndim=1] file_idx
         file_idx = self.mask_to_files(cmask)
         return file_idx
@@ -1208,13 +1212,13 @@ cdef class ParticleBitmap:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def mask2filemasks(self, BoolArrayCollection cmask, np.ndarray[np.uint32_t, ndim=1] file_idx):
-        cdef BoolArrayCollection fmask
+    def mask2filemasks(self, _BoolArrayCollection cmask, np.ndarray[np.uint32_t, ndim=1] file_idx):
+        cdef _BoolArrayCollection fmask
         cdef np.int32_t fid
         cdef np.ndarray[object, ndim=1] file_masks
         cdef int i
         # Get bitmasks for parts of files touching the selector
-        file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx))],
+        file_masks = np.array([_BoolArrayCollection() for i in range(len(file_idx))],
                               dtype="object")
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
             self.bitmasks._logicaland(<np.uint32_t> fid, cmask, fmask)
@@ -1234,8 +1238,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def identify_file_masks(self, SelectorObject selector):
-        cdef BoolArrayCollection cmask = BoolArrayCollection()
-        cdef BoolArrayCollection fmask
+        cdef _BoolArrayCollection cmask = _BoolArrayCollection()
+        cdef _BoolArrayCollection fmask
         cdef np.int32_t fid
         cdef np.ndarray[object, ndim=1] file_masks
         cdef np.ndarray[np.uint32_t, ndim=1] file_idx
@@ -1246,7 +1250,7 @@ cdef class ParticleBitmap:
         morton_selector.fill_masks(cmask)
         # Get bitmasks for parts of files touching the selector
         file_idx = self.mask_to_files(cmask)
-        file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx))],
+        file_masks = np.array([_BoolArrayCollection() for i in range(len(file_idx))],
                               dtype="object")
         addfile_idx = len(file_idx)*[None]
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
@@ -1258,15 +1262,15 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def identify_data_files(self, SelectorObject selector, int ngz = 0):
-        cdef BoolArrayCollection cmask_s = BoolArrayCollection()
-        cdef BoolArrayCollection cmask_g = BoolArrayCollection()
+        cdef _BoolArrayCollection cmask_s = _BoolArrayCollection()
+        cdef _BoolArrayCollection cmask_g = _BoolArrayCollection()
         # Find mask of selected morton indices
         cdef ParticleBitmapSelector morton_selector
         morton_selector = ParticleBitmapSelector(selector, self, ngz=ngz)
         morton_selector.fill_masks(cmask_s, cmask_g)
         return self.masks_to_files(cmask_s, cmask_g), (cmask_s, cmask_g)
 
-    def mask_to_files(self, BoolArrayCollection mm_s):
+    def mask_to_files(self, _BoolArrayCollection mm_s):
         cdef FileBitmasks mm_d = self.bitmasks
         cdef np.uint32_t ifile
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
@@ -1281,7 +1285,7 @@ cdef class ParticleBitmap:
         file_idx_p = np.where(file_mask_p)[0].astype('int32')
         return file_idx_p.astype('uint32')
 
-    def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+    def masks_to_files(self, _BoolArrayCollection mm_s, _BoolArrayCollection mm_g):
         cdef FileBitmasks mm_d = self.bitmasks
         cdef np.uint32_t ifile
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
@@ -1308,8 +1312,8 @@ cdef class ParticleBitmap:
     @cython.cdivision(True)
     def construct_octree(self, index, io_handler, data_files,
                          num_zones,
-                         BoolArrayCollection selector_mask,
-                         BoolArrayCollection base_mask = None):
+                         _BoolArrayCollection selector_mask,
+                         _BoolArrayCollection base_mask = None):
         cdef np.uint64_t total_pcount
         cdef np.uint64_t i, j, k
         cdef int ind[3]
@@ -1489,7 +1493,7 @@ cdef class ParticleBitmapSelector:
         self.select_ewah = BoolArrayColl(self.s1, self.s2)
         self.ghosts_ewah = BoolArrayColl(self.s1, self.s2)
 
-    def fill_masks(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g = None):
+    def fill_masks(self, _BoolArrayCollection mm_s, _BoolArrayCollection mm_g = None):
         # Normal variables
         cdef int i
         cdef np.int32_t level = 0
@@ -1503,7 +1507,7 @@ cdef class ParticleBitmapSelector:
             pos[i] = self.DLE[i]
             dds[i] = self.DRE[i] - self.DLE[i]
         if mm_g is None:
-            mm_g = BoolArrayCollection()
+            mm_g = _BoolArrayCollection()
         # Uncompressed version
         cdef BoolArrayColl mm_s0
         cdef BoolArrayColl mm_g0
