@@ -652,7 +652,7 @@ class BoxlibDataset(Dataset):
 
         cparam_filename = cparam_filename or self.__class__._default_cparam_filename
         self.cparam_filename = self._lookup_cparam_filepath(
-            output_dir, cparam_filename=cparam_filename
+            self.output_dir, cparam_filename=cparam_filename
         )
         self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
