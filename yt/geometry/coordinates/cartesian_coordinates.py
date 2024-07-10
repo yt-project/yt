@@ -169,7 +169,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         bounds,
         size,
         antialias=True,
-        periodic=True,
+        periodic=None,
         *,
         return_mask=False,
     ):
@@ -178,6 +178,18 @@ class CartesianCoordinateHandler(CoordinateHandler):
         two-dimensional image plots. Relies on several sampling
         routines written in cython
         """
+        if periodic is None:
+            if np.all(data_source.ds.periodicity):
+                periodic = True
+            elif not np.any(data_source.ds.periodicity):
+                periodic = False
+            else:
+                msg = ('Pixelization routines in CartesianCoordinate'
+                       'Handler can currently only deal with datasets '
+                       'that are periodic in all or none of their '
+                       f'dimensions. This dataset {data_source.ds}'
+                       f'had periodicity {data_source.ds.periodicity}')
+                raise NotImplementedError(msg)
         index = data_source.ds.index
         if hasattr(index, "meshes") and not isinstance(
             index.meshes[0], SemiStructuredMesh
@@ -528,17 +540,19 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         buff_den = np.zeros(size, dtype="float64")
               
                     for chunk in data_source.chunks([], "io"):
+                        hsmlname = "smoothing_length"
                         pixelize_sph_kernel_slice(
                             buff,
                             mask_uint8,
-                            chunk[ptype, px_name].to("code_length"),
-                            chunk[ptype, py_name].to("code_length"),
-                            chunk[ptype, pz_name].to("code_length"),
-                            chunk[ptype, "smoothing_length"].to("code_length"),
-                            chunk[ptype, "mass"].to("code_mass"),
-                            chunk[ptype, "density"].to("code_density"),
-                            chunk[field].in_units(ounits),
-                            bnds, data_source.coord,
+                            chunk[ptype, px_name].to("code_length").v,
+                            chunk[ptype, py_name].to("code_length").v,
+                            chunk[ptype, pz_name].to("code_length").v,
+                            chunk[ptype, hsmlname].to("code_length").v,
+                            chunk[ptype, "mass"].to("code_mass").v,
+                            chunk[ptype, "density"].to("code_density").v,
+                            chunk[field].in_units(ounits).v,
+                            bnds,
+                            data_source.coord.to("code_length").v,
                             check_period=int(periodic),
                             period=period3,
                             kernel_name=kernel_name
@@ -547,14 +561,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             pixelize_sph_kernel_slice(
                                 buff_den,
                                 mask_uint8,
-                                chunk[ptype, px_name].to("code_length"),
-                                chunk[ptype, py_name].to("code_length"),
-                                chunk[ptype, pz_name].to("code_length"),
-                                chunk[ptype, "smoothing_length"].to("code_length"),
-                                chunk[ptype, "mass"].to("code_mass"),
-                                chunk[ptype, "density"].to("code_density"),
+                                chunk[ptype, px_name].to("code_length").v,
+                                chunk[ptype, py_name].to("code_length").v,
+                                chunk[ptype, pz_name].to("code_length").v,
+                                chunk[ptype, hsmlname].to("code_length").v,
+                                chunk[ptype, "mass"].to("code_mass").v,
+                                chunk[ptype, "density"].to("code_density").v,
                                 np.ones(chunk[ptype, "density"].shape[0]),
-                                bnds, data_source.coord,
+                                bnds,
+                                data_source.coord.to("code_length").v,
                                 check_period=int(periodic),
                                 period=period3,
                                 kernel_name=kernel_name

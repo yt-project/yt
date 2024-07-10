@@ -1494,10 +1494,18 @@ def pixelize_sph_kernel_slice(
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        bounds, np.float64_t slicez, 
+        bounds,
+        np.float64_t slicez, 
         kernel_name="cubic",
         int check_period=1,
         period=None):
+    #print("bounds, slicez, kernel_name, check_period, period")
+    #print(bounds)
+    #print(slicez)
+    #print(kernel_name)
+    #print(check_period)
+    #print(period)
+    #print()
     # bounds are [x0, x1, y0, y1], slicez is the single coordinate
     # of the slice along the normal direction. 
     # similar method to pixelize_sph_kernel_projection
@@ -1531,7 +1539,7 @@ def pixelize_sph_kernel_slice(
     idy = 1.0/dy
 
     kernel = get_kernel_func(kernel_name)
-
+    #print('particle index, ii, jj, px, py, pz')
     with nogil, parallel():
         # NOTE see note in pixelize_sph_kernel_projection
         local_buff = <np.float64_t *> malloc(sizeof(np.float64_t) * xsize * ysize)
@@ -1548,18 +1556,19 @@ def pixelize_sph_kernel_slice(
             if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
-
+            #with gil:
+            #    print(j)
             xiter[1] = yiter[1] = 999
-
+            pz = posz[j]
             if check_period == 1:
                 if posx[j] - hsml[j] < x_min:
-                    xiter[1] = +1
+                    xiter[1] = 1
                     xiterv[1] = period_x
                 elif posx[j] + hsml[j] > x_max:
                     xiter[1] = -1
                     xiterv[1] = -period_x
                 if posy[j] - hsml[j] < y_min:
-                    yiter[1] = +1
+                    yiter[1] = 1
                     yiterv[1] = period_y
                 elif posy[j] + hsml[j] > y_max:
                     yiter[1] = -1
@@ -1570,8 +1579,6 @@ def pixelize_sph_kernel_slice(
                     pz = posz[j] - period_z
                 elif posz[j] + hsml[j] < slicez:
                     pz = posz[j] + period_z
-                else:
-                    pz = posz[j]
 
             h_j2 = hsml[j] * hsml[j] #fmax(hsml[j]*hsml[j], dx*dy)
             h_j =  hsml[j] #math.sqrt(h_j2)
@@ -1603,7 +1610,8 @@ def pixelize_sph_kernel_slice(
                     y1 = <np.int64_t> ( (py + hsml[j] - y_min) * idy)
                     y0 = iclip(y0-1, 0, ysize)
                     y1 = iclip(y1+1, 0, ysize)
-
+                    #with gil:
+                    #    print(ii, jj, px, py, pz)
                     # Now we know which pixels to deposit onto for this particle,
                     # so loop over them and add this particle's contribution
                     for xi in range(x0, x1):
@@ -1917,7 +1925,7 @@ def rotate_particle_coord(np.float64_t[:] px,
     # the normal vector be the z-axis (i.e., the viewer's perspective), and then
     # another rotation to make the north-vector be the y-axis (i.e., north).
     # Fortunately, total_rotation_matrix = rotation_matrix_1 x rotation_matrix_2
-    cdef int num_particles = np.size(px)
+    cdef np.int64_t num_particles = np.size(px)
     cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype="float64")
     cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype="float64")
     cdef np.float64_t[:, :] normal_rotation_matrix
@@ -1936,6 +1944,8 @@ def rotate_particle_coord(np.float64_t[:] px,
     cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype="float64")
     cdef np.float64_t[:] rotated_coordinates
     cdef np.float64_t[:] rotated_center
+    cdef np.int64_t i
+    cdef int ax
     #rotated_center = rotation_matmul(
     #    rotation_matrix, np.array([center[0], center[1], center[2]]))
     rotated_center = np.zeros((3,), dtype=center.dtype)
