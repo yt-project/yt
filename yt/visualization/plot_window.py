@@ -12,9 +12,9 @@ from unyt.exceptions import UnitConversionError
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import AlphaT
 from yt.data_objects.image_array import ImageArray
-from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.frontends.stream.data_structures import StreamParticlesDataset
+from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import (
     fix_axis,
     fix_unitary,
