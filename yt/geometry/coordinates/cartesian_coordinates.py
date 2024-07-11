@@ -577,7 +577,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                     if normalize:
                         normalization_2d_utility(buff, buff_den)
-
+                    
                     mask = mask_uint8.astype("bool", copy=False)
 
                 if smoothing_style == "gather":
@@ -692,7 +692,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             le = data_source.ds.domain_left_edge.to("code_length")
             re = data_source.ds.domain_right_edge.to("code_length")
             boxbounds = np.array([le[0], re[0], le[1], re[1], le[2], re[2]])
-            periodic = data_source.ds.coordinates.period.astype(bool).v
+            periodic = data_source.ds.periodicity
             ptype = field[0]
             if ptype == "gas":
                 ptype = data_source.ds._sph_ptypes[0]
@@ -757,6 +757,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 normalization_2d_utility(buff, buff_den)
 
             mask = mask_uint8.astype("bool", copy=False)
+            # swap axes for image plotting
+            mask = mask.swapaxes(0, 1)
+            buff = buff.swapaxes(0, 1)
             
         # whatever other data this code could handle before the
         # SPH option was added
