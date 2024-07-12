@@ -242,7 +242,6 @@ def off_axis_projection(
             kernel_name = data_source.ds.kernel_name
         if kernel_name is None:
             kernel_name = "cubic"
-
         if weight is None:
             for chunk in data_source.chunks([], "io"):
                 off_axis_projection_SPH(
