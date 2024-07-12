@@ -668,10 +668,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
         return buff, mask
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
-        from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
         from yt.data_objects.selection_objects.slices import YTCuttingPlane
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
+        from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 
         # Determine what sort of data we're dealing with
         # -> what backend to use
