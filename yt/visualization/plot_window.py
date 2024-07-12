@@ -2465,10 +2465,16 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         # field in a single call
         # checks for SPH fields copied from the 
         # _ortho_pixelize method in cartesian_coordinates.py
+        
+        ## data_source might be None here 
+        ## (OffAxisProjectionDummyDataSource gets used later)
+        if data_source is None:
+            data_source = ds.all_data()
         field = data_source._determine_fields(fields)[0]
         finfo = data_source.ds.field_info[field]
-        particle_datasets = (ParticleDataset, StreamParticlesDataset)
         is_sph_field = finfo.is_sph_field
+        particle_datasets = (ParticleDataset, StreamParticlesDataset)
+        
         if  isinstance(data_source.ds, particle_datasets) and is_sph_field:
             center_use = center
         else:
