@@ -630,10 +630,13 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             self.buff_size[1],
         )
         dd = self.data_source
+        # only need the first two for SPH,
+        # but need the third one for other data formats.
         width = self.ds.arr(
             (
                 self.bounds[1] - self.bounds[0],
                 self.bounds[3] - self.bounds[2],
+                self.bounds[5] - self.bounds[4],
             )
         )
         buff = off_axis_projection(

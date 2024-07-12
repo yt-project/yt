@@ -233,6 +233,8 @@ def off_axis_projection(
         x_min, y_min, z_min = le
         x_max, y_max, z_max = re
         bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
+        # only need (rotated) x/y widths
+        _width = (width.to("code_length").d)[:2] 
         finfo = data_source.ds.field_info[item]
         ounits = finfo.output_units
         kernel_name = None
@@ -252,7 +254,7 @@ def off_axis_projection(
                     chunk[ptype, "smoothing_length"].to("code_length").d,
                     bounds,
                     center.to("code_length").d,
-                    width.to("code_length").d,
+                    _width,
                     periodic,
                     chunk[item].in_units(ounits),
                     buf,
@@ -293,7 +295,7 @@ def off_axis_projection(
                     chunk[ptype, "smoothing_length"].to("code_length").d,
                     bounds,
                     center.to("code_length").d,
-                    width.to("code_length").d,
+                    _width,
                     periodic,
                     chunk[item].in_units(ounits),
                     buf,
@@ -315,7 +317,7 @@ def off_axis_projection(
                     chunk[ptype, "smoothing_length"].to("code_length").d,
                     bounds,
                     center.to("code_length").d,
-                    width.to("code_length").d,
+                    _width,
                     periodic,
                     chunk[weight].to(wounits),
                     weight_buff,
