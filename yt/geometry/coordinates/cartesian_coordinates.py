@@ -372,7 +372,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             py_name = self.axis_name[self.y_axis[dim]]
             # need z coordinates for depth, 
             # but name isn't saved in the handler -> use the 'other one'
-            pz_name = list((set(self.axis_order) - {px_name, py_name}))[0]
+            pz_name = list(set(self.axis_order) - {px_name, py_name})[0]
 
             # ignore default True periodic argument
             # (not actually supplied by a call from 
