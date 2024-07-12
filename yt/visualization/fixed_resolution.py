@@ -17,7 +17,7 @@ from yt.utilities.lib.api import (  # type: ignore
 )
 from yt.utilities.lib.pixelization_routines import (
     pixelize_cylinder,
-    rotate_particle_coord,
+    rotate_particle_coord_pib,
 )
 from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -749,7 +749,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 if hasattr(w, "to_value"):
                     w = w.to_value("code_length")
                 wd.append(w)
-            x_data, y_data, *bounds = rotate_particle_coord(
+            x_data, y_data, *bounds = rotate_particle_coord_pib(
                 dd[ftype, "particle_position_x"].to_value("code_length"),
                 dd[ftype, "particle_position_y"].to_value("code_length"),
                 dd[ftype, "particle_position_z"].to_value("code_length"),

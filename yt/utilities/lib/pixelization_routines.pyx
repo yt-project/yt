@@ -1916,7 +1916,63 @@ def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
     free(field_vals)
     return arc_length, plot_values
 
+# intended for use in ParticleImageBuffer
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def rotate_particle_coord_pib(np.float64_t[:] px,
+                              np.float64_t[:] py,
+                              np.float64_t[:] pz,
+                              center,
+                              width,
+                              normal_vector,
+                              north_vector):
+    # We want to do two rotations, one to first rotate our coordinates to have
+    # the normal vector be the z-axis (i.e., the viewer's perspective), and then
+    # another rotation to make the north-vector be the y-axis (i.e., north).
+    # Fortunately, total_rotation_matrix = rotation_matrix_1 x rotation_matrix_2
+    cdef int num_particles = np.size(px)
+    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype="float64")
+    cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype="float64")
+    cdef np.float64_t[:, :] normal_rotation_matrix
+    cdef np.float64_t[:] transformed_north_vector
+    cdef np.float64_t[:, :] north_rotation_matrix
+    cdef np.float64_t[:, :] rotation_matrix
 
+    normal_rotation_matrix = get_rotation_matrix(normal_vector, z_axis)
+    transformed_north_vector = np.matmul(normal_rotation_matrix, north_vector)
+    north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
+    rotation_matrix = np.matmul(north_rotation_matrix, normal_rotation_matrix)
+
+    cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype="float64")
+    cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype="float64")
+    cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype="float64")
+    cdef np.float64_t[:] rotated_coordinates
+    cdef np.float64_t[:] rotated_center
+    rotated_center = rotation_matmul(
+        rotation_matrix, np.array([center[0], center[1], center[2]]))
+
+    # set up the rotated bounds
+    cdef np.float64_t rot_bounds_x0 = rotated_center[0] - width[0] / 2
+    cdef np.float64_t rot_bounds_x1 = rotated_center[0] + width[0] / 2
+    cdef np.float64_t rot_bounds_y0 = rotated_center[1] - width[1] / 2
+    cdef np.float64_t rot_bounds_y1 = rotated_center[1] + width[1] / 2
+
+    for i in range(num_particles):
+        coordinate_matrix[0] = px[i]
+        coordinate_matrix[1] = py[i]
+        coordinate_matrix[2] = pz[i]
+        rotated_coordinates = rotation_matmul(
+            rotation_matrix, coordinate_matrix)
+        px_rotated[i] = rotated_coordinates[0]
+        py_rotated[i] = rotated_coordinates[1]
+
+    return px_rotated, py_rotated, rot_bounds_x0, rot_bounds_x1, rot_bounds_y0, rot_bounds_y1
+
+# version intended for SPH off-axis slices/projections
+# includes dealing with periodic boundaries, but also 
+# shifts particles so center -> origin.
+# therefore, don't want to use this in the ParticleImageBuffer,
+# which expects differently centered coordinates.
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def rotate_particle_coord(np.float64_t[:] px,
@@ -1940,7 +1996,6 @@ def rotate_particle_coord(np.float64_t[:] px,
     cdef np.float64_t[:] transformed_north_vector
     cdef np.float64_t[:, :] north_rotation_matrix
     cdef np.float64_t[:, :] rotation_matrix
-
 
     normal_rotation_matrix = get_rotation_matrix(normal_vector, z_axis)
     transformed_north_vector = np.matmul(normal_rotation_matrix, north_vector)
@@ -1999,7 +2054,6 @@ def rotate_particle_coord(np.float64_t[:] px,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-
 def off_axis_projection_SPH(np.float64_t[:] px,
                             np.float64_t[:] py,
                             np.float64_t[:] pz,
