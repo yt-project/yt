@@ -1131,7 +1131,7 @@ def pixelize_sph_kernel_projection(
         bounds,
         kernel_name="cubic",
         weight_field=None,
-        int check_period=1,
+        _check_period = (1, 1, 1),
         period=None):
 
     cdef np.intp_t xsize, ysize
@@ -1148,6 +1148,7 @@ def pixelize_sph_kernel_projection(
     cdef np.float64_t * xiterv
     cdef np.float64_t * yiterv
     cdef np.float64_t * ziterv
+    cdef np.int8_t[3] check_period
 
     if weight_field is not None:
         _weight_field = weight_field
@@ -1156,7 +1157,8 @@ def pixelize_sph_kernel_projection(
         period_x = period[0]
         period_y = period[1]
         period_z = period[2]
-
+    for i in range(3):
+        check_period[i] = np.int8(_check_period[i])
     # we find the x and y range over which we have pixels and we find how many
     # pixels we have in each dimension
     xsize, ysize = buff.shape[0], buff.shape[1]
@@ -1211,19 +1213,21 @@ def pixelize_sph_kernel_projection(
 
             xiter[1] = yiter[1] = ziter[1] = 999
 
-            if check_period == 1:
+            if check_period[0] == 1:
                 if posx[j] - hsml[j] < x_min:
                     xiter[1] = +1
                     xiterv[1] = period_x
                 elif posx[j] + hsml[j] > x_max:
                     xiter[1] = -1
                     xiterv[1] = -period_x
+            if check_period[1] == 1:
                 if posy[j] - hsml[j] < y_min:
                     yiter[1] = +1
                     yiterv[1] = period_y
                 elif posy[j] + hsml[j] > y_max:
                     yiter[1] = -1
                     yiterv[1] = -period_y
+            if check_period[2] == 1:
                 if posz[j] - hsml[j] < z_min:
                     ziter[1] = +1
                     ziterv[1] = period_z
@@ -1497,7 +1501,7 @@ def pixelize_sph_kernel_slice(
         bounds,
         np.float64_t slicez, 
         kernel_name="cubic",
-        int check_period=1,
+        _check_period = (1, 1, 1),
         period=None):
     #print("bounds, slicez, kernel_name, check_period, period")
     #print(bounds)
@@ -1520,14 +1524,16 @@ def pixelize_sph_kernel_slice(
     cdef int * yiter
     cdef np.float64_t * xiterv
     cdef np.float64_t * yiterv
+    cdef np.int8_t[3] check_period
 
     if period is not None:
         period_x = period[0]
         period_y = period[1]
         period_z = period[2]
-
+    for i in range(3):
+        check_period[i] = np.int8(_check_period[i])
+    
     xsize, ysize = buff.shape[0], buff.shape[1]
-
     x_min = bounds[0]
     x_max = bounds[1]
     y_min = bounds[2]
@@ -1560,19 +1566,21 @@ def pixelize_sph_kernel_slice(
             #    print(j)
             xiter[1] = yiter[1] = 999
             pz = posz[j]
-            if check_period == 1:
+            if check_period[0] == 1:
                 if posx[j] - hsml[j] < x_min:
                     xiter[1] = 1
                     xiterv[1] = period_x
                 elif posx[j] + hsml[j] > x_max:
                     xiter[1] = -1
                     xiterv[1] = -period_x
+            if check_period[1] == 1:
                 if posy[j] - hsml[j] < y_min:
                     yiter[1] = 1
                     yiterv[1] = period_y
                 elif posy[j] + hsml[j] > y_max:
                     yiter[1] = -1
                     yiterv[1] = -period_y
+            if check_period[2] == 1:
                 # z of particle might be < hsml from the slice plane
                 # but across a periodic boundary
                 if posz[j] - hsml[j] > slicez:
@@ -1933,6 +1941,7 @@ def rotate_particle_coord(np.float64_t[:] px,
     cdef np.float64_t[:, :] north_rotation_matrix
     cdef np.float64_t[:, :] rotation_matrix
 
+
     normal_rotation_matrix = get_rotation_matrix(normal_vector, z_axis)
     transformed_north_vector = np.matmul(normal_rotation_matrix, north_vector)
     north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
@@ -2034,6 +2043,7 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     # does not apply to the *rotated* coordinates, the periodicity
     # approach implemented for this along-axis projection method
     # would fail here
+    check_period = np.array([0, 0, 0], dtype="int")
     pixelize_sph_kernel_projection(projection_array,
                                    mask,
                                    px_rotated,
@@ -2047,7 +2057,7 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                     rot_bounds_y0, rot_bounds_y1,
                                     rot_bounds_z0, rot_bounds_z1],
                                    weight_field=weight_field,
-                                   check_period=0,
+                                   _check_period=check_period,
                                    kernel_name=kernel_name)
 
 # like slice pixelization, but for off-axis planes
@@ -2085,7 +2095,7 @@ def pixelize_sph_kernel_cutting(
                               hsml, pmass, pdens, quantity_to_smooth,
                               bounds_rot, slicez_rot, 
                               kernel_name=kernel_name,
-                              check_period=0,
+                              _check_period=np.zeros(3, dtype="int"),
                               period=None)
 
 

@@ -169,7 +169,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         bounds,
         size,
         antialias=True,
-        periodic=None,
+        periodic=True,
         *,
         return_mask=False,
     ):
@@ -178,18 +178,6 @@ class CartesianCoordinateHandler(CoordinateHandler):
         two-dimensional image plots. Relies on several sampling
         routines written in cython
         """
-        if periodic is None:
-            if np.all(data_source.ds.periodicity):
-                periodic = True
-            elif not np.any(data_source.ds.periodicity):
-                periodic = False
-            else:
-                msg = ('Pixelization routines in CartesianCoordinate'
-                       'Handler can currently only deal with datasets '
-                       'that are periodic in all or none of their '
-                       f'dimensions. This dataset {data_source.ds}'
-                       f'had periodicity {data_source.ds.periodicity}')
-                raise NotImplementedError(msg)
         index = data_source.ds.index
         if hasattr(index, "meshes") and not isinstance(
             index.meshes[0], SemiStructuredMesh
@@ -376,6 +364,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 return_mask=True,
             )
         elif isinstance(data_source.ds, particle_datasets) and is_sph_field:
+            # SPH handling
             ptype = field[0]
             if ptype == "gas":
                 ptype = data_source.ds._sph_ptypes[0]
@@ -384,7 +373,20 @@ class CartesianCoordinateHandler(CoordinateHandler):
             # need z coordinates for depth, 
             # but name isn't saved in the handler -> use the 'other one'
             pz_name = list((set(self.axis_order) - {px_name, py_name}))[0]
-            
+
+            # ignore default True periodic argument
+            # (not actually supplied by a call from 
+            # FixedResolutionBuffer), and use the dataset periodicity
+            # instead 
+            xa = self.x_axis[dim]
+            ya = self.y_axis[dim]
+            #axorder = data_source.ds.coordinates.axis_order
+            za = list({0, 1, 2} - {xa, ya})[0]
+            ds_periodic = data_source.ds.periodicity
+            _periodic = np.array(ds_periodic)
+            _periodic[0] = ds_periodic[xa]
+            _periodic[1] = ds_periodic[ya]
+            _periodic[2] = ds_periodic[za]
             ounits = data_source.ds.field_info[field].output_units
             bnds = data_source.ds.arr(bounds, "code_length").tolist()
             kernel_name = None
@@ -393,12 +395,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
             if kernel_name is None:
                 kernel_name = "cubic"
 
-            if isinstance(data_source, YTParticleProj):
+            if isinstance(data_source, YTParticleProj): # projection
                 weight = data_source.weight_field
                 moment = data_source.moment
                 le, re = data_source.data_source.get_bbox()
-                xa = self.x_axis[dim]
-                ya = self.y_axis[dim]
                 # If we're not periodic, we need to clip to the boundary edges
                 # or we get errors about extending off the edge of the region.
                 # (depth/z range is handled by region setting)
@@ -424,8 +424,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 proj_reg.set_field_parameter("axis", data_source.axis)
                 # need some z bounds for SPH projection 
                 # -> use source bounds
-                zax = list({0, 1, 2} - {xa, ya})[0]
-                bnds3 = bnds + [le[zax], re[zax]]
+                bnds3 = bnds + [le[za], re[za]]
                 
                 buff = np.zeros(size, dtype="float64")
                 mask_uint8 = np.zeros_like(buff, dtype="uint8")
@@ -443,7 +442,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds3,
-                            check_period=int(periodic),
+                            _check_period=_periodic.astype("int"),
                             period=period3,
                             kernel_name=kernel_name
                         )
@@ -476,7 +475,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds3,
-                            check_period=int(periodic),
+                            _check_period=_periodic.astype("int"),
                             period=period3,
                             weight_field=chunk[weight].in_units(wounits),
                             kernel_name=kernel_name
@@ -500,7 +499,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[weight].in_units(wounits),
                             bnds3,
-                            check_period=int(periodic),
+                            _check_period=_periodic.astype("int"),
                             period=period3,
                             kernel_name=kernel_name
                         )
@@ -521,7 +520,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 chunk[ptype, "density"].to("code_density"),
                                 chunk[field].in_units(ounits) ** 2,
                                 bnds3,
-                                check_period=int(periodic),
+                                _check_period=_periodic.astype("int"),
                                 period=period3,
                                 weight_field=chunk[weight].in_units(wounits),
                                 kernel_name=kernel_name
@@ -553,7 +552,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[field].in_units(ounits).v,
                             bnds,
                             data_source.coord.to("code_length").v,
-                            check_period=int(periodic),
+                            _check_period=_periodic.astype("int"),
                             period=period3,
                             kernel_name=kernel_name
                         )
@@ -570,7 +569,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 np.ones(chunk[ptype, "density"].shape[0]),
                                 bnds,
                                 data_source.coord.to("code_length").v,
-                                check_period=int(periodic),
+                                _check_period=_periodic.astype("int"),
                                 period=period3,
                                 kernel_name=kernel_name
                             )
