@@ -116,6 +116,7 @@ class FieldNameContainer:
         return False
 
     if IPYWIDGETS_ENABLED:
+        # for discussion of this class-level conditional: https://github.com/yt-project/yt/pull/4941
 
         def _ipython_display_(self):
             import ipywidgets
