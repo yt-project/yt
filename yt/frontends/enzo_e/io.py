@@ -14,8 +14,17 @@ class EnzoEIOHandler(BaseIOHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._base = self.ds.dimensionality * (
-            slice(self.ds.ghost_zones, -self.ds.ghost_zones),
+
+        # precompute the indexing specifying each field's active zone
+        # -> this assumes that each field in Enzo-E shares the same number of
+        #    ghost-zones. Technically, Enzo-E allows each field to have a
+        #    different number of ghost zones (but this feature isn't currently
+        #    used & it currently doesn't record this information)
+        # -> our usage of a negative stop value ensures compatability with
+        #    both cell-centered and face-centered fields
+        self._activezone_idx = tuple(
+            slice(num_zones, -num_zones) if num_zones > 0 else slice(None)
+            for num_zones in self.ds.ghost_zones[: self.ds.dimensionality]
         )
 
         # Determine if particle masses are actually masses or densities.
@@ -186,7 +195,7 @@ class EnzoEIOHandler(BaseIOHandler):
         dg.read(h5py.h5s.ALL, h5py.h5s.ALL, rdata)
         if close:
             fid.close()
-        data = rdata[self._base].T
+        data = rdata[self._activezone_idx].T
         if self.ds.dimensionality < 3:
             nshape = data.shape + (1,) * (3 - self.ds.dimensionality)
             data = np.reshape(data, nshape)
