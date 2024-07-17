@@ -649,6 +649,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
     level : int
         The resolution level data to which data will be gridded. Level
         0 is the root grid dx for that dataset.
+        (The grid resolution will be simulation size / 2**level along
+         each grid axis.)
     left_edge : array_like
         The left edge of the region to be extracted.  Specify units by supplying
         a YTArray, otherwise code length units are assumed.
@@ -1001,8 +1003,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         period = self.ds.coordinates.period.copy()
         if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
-        # TODO maybe there is a better way of handling this
-        is_periodic = int(any(self.ds.periodicity))
+        # check periodicity per dimension
+        is_periodic = self.ds.periodicity
 
         if smoothing_style == "scatter":
             for field in fields:

@@ -1669,7 +1669,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
         bounds, pbar=None, kernel_name="cubic",
-        int check_period=1, period=None):
+        check_period=True, period=None):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
@@ -1685,10 +1685,21 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t xiterv[2]
     cdef np.float64_t yiterv[2]
     cdef np.float64_t ziterv[2]
+    cdef int[3] periodic
+
 
     xiter[0] = yiter[0] = ziter[0] = 0
     xiterv[0] = yiterv[0] = ziterv[0] = 0.0
 
+    if hasattr(check_period, "__len__"):
+        periodic[0] = int(check_period[0])
+        periodic[1] = int(check_period[1])
+        periodic[2] = int(check_period[2])
+    else:
+        _cp = int(check_period)
+        periodic[0] = _cp
+        periodic[1] = _cp
+        periodic[2] = _cp
     if period is not None:
         period_x = period[0]
         period_y = period[1]
@@ -1710,7 +1721,17 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     idz = 1.0/dz
 
     kernel = get_kernel_func(kernel_name)
-
+    
+    # nogil seems dangerous here, but there are no actual parallel 
+    # sections (e.g., prange instead of range) used here.
+    # However, for future writers:
+    # !!  the final buff array mutation has no protections against 
+    # !!  race conditions (e.g., OpenMP's atomic read/write), and
+    # !!  cython doesn't seem to provide such options.
+    # (other routines in this file use private variable buffer arrays
+    # and add everything together at the end, but grid arrays can get 
+    # big fast, and having such a large array in each thread could 
+    # cause memory use issues.)
     with nogil:
         # TODO make this parallel without using too much memory
         for j in range(0, posx.shape[0]):
@@ -1719,23 +1740,26 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                     if(pbar is not None):
                         pbar.update(50000)
                     PyErr_CheckSignals()
+                # end with gil
 
             xiter[1] = yiter[1] = ziter[1] = 999
             xiterv[1] = yiterv[1] = ziterv[1] = 0.0
 
-            if check_period == 1:
+            if periodic[0] == 1:
                 if posx[j] - hsml[j] < x_min:
                     xiter[1] = +1
                     xiterv[1] = period_x
                 elif posx[j] + hsml[j] > x_max:
                     xiter[1] = -1
                     xiterv[1] = -period_x
+            if periodic[1] == 1:
                 if posy[j] - hsml[j] < y_min:
                     yiter[1] = +1
                     yiterv[1] = period_y
                 elif posy[j] + hsml[j] > y_max:
                     yiter[1] = -1
                     yiterv[1] = -period_y
+            if periodic[2] == 1:
                 if posz[j] - hsml[j] < z_min:
                     ziter[1] = +1
                     ziterv[1] = period_z
@@ -1743,8 +1767,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                     ziter[1] = -1
                     ziterv[1] = -period_z
 
-            h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
-            h_j = math.cbrt(h_j3)
+            #h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
+            h_j = hsml[j] #math.cbrt(h_j3)
             h_j2 = h_j*h_j
             ih_j = 1/h_j
 
@@ -1805,11 +1829,17 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                                         continue
 
                                     # see equation 4 of the SPLASH paper
-                                    q_ij = math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
+                                    q_ij = math.sqrt(posx_diff 
+                                                     + posy_diff
+                                                     + posz_diff) * ih_j
                                     if q_ij >= 1:
                                         continue
-
-                                    buff[xi, yi, zi] += prefactor_j * kernel(q_ij)
+                                    # shared variable buff should not
+                                    # be mutatated in a nogil section
+                                    # where different threads may change 
+                                    # the same array element
+                                    buff[xi, yi, zi] += prefactor_j \
+                                                        * kernel(q_ij)
 
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
