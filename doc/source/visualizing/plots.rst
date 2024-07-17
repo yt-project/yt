@@ -433,6 +433,8 @@ by applying the
 In this use case, the volume renderer casts a set of plane parallel rays, one
 for each pixel in the image.  The data values along each ray are summed,
 creating the final image buffer.
+For SPH datsets, the coordinates are instead simply rotated before the axis-aligned
+projection function is applied.
 
 .. _off-axis-projection-function:
 
@@ -651,10 +653,6 @@ simply pass ``all`` as the first argument of the field tuple:
 
 Additional Notes for Plotting Particle Data
 -------------------------------------------
-
-An important caveat when visualizing particle data is that off-axis slice plotting is
-not available for any particle data. However, axis-aligned slice plots (as described in
-:ref:`slice-plots`) will work.
 
 Since version 4.2.0, off-axis projections ares supported for non-SPH particle data.
 Previous to that, this operation was only supported for SPH particles. Two historical
