@@ -1675,7 +1675,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
     cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff, px, py, pz
-    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
+    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j2, h_j, ih_j 
+    # cdef np.float64_t h_j3
     cdef int j, ii, jj, kk
     cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
 
