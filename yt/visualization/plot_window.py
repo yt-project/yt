@@ -2490,9 +2490,8 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
         
         if  isinstance(data_source.ds, particle_datasets) and is_sph_field:
-            center_use = center = parse_center_array(center, 
-                                                     ds=data_source.ds,
-                                                     axis=None)
+            center_use = parse_center_array(center, ds=data_source.ds,
+                                            axis=None)
         else:
             center_use = center_rot
         fields = list(iter_fields(fields))[:]
