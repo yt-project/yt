@@ -9,12 +9,11 @@ import unittest
 from functools import wraps
 from importlib.util import find_spec
 from shutil import which
-from typing import Any, Callable, Union
+from typing import Callable, Union
 from unittest import SkipTest
 
 import matplotlib
 import numpy as np
-import numpy.typing as npt
 from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
