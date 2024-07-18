@@ -90,7 +90,7 @@ def get_oblique_window_parameters(normal, center, width, ds,
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
-        # the original dimensionless center messes up off-axis 
+        # the original dimensionless center messes up off-axis
         # SPH projections though -> don't use this center there
         center = ((center - ds.domain_left_edge) / ds.domain_width - 0.5)\
                   * ds.domain_width
@@ -2469,18 +2469,18 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         # units match bounds
         # for SPH data, we want to input the original center
         # the cython backend handles centering to this point and
-        # rotation. 
+        # rotation.
         # get3bounds gets a depth 0.5 * diagonal + margin in the
-        # depth=None case. 
+        # depth=None case.
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth, get3bounds=True,
         )
         # will probably fail if you try to project an SPH and non-SPH
         # field in a single call
-        # checks for SPH fields copied from the 
+        # checks for SPH fields copied from the
         # _ortho_pixelize method in cartesian_coordinates.py
-        
-        ## data_source might be None here 
+
+        ## data_source might be None here
         ## (OffAxisProjectionDummyDataSource gets used later)
         if data_source is None:
             data_source = ds.all_data()
@@ -2488,7 +2488,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         finfo = data_source.ds.field_info[field]
         is_sph_field = finfo.is_sph_field
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
-        
+
         if  isinstance(data_source.ds, particle_datasets) and is_sph_field:
             center_use = parse_center_array(center, ds=data_source.ds,
                                             axis=None)

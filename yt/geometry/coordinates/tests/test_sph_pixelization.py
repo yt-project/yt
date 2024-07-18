@@ -2,7 +2,7 @@ import numpy as np
 
 import yt
 from yt.testing import (
-    assert_rel_equal, 
+    assert_rel_equal,
     cubicspline_python,
     fake_sph_flexible_grid_ds,
     integrate_kernel,
@@ -55,17 +55,17 @@ def test_sph_projection_basic1():
     particles at 0.5, 1.5, 2.5
     '''
     bbox = np.array([[0., 3.]] * 3)
-    ds = fake_sph_flexible_grid_ds(hsml_factor=1.0, nperside=3, 
+    ds = fake_sph_flexible_grid_ds(hsml_factor=1.0, nperside=3,
                                    bbox=bbox)
     # works, but no depth control (at least without specific filters)
-    proj = ds.proj(("gas", "density"), 2) 
-    frb = proj.to_frb(width=(2.5, 'cm'), 
+    proj = ds.proj(("gas", "density"), 2)
+    frb = proj.to_frb(width=(2.5, 'cm'),
                       resolution=(5, 5),
                       height=(2.5, 'cm'),
-                      center=np.array([1.5, 1.5, 1.5]), 
+                      center=np.array([1.5, 1.5, 1.5]),
                       periodic=False)
     out = frb.get_image(('gas', 'density'))
-    
+
     expected_out = np.zeros((5, 5), dtype=np.float64)
     dl_1part = integrate_kernel(cubicspline_python, 0., 0.5)
     linedens_1part = dl_1part * 1. # unit mass, density
@@ -84,18 +84,18 @@ def test_sph_projection_basic2():
     other pixels are still zero.
     '''
     bbox = np.array([[0., 3.]] * 3)
-    ds = fake_sph_flexible_grid_ds(hsml_factor=0.5, nperside=3, 
+    ds = fake_sph_flexible_grid_ds(hsml_factor=0.5, nperside=3,
                                    bbox=bbox)
-    proj = ds.proj(("gas", "density"), 2) 
-    frb = proj.to_frb(width=(2.5, 'cm'), 
+    proj = ds.proj(("gas", "density"), 2)
+    frb = proj.to_frb(width=(2.5, 'cm'),
                       resolution=(5, 5),
                       height=(2.5, 'cm'),
-                      center=np.array([1.375, 1.375, 1.5]), 
+                      center=np.array([1.375, 1.375, 1.5]),
                       periodic=False)
     out = frb.get_image(('gas', 'density'))
-    
+
     expected_out = np.zeros((5, 5), dtype=np.float64)
-    dl_1part = integrate_kernel(cubicspline_python, 
+    dl_1part = integrate_kernel(cubicspline_python,
                                  np.sqrt(2) * 0.125,
                                  0.25)
     linedens_1part = dl_1part * 1. # unit mass, density
@@ -109,7 +109,7 @@ def test_sph_projection_basic2():
 
 def get_dataset_sphrefine(reflevel: int = 1):
     '''
-    constant density particle grid, 
+    constant density particle grid,
     with increasing particle sampling
     '''
     lenfact = (1./3.)**(reflevel - 1)
@@ -122,42 +122,42 @@ def get_dataset_sphrefine(reflevel: int = 1):
     hsml_factor = lenfact
     bbox = np.array([[0., 3.]] * 3)
     offsets = np.ones(3, dtype=np.float64) * 0.5 # in units of ehat
-    
+
     def refmass(i: int, j: int, k: int) -> float:
         return massfact
     unitrho = 1. / massfact # want density 1 for decreasing mass
 
-    ds = fake_sph_flexible_grid_ds(hsml_factor=hsml_factor, 
+    ds = fake_sph_flexible_grid_ds(hsml_factor=hsml_factor,
                                    nperside=nperside,
-                                   periodic=True, 
+                                   periodic=True,
                                    e1hat=e1hat,
-                                   e2hat=e2hat, 
+                                   e2hat=e2hat,
                                    e3hat=e3hat,
                                    offsets=offsets,
                                    massgenerator=refmass,
                                    unitrho=unitrho,
-                                   bbox=bbox, 
+                                   bbox=bbox,
                                    )
-    return ds 
+    return ds
 
 def getdata_test_gridproj2():
     # initial pixel centers at 0.5, 1., 1.5, 2., 2.5
     # particles at 0.5, 1.5, 2.5
-    # refine particle grid, check if pixel values remain the 
+    # refine particle grid, check if pixel values remain the
     # same in the pixels passing through initial particle centers
     outlist = []
     dss = []
     for rl in range(1, 4):
         ds = get_dataset_sphrefine(reflevel=rl)
-        proj = ds.proj(("gas", "density"), 2) 
-        frb = proj.to_frb(width=(2.5, 'cm'), 
+        proj = ds.proj(("gas", "density"), 2)
+        frb = proj.to_frb(width=(2.5, 'cm'),
                           resolution=(5, 5),
                           height=(2.5, 'cm'),
-                          center=np.array([1.5, 1.5, 1.5]), 
+                          center=np.array([1.5, 1.5, 1.5]),
                           periodic=False)
         out = frb.get_image(('gas', 'density'))
         outlist.append(out)
-        dss.append(ds)   
+        dss.append(ds)
     return outlist, dss
 
 def test_sph_gridproj_reseffect1():
@@ -179,16 +179,16 @@ def test_sph_gridproj_reseffect2():
     refine the pixel grid instead of the particle grid
     '''
     ds = get_dataset_sphrefine(reflevel=2)
-    proj = ds.proj(("gas", "density"), 2) 
+    proj = ds.proj(("gas", "density"), 2)
     imgs = {}
     maxrl = 5
     for rl in range(1, maxrl + 1):
         npix = 1 + 2**(rl + 1)
         margin = 0.5 - 0.5**(rl + 1)
-        frb = proj.to_frb(width=(3. - 2. * margin, 'cm'), 
+        frb = proj.to_frb(width=(3. - 2. * margin, 'cm'),
                           resolution=(npix, npix),
                           height=(3. - 2. * margin, 'cm'),
-                          center=np.array([1.5, 1.5, 1.5]), 
+                          center=np.array([1.5, 1.5, 1.5]),
                           periodic=False)
         out = frb.get_image(('gas', 'density'))
         imgs[rl] = out
@@ -197,6 +197,6 @@ def test_sph_gridproj_reseffect2():
     for rl in imgs:
         img = imgs[rl]
         pixspace = 2**(rl)
-        #print(f'Grid refinement level {rl}:') 
-        assert_rel_equal(img[::pixspace, ::pixspace], 
+        #print(f'Grid refinement level {rl}:')
+        assert_rel_equal(img[::pixspace, ::pixspace],
                          ref[::pixspace_ref, ::pixspace_ref], 4)

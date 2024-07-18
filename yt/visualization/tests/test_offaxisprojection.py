@@ -14,7 +14,7 @@ from yt.testing import (
     fake_random_ds,
 )
 from yt.visualization.api import (
-    OffAxisProjectionPlot, 
+    OffAxisProjectionPlot,
     OffAxisSlicePlot,
 )
 from yt.visualization.image_writer import write_projection
@@ -242,7 +242,7 @@ def test_offaxis_moment():
     ## marginally < 0, resulting in unmatched NaN values in the
     ## first assert_rel_equal argument. The compute_stddev_image
     ## function used in OffAxisProjectionPlot checks for and deals
-    ## with these cases. 
+    ## with these cases.
     #assert_rel_equal(
     #    np.sqrt(
     #        p1.frb["gas", "velocity_los_squared"] - p1.frb["gas", "velocity_los"] ** 2
@@ -254,10 +254,10 @@ def test_offaxis_moment():
     p1_sqexp = p1.frb["gas", "velocity_los"] ** 2
     p1res = np.sqrt(p1_expsq - p1_sqexp)
     # set values to zero that have <v>**2 - <v>**2 < 0, but
-    # the absolute values are much smaller than the smallest 
-    # postive values of <v>**2 and <v>**2 
+    # the absolute values are much smaller than the smallest
+    # postive values of <v>**2 and <v>**2
     # (i.e., the difference is pretty much zero)
-    mindiff = 1e-10 * min(np.min(p1_expsq[p1_expsq > 0]), 
+    mindiff = 1e-10 * min(np.min(p1_expsq[p1_expsq > 0]),
                           np.min(p1_sqexp[p1_sqexp > 0]))
     print(mindiff)
     setzero = np.logical_and(p1_expsq - p1_sqexp < 0,

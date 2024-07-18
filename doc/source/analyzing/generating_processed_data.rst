@@ -100,8 +100,8 @@ this, see :ref:`saving-grid-data-containers`.
 In the FITS case, there is an option for setting the ``units`` of the coordinate system in
 the file. If you want to overwrite a file with the same name, set ``clobber=True``.
 
-The :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` 
-(and its 
+The :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+(and its
 :class:`~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer`
 subclass) can even be exported
 as a 2D dataset itself, which may be operated on in the same way as any other dataset in yt:

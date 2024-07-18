@@ -82,8 +82,8 @@ def off_axis_projection(
         A vector that, if specified, restricts the orientation such that the
         north vector dotted into the image plane points "up". Useful for rotations
     depth: float, tuple[float, str], or unyt_array or size 1.
-        specify the depth of the projection region (size along the 
-        line of sight). If no units are given (unyt_array or second 
+        specify the depth of the projection region (size along the
+        line of sight). If no units are given (unyt_array or second
         tuple element), code units are assumed.
     num_threads: integer, optional, default 1
         Use this many OpenMP threads during projection.
@@ -151,16 +151,16 @@ def off_axis_projection(
     if not hasattr(width, "units"):
         width = data_source.ds.arr(width, "code_length")
     if depth is not None:
-        # handle units (intrinsic or as a tuple), 
+        # handle units (intrinsic or as a tuple),
         # then convert to code length
         # float -> assumed to be in code units
         if isinstance(depth, tuple):
             depth = data_source.ds.arr(np.array([depth[0]]), depth[1])
         if hasattr(depth, "units"):
             depth = depth.to("code_length").d
-        
+
         #depth = data_source.ds.arr(depth, "code_length")
-        
+
 
     if hasattr(data_source.ds, "_sph_ptypes"):
         if method != "integrate":
@@ -218,7 +218,7 @@ def off_axis_projection(
         # if weight is None:
         buf = np.zeros((resolution[0], resolution[1]), dtype="float64")
         mask = np.ones_like(buf, dtype="uint8")
-        
+
         ## width from fixed_resolution.py is just the size of the domain
         #x_min = center[0] - width[0] / 2
         #x_max = center[0] + width[0] / 2
@@ -226,7 +226,7 @@ def off_axis_projection(
         #y_max = center[1] + width[1] / 2
         #z_min = center[2] - width[2] / 2
         #z_max = center[2] + width[2] / 2
-        
+
         periodic = data_source.ds.periodicity
         le = data_source.ds.domain_left_edge.to("code_length").d
         re = data_source.ds.domain_right_edge.to("code_length").d
@@ -234,7 +234,7 @@ def off_axis_projection(
         x_max, y_max, z_max = re
         bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
         # only need (rotated) x/y widths
-        _width = (width.to("code_length").d)[:2] 
+        _width = (width.to("code_length").d)[:2]
         finfo = data_source.ds.field_info[item]
         ounits = finfo.output_units
         kernel_name = None

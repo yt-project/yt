@@ -5,7 +5,7 @@ import unyt
 import yt
 from yt.data_objects.selection_objects.region import YTRegion
 from yt.testing import (
-    assert_rel_equal, 
+    assert_rel_equal,
     cubicspline_python,
     distancematrix,
     fake_random_sph_ds,
@@ -24,20 +24,20 @@ def test_sph_proj_general_alongaxes(axis: int,
                                     periodic: bool,
                                     weighted: bool) -> None:
     '''
-    The previous projection tests were for a specific issue. 
+    The previous projection tests were for a specific issue.
     Here, we test more functionality of the projections.
     We just send lines of sight through pixel centers for convenience.
     Particles at [0.5, 1.5, 2.5] (in each coordinate)
     smoothing lengths 0.25
-    all particles have mass 1., density 1.5, 
+    all particles have mass 1., density 1.5,
     except the single center particle, with mass 2., density 3.
-    
+
     Parameters:
     -----------
     axis: {0, 1, 2}
         projection axis (aligned with sim. axis)
     shiftcenter: bool
-        shift the coordinates to center the projection on. 
+        shift the coordinates to center the projection on.
         (The grid is offset to this same center)
     depth: float or None
         depth of the projection slice
@@ -60,7 +60,7 @@ def test_sph_proj_general_alongaxes(axis: int,
     # test correct centering, particle selection
     def makemasses(i, j, k):
         if i == j == k == 1:
-            return 2. 
+            return 2.
         else:
             return 1.
     # m / rho, factor 1. / hsml**2 is included in the kernel integral
@@ -69,13 +69,13 @@ def test_sph_proj_general_alongaxes(axis: int,
     dl_cen = integrate_kernel(cubicspline_python, 0., 0.25)
 
     # result shouldn't depend explicitly on the center if we re-center
-    # the data, unless we get cut-offs in the non-periodic case 
+    # the data, unless we get cut-offs in the non-periodic case
     ds = fake_sph_flexible_grid_ds(hsml_factor=hsml_factor, nperside=3,
-                                   periodic=periodic, 
+                                   periodic=periodic,
                                    offsets=np.full(3, 0.5),
                                    massgenerator=makemasses,
                                    unitrho=unitrho,
-                                   bbox=bbox.v, 
+                                   bbox=bbox.v,
                                    recenter=center.v)
     if depth is None:
         source = ds.all_data()
@@ -92,9 +92,9 @@ def test_sph_proj_general_alongaxes(axis: int,
                        ds=ds)
         source = reg
 
-    # we don't actually want a plot, it's just a straightforward, 
+    # we don't actually want a plot, it's just a straightforward,
     # common way to get an frb / image array
-    if weighted: 
+    if weighted:
         toweight_field = ("gas", "density")
     else:
         toweight_field = None
@@ -108,7 +108,7 @@ def test_sph_proj_general_alongaxes(axis: int,
     if weighted:
         expected_out = np.zeros((5, 5,), dtype=img.v.dtype)
         expected_out[::2, ::2] = unitrho
-        if depth is None: 
+        if depth is None:
             ## during shift, particle coords do wrap around edges
             #if (not periodic) and shiftcenter:
             #    # weight 1. for unitrho, 2. for 2. * untrho
@@ -130,7 +130,7 @@ def test_sph_proj_general_alongaxes(axis: int,
             # 1 particle per l.o.s., including the denser one
             expected_out[2, 2] *= 2.
     # grid is shifted to the left -> 'missing' stuff at the left
-    if (not periodic) and shiftcenter: 
+    if (not periodic) and shiftcenter:
         expected_out[:1, :] = 0.
         expected_out[:, :1] = 0.
     #print(axis, shiftcenter, depth, periodic, weighted)
@@ -149,9 +149,9 @@ def test_sph_slice_general_alongaxes(axis: int,
     '''
     Particles at [0.5, 1.5, 2.5] (in each coordinate)
     smoothing lengths 0.25
-    all particles have mass 1., density 1.5, 
+    all particles have mass 1., density 1.5,
     except the single center particle, with mass 2., density 3.
-    
+
     Parameters:
     -----------
     axis: {0, 1, 2}
@@ -159,7 +159,7 @@ def test_sph_slice_general_alongaxes(axis: int,
     northvector: tuple
         y-axis direction in the final plot (direction vector)
     shiftcenter: bool
-        shift the coordinates to center the projection on. 
+        shift the coordinates to center the projection on.
         (The grid is offset to this same center)
     zoff: float
         offset of the slice plane from the SPH particle center plane
@@ -180,36 +180,36 @@ def test_sph_slice_general_alongaxes(axis: int,
     # test correct centering, particle selection
     def makemasses(i, j, k):
         if i == j == k == 1:
-            return 2. 
+            return 2.
         elif i == j == k == 2:
             return 3.
         else:
             return 1.
 
     # result shouldn't depend explicitly on the center if we re-center
-    # the data, unless we get cut-offs in the non-periodic case 
+    # the data, unless we get cut-offs in the non-periodic case
     ds = fake_sph_flexible_grid_ds(hsml_factor=hsml_factor, nperside=3,
-                                   periodic=periodic, 
+                                   periodic=periodic,
                                    offsets=np.full(3, 0.5),
                                    massgenerator=makemasses,
                                    unitrho=unitrho,
-                                   bbox=bbox.v, 
+                                   bbox=bbox.v,
                                    recenter=center.v)
     ad = ds.all_data()
     #print(ad[('gas', 'position')])
     outgridsize = 10
     width = 2.5
     _center = center.to("cm").v.copy()
-    _center[axis] += zoff 
+    _center[axis] += zoff
 
-    # we don't actually want a plot, it's just a straightforward, 
+    # we don't actually want a plot, it's just a straightforward,
     # common way to get an frb / image array
     slc = yt.SlicePlot(ds, axis, ("gas", "density"),
                        width=(width, "cm"),
                        buff_size=(outgridsize,) * 2,
                        center=(_center, "cm"))
     img = slc.frb.data[('gas', 'density')]
-    
+
     # center is same in non-projection coords
     if axis == 0:
         ci = 1
@@ -278,25 +278,25 @@ def test_sph_slice_general_offaxis(
     '''
     Same as the on-axis slices, but we rotate the basis vectors
     to test whether roations are handled ok. the rotation is chosen to
-    be small so that in/exclusion of particles within bboxes, etc. 
+    be small so that in/exclusion of particles within bboxes, etc.
     works out the same way.
     Particles at [0.5, 1.5, 2.5] (in each coordinate)
     smoothing lengths 0.25
-    all particles have mass 1., density 1.5, 
+    all particles have mass 1., density 1.5,
     except the single center particle, with mass 2., density 3.
-    
+
     Parameters:
     -----------
     northvector: tuple
         y-axis direction in the final plot (direction vector)
     shiftcenter: bool
-        shift the coordinates to center the projection on. 
+        shift the coordinates to center the projection on.
         (The grid is offset to this same center)
     zoff: float
         offset of the slice plane from the SPH particle center plane
     periodic: bool
         assume periodic boundary conditions, or not
-    
+
     Returns:
     --------
     None
@@ -311,11 +311,11 @@ def test_sph_slice_general_offaxis(
     # test correct centering, particle selection
     def makemasses(i, j, k):
         if i == j == k == 1:
-            return 2. 
+            return 2.
         else:
             return 1.
     # try to make sure dl differences from periodic wrapping are small
-    epsilon = 1e-4 
+    epsilon = 1e-4
     projaxis = np.array([epsilon, 0.00, np.sqrt(1. - epsilon**2)])
     e1dir = projaxis / np.sqrt(np.sum(projaxis**2))
     if northvector is None:
@@ -332,11 +332,11 @@ def test_sph_slice_general_offaxis(
     _center += zoff * e1dir
 
     ds = fake_sph_flexible_grid_ds(hsml_factor=hsml_factor, nperside=3,
-                                   periodic=periodic, 
+                                   periodic=periodic,
                                    offsets=np.full(3, 0.5),
                                    massgenerator=makemasses,
                                    unitrho=unitrho,
-                                   bbox=bbox.v, 
+                                   bbox=bbox.v,
                                    recenter=center,
                                    e1hat=e1dir, e2hat=e2dir, e3hat=e3dir)
 
@@ -361,7 +361,7 @@ def test_sph_slice_general_offaxis(
     xgrid = np.repeat(gridcenx, outgridsize)
     ygrid = np.tile(gridceny, outgridsize)
     zgrid = np.full(outgridsize**2, np.dot(_center, e1dir))
-    gridcoords = (xgrid[:, np.newaxis] * e3dir[np.newaxis, :] 
+    gridcoords = (xgrid[:, np.newaxis] * e3dir[np.newaxis, :]
                   + ygrid[:, np.newaxis] * e2dir[np.newaxis, :]
                   + zgrid[:, np.newaxis] * e1dir[np.newaxis, :])
     print('gridcoords:')
@@ -425,7 +425,7 @@ def test_sph_grid(periodic: bool | tuple[bool, bool, bool],
     xcens = 0.5 * (xedges[:-1] + xedges[1:])
     ycens = 0.5 * (yedges[:-1] + yedges[1:])
     zcens = 0.5 * (zedges[:-1] + zedges[1:])
-        
+
     ad = ds.all_data()
     sphcoords = np.array([(ad[("gas", "x")]).to("cm"),
                           (ad[("gas", "y")]).to("cm"),

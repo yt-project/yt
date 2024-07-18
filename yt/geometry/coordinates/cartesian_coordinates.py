@@ -370,14 +370,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 ptype = data_source.ds._sph_ptypes[0]
             px_name = self.axis_name[self.x_axis[dim]]
             py_name = self.axis_name[self.y_axis[dim]]
-            # need z coordinates for depth, 
+            # need z coordinates for depth,
             # but name isn't saved in the handler -> use the 'other one'
             pz_name = list(set(self.axis_order) - {px_name, py_name})[0]
 
             # ignore default True periodic argument
-            # (not actually supplied by a call from 
+            # (not actually supplied by a call from
             # FixedResolutionBuffer), and use the dataset periodicity
-            # instead 
+            # instead
             xa = self.x_axis[dim]
             ya = self.y_axis[dim]
             #axorder = data_source.ds.coordinates.axis_order
@@ -422,10 +422,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     data_source=data_source.data_source,
                 )
                 proj_reg.set_field_parameter("axis", data_source.axis)
-                # need some z bounds for SPH projection 
+                # need some z bounds for SPH projection
                 # -> use source bounds
                 bnds3 = bnds + [le[za], re[za]]
-                
+
                 buff = np.zeros(size, dtype="float64")
                 mask_uint8 = np.zeros_like(buff, dtype="uint8")
                 if weight is None:
@@ -537,7 +537,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     mask_uint8 = np.zeros_like(buff, dtype="uint8")
                     if normalize:
                         buff_den = np.zeros(size, dtype="float64")
-              
+
                     for chunk in data_source.chunks([], "io"):
                         hsmlname = "smoothing_length"
                         pixelize_sph_kernel_slice(
@@ -576,7 +576,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                     if normalize:
                         normalization_2d_utility(buff, buff_den)
-                    
+
                     mask = mask_uint8.astype("bool", copy=False)
 
                 if smoothing_style == "gather":
@@ -681,9 +681,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
         is_sph_field = _finfo.is_sph_field
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
         #finfo = self.ds._get_field_info(field)
-        
-        # SPH data 
-        # only for slices: a function in off_axis_projection.py 
+
+        # SPH data
+        # only for slices: a function in off_axis_projection.py
         # handles projections
         if isinstance(data_source.ds, particle_datasets) and is_sph_field \
                       and isinstance(data_source, YTCuttingPlane):
@@ -706,9 +706,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
             if kernel_name is None:
                 kernel_name = "cubic"
             # data_source should be a YTCuttingPlane object
-            # dimensionless unyt normal/north 
+            # dimensionless unyt normal/north
             # -> numpy array cython can deal with
-            normal_vector = data_source.normal.v 
+            normal_vector = data_source.normal.v
             north_vector = data_source._y_vec.v
             center = data_source.center.to("code_length")
 
@@ -716,7 +716,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             mask_uint8 = np.zeros_like(buff, dtype="uint8")
             if normalize:
                 buff_den = np.zeros(size, dtype="float64")
-        
+
             for chunk in data_source.chunks([], "io"):
                 pixelize_sph_kernel_cutting(
                     buff,
@@ -759,7 +759,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             # swap axes for image plotting
             mask = mask.swapaxes(0, 1)
             buff = buff.swapaxes(0, 1)
-            
+
         # whatever other data this code could handle before the
         # SPH option was added
         else:

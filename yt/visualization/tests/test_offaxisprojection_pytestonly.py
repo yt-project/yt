@@ -19,25 +19,25 @@ def test_sph_proj_general_offaxis(
         northvector: tuple[float, float, float] | None,
         shiftcenter: bool,
         depth: tuple[float, str] | None,
-        periodic: bool, 
+        periodic: bool,
         weighted: bool) -> None:
     '''
     Same as the on-axis projections, but we rotate the basis vectors
     to test whether roations are handled ok. the rotation is chosen to
-    be small so that in/exclusion of particles within bboxes, etc. 
-    works out the same way. 
+    be small so that in/exclusion of particles within bboxes, etc.
+    works out the same way.
     We just send lines of sight through pixel centers for convenience.
     Particles at [0.5, 1.5, 2.5] (in each coordinate)
     smoothing lengths 0.25
-    all particles have mass 1., density 1.5, 
+    all particles have mass 1., density 1.5,
     except the single center particle, with mass 2., density 3.
-    
+
     Parameters:
     -----------
     northvector: tuple
         y-axis direction in the final plot (direction vector)
     shiftcenter: bool
-        shift the coordinates to center the projection on. 
+        shift the coordinates to center the projection on.
         (The grid is offset to this same center)
     depth: float or None
         depth of the projection slice
@@ -45,7 +45,7 @@ def test_sph_proj_general_offaxis(
         assume periodic boundary conditions, or not
     weighted: bool
         make a weighted projection (density-weighted density), or not
-    
+
     Returns:
     --------
     None
@@ -60,15 +60,15 @@ def test_sph_proj_general_offaxis(
     # test correct centering, particle selection
     def makemasses(i, j, k):
         if i == j == k == 1:
-            return 2. 
+            return 2.
         else:
             return 1.
 
     # result shouldn't depend explicitly on the center if we re-center
-    # the data, unless we get cut-offs in the non-periodic case 
+    # the data, unless we get cut-offs in the non-periodic case
     # *almost* the z-axis
     # try to make sure dl differences from periodic wrapping are small
-    epsilon = 1e-4 
+    epsilon = 1e-4
     projaxis = np.array([epsilon, 0.00, np.sqrt(1. - epsilon**2)])
     e1dir = projaxis / np.sqrt(np.sum(projaxis**2))
     # TODO: figure out other (default) axes for basis vectors here
@@ -81,11 +81,11 @@ def test_sph_proj_general_offaxis(
     e3dir = np.cross(e1dir, e2dir)
 
     ds = fake_sph_flexible_grid_ds(hsml_factor=hsml_factor, nperside=3,
-                                   periodic=periodic, 
+                                   periodic=periodic,
                                    offsets=np.full(3, 0.5),
                                    massgenerator=makemasses,
                                    unitrho=unitrho,
-                                   bbox=bbox.v, 
+                                   bbox=bbox.v,
                                    recenter=center,
                                    e1hat=e1dir, e2hat=e2dir, e3hat=e3dir)
 
@@ -99,11 +99,11 @@ def test_sph_proj_general_offaxis(
     prefactor = 1. / unitrho #/ (0.5 * 0.5)**2
     dl_cen = integrate_kernel(cubicspline_python, 0., 0.25)
 
-    if weighted: 
+    if weighted:
         toweight_field = ("gas", "density")
     else:
         toweight_field = None
-    # we don't actually want a plot, it's just a straightforward, 
+    # we don't actually want a plot, it's just a straightforward,
     # common way to get an frb / image array
     prj = ProjectionPlot(ds, projaxis, ("gas", "density"),
                          width=(2.5, "cm"),
@@ -118,7 +118,7 @@ def test_sph_proj_general_offaxis(
         # periodic shifts will modify the (relative) dl values a bit
         expected_out = np.zeros((5, 5,), dtype=img.v.dtype)
         expected_out[::2, ::2] = unitrho
-        if depth is None: 
+        if depth is None:
             expected_out[2, 2] *= 1.5
         else:
             # only 2 * unitrho element included
@@ -134,7 +134,7 @@ def test_sph_proj_general_offaxis(
             # 1 particle per l.o.s., including the denser one
             expected_out[2, 2] *= 2.
     # grid is shifted to the left -> 'missing' stuff at the left
-    if (not periodic) and shiftcenter: 
+    if (not periodic) and shiftcenter:
         expected_out[:1, :] = 0.
         expected_out[:, :1] = 0.
     #print(axis, shiftcenter, depth, periodic, weighted)

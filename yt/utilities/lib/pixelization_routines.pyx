@@ -1144,7 +1144,7 @@ def pixelize_sph_kernel_projection(
     cdef np.float64_t[:] _weight_field
     cdef int * xiter
     cdef int * yiter
-    cdef int * ziter 
+    cdef int * ziter
     cdef np.float64_t * xiterv
     cdef np.float64_t * yiterv
     cdef np.float64_t * ziterv
@@ -1205,7 +1205,7 @@ def pixelize_sph_kernel_projection(
         xiterv[0] = yiterv[0] = ziterv[0] = 0.0
         for i in range(xsize * ysize):
             local_buff[i] = 0.0
-        
+
         for j in prange(0, posx.shape[0], schedule="dynamic"):
             if j % 100000 == 0:
                 with gil:
@@ -1237,16 +1237,16 @@ def pixelize_sph_kernel_projection(
 
             # we set the smoothing length squared with lower limit of the pixel
             # Nope! that causes weird grid resolution dependences and increases
-            # total values when resolution elements have hsml < grid spacing 
+            # total values when resolution elements have hsml < grid spacing
             h_j2 = hsml[j]*hsml[j]
             ih_j2 = 1.0/h_j2
 
             prefactor_j = pmass[j] / pdens[j] / hsml[j]**2 * quantity_to_smooth[j]
             if weight_field is not None:
                 prefactor_j *= _weight_field[j]
-            
+
             # Discussion point: do we want the hsml margin on the z direction?
-            # it's consistent with Ray and Region selections, I think, 
+            # it's consistent with Ray and Region selections, I think,
             # but does tend to 'tack on' stuff compared to the nominal depth
             for kk in range(2):
                 # discard if z is outside bounds
@@ -1493,13 +1493,13 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
 def pixelize_sph_kernel_slice(
         np.float64_t[:, :] buff,
         np.uint8_t[:, :] mask,
-        np.float64_t[:] posx, np.float64_t[:] posy, 
-        np.float64_t[:] posz, 
+        np.float64_t[:] posx, np.float64_t[:] posy,
+        np.float64_t[:] posz,
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
         bounds,
-        np.float64_t slicez, 
+        np.float64_t slicez,
         kernel_name="cubic",
         _check_period = (1, 1, 1),
         period=None):
@@ -1511,7 +1511,7 @@ def pixelize_sph_kernel_slice(
     #print(period)
     #print()
     # bounds are [x0, x1, y0, y1], slicez is the single coordinate
-    # of the slice along the normal direction. 
+    # of the slice along the normal direction.
     # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
@@ -1532,7 +1532,7 @@ def pixelize_sph_kernel_slice(
         period_z = period[2]
     for i in range(3):
         check_period[i] = np.int8(_check_period[i])
-    
+
     xsize, ysize = buff.shape[0], buff.shape[1]
     x_min = bounds[0]
     x_max = bounds[1]
@@ -1639,8 +1639,8 @@ def pixelize_sph_kernel_slice(
                                 continue
 
                             # see equation 4 of the SPLASH paper
-                            q_ij = math.sqrt(posx_diff 
-                                             + posy_diff 
+                            q_ij = math.sqrt(posx_diff
+                                             + posy_diff
                                              + posz_diff) * ih_j
                             if q_ij >= 1:
                                 continue
@@ -1675,7 +1675,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
     cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff, px, py, pz
-    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j2, h_j, ih_j 
+    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j2, h_j, ih_j
     # cdef np.float64_t h_j3
     cdef int j, ii, jj, kk
     cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
@@ -1722,16 +1722,16 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     idz = 1.0/dz
 
     kernel = get_kernel_func(kernel_name)
-    
-    # nogil seems dangerous here, but there are no actual parallel 
+
+    # nogil seems dangerous here, but there are no actual parallel
     # sections (e.g., prange instead of range) used here.
     # However, for future writers:
-    # !!  the final buff array mutation has no protections against 
+    # !!  the final buff array mutation has no protections against
     # !!  race conditions (e.g., OpenMP's atomic read/write), and
     # !!  cython doesn't seem to provide such options.
     # (other routines in this file use private variable buffer arrays
-    # and add everything together at the end, but grid arrays can get 
-    # big fast, and having such a large array in each thread could 
+    # and add everything together at the end, but grid arrays can get
+    # big fast, and having such a large array in each thread could
     # cause memory use issues.)
     with nogil:
         # TODO make this parallel without using too much memory
@@ -1830,14 +1830,14 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                                         continue
 
                                     # see equation 4 of the SPLASH paper
-                                    q_ij = math.sqrt(posx_diff 
+                                    q_ij = math.sqrt(posx_diff
                                                      + posy_diff
                                                      + posz_diff) * ih_j
                                     if q_ij >= 1:
                                         continue
                                     # shared variable buff should not
                                     # be mutatated in a nogil section
-                                    # where different threads may change 
+                                    # where different threads may change
                                     # the same array element
                                     buff[xi, yi, zi] += prefactor_j \
                                                         * kernel(q_ij)
@@ -2000,7 +2000,7 @@ def rotate_particle_coord_pib(np.float64_t[:] px,
     return px_rotated, py_rotated, rot_bounds_x0, rot_bounds_x1, rot_bounds_y0, rot_bounds_y1
 
 # version intended for SPH off-axis slices/projections
-# includes dealing with periodic boundaries, but also 
+# includes dealing with periodic boundaries, but also
 # shifts particles so center -> origin.
 # therefore, don't want to use this in the ParticleImageBuffer,
 # which expects differently centered coordinates.
@@ -2055,14 +2055,14 @@ def rotate_particle_coord(np.float64_t[:] px,
         coordinate_matrix[0] = px[i]
         coordinate_matrix[1] = py[i]
         coordinate_matrix[2] = pz[i]
-        
-        # centering: 
+
+        # centering:
         # make sure this also works for centers close to periodic edges
         # added consequence: the center is placed at the origin
         # (might as well keep it there in these temporary coordinates)
         for ax in range(3):
             # assumed center is zero even if non-periodic
-            coordinate_matrix[ax] -= center[ax] 
+            coordinate_matrix[ax] -= center[ax]
             if not periodic[ax]: continue
             period = bounds[2 * ax + 1] - bounds[2 * ax]
             # abs. difference between points in the volume is <= period
@@ -2077,9 +2077,9 @@ def rotate_particle_coord(np.float64_t[:] px,
         py_rotated[i] = rotated_coordinates[1]
         pz_rotated[i] = rotated_coordinates[2]
 
-    return (px_rotated, py_rotated, pz_rotated, 
-            rot_bounds_x0, rot_bounds_x1, 
-            rot_bounds_y0, rot_bounds_y1, 
+    return (px_rotated, py_rotated, pz_rotated,
+            rot_bounds_x0, rot_bounds_x1,
+            rot_bounds_y0, rot_bounds_y1,
             rot_bounds_z0, rot_bounds_z1)
 
 
@@ -2103,7 +2103,7 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                             weight_field=None,
                             depth=None,
                             kernel_name="cubic"):
-    # periodic: periodicity of the data set: 
+    # periodic: periodicity of the data set:
     # Do nothing in event of a 0 normal vector
     if np.allclose(normal_vector, 0.):
         return
@@ -2122,7 +2122,7 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                                          normal_vector,
                                                          north_vector)
     # check_period=0: assumed to be a small region compared to the box
-    # size. The rotation already ensures that a center close to a 
+    # size. The rotation already ensures that a center close to a
     # periodic edge works out fine.
     # since the simple single-coordinate modulo math periodicity
     # does not apply to the *rotated* coordinates, the periodicity
@@ -2149,8 +2149,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
 def pixelize_sph_kernel_cutting(
         np.float64_t[:, :] buff,
         np.uint8_t[:, :] mask,
-        np.float64_t[:] posx, np.float64_t[:] posy, 
-        np.float64_t[:] posz, 
+        np.float64_t[:] posx, np.float64_t[:] posy,
+        np.float64_t[:] posz,
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
@@ -2162,7 +2162,7 @@ def pixelize_sph_kernel_cutting(
 
     if check_period == 0:
         periodic = np.zeros(3, dtype=bool)
-    
+
     posx_rot, posy_rot, posz_rot, \
     rot_bounds_x0, rot_bounds_x1, \
     rot_bounds_y0, rot_bounds_y1, \
@@ -2172,13 +2172,13 @@ def pixelize_sph_kernel_cutting(
                                              widthxy, 0.,
                                              normal_vector,
                                              north_vector)
-    bounds_rot = np.array([rot_bounds_x0, rot_bounds_x1, 
+    bounds_rot = np.array([rot_bounds_x0, rot_bounds_x1,
                            rot_bounds_y0, rot_bounds_y1])
     slicez_rot = rot_bounds_z0
     pixelize_sph_kernel_slice(buff, mask,
                               posx_rot, posy_rot, posz_rot,
                               hsml, pmass, pdens, quantity_to_smooth,
-                              bounds_rot, slicez_rot, 
+                              bounds_rot, slicez_rot,
                               kernel_name=kernel_name,
                               _check_period=np.zeros(3, dtype="int"),
                               period=None)
