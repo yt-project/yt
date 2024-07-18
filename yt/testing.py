@@ -84,9 +84,9 @@ def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
 
 
 # tested: volume integral is 1.
-
-def cubicspline_python(x: Union[float,npt.ndarray[float]],
-                       ) -> npt.ndarray[float]:
+def cubicspline_python(
+    x: Union[float, npt.ndarray[float]],
+) -> npt.ndarray[float]:
     """
     cubic spline SPH kernel function for testing against more
     effiecient cython methods
@@ -142,6 +142,7 @@ def integrate_kernel(
     spv = kernelfunc(np.sqrt(xc**2 + x**2))
     integral = np.sum(spv * dx, axis=0)
     return pre * integral
+
 
 _zeroperiods = np.array([0.0, 0.0, 0.0])
 
@@ -813,8 +814,8 @@ def fake_sph_flexible_grid_ds(
     offsets: np.ndarray[float] = _floathalves,
     massgenerator: Callable[[int, int, int], float] = constantmass,
     unitrho: float = 1.0,
-    bbox: np.ndarray | None = None,
-    recenter: np.ndarray | None = None,
+    bbox: Union[npt.ndarray[float], None] = None,
+    recenter: Union[npt.ndarray[float], None] = None,
 ) -> StreamParticlesDataset:
     """Returns an in-memory SPH dataset useful for testing
 
@@ -937,8 +938,8 @@ def fake_sph_flexible_grid_ds(
 
 def fake_random_sph_ds(
     npart: int,
-    bbox: np.ndarray,
-    periodic: bool | tuple[bool, bool, bool] = True,
+    bbox: npt.ndarray[float],
+    periodic: Union[bool, tuple[bool, bool, bool]] = True,
     massrange: tuple[float, float] = (0.5, 2.0),
     hsmlrange: tuple[float, float] = (0.5, 2.0),
     unitrho: float = 1.0,
