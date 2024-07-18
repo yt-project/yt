@@ -413,8 +413,6 @@ cdef class QuadTree:
                         np.float64_t wtoadd,
                         np.int64_t level):
         cdef int i, j, n
-        cdef np.float64_t *vorig
-        vorig = <np.float64_t *> malloc(sizeof(np.float64_t) * self.nvals)
         if node.children[0][0] == NULL:
             if self.merged == -1:
                 for i in range(self.nvals):
@@ -432,6 +430,8 @@ cdef class QuadTree:
             iy[curpos] = node.pos[1]
             return 1
         cdef np.int64_t added = 0
+        cdef np.float64_t *vorig
+        vorig = <np.float64_t *> malloc(sizeof(np.float64_t) * self.nvals)
         if self.merged == 1:
             for i in range(self.nvals):
                 vorig[i] = vtoadd[i]
