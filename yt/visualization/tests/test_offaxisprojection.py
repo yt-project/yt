@@ -5,18 +5,18 @@ import tempfile
 import unittest
 
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
 import unyt
+from numpy.testing import assert_equal
 
 from yt.testing import (
     assert_fname,
     assert_rel_equal,
     cubicspline_python,
-    integrate_kernel,
     fake_octree_ds,
     fake_random_ds,
     fake_sph_flexible_grid_ds,
+    integrate_kernel,
 )
 from yt.visualization.api import (
     OffAxisProjectionPlot, 

@@ -13,8 +13,8 @@ from typing import Callable
 from unittest import SkipTest
 
 import matplotlib
-from more_itertools import always_iterable
 import numpy as np
+from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 

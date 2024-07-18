@@ -8,9 +8,9 @@ from yt.testing import (
     assert_rel_equal, 
     cubicspline_python,
     distancematrix,
-    integrate_kernel,
     fake_random_sph_ds,
     fake_sph_flexible_grid_ds,
+    integrate_kernel,
     requires_file)
 from yt.utilities.math_utils import compute_stddev_image
 
