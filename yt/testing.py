@@ -13,8 +13,8 @@ from typing import Callable
 from unittest import SkipTest
 
 import matplotlib
-import numpy as np
 from more_itertools import always_iterable
+import numpy as np
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
@@ -139,10 +139,11 @@ def integrate_kernel(kernelfunc: Callable[[float], float],
     integral = np.sum(spv * dx, axis=0)
     return pre * integral
 
+_zeroperiods = np.array([0., 0., 0.])
 def distancematrix(pos3_i0: np.ndarray[float],
                    pos3_i1: np.ndarray[float],
                    periodic: tuple[bool] = (True,) * 3,
-                   periods: np.ndarray = np.array([0., 0., 0.]),
+                   periods: np.ndarray = _zeroperiods,
                    ) -> np.ndarray[float]:
     '''
     Calculates the distances between two arrays of points.
@@ -788,14 +789,18 @@ def fake_sph_grid_ds(hsml_factor=1.0):
 def constantmass(i: int, j: int, k: int) -> float:
     return 1.
 
+_xhat = np.array([1, 0, 0])
+_yhat = np.array([0, 1, 0])
+_zhat = np.array([0, 0, 1])
+_floathalves = 0.5 * np.ones((3,), dtype=np.float64)
 def fake_sph_flexible_grid_ds(
         hsml_factor: float = 1.0,
         nperside: int = 3,
         periodic: bool = True, 
-        e1hat: np.ndarray[float] = np.array([1, 0, 0]),
-        e2hat: np.ndarray[float] = np.array([0, 1, 0]),
-        e3hat: np.ndarray[float] = np.array([0, 0, 1]),
-        offsets: np.ndarray[float] = 0.5 * np.ones((3,), dtype=np.float64),
+        e1hat: np.ndarray[float] = _xhat,
+        e2hat: np.ndarray[float] = _yhat,
+        e3hat: np.ndarray[float] = _zhat,
+        offsets: np.ndarray[float] = _floathalves,
         massgenerator: Callable[[int, int, int], float] = constantmass,
         unitrho: float = 1.,
         bbox: np.ndarray | None = None, 
@@ -949,17 +954,13 @@ def fake_random_sph_ds(npart: int, bbox: np.ndarray,
 
     if not hasattr(periodic, "__len__"):
         periodic = (periodic, ) * 3
+    gen = np.random.default_rng(seed=0)
 
-    posx = np.random.uniform(low=bbox[0][0], high=bbox[0][1],
-                             size=npart)
-    posy = np.random.uniform(low=bbox[1][0], high=bbox[1][1],
-                             size=npart)
-    posz = np.random.uniform(low=bbox[2][0], high=bbox[2][1],
-                             size=npart)
-    mass = np.random.uniform(low=massrange[0], high=massrange[1],
-                             size=npart)
-    hsml = np.random.uniform(low=hsmlrange[0], high=hsmlrange[1],
-                             size=npart)
+    posx = gen.uniform(low=bbox[0][0], high=bbox[0][1], size=npart)
+    posy = gen.uniform(low=bbox[1][0], high=bbox[1][1], size=npart)
+    posz = gen.uniform(low=bbox[2][0], high=bbox[2][1], size=npart)
+    mass = gen.uniform(low=massrange[0], high=massrange[1], size=npart)
+    hsml = gen.uniform(low=hsmlrange[0], high=hsmlrange[1], size=npart)
     dens = mass / hsml**3 * unitrho
 
     data = {

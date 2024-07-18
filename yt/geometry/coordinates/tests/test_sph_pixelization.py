@@ -1,6 +1,5 @@
-import pytest
-
 import numpy as np
+import pytest
 import unyt
 
 import yt
@@ -176,7 +175,7 @@ def test_sph_gridproj_reseffect1():
     '''
     imgs, _ = getdata_test_gridproj2()
     ref = imgs[-1]
-    for i, img in enumerate(imgs):
+    for img in imgs:
         assert_rel_equal(img[::img.shape[0] // 2, ::img.shape[1] // 2],
                          ref[::ref.shape[0] // 2, ::ref.shape[1] // 2], 4)
 

@@ -1,12 +1,12 @@
 import itertools as it
 import os
-import pytest
 import shutil
 import tempfile
 import unittest
 
 import numpy as np
 from numpy.testing import assert_equal
+import pytest
 import unyt
 
 from yt.testing import (
