@@ -26,8 +26,6 @@ from yt.funcs import is_sequence
 from yt.loaders import load, load_particles
 from yt.units.yt_array import YTArray, YTQuantity
 
-
-
 ANSWER_TEST_TAG = "answer_test"
 
 
@@ -84,10 +82,12 @@ def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
         np.array(a1) / np.array(a2), 1.0, decimals, err_msg=err_msg, verbose=verbose
     )
 
+
 # tested: volume integral is 1.
+
 def cubicspline_python(x: Union[float,npt.ndarray[float]],
                        ) -> npt.ndarray[float]:
-    '''
+    """
     cubic spline SPH kernel function for testing against more
     effiecient cython methods
 
@@ -99,19 +99,21 @@ def cubicspline_python(x: Union[float,npt.ndarray[float]],
     Returns
     -------
     value of the kernel function
-    '''
+    """
     # C is 8/pi
-    _c = 8. / np.pi
+    _c = 8.0 / np.pi
     x = np.asarray(x)
     kernel = np.zeros(x.shape, dtype=x.dtype)
-    half1 = np.where(np.logical_and(x >=0., x <= 0.5))
-    kernel[half1] = 1. - 6. * x[half1]**2 * (1. - x[half1])
+    half1 = np.where(np.logical_and(x >= 0.0, x <= 0.5))
+    kernel[half1] = 1.0 - 6.0 * x[half1] ** 2 * (1.0 - x[half1])
     half2 = np.where(np.logical_and(x > 0.5, x <= 1.0))
-    kernel[half2] = 2. * (1. - x[half2])**3
+    kernel[half2] = 2.0 * (1.0 - x[half2]) ** 3
     return kernel * _c
 
-def integrate_kernel(kernelfunc: Callable[[float], float],
-                     b: float, hsml: float) -> float:
+
+def integrate_kernel(
+    kernelfunc: Callable[[float], float], b: float, hsml: float
+) -> float:
     """
     integrates a kernel function over a line passing entirely
     through it
@@ -130,24 +132,27 @@ def integrate_kernel(kernelfunc: Callable[[float], float],
     the integral of the SPH kernel function.
     units: 1  / units of b and hsml
     """
-    pre = 1. / hsml**2
+    pre = 1.0 / hsml**2
     x = b / hsml
-    xmax = np.sqrt(1. - x**2)
-    xmin = -1. * xmax
-    xe = np.linspace(xmin, xmax, 500) # shape: 500, x.shape
+    xmax = np.sqrt(1.0 - x**2)
+    xmin = -1.0 * xmax
+    xe = np.linspace(xmin, xmax, 500)  # shape: 500, x.shape
     xc = 0.5 * (xe[:-1, ...] + xe[1:, ...])
     dx = np.diff(xe, axis=0)
     spv = kernelfunc(np.sqrt(xc**2 + x**2))
     integral = np.sum(spv * dx, axis=0)
     return pre * integral
 
-_zeroperiods = np.array([0., 0., 0.])
-def distancematrix(pos3_i0: npt.ndarray[float],
-                   pos3_i1: npt.ndarray[float],
-                   periodic: tuple[bool, bool, bool] = (True,) * 3,
-                   periods: npt.ndarray[float] = _zeroperiods,
-                   ) -> npt.ndarray[float]:
-    '''
+_zeroperiods = np.array([0.0, 0.0, 0.0])
+
+
+def distancematrix(
+    pos3_i0: np.ndarray[float],
+    pos3_i1: np.ndarray[float],
+    periodic: tuple[bool] = (True,) * 3,
+    periods: np.ndarray = _zeroperiods,
+) -> np.ndarray[float]:
+    """
     Calculates the distances between two arrays of points.
 
     Parameters:
@@ -168,16 +173,16 @@ def distancematrix(pos3_i0: npt.ndarray[float],
     a 2D-array of distances between postions `pos3_i0` (changes along
     index 0) and `pos3_i1` (changes along index 1)
 
-    '''
+    """
     d2 = np.zeros((len(pos3_i0), len(pos3_i1)), dtype=pos3_i0.dtype)
     for ax in range(3):
         # 'center on' pos3_i1
         _d = pos3_i0[:, ax, np.newaxis] - pos3_i1[np.newaxis, :, ax]
         if periodic[ax]:
             _period = periods[ax]
-            _d += 0.5 * _period # center on half box size
-            _d %= _period # wrap coordinate to 0 -- boxsize range
-            _d -= 0.5 * _period # center back to zero
+            _d += 0.5 * _period  # center on half box size
+            _d %= _period  # wrap coordinate to 0 -- boxsize range
+            _d -= 0.5 * _period  # center back to zero
         d2 += _d**2
     return np.sqrt(d2)
 
@@ -789,25 +794,28 @@ def fake_sph_grid_ds(hsml_factor=1.0):
 
 
 def constantmass(i: int, j: int, k: int) -> float:
-    return 1.
+    return 1.0
+
 
 _xhat = np.array([1, 0, 0])
 _yhat = np.array([0, 1, 0])
 _zhat = np.array([0, 0, 1])
 _floathalves = 0.5 * np.ones((3,), dtype=np.float64)
+
+
 def fake_sph_flexible_grid_ds(
-        hsml_factor: float = 1.0,
-        nperside: int = 3,
-        periodic: bool = True,
-        e1hat: npt.ndarray[float] = _xhat,
-        e2hat: npt.ndarray[float] = _yhat,
-        e3hat: npt.ndarray[float] = _zhat,
-        offsets: npt.ndarray[float] = _floathalves,
-        massgenerator: Callable[[int, int, int], float] = constantmass,
-        unitrho: float = 1.,
-        bbox: Union[npt.ndarray[float], None] = None,
-        recenter: Union[npt.ndarray[float], None] = None,
-        ) -> StreamParticlesDataset:
+    hsml_factor: float = 1.0,
+    nperside: int = 3,
+    periodic: bool = True,
+    e1hat: np.ndarray[float] = _xhat,
+    e2hat: np.ndarray[float] = _yhat,
+    e3hat: np.ndarray[float] = _zhat,
+    offsets: np.ndarray[float] = _floathalves,
+    massgenerator: Callable[[int, int, int], float] = constantmass,
+    unitrho: float = 1.0,
+    bbox: np.ndarray | None = None,
+    recenter: np.ndarray | None = None,
+) -> StreamParticlesDataset:
     """Returns an in-memory SPH dataset useful for testing
 
     Parameters:
@@ -864,9 +872,11 @@ def fake_sph_flexible_grid_ds(
     for i in range(0, nperside):
         for j in range(0, nperside):
             for k in range(0, nperside):
-                _pos = (offsets[0] + i) * e1hat \
-                        + (offsets[1] + j) * e2hat \
-                        + (offsets[2] + k) * e3hat
+                _pos = (
+                    (offsets[0] + i) * e1hat
+                    + (offsets[1] + j) * e2hat
+                    + (offsets[2] + k) * e3hat
+                )
                 ind = nperside**2 * i + nperside * j + k
                 pos[ind, :] = _pos
                 mass[ind] = massgenerator(i, j, k)
@@ -874,14 +884,14 @@ def fake_sph_flexible_grid_ds(
 
     if bbox is None:
         eps = 1e-3
-        margin = (1. + eps) * hsml_factor
-        bbox = np.array([[np.min(pos[:, 0]) - margin,
-                          np.max(pos[:, 0]) + margin],
-                         [np.min(pos[:, 1]) - margin,
-                          np.max(pos[:, 1]) + margin],
-                         [np.min(pos[:, 2]) - margin,
-                          np.max(pos[:, 2]) + margin],
-                         ])
+        margin = (1.0 + eps) * hsml_factor
+        bbox = np.array(
+            [
+                [np.min(pos[:, 0]) - margin, np.max(pos[:, 0]) + margin],
+                [np.min(pos[:, 1]) - margin, np.max(pos[:, 1]) + margin],
+                [np.min(pos[:, 2]) - margin, np.max(pos[:, 2]) + margin],
+            ]
+        )
 
     if recenter is not None:
         periods = bbox[:, 1] - bbox[:, 0]
@@ -913,21 +923,26 @@ def fake_sph_flexible_grid_ds(
         "density": (rho[okinds], "g/cm**3"),
     }
 
-    ds = load_particles(data=data,
-                        bbox=bbox, periodicity=(periodic,) * 3,
-                        length_unit=1., mass_unit=1., time_unit=1.,
-                        velocity_unit=1.)
-    ds.kernel_name = 'cubic'
+    ds = load_particles(
+        data=data,
+        bbox=bbox,
+        periodicity=(periodic,) * 3,
+        length_unit=1.0,
+        mass_unit=1.0,
+        time_unit=1.0,
+        velocity_unit=1.0,
+    )
+    ds.kernel_name = "cubic"
     return ds
 
-
-def fake_random_sph_ds(npart: int, 
-                       bbox: npt.ndarray[float],
-                       periodic: Union[bool, tuple[bool, bool, bool]] = True,
-                       massrange: tuple[float, float] = (0.5, 2.),
-                       hsmlrange: tuple[float, float] = (0.5, 2.),
-                       unitrho: float = 1.,
-                       ) -> StreamParticlesDataset:
+def fake_random_sph_ds(
+    npart: int,
+    bbox: np.ndarray,
+    periodic: bool | tuple[bool, bool, bool] = True,
+    massrange: tuple[float, float] = (0.5, 2.0),
+    hsmlrange: tuple[float, float] = (0.5, 2.0),
+    unitrho: float = 1.0,
+) -> StreamParticlesDataset:
     """Returns an in-memory SPH dataset useful for testing
 
     Parameters:
@@ -956,7 +971,7 @@ def fake_random_sph_ds(npart: int,
     """
 
     if not hasattr(periodic, "__len__"):
-        periodic = (periodic, ) * 3
+        periodic = (periodic,) * 3
     gen = np.random.default_rng(seed=0)
 
     posx = gen.uniform(low=bbox[0][0], high=bbox[0][1], size=npart)
@@ -978,11 +993,16 @@ def fake_random_sph_ds(npart: int,
         "density": (dens, "g/cm**3"),
     }
 
-    ds = load_particles(data=data,
-                        bbox=bbox, periodicity=periodic,
-                        length_unit=1., mass_unit=1., time_unit=1.,
-                        velocity_unit=1.)
-    ds.kernel_name = 'cubic'
+    ds = load_particles(
+        data=data,
+        bbox=bbox,
+        periodicity=periodic,
+        length_unit=1.0,
+        mass_unit=1.0,
+        time_unit=1.0,
+        velocity_unit=1.0,
+    )
+    ds.kernel_name = "cubic"
     return ds
 
 

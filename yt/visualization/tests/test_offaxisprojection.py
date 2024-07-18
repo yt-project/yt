@@ -243,13 +243,13 @@ def test_offaxis_moment():
     ## first assert_rel_equal argument. The compute_stddev_image
     ## function used in OffAxisProjectionPlot checks for and deals
     ## with these cases.
-    #assert_rel_equal(
+    # assert_rel_equal(
     #    np.sqrt(
     #        p1.frb["gas", "velocity_los_squared"] - p1.frb["gas", "velocity_los"] ** 2
     #    ),
     #    p2.frb["gas", "velocity_los"],
     #    10,
-    #)
+    # )
     p1_expsq = p1.frb["gas", "velocity_los_squared"]
     p1_sqexp = p1.frb["gas", "velocity_los"] ** 2
     p1res = np.sqrt(p1_expsq - p1_sqexp)
@@ -257,11 +257,13 @@ def test_offaxis_moment():
     # the absolute values are much smaller than the smallest
     # postive values of <v>**2 and <v>**2
     # (i.e., the difference is pretty much zero)
-    mindiff = 1e-10 * min(np.min(p1_expsq[p1_expsq > 0]),
-                          np.min(p1_sqexp[p1_sqexp > 0]))
+    mindiff = 1e-10 * min(
+        np.min(p1_expsq[p1_expsq > 0]), np.min(p1_sqexp[p1_sqexp > 0])
+    )
     print(mindiff)
-    setzero = np.logical_and(p1_expsq - p1_sqexp < 0,
-                             p1_expsq - p1_sqexp > -1. * mindiff)
-    p1res[setzero] = 0.
+    setzero = np.logical_and(
+        p1_expsq - p1_sqexp < 0, p1_expsq - p1_sqexp > -1.0 * mindiff
+    )
+    p1res[setzero] = 0.0
     p2res = p2.frb["gas", "velocity_los"]
     assert_rel_equal(p1res, p2res, 10)

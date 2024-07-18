@@ -83,8 +83,9 @@ def get_window_parameters(axis, center, width, ds):
     return (bounds, center, display_center)
 
 
-def get_oblique_window_parameters(normal, center, width, ds,
-                                  depth=None, get3bounds=False):
+def get_oblique_window_parameters(
+    normal, center, width, ds, depth=None, get3bounds=False
+):
     center, display_center = ds.coordinates.sanitize_center(center, axis=None)
     width = ds.coordinates.sanitize_width(normal, width, depth)
 
@@ -92,8 +93,9 @@ def get_oblique_window_parameters(normal, center, width, ds,
         # Transforming to the cutting plane coordinate system
         # the original dimensionless center messes up off-axis
         # SPH projections though -> don't use this center there
-        center = ((center - ds.domain_left_edge) / ds.domain_width - 0.5)\
-                  * ds.domain_width
+        center = (
+            (center - ds.domain_left_edge) / ds.domain_width - 0.5
+        ) * ds.domain_width
         (normal, perp1, perp2) = ortho_find(normal)
         mat = np.transpose(np.column_stack((perp1, perp2, normal)))
         center = np.dot(mat, center)
@@ -103,9 +105,9 @@ def get_oblique_window_parameters(normal, center, width, ds,
     if get3bounds and depth is None:
         # off-axis projection, depth not specified
         # -> set 'large enough' depth using half the box diagonal + margin
-        d2 = ds.domain_width[0].in_units("code_length")**2
-        d2 += ds.domain_width[1].in_units("code_length")**2
-        d2 += ds.domain_width[2].in_units("code_length")**2
+        d2 = ds.domain_width[0].in_units("code_length") ** 2
+        d2 += ds.domain_width[1].in_units("code_length") ** 2
+        d2 += ds.domain_width[2].in_units("code_length") ** 2
         diag = np.sqrt(d2)
         bounds = bounds + (-0.51 * diag, 0.51 * diag)
     return (bounds, center)
@@ -1832,12 +1834,12 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
         axis = fix_axis(normal, ds)
-        #print('center at SlicePlot init: ', center)
-        #print('current domain left edge: ', ds.domain_left_edge)
+        # print('center at SlicePlot init: ', center)
+        # print('current domain left edge: ', ds.domain_left_edge)
         (bounds, center, display_center) = get_window_parameters(
             axis, center, width, ds
         )
-       # print('center after get_window_parameters: ', center)
+        # print('center after get_window_parameters: ', center)
         if field_parameters is None:
             field_parameters = {}
 
@@ -2473,7 +2475,12 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         # get3bounds gets a depth 0.5 * diagonal + margin in the
         # depth=None case.
         (bounds, center_rot) = get_oblique_window_parameters(
-            normal, center, width, ds, depth=depth, get3bounds=True,
+            normal,
+            center,
+            width,
+            ds,
+            depth=depth,
+            get3bounds=True,
         )
         # will probably fail if you try to project an SPH and non-SPH
         # field in a single call
@@ -2489,16 +2496,15 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         is_sph_field = finfo.is_sph_field
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
 
-        if  isinstance(data_source.ds, particle_datasets) and is_sph_field:
-            center_use = parse_center_array(center, ds=data_source.ds,
-                                            axis=None)
+        if isinstance(data_source.ds, particle_datasets) and is_sph_field:
+            center_use = parse_center_array(center, ds=data_source.ds, axis=None)
         else:
             center_use = center_rot
         fields = list(iter_fields(fields))[:]
-        #oap_width = ds.arr(
+        # oap_width = ds.arr(
         #    (bounds[1] - bounds[0],
         #     bounds[3] - bounds[2])
-        #)
+        # )
         OffAxisProj = OffAxisProjectionDummyDataSource(
             center_use,
             ds,

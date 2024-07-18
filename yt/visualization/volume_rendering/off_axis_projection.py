@@ -159,8 +159,7 @@ def off_axis_projection(
         if hasattr(depth, "units"):
             depth = depth.to("code_length").d
 
-        #depth = data_source.ds.arr(depth, "code_length")
-
+        # depth = data_source.ds.arr(depth, "code_length")
 
     if hasattr(data_source.ds, "_sph_ptypes"):
         if method != "integrate":
@@ -220,12 +219,12 @@ def off_axis_projection(
         mask = np.ones_like(buf, dtype="uint8")
 
         ## width from fixed_resolution.py is just the size of the domain
-        #x_min = center[0] - width[0] / 2
-        #x_max = center[0] + width[0] / 2
-        #y_min = center[1] - width[1] / 2
-        #y_max = center[1] + width[1] / 2
-        #z_min = center[2] - width[2] / 2
-        #z_max = center[2] + width[2] / 2
+        # x_min = center[0] - width[0] / 2
+        # x_max = center[0] + width[0] / 2
+        # y_min = center[1] - width[1] / 2
+        # y_max = center[1] + width[1] / 2
+        # z_min = center[2] - width[2] / 2
+        # z_max = center[2] + width[2] / 2
 
         periodic = data_source.ds.periodicity
         le = data_source.ds.domain_left_edge.to("code_length").d

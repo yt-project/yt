@@ -13,17 +13,16 @@ from yt.testing import (
     integrate_kernel,
 )
 
+
 @pytest.mark.parametrize("weighted", [True, False])
 @pytest.mark.parametrize("periodic", [True, False])
-@pytest.mark.parametrize("depth", [None, (1., "cm")])
+@pytest.mark.parametrize("depth", [None, (1.0, "cm")])
 @pytest.mark.parametrize("shiftcenter", [False, True])
 @pytest.mark.parametrize("axis", [0, 1, 2])
-def test_sph_proj_general_alongaxes(axis: int,
-                                    shiftcenter: bool,
-                                    depth : float | None,
-                                    periodic: bool,
-                                    weighted: bool) -> None:
-    '''
+def test_sph_proj_general_alongaxes(
+    axis: int, shiftcenter: bool, depth: float | None, periodic: bool, weighted: bool
+) -> None:
+    """
     The previous projection tests were for a specific issue.
     Here, we test more functionality of the projections.
     We just send lines of sight through pixel centers for convenience.
@@ -49,34 +48,39 @@ def test_sph_proj_general_alongaxes(axis: int,
     Returns:
     --------
     None
-    '''
+    """
     if shiftcenter:
-        center = unyt.unyt_array(np.array((0.625, 0.625, 0.625)), 'cm')
+        center = unyt.unyt_array(np.array((0.625, 0.625, 0.625)), "cm")
     else:
-        center = unyt.unyt_array(np.array((1.5, 1.5, 1.5)), 'cm')
-    bbox = unyt.unyt_array(np.array([[0., 3.], [0., 3.], [0., 3.]]), 'cm')
+        center = unyt.unyt_array(np.array((1.5, 1.5, 1.5)), "cm")
+    bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]), "cm")
     hsml_factor = 0.5
     unitrho = 1.5
+
     # test correct centering, particle selection
     def makemasses(i, j, k):
         if i == j == k == 1:
-            return 2.
+            return 2.0
         else:
-            return 1.
+            return 1.0
+
     # m / rho, factor 1. / hsml**2 is included in the kernel integral
     # (density is adjusted, so same for center particle)
-    prefactor = 1. / unitrho #/ (0.5 * 0.5)**2
-    dl_cen = integrate_kernel(cubicspline_python, 0., 0.25)
+    prefactor = 1.0 / unitrho  # / (0.5 * 0.5)**2
+    dl_cen = integrate_kernel(cubicspline_python, 0.0, 0.25)
 
     # result shouldn't depend explicitly on the center if we re-center
     # the data, unless we get cut-offs in the non-periodic case
-    ds = fake_sph_flexible_grid_ds(hsml_factor=hsml_factor, nperside=3,
-                                   periodic=periodic,
-                                   offsets=np.full(3, 0.5),
-                                   massgenerator=makemasses,
-                                   unitrho=unitrho,
-                                   bbox=bbox.v,
-                                   recenter=center.v)
+    ds = fake_sph_flexible_grid_ds(
+        hsml_factor=hsml_factor,
+        nperside=3,
+        periodic=periodic,
+        offsets=np.full(3, 0.5),
+        massgenerator=makemasses,
+        unitrho=unitrho,
+        bbox=bbox.v,
+        recenter=center.v,
+    )
     if depth is None:
         source = ds.all_data()
     else:
@@ -86,10 +90,7 @@ def test_sph_proj_general_alongaxes(axis: int,
         le[axis] = center[axis] - 0.5 * depth
         re[axis] = center[axis] + 0.5 * depth
         cen = 0.5 * (le + re)
-        reg = YTRegion(center=cen,
-                       left_edge=le,
-                       right_edge=re,
-                       ds=ds)
+        reg = YTRegion(center=cen, left_edge=le, right_edge=re, ds=ds)
         source = reg
 
     # we don't actually want a plot, it's just a straightforward,
@@ -98,55 +99,71 @@ def test_sph_proj_general_alongaxes(axis: int,
         toweight_field = ("gas", "density")
     else:
         toweight_field = None
-    prj = yt.ProjectionPlot(ds, axis, ("gas", "density"),
-                            width=(2.5, "cm"),
-                            weight_field=toweight_field,
-                            buff_size=(5, 5),
-                            center=center,
-                            data_source=source)
-    img = prj.frb.data[('gas', 'density')]
+    prj = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=toweight_field,
+        buff_size=(5, 5),
+        center=center,
+        data_source=source,
+    )
+    img = prj.frb.data[("gas", "density")]
     if weighted:
-        expected_out = np.zeros((5, 5,), dtype=img.v.dtype)
+        expected_out = np.zeros(
+            (
+                5,
+                5,
+            ),
+            dtype=img.v.dtype,
+        )
         expected_out[::2, ::2] = unitrho
         if depth is None:
             ## during shift, particle coords do wrap around edges
-            #if (not periodic) and shiftcenter:
+            # if (not periodic) and shiftcenter:
             #    # weight 1. for unitrho, 2. for 2. * untrho
             #    expected_out[2, 2] *= 5. / 3.
-            #else:
+            # else:
             # weight (2 * 1.) for unitrho, (1 * 2.) for 2. * unitrho
             expected_out[2, 2] *= 1.5
         else:
             # only 2 * unitrho element included
-            expected_out[2, 2] *= 2.
+            expected_out[2, 2] *= 2.0
     else:
-        expected_out = np.zeros((5, 5,), dtype=img.v.dtype)
+        expected_out = np.zeros(
+            (
+                5,
+                5,
+            ),
+            dtype=img.v.dtype,
+        )
         expected_out[::2, ::2] = dl_cen * prefactor * unitrho
         if depth is None:
             # 3 particles per l.o.s., including the denser one
-            expected_out *= 3.
-            expected_out[2, 2] *= 4. / 3.
+            expected_out *= 3.0
+            expected_out[2, 2] *= 4.0 / 3.0
         else:
             # 1 particle per l.o.s., including the denser one
-            expected_out[2, 2] *= 2.
+            expected_out[2, 2] *= 2.0
     # grid is shifted to the left -> 'missing' stuff at the left
     if (not periodic) and shiftcenter:
-        expected_out[:1, :] = 0.
-        expected_out[:, :1] = 0.
-    #print(axis, shiftcenter, depth, periodic, weighted)
-    #print(expected_out)
-    #print(img.v)
+        expected_out[:1, :] = 0.0
+        expected_out[:, :1] = 0.0
+    # print(axis, shiftcenter, depth, periodic, weighted)
+    # print(expected_out)
+    # print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
+
 
 @pytest.mark.parametrize("periodic", [True, False])
 @pytest.mark.parametrize("shiftcenter", [False, True])
-@pytest.mark.parametrize("zoff", [0., 0.1, 0.5, 1.])
+@pytest.mark.parametrize("zoff", [0.0, 0.1, 0.5, 1.0])
 @pytest.mark.parametrize("axis", [0, 1, 2])
-def test_sph_slice_general_alongaxes(axis: int,
-                                     shiftcenter: bool,
-                                     periodic: bool,
-                                     zoff: float) -> None:
-    '''
+def test_sph_slice_general_alongaxes(
+    axis: int, shiftcenter: bool, periodic: bool, zoff: float
+) -> None:
+    """
     Particles at [0.5, 1.5, 2.5] (in each coordinate)
     smoothing lengths 0.25
     all particles have mass 1., density 1.5,
@@ -169,34 +186,38 @@ def test_sph_slice_general_alongaxes(axis: int,
     Returns:
     --------
     None
-    '''
+    """
     if shiftcenter:
-        center = unyt.unyt_array(np.array((0.625, 0.625, 0.625)), 'cm')
+        center = unyt.unyt_array(np.array((0.625, 0.625, 0.625)), "cm")
     else:
-        center = unyt.unyt_array(np.array((1.5, 1.5, 1.5)), 'cm')
-    bbox = unyt.unyt_array(np.array([[0., 3.], [0., 3.], [0., 3.]]), 'cm')
+        center = unyt.unyt_array(np.array((1.5, 1.5, 1.5)), "cm")
+    bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]), "cm")
     hsml_factor = 0.5
     unitrho = 1.5
+
     # test correct centering, particle selection
     def makemasses(i, j, k):
         if i == j == k == 1:
-            return 2.
+            return 2.0
         elif i == j == k == 2:
-            return 3.
+            return 3.0
         else:
-            return 1.
+            return 1.0
 
     # result shouldn't depend explicitly on the center if we re-center
     # the data, unless we get cut-offs in the non-periodic case
-    ds = fake_sph_flexible_grid_ds(hsml_factor=hsml_factor, nperside=3,
-                                   periodic=periodic,
-                                   offsets=np.full(3, 0.5),
-                                   massgenerator=makemasses,
-                                   unitrho=unitrho,
-                                   bbox=bbox.v,
-                                   recenter=center.v)
+    ds = fake_sph_flexible_grid_ds(
+        hsml_factor=hsml_factor,
+        nperside=3,
+        periodic=periodic,
+        offsets=np.full(3, 0.5),
+        massgenerator=makemasses,
+        unitrho=unitrho,
+        bbox=bbox.v,
+        recenter=center.v,
+    )
     ad = ds.all_data()
-    #print(ad[('gas', 'position')])
+    # print(ad[('gas', 'position')])
     outgridsize = 10
     width = 2.5
     _center = center.to("cm").v.copy()
@@ -204,20 +225,27 @@ def test_sph_slice_general_alongaxes(axis: int,
 
     # we don't actually want a plot, it's just a straightforward,
     # common way to get an frb / image array
-    slc = yt.SlicePlot(ds, axis, ("gas", "density"),
-                       width=(width, "cm"),
-                       buff_size=(outgridsize,) * 2,
-                       center=(_center, "cm"))
-    img = slc.frb.data[('gas', 'density')]
+    slc = yt.SlicePlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(width, "cm"),
+        buff_size=(outgridsize,) * 2,
+        center=(_center, "cm"),
+    )
+    img = slc.frb.data[("gas", "density")]
 
     # center is same in non-projection coords
     if axis == 0:
         ci = 1
     else:
         ci = 0
-    gridcens = _center[ci] - 0.5 * width \
-               + 0.5 * width / outgridsize \
-               + np.arange(outgridsize) * width / outgridsize
+    gridcens = (
+        _center[ci]
+        - 0.5 * width
+        + 0.5 * width / outgridsize
+        + np.arange(outgridsize) * width / outgridsize
+    )
     xgrid = np.repeat(gridcens, outgridsize)
     ygrid = np.tile(gridcens, outgridsize)
     zgrid = np.full(outgridsize**2, _center[axis])
@@ -235,47 +263,56 @@ def test_sph_slice_general_alongaxes(axis: int,
         gridcoords[:, 1] = zgrid
         gridcoords[:, 2] = xgrid
     ad = ds.all_data()
-    sphcoords = np.array([(ad[("gas", "x")]).to("cm"),
-                          (ad[("gas", "y")]).to("cm"),
-                          (ad[("gas", "z")]).to("cm"),
-                          ]).T
-    print('sphcoords:')
+    sphcoords = np.array(
+        [
+            (ad[("gas", "x")]).to("cm"),
+            (ad[("gas", "y")]).to("cm"),
+            (ad[("gas", "z")]).to("cm"),
+        ]
+    ).T
+    print("sphcoords:")
     print(sphcoords)
-    print('gridcoords:')
+    print("gridcoords:")
     print(gridcoords)
-    dists = distancematrix(gridcoords, sphcoords,
-                           periodic=(periodic,)*3,
-                           periods=np.array([3., 3., 3.]))
-    print('dists <= 1:')
+    dists = distancematrix(
+        gridcoords,
+        sphcoords,
+        periodic=(periodic,) * 3,
+        periods=np.array([3.0, 3.0, 3.0]),
+    )
+    print("dists <= 1:")
     print(dists <= 1)
     sml = (ad[("gas", "smoothing_length")]).to("cm")
     normkern = cubicspline_python(dists / sml.v[np.newaxis, :])
-    sphcontr = normkern / sml[np.newaxis, :]**3 * ad[("gas", "mass")]
+    sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad[("gas", "mass")]
     contsum = np.sum(sphcontr, axis=1)
-    sphweights = normkern / sml[np.newaxis, :]**3 \
-                 * ad[("gas", "mass")] / ad[("gas", "density")]
+    sphweights = (
+        normkern
+        / sml[np.newaxis, :] ** 3
+        * ad[("gas", "mass")]
+        / ad[("gas", "density")]
+    )
     weights = np.sum(sphweights, axis=1)
     expected = contsum / weights
     expected = expected.reshape((outgridsize, outgridsize))
-    expected[np.isnan(expected)] = 0. # convention in the slices
+    expected[np.isnan(expected)] = 0.0  # convention in the slices
 
-    print('expected:\n', expected.v)
-    print('recovered:\n', img.v)
+    print("expected:\n", expected.v)
+    print("recovered:\n", img.v)
     assert_rel_equal(expected.v, img.v, 5)
-
 
 
 @pytest.mark.parametrize("periodic", [True, False])
 @pytest.mark.parametrize("shiftcenter", [False, True])
-@pytest.mark.parametrize("northvector", [None, (1.e-4, 1., 0.)])
-@pytest.mark.parametrize("zoff", [0., 0.1, 0.5, 1.])
+@pytest.mark.parametrize("northvector", [None, (1.0e-4, 1.0, 0.0)])
+@pytest.mark.parametrize("zoff", [0.0, 0.1, 0.5, 1.0])
 def test_sph_slice_general_offaxis(
-        northvector: tuple[float, float, float] | None,
-        shiftcenter: bool,
-        zoff: float,
-        periodic: bool,
-        ) -> None:
-    '''
+    northvector: tuple[float, float, float] | None,
+    shiftcenter: bool,
+    zoff: float,
+    periodic: bool,
+) -> None:
+    """
     Same as the on-axis slices, but we rotate the basis vectors
     to test whether roations are handled ok. the rotation is chosen to
     be small so that in/exclusion of particles within bboxes, etc.
@@ -300,29 +337,31 @@ def test_sph_slice_general_offaxis(
     Returns:
     --------
     None
-    '''
+    """
     if shiftcenter:
-        center = np.array((0.625, 0.625, 0.625)) # cm
+        center = np.array((0.625, 0.625, 0.625))  # cm
     else:
-        center = np.array((1.5, 1.5, 1.5)) # cm
-    bbox = unyt.unyt_array(np.array([[0., 3.], [0., 3.], [0., 3.]]), 'cm')
+        center = np.array((1.5, 1.5, 1.5))  # cm
+    bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]), "cm")
     hsml_factor = 0.5
     unitrho = 1.5
+
     # test correct centering, particle selection
     def makemasses(i, j, k):
         if i == j == k == 1:
-            return 2.
+            return 2.0
         else:
-            return 1.
+            return 1.0
+
     # try to make sure dl differences from periodic wrapping are small
     epsilon = 1e-4
-    projaxis = np.array([epsilon, 0.00, np.sqrt(1. - epsilon**2)])
+    projaxis = np.array([epsilon, 0.00, np.sqrt(1.0 - epsilon**2)])
     e1dir = projaxis / np.sqrt(np.sum(projaxis**2))
     if northvector is None:
-        e2dir = np.array([0., 1., 0.])
+        e2dir = np.array([0.0, 1.0, 0.0])
     else:
         e2dir = np.asarray(northvector)
-    e2dir = e2dir - np.sum(e1dir * e2dir) * e2dir # orthonormalize
+    e2dir = e2dir - np.sum(e1dir * e2dir) * e2dir  # orthonormalize
     e2dir /= np.sqrt(np.sum(e2dir**2))
     e3dir = np.cross(e2dir, e1dir)
 
@@ -331,72 +370,99 @@ def test_sph_slice_general_offaxis(
     _center = center.copy()
     _center += zoff * e1dir
 
-    ds = fake_sph_flexible_grid_ds(hsml_factor=hsml_factor, nperside=3,
-                                   periodic=periodic,
-                                   offsets=np.full(3, 0.5),
-                                   massgenerator=makemasses,
-                                   unitrho=unitrho,
-                                   bbox=bbox.v,
-                                   recenter=center,
-                                   e1hat=e1dir, e2hat=e2dir, e3hat=e3dir)
+    ds = fake_sph_flexible_grid_ds(
+        hsml_factor=hsml_factor,
+        nperside=3,
+        periodic=periodic,
+        offsets=np.full(3, 0.5),
+        massgenerator=makemasses,
+        unitrho=unitrho,
+        bbox=bbox.v,
+        recenter=center,
+        e1hat=e1dir,
+        e2hat=e2dir,
+        e3hat=e3dir,
+    )
 
     source = ds.all_data()
     # couple to dataset -> right unit registry
-    center = ds.arr(center, 'cm')
-    print('position:\n', source['gas','position'])
-    slc = yt.SlicePlot(ds, e1dir, ("gas", "density"),
-                       width=(width, "cm"),
-                       buff_size=(outgridsize,) * 2,
-                       center=(_center, "cm"),
-                       north_vector=e2dir)
-    img = slc.frb.data[('gas', 'density')]
+    center = ds.arr(center, "cm")
+    print("position:\n", source["gas", "position"])
+    slc = yt.SlicePlot(
+        ds,
+        e1dir,
+        ("gas", "density"),
+        width=(width, "cm"),
+        buff_size=(outgridsize,) * 2,
+        center=(_center, "cm"),
+        north_vector=e2dir,
+    )
+    img = slc.frb.data[("gas", "density")]
 
     # center is same in x/y (e3dir/e2dir)
-    gridcenx = np.dot(_center, e3dir) - 0.5 * width \
-               + 0.5 * width / outgridsize \
-               + np.arange(outgridsize) * width / outgridsize
-    gridceny = np.dot(_center, e2dir) - 0.5 * width \
-               + 0.5 * width / outgridsize \
-               + np.arange(outgridsize) * width / outgridsize
+    gridcenx = (
+        np.dot(_center, e3dir)
+        - 0.5 * width
+        + 0.5 * width / outgridsize
+        + np.arange(outgridsize) * width / outgridsize
+    )
+    gridceny = (
+        np.dot(_center, e2dir)
+        - 0.5 * width
+        + 0.5 * width / outgridsize
+        + np.arange(outgridsize) * width / outgridsize
+    )
     xgrid = np.repeat(gridcenx, outgridsize)
     ygrid = np.tile(gridceny, outgridsize)
     zgrid = np.full(outgridsize**2, np.dot(_center, e1dir))
-    gridcoords = (xgrid[:, np.newaxis] * e3dir[np.newaxis, :]
-                  + ygrid[:, np.newaxis] * e2dir[np.newaxis, :]
-                  + zgrid[:, np.newaxis] * e1dir[np.newaxis, :])
-    print('gridcoords:')
+    gridcoords = (
+        xgrid[:, np.newaxis] * e3dir[np.newaxis, :]
+        + ygrid[:, np.newaxis] * e2dir[np.newaxis, :]
+        + zgrid[:, np.newaxis] * e1dir[np.newaxis, :]
+    )
+    print("gridcoords:")
     print(gridcoords)
     ad = ds.all_data()
-    sphcoords = np.array([(ad[("gas", "x")]).to("cm"),
-                          (ad[("gas", "y")]).to("cm"),
-                          (ad[("gas", "z")]).to("cm"),
-                          ]).T
-    dists = distancematrix(gridcoords, sphcoords,
-                           periodic=(periodic,)*3,
-                           periods=np.array([3., 3., 3.]))
+    sphcoords = np.array(
+        [
+            (ad[("gas", "x")]).to("cm"),
+            (ad[("gas", "y")]).to("cm"),
+            (ad[("gas", "z")]).to("cm"),
+        ]
+    ).T
+    dists = distancematrix(
+        gridcoords,
+        sphcoords,
+        periodic=(periodic,) * 3,
+        periods=np.array([3.0, 3.0, 3.0]),
+    )
     sml = (ad[("gas", "smoothing_length")]).to("cm")
     normkern = cubicspline_python(dists / sml.v[np.newaxis, :])
-    sphcontr = normkern / sml[np.newaxis, :]**3 * ad[("gas", "mass")]
+    sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad[("gas", "mass")]
     contsum = np.sum(sphcontr, axis=1)
-    sphweights = normkern / sml[np.newaxis, :]**3 \
-                 * ad[("gas", "mass")] / ad[("gas", "density")]
+    sphweights = (
+        normkern
+        / sml[np.newaxis, :] ** 3
+        * ad[("gas", "mass")]
+        / ad[("gas", "density")]
+    )
     weights = np.sum(sphweights, axis=1)
     expected = contsum / weights
     expected = expected.reshape((outgridsize, outgridsize))
-    expected = expected.T # transposed for image plotting
-    expected[np.isnan(expected)] = 0. # convention in the slices
+    expected = expected.T  # transposed for image plotting
+    expected[np.isnan(expected)] = 0.0  # convention in the slices
 
-    #print(axis, shiftcenter, depth, periodic, weighted)
-    print('expected:\n', expected.v)
-    print('recovered:\n', img.v)
+    # print(axis, shiftcenter, depth, periodic, weighted)
+    print("expected:\n", expected.v)
+    print("recovered:\n", img.v)
     assert_rel_equal(expected.v, img.v, 4)
+
 
 # only axis-aligned; testing YTArbitraryGrid, YTCoveringGrid
 @pytest.mark.parametrize("periodic", [True, False, (True, True, False)])
 @pytest.mark.parametrize("wholebox", [True, False])
-def test_sph_grid(periodic: bool | tuple[bool, bool, bool],
-                  wholebox: bool):
-    bbox = np.array([[-1., 3.], [1., 5.2], [-1., 3.]])
+def test_sph_grid(periodic: bool | tuple[bool, bool, bool], wholebox: bool):
+    bbox = np.array([[-1.0, 3.0], [1.0, 5.2], [-1.0, 3.0]])
     ds = fake_random_sph_ds(50, bbox, periodic=periodic)
 
     if not hasattr(periodic, "__len__"):
@@ -406,15 +472,15 @@ def test_sph_grid(periodic: bool | tuple[bool, bool, bool],
         left = bbox[:, 0].copy()
         level = 2
         ncells = np.array([2**level] * 3)
-        print('left: ', left)
-        print('ncells: ', ncells)
+        print("left: ", left)
+        print("ncells: ", ncells)
         resgrid = ds.covering_grid(level, tuple(left), ncells)
         right = bbox[:, 1].copy()
         xedges = np.linspace(left[0], right[0], ncells[0] + 1)
         yedges = np.linspace(left[1], right[1], ncells[1] + 1)
         zedges = np.linspace(left[2], right[2], ncells[2] + 1)
     else:
-        left = np.array([-1., 1.8, -1.])
+        left = np.array([-1.0, 1.8, -1.0])
         right = np.array([2.5, 5.2, 2.5])
         ncells = np.array([3, 4, 4])
         resgrid = ds.arbitrary_grid(left, right, dims=ncells)
@@ -427,33 +493,37 @@ def test_sph_grid(periodic: bool | tuple[bool, bool, bool],
     zcens = 0.5 * (zedges[:-1] + zedges[1:])
 
     ad = ds.all_data()
-    sphcoords = np.array([(ad[("gas", "x")]).to("cm"),
-                          (ad[("gas", "y")]).to("cm"),
-                          (ad[("gas", "z")]).to("cm"),
-                          ]).T
-    gridx, gridy, gridz = np.meshgrid(xcens, ycens, zcens,
-                                      indexing='ij')
+    sphcoords = np.array(
+        [
+            (ad[("gas", "x")]).to("cm"),
+            (ad[("gas", "y")]).to("cm"),
+            (ad[("gas", "z")]).to("cm"),
+        ]
+    ).T
+    gridx, gridy, gridz = np.meshgrid(xcens, ycens, zcens, indexing="ij")
     outshape = gridx.shape
     gridx = gridx.flatten()
     gridy = gridy.flatten()
     gridz = gridz.flatten()
     gridcoords = np.array([gridx, gridy, gridz]).T
     periods = bbox[:, 1] - bbox[:, 0]
-    dists = distancematrix(gridcoords, sphcoords,
-                           periodic=periodic,
-                           periods=periods)
+    dists = distancematrix(gridcoords, sphcoords, periodic=periodic, periods=periods)
     sml = (ad[("gas", "smoothing_length")]).to("cm")
     normkern = cubicspline_python(dists / sml.v[np.newaxis, :])
-    sphcontr = normkern / sml[np.newaxis, :]**3 * ad[("gas", "mass")]
+    sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad[("gas", "mass")]
     contsum = np.sum(sphcontr, axis=1)
-    sphweights = normkern / sml[np.newaxis, :]**3 \
-                 * ad[("gas", "mass")] / ad[("gas", "density")]
+    sphweights = (
+        normkern
+        / sml[np.newaxis, :] ** 3
+        * ad[("gas", "mass")]
+        / ad[("gas", "density")]
+    )
     weights = np.sum(sphweights, axis=1)
     expected = contsum / weights
     expected = expected.reshape(outshape)
-    expected[np.isnan(expected)] = 0. # convention in the slices
+    expected[np.isnan(expected)] = 0.0  # convention in the slices
 
-    #print(axis, shiftcenter, depth, periodic, weighted)
-    print('expected:\n', expected.v)
-    print('recovered:\n', res.v)
+    # print(axis, shiftcenter, depth, periodic, weighted)
+    print("expected:\n", expected.v)
+    print("recovered:\n", res.v)
     assert_rel_equal(expected.v, res.v, 4)

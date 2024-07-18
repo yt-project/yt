@@ -380,7 +380,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             # instead
             xa = self.x_axis[dim]
             ya = self.y_axis[dim]
-            #axorder = data_source.ds.coordinates.axis_order
+            # axorder = data_source.ds.coordinates.axis_order
             za = list({0, 1, 2} - {xa, ya})[0]
             ds_periodic = data_source.ds.periodicity
             _periodic = np.array(ds_periodic)
@@ -395,7 +395,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             if kernel_name is None:
                 kernel_name = "cubic"
 
-            if isinstance(data_source, YTParticleProj): # projection
+            if isinstance(data_source, YTParticleProj):  # projection
                 weight = data_source.weight_field
                 moment = data_source.moment
                 le, re = data_source.data_source.get_bbox()
@@ -444,7 +444,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             bnds3,
                             _check_period=_periodic.astype("int"),
                             period=period3,
-                            kernel_name=kernel_name
+                            kernel_name=kernel_name,
                         )
                     # We use code length here, but to get the path length right
                     # we need to multiply by the conversion factor between
@@ -478,7 +478,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             _check_period=_periodic.astype("int"),
                             period=period3,
                             weight_field=chunk[weight].in_units(wounits),
-                            kernel_name=kernel_name
+                            kernel_name=kernel_name,
                         )
                     mylog.info(
                         "Making a fixed resolution buffer of (%s) %d by %d",
@@ -501,7 +501,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             bnds3,
                             _check_period=_periodic.astype("int"),
                             period=period3,
-                            kernel_name=kernel_name
+                            kernel_name=kernel_name,
                         )
                     normalization_2d_utility(buff, weight_buff)
                     if moment == 2:
@@ -523,7 +523,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 _check_period=_periodic.astype("int"),
                                 period=period3,
                                 weight_field=chunk[weight].in_units(wounits),
-                                kernel_name=kernel_name
+                                kernel_name=kernel_name,
                             )
                         normalization_2d_utility(buff2, weight_buff)
                         buff = compute_stddev_image(buff2, buff)
@@ -554,7 +554,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             data_source.coord.to("code_length").v,
                             _check_period=_periodic.astype("int"),
                             period=period3,
-                            kernel_name=kernel_name
+                            kernel_name=kernel_name,
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
@@ -571,7 +571,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 data_source.coord.to("code_length").v,
                                 _check_period=_periodic.astype("int"),
                                 period=period3,
-                                kernel_name=kernel_name
+                                kernel_name=kernel_name,
                             )
 
                     if normalize:
@@ -680,13 +680,16 @@ class CartesianCoordinateHandler(CoordinateHandler):
         _finfo = data_source.ds.field_info[field]
         is_sph_field = _finfo.is_sph_field
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
-        #finfo = self.ds._get_field_info(field)
+        # finfo = self.ds._get_field_info(field)
 
         # SPH data
         # only for slices: a function in off_axis_projection.py
         # handles projections
-        if isinstance(data_source.ds, particle_datasets) and is_sph_field \
-                      and isinstance(data_source, YTCuttingPlane):
+        if (
+            isinstance(data_source.ds, particle_datasets)
+            and is_sph_field
+            and isinstance(data_source, YTCuttingPlane)
+        ):
             normalize = getattr(self.ds, "use_sph_normalization", True)
             le = data_source.ds.domain_left_edge.to("code_length")
             re = data_source.ds.domain_right_edge.to("code_length")
@@ -698,8 +701,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             axorder = data_source.ds.coordinates.axis_order
             ounits = data_source.ds.field_info[field].output_units
             # input bounds are in code length units already
-            widthxy = np.array((bounds[1] - bounds[0],
-                                bounds[3] - bounds[2]))
+            widthxy = np.array((bounds[1] - bounds[0], bounds[3] - bounds[2]))
             kernel_name = None
             if hasattr(data_source.ds, "kernel_name"):
                 kernel_name = data_source.ds.kernel_name
@@ -728,9 +730,12 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     chunk[ptype, "mass"].to("code_mass"),
                     chunk[ptype, "density"].to("code_density"),
                     chunk[field].in_units(ounits),
-                    center, widthxy,
-                    normal_vector, north_vector,
-                    boxbounds, periodic,
+                    center,
+                    widthxy,
+                    normal_vector,
+                    north_vector,
+                    boxbounds,
+                    periodic,
                     kernel_name=kernel_name,
                     check_period=1,
                 )
@@ -745,11 +750,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         chunk[ptype, "mass"].to("code_mass"),
                         chunk[ptype, "density"].to("code_density"),
                         np.ones(chunk[ptype, "density"].shape[0]),
-                        center, widthxy,
-                        normal_vector, north_vector,
-                        boxbounds, periodic,
+                        center,
+                        widthxy,
+                        normal_vector,
+                        north_vector,
+                        boxbounds,
+                        periodic,
                         kernel_name=kernel_name,
-                        check_period=1
+                        check_period=1,
                     )
 
             if normalize:
@@ -763,7 +771,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         # whatever other data this code could handle before the
         # SPH option was added
         else:
-            indices = np.argsort(data_source["pdx"])[::-1].astype(np.int_)
+            indices = np.argsort(data_source["pdx"])[::-1].astype("int64", copy=False)
             buff = np.full((size[1], size[0]), np.nan, dtype="float64")
             ftype = "index"
             if isinstance(data_source.ds, YTSpatialPlotDataset):
