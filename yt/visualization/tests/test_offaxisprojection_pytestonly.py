@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 import pytest
 import unyt
@@ -17,9 +19,9 @@ from yt.visualization.api import ProjectionPlot
 @pytest.mark.parametrize("shiftcenter", [False, True])
 @pytest.mark.parametrize("northvector", [None, (1.0e-4, 1.0, 0.0)])
 def test_sph_proj_general_offaxis(
-    northvector: tuple[float, float, float] | None,
+    northvector: Union[tuple[float, float, float], None],
     shiftcenter: bool,
-    depth: tuple[float, str] | None,
+    depth: Union[tuple[float, str], None],
     periodic: bool,
     weighted: bool,
 ) -> None:

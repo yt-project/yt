@@ -9,7 +9,7 @@ import unittest
 from functools import wraps
 from importlib.util import find_spec
 from shutil import which
-from typing import Callable, Union
+from typing import Any, Callable, Union
 from unittest import SkipTest
 
 import matplotlib
@@ -85,8 +85,8 @@ def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
 
 # tested: volume integral is 1.
 def cubicspline_python(
-    x: Union[float, npt.ndarray[float]],
-) -> npt.ndarray[float]:
+    x: Union[float, np.ndarray],
+) -> np.ndarray:
     """
     cubic spline SPH kernel function for testing against more
     effiecient cython methods
@@ -148,11 +148,11 @@ _zeroperiods = np.array([0.0, 0.0, 0.0])
 
 
 def distancematrix(
-    pos3_i0: np.ndarray[float],
-    pos3_i1: np.ndarray[float],
-    periodic: tuple[bool] = (True,) * 3,
+    pos3_i0: np.ndarray,
+    pos3_i1: np.ndarray,
+    periodic: tuple[bool, bool, bool] = (True,) * 3,
     periods: np.ndarray = _zeroperiods,
-) -> np.ndarray[float]:
+) -> np.ndarray:
     """
     Calculates the distances between two arrays of points.
 
@@ -808,14 +808,14 @@ def fake_sph_flexible_grid_ds(
     hsml_factor: float = 1.0,
     nperside: int = 3,
     periodic: bool = True,
-    e1hat: np.ndarray[float] = _xhat,
-    e2hat: np.ndarray[float] = _yhat,
-    e3hat: np.ndarray[float] = _zhat,
-    offsets: np.ndarray[float] = _floathalves,
+    e1hat: np.ndarray = _xhat,
+    e2hat: np.ndarray = _yhat,
+    e3hat: np.ndarray = _zhat,
+    offsets: np.ndarray = _floathalves,
     massgenerator: Callable[[int, int, int], float] = constantmass,
     unitrho: float = 1.0,
-    bbox: Union[npt.ndarray[float], None] = None,
-    recenter: Union[npt.ndarray[float], None] = None,
+    bbox: Union[np.ndarray, None] = None,
+    recenter: Union[np.ndarray, None] = None,
 ) -> StreamParticlesDataset:
     """Returns an in-memory SPH dataset useful for testing
 
@@ -913,9 +913,9 @@ def fake_sph_flexible_grid_ds(
         okinds = slice(None, None, None)
 
     data = {
-        "particle_position_x": (np.copy(pos[okinds, 0]), "cm"),
-        "particle_position_y": (np.copy(pos[okinds, 1]), "cm"),
-        "particle_position_z": (np.copy(pos[okinds, 2]), "cm"),
+        "particle_position_x": (np.copy(pos[:, 0][okinds]), "cm"),
+        "particle_position_y": (np.copy(pos[:, 1][okinds]), "cm"),
+        "particle_position_z": (np.copy(pos[:, 2][okinds]), "cm"),
         "particle_mass": (mass[okinds], "g"),
         "particle_velocity_x": (np.zeros(npart), "cm/s"),
         "particle_velocity_y": (np.zeros(npart), "cm/s"),
@@ -938,7 +938,7 @@ def fake_sph_flexible_grid_ds(
 
 def fake_random_sph_ds(
     npart: int,
-    bbox: npt.ndarray[float],
+    bbox: np.ndarray,
     periodic: Union[bool, tuple[bool, bool, bool]] = True,
     massrange: tuple[float, float] = (0.5, 2.0),
     hsmlrange: tuple[float, float] = (0.5, 2.0),

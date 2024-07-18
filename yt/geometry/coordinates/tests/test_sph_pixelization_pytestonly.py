@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 import pytest
 import unyt
@@ -20,7 +22,11 @@ from yt.testing import (
 @pytest.mark.parametrize("shiftcenter", [False, True])
 @pytest.mark.parametrize("axis", [0, 1, 2])
 def test_sph_proj_general_alongaxes(
-    axis: int, shiftcenter: bool, depth: float | None, periodic: bool, weighted: bool
+    axis: int,
+    shiftcenter: bool,
+    depth: Union[float, None],
+    periodic: bool,
+    weighted: bool,
 ) -> None:
     """
     The previous projection tests were for a specific issue.
@@ -161,7 +167,10 @@ def test_sph_proj_general_alongaxes(
 @pytest.mark.parametrize("zoff", [0.0, 0.1, 0.5, 1.0])
 @pytest.mark.parametrize("axis", [0, 1, 2])
 def test_sph_slice_general_alongaxes(
-    axis: int, shiftcenter: bool, periodic: bool, zoff: float
+    axis: int,
+    shiftcenter: bool,
+    periodic: bool,
+    zoff: float,
 ) -> None:
     """
     Particles at [0.5, 1.5, 2.5] (in each coordinate)
@@ -307,7 +316,7 @@ def test_sph_slice_general_alongaxes(
 @pytest.mark.parametrize("northvector", [None, (1.0e-4, 1.0, 0.0)])
 @pytest.mark.parametrize("zoff", [0.0, 0.1, 0.5, 1.0])
 def test_sph_slice_general_offaxis(
-    northvector: tuple[float, float, float] | None,
+    northvector: Union[tuple[float, float, float], None],
     shiftcenter: bool,
     zoff: float,
     periodic: bool,
@@ -461,7 +470,10 @@ def test_sph_slice_general_offaxis(
 # only axis-aligned; testing YTArbitraryGrid, YTCoveringGrid
 @pytest.mark.parametrize("periodic", [True, False, (True, True, False)])
 @pytest.mark.parametrize("wholebox", [True, False])
-def test_sph_grid(periodic: bool | tuple[bool, bool, bool], wholebox: bool):
+def test_sph_grid(
+    periodic: Union[bool, tuple[bool, bool, bool]],
+    wholebox: bool,
+) -> None:
     bbox = np.array([[-1.0, 3.0], [1.0, 5.2], [-1.0, 3.0]])
     ds = fake_random_sph_ds(50, bbox, periodic=periodic)
 
