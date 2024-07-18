@@ -694,7 +694,7 @@ def load_amr_grids(
 
 
 def load_particles(
-    data: dict[AnyFieldKey, np.ndarray],
+    data: dict[AnyFieldKey, Union[np.ndarray, tuple[np.ndarry, str]]],
     length_unit=None,
     bbox=None,
     sim_time=None,
