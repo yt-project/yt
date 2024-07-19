@@ -525,7 +525,8 @@ def off_axis_projection(
             image *= dl
         else:
             mask = image[:, :, 1] == 0
-            image[:, :, 0] /= image[:, :, 1]
+            nmask = np.logical_not(mask)
+            image[:, :, 0][nmask] /= image[:, :, 1][nmask]
             image[mask] = 0
 
     return image[:, :, 0]
