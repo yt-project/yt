@@ -332,7 +332,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         period3 = self.period[:].copy()  # dummy here
         period3[0] = self.period[self.x_axis[dim]]
         period3[1] = self.period[self.y_axis[dim]]
-        zax = list({0, 1, 2} - {self.x_axis[dim], self.y_axis[dim]})
+        zax = list({0, 1, 2} - {self.x_axis[dim], self.y_axis[dim]})[0]
         period3[2] = self.period[zax]
         if hasattr(period2, "in_units"):
             period2 = period2.in_units("code_length").d
