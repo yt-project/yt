@@ -73,120 +73,109 @@ def test_ray_particle():
     assert_equal(ray["t"].shape, (1451,))
     assert ray["dts"].sum(dtype="f8") > 0
 
+
 ## test that kernels integrate correctly
 # (1) including the right particles
 # (2) correct t and dts values for those particles
 ## fake_sph_grid_ds:
-# This dataset should have 27 particles with the particles arranged 
+# This dataset should have 27 particles with the particles arranged
 # uniformly on a 3D grid. The bottom left corner is (0.5,0.5,0.5) and
-# the top right corner is (2.5,2.5,2.5). All particles will have 
-# non-overlapping smoothing regions with a radius of 0.05, masses of 
+# the top right corner is (2.5,2.5,2.5). All particles will have
+# non-overlapping smoothing regions with a radius of 0.05, masses of
 # 1, and densities of 1, and zero velocity.
-    
+
+
 # it seems like I can't import the kernel functions from the .pxd
 # file, so I'm defining the spline function for basic python
 def _cubicspline_python(x):
-    '''
+    """
     tested: volume integral is 1.
-    '''
+    """
     # C is 8/pi
-    _c = 8. / np.pi
+    _c = 8.0 / np.pi
     x = np.asarray(x)
     kernel = np.zeros(x.shape, dtype=x.dtype)
-    half1 = np.where(np.logical_and(x >=0., x <= 0.5))
-    kernel[half1] = 1. - 6. * x[half1]**2 * (1. - x[half1])
+    half1 = np.where(np.logical_and(x >= 0.0, x <= 0.5))
+    kernel[half1] = 1.0 - 6.0 * x[half1] ** 2 * (1.0 - x[half1])
     half2 = np.where(np.logical_and(x > 0.5, x <= 1.0))
-    kernel[half2] = 2. * (1. - x[half2])**3
+    kernel[half2] = 2.0 * (1.0 - x[half2]) ** 3
     return kernel * _c
 
+
 def _integrate_kernel(kernelfunc, b, hsml):
-    pre = 1. / hsml**2
+    pre = 1.0 / hsml**2
     x = b / hsml
-    xmax = np.sqrt(1. - x**2)
-    xmin = -1. * xmax
-    xe = np.linspace(xmin, xmax, 500) # shape: 500, x.shape
+    xmax = np.sqrt(1.0 - x**2)
+    xmin = -1.0 * xmax
+    xe = np.linspace(xmin, xmax, 500)  # shape: 500, x.shape
     xc = 0.5 * (xe[:-1, ...] + xe[1:, ...])
     dx = np.diff(xe, axis=0)
     spv = kernelfunc(np.sqrt(xc**2 + x**2))
     integral = np.sum(spv * dx, axis=0)
     return pre * integral
 
+
 def test_ray_particle2():
     kernelfunc = _cubicspline_python
     ds = fake_sph_grid_ds(hsml_factor=1.0)
-    ds.kernel_name = 'cubic'
-    
+    ds.kernel_name = "cubic"
+
     ## Ray through the one particle at (0.5, 0.5, 0.5):
     ## test basic kernel integration
-    eps = 0. #1e-7
-    start0 = np.array((1. + eps, 0., 0.5))
-    end0 = np.array((0., 1. + eps, 0.5))
+    eps = 0.0  # 1e-7
+    start0 = np.array((1.0 + eps, 0.0, 0.5))
+    end0 = np.array((0.0, 1.0 + eps, 0.5))
     ray0 = ds.ray(start0, end0)
-    b0 = np.array([np.sqrt(2.) * eps])
+    b0 = np.array([np.sqrt(2.0) * eps])
     hsml0 = np.array([0.05])
-    len0 = np.sqrt(np.sum((end0 - start0)**2))
+    len0 = np.sqrt(np.sum((end0 - start0) ** 2))
     # for a ParticleDataset like this one, the Ray object attempts
-    # to generate the 't' and 'dts' fields using the grid method 
-    ray0.field_data["t"] = ray0.ds.arr(
-        ray0._generate_container_field_sph("t"))
-    ray0.field_data["dts"] = ray0.ds.arr(
-        ray0._generate_container_field_sph("dts"))
-    # not demanding too much precision; 
+    # to generate the 't' and 'dts' fields using the grid method
+    ray0.field_data["t"] = ray0.ds.arr(ray0._generate_container_field_sph("t"))
+    ray0.field_data["dts"] = ray0.ds.arr(ray0._generate_container_field_sph("dts"))
+    # not demanding too much precision;
     # from kernel volume integrals, the linear interpolation
     # restricts you to 4 -- 5 digits precision
     assert_equal(ray0["t"].shape, (1,))
     assert_rel_equal(ray0["t"], np.array([0.5]), 5)
-    assert_rel_equal(ray0[("gas", "position")].v,
-                     np.array([[0.5, 0.5, 0.5]]), 5)
+    assert_rel_equal(ray0[("gas", "position")].v, np.array([[0.5, 0.5, 0.5]]), 5)
     dl0 = _integrate_kernel(kernelfunc, b0, hsml0)
-    dl0 *= ray0[('gas', 'mass')].v / ray0[('gas', 'density')].v
+    dl0 *= ray0[("gas", "mass")].v / ray0[("gas", "density")].v
     assert_rel_equal(ray0[("dts")].v, dl0 / len0, 4)
 
     ## Ray in the middle of the box:
     ## test end points, >1 particle
-    start1 = np.array((1.53, 0.53, 1.))
-    end1 = np.array((1.53, 0.53, 3.))
+    start1 = np.array((1.53, 0.53, 1.0))
+    end1 = np.array((1.53, 0.53, 3.0))
     ray1 = ds.ray(start1, end1)
-    b1 = np.array([np.sqrt(2.) * 0.03] * 2)
+    b1 = np.array([np.sqrt(2.0) * 0.03] * 2)
     hsml1 = np.array([0.05] * 2)
-    len1 = np.sqrt(np.sum((end1 - start1)**2))
+    len1 = np.sqrt(np.sum((end1 - start1) ** 2))
     # for a ParticleDataset like this one, the Ray object attempts
-    # to generate the 't' and 'dts' fields using the grid method 
-    ray1.field_data["t"] = ray1.ds.arr(
-        ray1._generate_container_field_sph("t"))
-    ray1.field_data["dts"] = ray1.ds.arr(
-        ray1._generate_container_field_sph("dts"))
-    # not demanding too much precision; 
+    # to generate the 't' and 'dts' fields using the grid method
+    ray1.field_data["t"] = ray1.ds.arr(ray1._generate_container_field_sph("t"))
+    ray1.field_data["dts"] = ray1.ds.arr(ray1._generate_container_field_sph("dts"))
+    # not demanding too much precision;
     # from kernel volume integrals, the linear interpolation
     # restricts you to 4 -- 5 digits precision
     assert_equal(ray1["t"].shape, (2,))
     assert_rel_equal(ray1["t"], np.array([0.25, 0.75]), 5)
-    assert_rel_equal(ray1[("gas", "position")].v,
-                     np.array([[1.5, 0.5, 1.5],
-                               [1.5, 0.5, 2.5]]), 5)
+    assert_rel_equal(
+        ray1[("gas", "position")].v, np.array([[1.5, 0.5, 1.5], [1.5, 0.5, 2.5]]), 5
+    )
     dl1 = _integrate_kernel(kernelfunc, b1, hsml1)
-    dl1 *= ray1[('gas', 'mass')].v / ray1[('gas', 'density')].v
+    dl1 *= ray1[("gas", "mass")].v / ray1[("gas", "density")].v
     assert_rel_equal(ray1[("dts")].v, dl1 / len1, 4)
 
     ## Ray missing all particles:
-    ## test handling of size-0 selections 
-    start2 = np.array((1., 2., 0.))
-    end2 = np.array((1., 2., 3.))
+    ## test handling of size-0 selections
+    start2 = np.array((1.0, 2.0, 0.0))
+    end2 = np.array((1.0, 2.0, 3.0))
     ray2 = ds.ray(start2, end2)
     # for a ParticleDataset like this one, the Ray object attempts
-    # to generate the 't' and 'dts' fields using the grid method 
-    ray2.field_data["t"] = ray2.ds.arr(
-        ray2._generate_container_field_sph("t"))
-    ray2.field_data["dts"] = ray2.ds.arr(
-        ray2._generate_container_field_sph("dts"))
+    # to generate the 't' and 'dts' fields using the grid method
+    ray2.field_data["t"] = ray2.ds.arr(ray2._generate_container_field_sph("t"))
+    ray2.field_data["dts"] = ray2.ds.arr(ray2._generate_container_field_sph("dts"))
     assert_equal(ray2["t"].shape, (0,))
     assert_equal(ray2["dts"].shape, (0,))
     assert_equal(ray2[("gas", "position")].v.shape, (0, 3))
-
-
-
-
-
-
-
-    
