@@ -308,9 +308,9 @@ def test_sph_slice_general_alongaxes(
     expected = expected.reshape((outgridsize, outgridsize))
     # expected[np.isnan(expected)] = 0.0  # convention in the slices
 
-    print("expected:\n", expected.v)
+    print("expected:\n", expected)
     print("recovered:\n", img.v)
-    assert_rel_equal(expected.v, img.v, 5)
+    assert_rel_equal(expected, img.v, 5)
 
 
 @pytest.mark.parametrize("periodic", [True, False])
@@ -466,9 +466,9 @@ def test_sph_slice_general_offaxis(
     # expected[np.isnan(expected)] = 0.0  # convention in the slices
 
     # print(axis, shiftcenter, depth, periodic, weighted)
-    print("expected:\n", expected.v)
+    print("expected:\n", expected)
     print("recovered:\n", img.v)
-    assert_rel_equal(expected.v, img.v, 4)
+    assert_rel_equal(expected, img.v, 4)
 
 
 # only axis-aligned; testing YTArbitraryGrid, YTCoveringGrid
@@ -542,6 +542,6 @@ def test_sph_grid(
     # expected[np.isnan(expected)] = 0.0  # convention in the slices
 
     # print(axis, shiftcenter, depth, periodic, weighted)
-    print("expected:\n", expected.v)
+    print("expected:\n", expected)
     print("recovered:\n", res.v)
-    assert_rel_equal(expected.v, res.v, 4)
+    assert_rel_equal(expected, res.v, 4)
