@@ -909,12 +909,12 @@ def fake_sph_flexible_grid_ds(
             okinds &= pos[:, ax] >= bbox[ax, 0]
         npart = sum(okinds)
     else:
-        okinds = slice(None, None, None)
+        okinds: slice = slice(None, None, None)
 
     data = {
-        "particle_position_x": (np.copy(pos[:, 0][okinds]), "cm"),
-        "particle_position_y": (np.copy(pos[:, 1][okinds]), "cm"),
-        "particle_position_z": (np.copy(pos[:, 2][okinds]), "cm"),
+        "particle_position_x": (np.copy(pos[okinds, 0]), "cm"),
+        "particle_position_y": (np.copy(pos[okinds, 1]), "cm"),
+        "particle_position_z": (np.copy(pos[okinds, 2]), "cm"),
         "particle_mass": (mass[okinds], "g"),
         "particle_velocity_x": (np.zeros(npart), "cm/s"),
         "particle_velocity_y": (np.zeros(npart), "cm/s"),

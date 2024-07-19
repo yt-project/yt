@@ -10,7 +10,7 @@ import time
 import types
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Union, cast
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -694,7 +694,7 @@ def load_amr_grids(
 
 
 def load_particles(
-    data: dict[AnyFieldKey, Union[np.ndarray, tuple[np.ndarray, str]]],
+    data: Mapping[AnyFieldKey, Union[np.ndarray, tuple[np.ndarray, str]]],
     length_unit=None,
     bbox=None,
     sim_time=None,
