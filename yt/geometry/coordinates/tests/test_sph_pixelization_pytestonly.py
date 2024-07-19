@@ -279,18 +279,18 @@ def test_sph_slice_general_alongaxes(
             (ad[("gas", "z")]).to("cm"),
         ]
     ).T
-    #print("sphcoords:")
-    #print(sphcoords)
-    #print("gridcoords:")
-    #print(gridcoords)
+    # print("sphcoords:")
+    # print(sphcoords)
+    # print("gridcoords:")
+    # print(gridcoords)
     dists = distancematrix(
         gridcoords,
         sphcoords,
         periodic=(periodic,) * 3,
         periods=np.array([3.0, 3.0, 3.0]),
     )
-    #print("dists <= 1:")
-    #print(dists <= 1)
+    # print("dists <= 1:")
+    # print(dists <= 1)
     sml = (ad[("gas", "smoothing_length")]).to("cm")
     normkern = cubicspline_python(dists / sml.v[np.newaxis, :])
     sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad[("gas", "mass")]
@@ -306,7 +306,7 @@ def test_sph_slice_general_alongaxes(
     expected = np.zeros(weights.shape, weights.dtype)
     expected[nzeromask] = contsum[nzeromask] / weights[nzeromask]
     expected = expected.reshape((outgridsize, outgridsize))
-    #expected[np.isnan(expected)] = 0.0  # convention in the slices
+    # expected[np.isnan(expected)] = 0.0  # convention in the slices
 
     print("expected:\n", expected.v)
     print("recovered:\n", img.v)
@@ -431,8 +431,8 @@ def test_sph_slice_general_offaxis(
         + ygrid[:, np.newaxis] * e2dir[np.newaxis, :]
         + zgrid[:, np.newaxis] * e1dir[np.newaxis, :]
     )
-    #print("gridcoords:")
-    #print(gridcoords)
+    # print("gridcoords:")
+    # print(gridcoords)
     ad = ds.all_data()
     sphcoords = np.array(
         [
@@ -488,8 +488,8 @@ def test_sph_grid(
         left = bbox[:, 0].copy()
         level = 2
         ncells = np.array([2**level] * 3)
-        #print("left: ", left)
-        #print("ncells: ", ncells)
+        # print("left: ", left)
+        # print("ncells: ", ncells)
         resgrid = ds.covering_grid(level, tuple(left), ncells)
         right = bbox[:, 1].copy()
         xedges = np.linspace(left[0], right[0], ncells[0] + 1)
@@ -539,7 +539,7 @@ def test_sph_grid(
     expected = np.zeros(weights.shape, weights.dtype)
     expected[nzeromask] = contsum[nzeromask] / weights[nzeromask]
     expected = expected.reshape(outshape)
-    #expected[np.isnan(expected)] = 0.0  # convention in the slices
+    # expected[np.isnan(expected)] = 0.0  # convention in the slices
 
     # print(axis, shiftcenter, depth, periodic, weighted)
     print("expected:\n", expected.v)
