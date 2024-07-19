@@ -43,8 +43,8 @@ for ax in range(3):
 
     # converting our fixed resolution buffers to NDarray so matplotlib can
     # render them
-    dens = np.array(frb[("gas", "density")])
-    temp = np.array(frb[("gas", "temperature")])
+    dens = np.array(frb["gas", "density"])
+    temp = np.array(frb["gas", "temperature"])
 
     plots.append(den_axis.imshow(dens, norm=LogNorm()))
     plots[-1].set_clim((5e-32, 1e-29))

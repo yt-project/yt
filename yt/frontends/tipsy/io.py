@@ -157,9 +157,12 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         f = open(data_file.filename, "rb")
 
         # we need to open all aux files for chunking to work
-        aux_fh = {}
-        for afield in self._aux_fields:
-            aux_fh[afield] = open(data_file.filename + "." + afield, "rb")
+        _aux_fh = {}
+
+        def aux_fh(afield):
+            if afield not in _aux_fh:
+                _aux_fh[afield] = open(data_file.filename + "." + afield, "rb")
+            return _aux_fh[afield]
 
         for ptype, field_list in sorted(ptf.items(), key=lambda a: poff.get(a[0], -1)):
             if data_file.total_particles[ptype] == 0:
@@ -170,22 +173,19 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             p = np.fromfile(f, self._pdtypes[ptype], count=count)
             auxdata = []
             for afield in afields:
-                aux_fh[afield].seek(aux_fields_offsets[afield][ptype])
+                aux_fh(afield).seek(aux_fields_offsets[afield][ptype])
                 if isinstance(self._aux_pdtypes[afield], np.dtype):
                     auxdata.append(
                         np.fromfile(
-                            aux_fh[afield], self._aux_pdtypes[afield], count=count
+                            aux_fh(afield), self._aux_pdtypes[afield], count=count
                         )
                     )
                 else:
-                    par = self.ds.parameters
-                    nlines = 1 + par["nsph"] + par["ndark"] + par["nstar"]
-                    aux_fh[afield].seek(0)
+                    aux_fh(afield).seek(0)
                     sh = aux_fields_offsets[afield][ptype]
-                    sf = nlines - count - sh
                     if tp[ptype] > 0:
                         aux = np.genfromtxt(
-                            aux_fh[afield], skip_header=sh, skip_footer=sf
+                            aux_fh(afield), skip_header=sh, max_rows=count
                         )
                         if aux.ndim < 1:
                             aux = np.array([aux])
@@ -208,11 +208,11 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 continue
             tf = self._fill_fields(field_list, p, hsml, mask, data_file)
             for field in field_list:
-                return_data[(ptype, field)] = tf.pop(field)
+                return_data[ptype, field] = tf.pop(field)
 
         # close all file handles
         f.close()
-        for fh in list(aux_fh.values()):
+        for fh in _aux_fh.values():
             fh.close()
 
         return return_data

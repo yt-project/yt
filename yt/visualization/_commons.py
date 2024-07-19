@@ -258,8 +258,8 @@ def get_default_from_config(data_source, *, field, keys, defaults):
 
 def _get_units_label(units: str) -> str:
     if r"\frac" in units:
-        return r"$\ \ \left(%s\right)$" % units
+        return rf"$\ \ \left({units}\right)$"
     elif units:
-        return r"$\ \ (%s)$" % units
+        return rf"$\ \ ({units})$"
     else:
         return ""

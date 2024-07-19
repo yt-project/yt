@@ -49,8 +49,8 @@ BACKEND_SPECS = {
     "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
     "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
     "MacOSX": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
-    "Qt4Agg": ["backend_qt4agg", "FigureCanvasQTAgg", None],
     "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
+    "QtAgg": ["backend_qtagg", "FigureCanvasQTAgg", None],
     "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg", None],
     "WX": ["backend_wx", "FigureCanvasWx", None],
     "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg", None],
@@ -101,6 +101,7 @@ class CallbackWrapper:
         self.font_properties = font_properties
         self.font_color = font_color
         self.field = field
+        self._transform = viewer._transform
 
 
 class PlotMPL:
@@ -154,10 +155,7 @@ class PlotMPL:
         else:
             key = "agg"
 
-        try:
-            module, fig_canvas, fig_manager = BACKEND_SPECS[key]
-        except KeyError:
-            return
+        module, fig_canvas, fig_manager = BACKEND_SPECS[key]
 
         mod = __import__(
             "matplotlib.backends",
@@ -249,7 +247,7 @@ class ImagePlotMPL(PlotMPL, ABC):
     ):
         """Initialize ImagePlotMPL class object"""
 
-        self._transform: Optional["Transform"]
+        self._transform: Optional[Transform]
         setdefaultattr(self, "_transform", None)
 
         self.colorbar_handler = colorbar_handler
@@ -334,7 +332,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         self._set_axes()
 
     def _set_axes(self) -> None:
-        fmt_kwargs: "FormatKwargs" = {
+        fmt_kwargs: FormatKwargs = {
             "style": "scientific",
             "scilimits": (-2, 3),
             "useMathText": True,
@@ -345,7 +343,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         self.cax.tick_params(which="both", direction="in")
         self.cb = self.figure.colorbar(self.image, self.cax)
 
-        cb_axis: "Axis"
+        cb_axis: Axis
         if self.cb.orientation == "vertical":
             cb_axis = self.cb.ax.yaxis
         else:

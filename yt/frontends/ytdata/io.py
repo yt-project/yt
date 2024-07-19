@@ -27,7 +27,7 @@ class IOHandlerYTNonspatialhdf5(BaseIOHandler):
                     continue
                 self._misses += 1
                 ftype, fname = field
-                rv[(ftype, fname)] = f[ftype][fname][()]
+                rv[ftype, fname] = f[ftype][fname][()]
             if self._cache_on:
                 for gid in rv:
                     self._cached_fields.setdefault(gid, {})
@@ -66,7 +66,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                     continue
                 self._misses += 1
                 ftype, fname = field
-                rv[(ftype, fname)] = gds[fname][()]
+                rv[ftype, fname] = gds[fname][()]
             if self._cache_on:
                 for gid in rv:
                     self._cached_fields.setdefault(gid, {})
@@ -232,7 +232,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
 
                 for field in field_list:
                     data = f[ptype][field][mask].astype("float64", copy=False)
-                    data_return[(ptype, field)] = data
+                    data_return[ptype, field] = data
 
         return data_return
 

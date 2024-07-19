@@ -110,7 +110,7 @@ def test_create_from_dataset():
         weight_field=None,
     )
     assert_allclose_units(
-        plot1.profiles[0][("gas", "density")], plot2.profiles[0][("gas", "density")]
+        plot1.profiles[0]["gas", "density"], plot2.profiles[0]["gas", "density"]
     )
     assert_allclose_units(
         plot1.profiles[0]["velocity_x"], plot2.profiles[0]["velocity_x"]

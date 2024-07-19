@@ -4,6 +4,7 @@ Data structures for AdaptaHOP
 
 
 """
+
 from typing import Union
 
 from yt.funcs import mylog

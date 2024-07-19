@@ -98,12 +98,12 @@ def test_datacontainer_data():
     assert isinstance(sphere_ds, YTDataContainerDataset)
     yield YTDataFieldTest(full_fn, ("grid", "density"))
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
-    cr = ds.cut_region(sphere, ['obj[("gas", "temperature")] > 1e4'])
+    cr = ds.cut_region(sphere, ['obj["gas", "temperature"] > 1e4'])
     fn = cr.save_as_dataset(fields=[("gas", "temperature")])
     full_fn = os.path.join(tmpdir, fn)
     cr_ds = load(full_fn)
     assert isinstance(cr_ds, YTDataContainerDataset)
-    assert (cr[("gas", "temperature")] == cr_ds.data[("gas", "temperature")]).all()
+    assert (cr["gas", "temperature"] == cr_ds.data["gas", "temperature"]).all()
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)
@@ -148,7 +148,7 @@ def test_grid_datacontainer_data():
     frb = my_proj.to_frb(1.0, (800, 800))
     fn = frb.save_as_dataset(fields=[("gas", "density")])
     frb_ds = load(fn)
-    assert_array_equal(frb[("gas", "density")], frb_ds.data[("gas", "density")])
+    assert_array_equal(frb["gas", "density"], frb_ds.data["gas", "density"])
     compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
     yield YTDataFieldTest(full_fn, ("grid", "density"), geometric=False)
@@ -252,8 +252,8 @@ def test_nonspatial_data():
     region = ds.box([0.25] * 3, [0.75] * 3)
     sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
     my_data = {}
-    my_data["region_density"] = region[("gas", "density")]
-    my_data["sphere_density"] = sphere[("gas", "density")]
+    my_data["region_density"] = region["gas", "density"]
+    my_data["sphere_density"] = sphere["gas", "density"]
     fn = "test_data.h5"
     save_as_dataset(ds, fn, my_data)
     full_fn = os.path.join(tmpdir, fn)

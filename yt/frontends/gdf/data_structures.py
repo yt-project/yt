@@ -115,7 +115,7 @@ class GDFHierarchy(GridIndex):
             get_box_grids_level(
                 self.grid_left_edge[gi, :],
                 self.grid_right_edge[gi, :],
-                self.grid_levels[gi],
+                self.grid_levels[gi].item(),
                 self.grid_left_edge,
                 self.grid_right_edge,
                 self.grid_levels,
@@ -278,7 +278,8 @@ class GDFDataset(Dataset):
             self.omega_matter = 0.0
             self.hubble_constant = 0.0
             self.cosmological_simulation = 0
-        self.parameters["Time"] = 1.0  # Hardcode time conversion for now.
+        # Hardcode time conversion for now.
+        self.parameters["Time"] = 1.0
         # Hardcode for now until field staggering is supported.
         self.parameters["HydroMethod"] = 0
         self._handle.close()

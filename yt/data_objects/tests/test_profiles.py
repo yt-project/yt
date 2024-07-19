@@ -259,7 +259,7 @@ def test_particle_profiles():
             dd, ("all", "particle_position_x"), 128, 0.0, 1.0, False, weight_field=None
         )
         p1d.add_fields([("all", "particle_ones")])
-        assert_equal(p1d[("all", "particle_ones")].sum(), 32**3)
+        assert_equal(p1d["all", "particle_ones"].sum(), 32**3)
 
         p1d = create_profile(
             dd,
@@ -270,7 +270,7 @@ def test_particle_profiles():
             extrema=extrema_s,
             logs=logs_s,
         )
-        assert_equal(p1d[("all", "particle_ones")].sum(), 32**3)
+        assert_equal(p1d["all", "particle_ones"].sum(), 32**3)
 
         p1d = create_profile(
             dd,
@@ -281,7 +281,7 @@ def test_particle_profiles():
             extrema=extrema_t,
             logs=logs_t,
         )
-        assert_equal(p1d[("all", "particle_ones")].sum(), 32**3)
+        assert_equal(p1d["all", "particle_ones"].sum(), 32**3)
 
         p2d = Profile2D(
             dd,
@@ -298,7 +298,7 @@ def test_particle_profiles():
             weight_field=None,
         )
         p2d.add_fields([("all", "particle_ones")])
-        assert_equal(p2d[("all", "particle_ones")].sum(), 32**3)
+        assert_equal(p2d["all", "particle_ones"].sum(), 32**3)
 
         p3d = Profile3D(
             dd,
@@ -320,7 +320,7 @@ def test_particle_profiles():
             weight_field=None,
         )
         p3d.add_fields([("all", "particle_ones")])
-        assert_equal(p3d[("all", "particle_ones")].sum(), 32**3)
+        assert_equal(p3d["all", "particle_ones"].sum(), 32**3)
 
 
 def test_mixed_particle_mesh_profiles():
@@ -431,7 +431,7 @@ def test_particle_profile_negative_field():
         },
         weight_field=None,
     )
-    assert profile[("all", "particle_velocity_x")].min() < 0
+    assert profile["all", "particle_velocity_x"].min() < 0
     assert profile.x_bins.min() > 0
     assert profile.y_bins.min() > 0
 
@@ -441,7 +441,7 @@ def test_particle_profile_negative_field():
         ("all", "particle_velocity_x"),
         weight_field=None,
     )
-    assert profile[("all", "particle_velocity_x")].min() < 0
+    assert profile["all", "particle_velocity_x"].min() < 0
     assert profile.x_bins.min() < 0
     assert profile.y_bins.min() < 0
 
@@ -480,7 +480,7 @@ def test_particle_profile_negative_field():
 
 def test_profile_zero_weight():
     def DMparticles(pfilter, data):
-        filter = data[(pfilter.filtered_type, "particle_type")] == 1
+        filter = data[pfilter.filtered_type, "particle_type"] == 1
         return filter
 
     def DM_in_cell_mass(field, data):
@@ -691,27 +691,26 @@ def test_export_astropy():
     assert "density" in at1.colnames
     assert "velocity_x" in at1.colnames
     assert_equal(prof.x.d, at1["radius"].value)
-    assert_equal(prof[("gas", "density")].d, at1["density"].value)
-    assert_equal(prof[("gas", "velocity_x")].d, at1["velocity_x"].value)
+    assert_equal(prof["gas", "density"].d, at1["density"].value)
+    assert_equal(prof["gas", "velocity_x"].d, at1["velocity_x"].value)
     assert prof.x.units == YTArray.from_astropy(at1["radius"]).units
-    assert prof[("gas", "density")].units == YTArray.from_astropy(at1["density"]).units
+    assert prof["gas", "density"].units == YTArray.from_astropy(at1["density"]).units
     assert (
-        prof[("gas", "velocity_x")].units
-        == YTArray.from_astropy(at1["velocity_x"]).units
+        prof["gas", "velocity_x"].units == YTArray.from_astropy(at1["velocity_x"]).units
     )
     assert np.all(at1.mask["density"] == prof.used)
     at2 = prof.to_astropy_table(fields=("gas", "density"), only_used=True)
     assert "radius" in at2.colnames
     assert "velocity_x" not in at2.colnames
     assert_equal(prof.x.d[prof.used], at2["radius"].value)
-    assert_equal(prof[("gas", "density")].d[prof.used], at2["density"].value)
+    assert_equal(prof["gas", "density"].d[prof.used], at2["density"].value)
     at3 = prof.to_astropy_table(fields=("gas", "density"), include_std=True)
-    assert_equal(prof[("gas", "density")].d, at3["density"].value)
+    assert_equal(prof["gas", "density"].d, at3["density"].value)
     assert_equal(
-        prof.standard_deviation[("gas", "density")].d, at3["density_stddev"].value
+        prof.standard_deviation["gas", "density"].d, at3["density_stddev"].value
     )
     assert (
-        prof.standard_deviation[("gas", "density")].units
+        prof.standard_deviation["gas", "density"].units
         == YTArray.from_astropy(at3["density_stddev"]).units
     )
 
@@ -732,15 +731,15 @@ def test_export_pandas():
     assert "density" in df1.columns
     assert "velocity_x" in df1.columns
     assert_equal(prof.x.d, df1["radius"])
-    assert_equal(prof[("gas", "density")].d, np.nan_to_num(df1["density"]))
+    assert_equal(prof["gas", "density"].d, np.nan_to_num(df1["density"]))
     assert_equal(prof["velocity_x"].d, np.nan_to_num(df1["velocity_x"]))
     df2 = prof.to_dataframe(fields=("gas", "density"), only_used=True)
     assert "radius" in df2.columns
     assert "velocity_x" not in df2.columns
     assert_equal(prof.x.d[prof.used], df2["radius"])
-    assert_equal(prof[("gas", "density")].d[prof.used], df2["density"])
+    assert_equal(prof["gas", "density"].d[prof.used], df2["density"])
     df3 = prof.to_dataframe(fields=("gas", "density"), include_std=True)
     assert_equal(
-        prof.standard_deviation[("gas", "density")].d,
+        prof.standard_deviation["gas", "density"].d,
         np.nan_to_num(df3["density_stddev"]),
     )

@@ -449,7 +449,7 @@ class EnzoHierarchy(GridIndex):
             # We also add in a bit to make sure that some of the grids have
             # particles
             gwp = self.grid_particle_count > 0
-            if np.any(gwp) and not np.any(gwp[(random_sample,)]):
+            if np.any(gwp) and not np.any(gwp[random_sample,]):
                 # We just add one grid.  This is not terribly efficient.
                 first_grid = np.where(gwp)[0][0]
                 random_sample.resize((21,))
@@ -458,7 +458,7 @@ class EnzoHierarchy(GridIndex):
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
             random_sample = np.mgrid[0 : max(len(self.grids), 1)].astype("int32")
-        return self.grids[(random_sample,)]
+        return self.grids[random_sample,]
 
     def _get_particle_type_counts(self):
         try:
@@ -615,7 +615,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
             random_sample = np.mgrid[0 : max(len(my_grids) - 1, 1)].astype("int32")
-        return my_grids[(random_sample,)]
+        return my_grids[random_sample,]
 
     def _chunk_io(self, dobj, cache=True, local_only=False):
         gfiles = defaultdict(list)
@@ -1017,9 +1017,8 @@ class EnzoDatasetInMemory(EnzoDataset):
 
     def _parse_parameter_file(self):
         enzo = self._obtain_enzo()
-        self._input_filename = "cycle%08i" % (
-            enzo.yt_parameter_file["NumberOfPythonCalls"]
-        )
+        ncalls = enzo.yt_parameter_file["NumberOfPythonCalls"]
+        self._input_filename = f"cycle{ncalls:08d}"
         self.parameters["CurrentTimeIdentifier"] = time.time()
         self.parameters.update(enzo.yt_parameter_file)
         self.conversion_factors.update(enzo.conversion_factors)

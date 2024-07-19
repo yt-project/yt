@@ -48,10 +48,10 @@ class GadgetFieldInfo(SPHFieldInfo):
         metal_names = elem_names_opts[4]
 
         def _fraction(field, data, i: int):
-            return data[(ptype, "FourMetalFractions")][:, i]
+            return data[ptype, "FourMetalFractions"][:, i]
 
         def _metal_density(field, data, i: int):
-            return data[(ptype, "FourMetalFractions")][:, i] * data[(ptype, "density")]
+            return data[ptype, "FourMetalFractions"][:, i] * data[ptype, "density"]
 
         for i, metal_name in enumerate(metal_names):
             # add the metal fraction fields
@@ -77,21 +77,21 @@ class GadgetFieldInfo(SPHFieldInfo):
 
             def _fraction(field, data, i: int):
                 return (
-                    data[(ptype, "ElevenMetalMasses")][:, i]
-                    / data[(ptype, "particle_mass")]
+                    data[ptype, "ElevenMetalMasses"][:, i]
+                    / data[ptype, "particle_mass"]
                 )
 
             def _metallicity(field, data):
                 ret = (
-                    data[(ptype, "ElevenMetalMasses")][:, 1].sum(axis=1)
-                    / data[(ptype, "particle_mass")]
+                    data[ptype, "ElevenMetalMasses"][:, 1].sum(axis=1)
+                    / data[ptype, "particle_mass"]
                 )
                 return ret
 
             def _h_fraction(field, data):
                 ret = (
-                    data[(ptype, "ElevenMetalMasses")].sum(axis=1)
-                    / data[(ptype, "particle_mass")]
+                    data[ptype, "ElevenMetalMasses"].sum(axis=1)
+                    / data[ptype, "particle_mass"]
                 )
                 return 1.0 - ret
 
@@ -110,16 +110,15 @@ class GadgetFieldInfo(SPHFieldInfo):
 
             def _fraction(field, data, i: int):
                 return (
-                    data[(ptype, f"MetalMasses_{i:02d}")]
-                    / data[(ptype, "particle_mass")]
+                    data[ptype, f"MetalMasses_{i:02d}"] / data[ptype, "particle_mass"]
                 )
 
             def _metallicity(field, data):
                 mass = 0.0
                 start_idx = int(not no_He)
                 for i in range(start_idx, n_elem):
-                    mass += data[(ptype, f"MetalMasses_{i:02d}")]
-                ret = mass / data[(ptype, "particle_mass")]
+                    mass += data[ptype, f"MetalMasses_{i:02d}"]
+                ret = mass / data[ptype, "particle_mass"]
                 return ret
 
             if no_He:
@@ -130,8 +129,8 @@ class GadgetFieldInfo(SPHFieldInfo):
                 def _h_fraction(field, data):
                     mass = 0.0
                     for i in range(n_elem):
-                        mass += data[(ptype, f"MetalMasses_{i:02d}")]
-                    ret = mass / data[(ptype, "particle_mass")]
+                        mass += data[ptype, f"MetalMasses_{i:02d}"]
+                    ret = mass / data[ptype, "particle_mass"]
                     return 1.0 - ret
 
         else:
@@ -158,7 +157,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         ) = self._make_fraction_functions(ptype, fname)
 
         def _metal_density(field, data, elem_name: str):
-            return data[(ptype, f"{elem_name}_fraction")] * data[(ptype, "density")]
+            return data[ptype, f"{elem_name}_fraction"] * data[ptype, "density"]
 
         for i, elem_name in enumerate(elem_names):
             # add the element fraction fields
@@ -199,7 +198,7 @@ class GadgetFieldInfo(SPHFieldInfo):
             )
 
             def _h_density(field, data):
-                return data[(ptype, "H_fraction")] * data[(ptype, "density")]
+                return data[ptype, "H_fraction"] * data[ptype, "density"]
 
             self.add_field(
                 (ptype, "H_density"),
@@ -213,7 +212,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         if "Ej" in elem_names:
 
             def _ej_mass(field, data):
-                return data[(ptype, "Ej_fraction")] * data[(ptype, "particle_mass")]
+                return data[ptype, "Ej_fraction"] * data[ptype, "particle_mass"]
 
             self.add_field(
                 (ptype, "Ej_mass"),

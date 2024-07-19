@@ -55,7 +55,7 @@ def test_hello_world():
                     )
             yield FieldValuesTest(hello_world, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj[("index", "ones")].sum()
+        s1 = dobj["index", "ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
@@ -70,7 +70,7 @@ def test_particle_fields():
         for field in _pfields:
             yield FieldValuesTest(ep_cosmo, field, dobj_name, particle_type=True)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj[("index", "ones")].sum()
+        s1 = dobj["index", "ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 

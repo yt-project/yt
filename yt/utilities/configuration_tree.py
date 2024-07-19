@@ -171,7 +171,7 @@ class ConfigLeaf:
 
     @value.setter
     def value(self, new_value):
-        if type(self.value) == type(new_value):
+        if type(self.value) is type(new_value):
             self._value = new_value
         else:
             tree = self.get_tree()

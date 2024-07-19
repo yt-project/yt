@@ -102,7 +102,7 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
         sx = tree.size[0] * inv_size
         sy = tree.size[1] * inv_size
         sz = tree.size[2] * inv_size
-        lx = tree.node_positions[(3*node_idx)] - sx/2.
+        lx = tree.node_positions[3*node_idx] - sx/2.
         ly = tree.node_positions[(3*node_idx)+1] - sy/2.
         lz = tree.node_positions[(3*node_idx)+2] - sz/2.
 
@@ -118,7 +118,7 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
                     # Store the child location
                     tree.children[8*node_idx + n] = child
 
-                    tree.node_positions[(child*3)] = lx + sx*i
+                    tree.node_positions[child*3] = lx + sx*i
                     tree.node_positions[(child*3)+1] = ly + sy*j
                     tree.node_positions[(child*3)+2] = lz + sz*k
 
@@ -757,7 +757,7 @@ cdef void split_helper(Octree * tree, np.int64_t node_idx, np.int64_t * splits):
     splits[8] = tree.pend[node_idx]
 
     splits[4] = separate(
-        tree.pposx, tree.pidx, tree.node_positions[(3*node_idx)], splits[0], splits[8])
+        tree.pposx, tree.pidx, tree.node_positions[3*node_idx], splits[0], splits[8])
 
     splits[2] = separate(
         tree.pposy, tree.pidx, tree.node_positions[(3*node_idx)+1], splits[0], splits[4])

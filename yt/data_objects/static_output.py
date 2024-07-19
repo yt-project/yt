@@ -85,9 +85,9 @@ else:
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
 
-_cached_datasets: MutableMapping[
-    Union[int, str], "Dataset"
-] = weakref.WeakValueDictionary()
+_cached_datasets: MutableMapping[Union[int, str], "Dataset"] = (
+    weakref.WeakValueDictionary()
+)
 
 # we set this global to None as a place holder
 # its actual instantiation is delayed until after yt.__init__
@@ -712,10 +712,8 @@ class Dataset(abc.ABC):
                 setattr(self, f"_{format_property}_format", value)
             else:
                 raise ValueError(
-                    "{} not an acceptable value for format_property "
-                    "{}. Choices are {}.".format(
-                        value, format_property, available_formats[format_property]
-                    )
+                    f"{value} not an acceptable value for format_property "
+                    f"{format_property}. Choices are {available_formats[format_property]}."
                 )
         else:
             raise ValueError(
@@ -1397,7 +1395,7 @@ class Dataset(abc.ABC):
                         new_unit,
                         my_u.base_value / (1 + self.current_redshift),
                         dimensions.length,
-                        "\\rm{%s}/(1+z)" % my_unit,
+                        f"\\rm{{{my_unit}}}/(1+z)",
                         prefixable=True,
                     )
                 self.unit_registry.modify("a", 1 / (1 + self.current_redshift))

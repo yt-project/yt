@@ -6,8 +6,7 @@ from more_itertools import always_iterable
 class Union(ABC):
     @property
     @abstractmethod
-    def _union_type(self) -> str:
-        ...
+    def _union_type(self) -> str: ...
 
     def __init__(self, name, sub_types):
         self.name = name
@@ -17,9 +16,7 @@ class Union(ABC):
         yield from self.sub_types
 
     def __repr__(self):
-        return "{} Union: '{}' composed of: {}".format(
-            self._union_type.capitalize(), self.name, self.sub_types
-        )
+        return f"{self._union_type.capitalize()} Union: '{self.name}' composed of: {self.sub_types}"
 
 
 class MeshUnion(Union):

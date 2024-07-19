@@ -41,9 +41,9 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
     >>> import yt
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> sphere = ds.sphere([0.5] * 3, (10, "Mpc"))
-    >>> sphere_density = sphere[("gas", "density")]
+    >>> sphere_density = sphere["gas", "density"]
     >>> region = ds.box([0.0] * 3, [0.25] * 3)
-    >>> region_density = region[("gas", "density")]
+    >>> region_density = region["gas", "density"]
     >>> data = {}
     >>> data["sphere_density"] = sphere_density
     >>> data["region_density"] = region_density
@@ -62,7 +62,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
     >>> ds_data = {"current_time": yt.YTQuantity(10, "Myr")}
     >>> yt.save_as_dataset(ds_data, "random_data.h5", data)
     >>> new_ds = yt.load("random_data.h5")
-    >>> print(new_ds.data[("gas", "temperature")])
+    >>> print(new_ds.data["gas", "temperature"])
     [ 1000.  1000.  1000.  1000.  1000.  1000.  1000.  1000.  1000.  1000.] K
 
     """

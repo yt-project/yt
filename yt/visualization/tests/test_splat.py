@@ -11,7 +11,7 @@ import yt
 from yt.utilities.lib.api import add_rgba_points_to_image  # type: ignore
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 

@@ -98,7 +98,7 @@ def test_pid_uniqueness():
     """
     ds = data_dir_load(LE_SnapFormat2)
     ad = ds.all_data()
-    pid = ad[("all", "ParticleIDs")]
+    pid = ad["all", "ParticleIDs"]
     assert len(pid) == len(set(pid.v))
 
 

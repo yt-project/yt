@@ -57,7 +57,7 @@ class OctreeIndex(Index):
                 if Nremaining == 0:
                     break
                 icell = (
-                    obj[("index", "ones")].T.reshape(-1).astype(np.int64).cumsum().value
+                    obj["index", "ones"].T.reshape(-1).astype(np.int64).cumsum().value
                     - 1
                 )
                 mesh_data = ((icell << Nbits) + i).astype(np.float64)
@@ -130,7 +130,7 @@ class OctreeIndex(Index):
         Mostly useful for cases where we have irregularly spaced or structured
         grids.
         """
-        dds = self.ds.domain_width[(axes,)] / (
+        dds = self.ds.domain_width[axes,] / (
             self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
         pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]

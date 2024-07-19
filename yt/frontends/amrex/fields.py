@@ -1,5 +1,5 @@
 import re
-import string
+import sys
 
 import numpy as np
 
@@ -8,11 +8,14 @@ from yt.fields.field_info_container import FieldInfoContainer
 from yt.units import YTQuantity
 from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs, c
 
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
+
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)"  # erg / cm^3
-
-spec_finder = re.compile(r".*\((\D*)(\d*)\).*")
 
 
 def _thermal_energy_density(field, data):
@@ -23,24 +26,24 @@ def _thermal_energy_density(field, data):
     ke = (
         0.5
         * (
-            data[("gas", "momentum_density_x")] ** 2
-            + data[("gas", "momentum_density_y")] ** 2
-            + data[("gas", "momentum_density_z")] ** 2
+            data["gas", "momentum_density_x"] ** 2
+            + data["gas", "momentum_density_y"] ** 2
+            + data["gas", "momentum_density_z"] ** 2
         )
-        / data[("gas", "density")]
+        / data["gas", "density"]
     )
-    return data[("boxlib", "eden")] - ke
+    return data["boxlib", "eden"] - ke
 
 
 def _specific_thermal_energy(field, data):
     # This is little e, so we take thermal_energy_density and divide by density
-    return data[("gas", "thermal_energy_density")] / data[("gas", "density")]
+    return data["gas", "thermal_energy_density"] / data["gas", "density"]
 
 
 def _temperature(field, data):
     mu = data.ds.parameters["mu"]
     gamma = data.ds.parameters["gamma"]
-    tr = data[("gas", "thermal_energy_density")] / data[("gas", "density")]
+    tr = data["gas", "thermal_energy_density"] / data["gas", "density"]
     tr *= mu * amu_cgs / boltzmann_constant_cgs
     tr *= gamma - 1.0
     return tr
@@ -97,7 +100,7 @@ class WarpXFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         def get_mass(field, data):
             species_mass = data.ds.index.parameters[ptype + "_mass"]
-            return data[(ptype, "particle_weight")] * YTQuantity(species_mass, "kg")
+            return data[ptype, "particle_weight"] * YTQuantity(species_mass, "kg")
 
         self.add_field(
             (ptype, "particle_mass"),
@@ -108,7 +111,7 @@ class WarpXFieldInfo(FieldInfoContainer):
 
         def get_charge(field, data):
             species_charge = data.ds.index.parameters[ptype + "_charge"]
-            return data[(ptype, "particle_weight")] * YTQuantity(species_charge, "C")
+            return data[ptype, "particle_weight"] * YTQuantity(species_charge, "C")
 
         self.add_field(
             (ptype, "particle_charge"),
@@ -228,8 +231,8 @@ class BoxlibFieldInfo(FieldInfoContainer):
         def _get_vel(axis):
             def velocity(field, data):
                 return (
-                    data[(ptype, f"particle_momentum_{axis}")]
-                    / data[(ptype, "particle_mass")]
+                    data[ptype, f"particle_momentum_{axis}"]
+                    / data[ptype, "particle_mass"]
                 )
 
             return velocity
@@ -274,7 +277,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_momentum_to_velocity(self):
         def _get_vel(axis):
             def velocity(field, data):
-                return data[("boxlib", f"{axis}mom")] / data[("boxlib", "density")]
+                return data["boxlib", f"{axis}mom"] / data["boxlib", "density"]
 
             return velocity
 
@@ -289,7 +292,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_velocity_to_momentum(self):
         def _get_mom(axis):
             def momentum(field, data):
-                return data[("boxlib", f"{axis}vel")] * data[("boxlib", "density")]
+                return data["boxlib", f"{axis}vel"] * data["boxlib", "density"]
 
             return momentum
 
@@ -358,25 +361,23 @@ class CastroFieldInfo(FieldInfoContainer):
         for _, field in self.ds.field_list:
             if field.startswith("X("):
                 # We have a fraction
-                nice_name, tex_label = _nice_species_name(field)
-                self.alias(
-                    ("gas", f"{nice_name}_fraction"), ("boxlib", field), units=""
+                sub = Substance(field)
+                # Overwrite field to use nicer tex_label display_name
+                self.add_output_field(
+                    ("boxlib", field),
+                    sampling_type="cell",
+                    units="",
+                    display_name=rf"X\left({sub.to_tex()}\right)",
                 )
-                func = _create_density_func(("gas", f"{nice_name}_fraction"))
+                self.alias(("gas", f"{sub}_fraction"), ("boxlib", field), units="")
+                func = _create_density_func(("gas", f"{sub}_fraction"))
                 self.add_field(
-                    name=("gas", f"{nice_name}_density"),
+                    name=("gas", f"{sub}_density"),
                     sampling_type="cell",
                     function=func,
                     units=self.ds.unit_system["density"],
+                    display_name=rf"\rho {sub.to_tex()}",
                 )
-                # We know this will either have one letter, or two.
-                if field[3] in string.ascii_letters:
-                    element, weight = field[2:4], field[4:-1]
-                else:
-                    element, weight = field[2:3], field[3:-1]  # NOQA
-
-                # Here we can, later, add number density
-                # right now element and weight inferred above are unused
 
 
 class MaestroFieldInfo(FieldInfoContainer):
@@ -471,43 +472,27 @@ class MaestroFieldInfo(FieldInfoContainer):
         for _, field in self.ds.field_list:
             if field.startswith("X("):
                 # We have a mass fraction
-                nice_name, tex_label = _nice_species_name(field)
+                sub = Substance(field)
                 # Overwrite field to use nicer tex_label display_name
                 self.add_output_field(
                     ("boxlib", field),
                     sampling_type="cell",
                     units="",
-                    display_name=tex_label,
+                    display_name=rf"X\left({sub.to_tex()}\right)",
                 )
-                self.alias(
-                    ("gas", f"{nice_name}_fraction"), ("boxlib", field), units=""
-                )
-                func = _create_density_func(("gas", f"{nice_name}_fraction"))
+                self.alias(("gas", f"{sub}_fraction"), ("boxlib", field), units="")
+                func = _create_density_func(("gas", f"{sub}_fraction"))
                 self.add_field(
-                    name=("gas", f"{nice_name}_density"),
+                    name=("gas", f"{sub}_density"),
                     sampling_type="cell",
                     function=func,
                     units=unit_system["density"],
-                    display_name=r"\rho %s" % tex_label,
+                    display_name=rf"\rho {sub.to_tex()}",
                 )
 
-                # Most of the time our species will be of the form
-                # element name + atomic weight (e.g. C12), but
-                # sometimes we make up descriptive names (e.g. ash)
-                if any(char.isdigit() for char in field):
-                    # We know this will either have one letter, or two.
-                    if field[3] in string.ascii_letters:
-                        element, weight = field[2:4], field[4:-1]
-                    else:
-                        element, weight = field[2:3], field[3:-1]  # NOQA
-                    weight = int(weight)
-
-                # Here we can, later, add number density using 'element' and
-                # 'weight' inferred above
-
             elif field.startswith("omegadot("):
-                nice_name, tex_label = _nice_species_name(field)
-                display_name = r"\dot{\omega}\left[%s\right]" % tex_label
+                sub = Substance(field)
+                display_name = rf"\dot{{\omega}}\left[{sub.to_tex()}\right]"
                 # Overwrite field to use nicer tex_label'ed display_name
                 self.add_output_field(
                     ("boxlib", field),
@@ -516,23 +501,70 @@ class MaestroFieldInfo(FieldInfoContainer):
                     display_name=display_name,
                 )
                 self.alias(
-                    ("gas", f"{nice_name}_creation_rate"),
+                    ("gas", f"{sub}_creation_rate"),
                     ("boxlib", field),
                     units=unit_system["frequency"],
                 )
 
 
-def _nice_species_name(field):
-    spec_match = spec_finder.search(field)
-    nice_name = "".join(spec_match.groups())
-    # if the species field is a descriptive name, then the match
-    # on the integer will be blank
-    # modify the tex string in this case to remove spurious tex spacing
-    lab = r"X\left(^{%s}%s\right)"
-    if spec_match.groups()[-1] == "":
-        lab = r"X\left(%s%s\right)"
-    tex_label = lab % spec_match.groups()[::-1]
-    return nice_name, tex_label
+substance_expr_re = re.compile(r"\(([a-zA-Z][a-zA-Z0-9]*)\)")
+substance_elements_re = re.compile(r"(?P<element>[a-zA-Z]+)(?P<digits>\d*)")
+SubstanceSpec: TypeAlias = list[tuple[str, int]]
+
+
+class Substance:
+    def __init__(self, data: str) -> None:
+        if (m := substance_expr_re.search(data)) is None:
+            raise ValueError(f"{data!r} doesn't match expected regular expression")
+        sub_str = m.group()
+        constituents = substance_elements_re.findall(sub_str)
+
+        # 0 is used as a sentinel value to mark descriptive names
+        default_value = 1 if len(constituents) > 1 else 0
+        self._spec: SubstanceSpec = [
+            (name, int(count or default_value)) for (name, count) in constituents
+        ]
+
+    def get_spec(self) -> SubstanceSpec:
+        return self._spec.copy()
+
+    def is_isotope(self) -> bool:
+        return len(self._spec) == 1 and self._spec[0][1] > 0
+
+    def is_molecule(self) -> bool:
+        return len(self._spec) != 1
+
+    def is_descriptive_name(self) -> bool:
+        return len(self._spec) == 1 and self._spec[0][1] == 0
+
+    def __str__(self) -> str:
+        return "".join(
+            f"{element}{count if count > 1 else ''}" for element, count in self._spec
+        )
+
+    def _to_tex_isotope(self) -> str:
+        element, count = self._spec[0]
+        return rf"^{{{count}}}{element}"
+
+    def _to_tex_molecule(self) -> str:
+        return "".join(
+            rf"{element}_{{{count if count>1 else ''}}}"
+            for element, count in self._spec
+        )
+
+    def _to_tex_descriptive(self) -> str:
+        return str(self)
+
+    def to_tex(self) -> str:
+        if self.is_isotope():
+            return self._to_tex_isotope()
+        elif self.is_molecule():
+            return self._to_tex_molecule()
+        elif self.is_descriptive_name():
+            return self._to_tex_descriptive()
+        else:
+            # should only be reachable in case of a regular expression defect
+            raise RuntimeError
 
 
 def _create_density_func(field_name):

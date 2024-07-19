@@ -27,7 +27,6 @@ def apply_filter(f):
 
 
 class FixedResolutionBufferFilter(ABC):
-
     """
     This object allows to apply data transformation directly to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
@@ -70,7 +69,6 @@ class FixedResolutionBufferFilter(ABC):
 
 
 class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
-
     """
     This filter convolves
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer` with
@@ -104,7 +102,6 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
 
 
 class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
-
     """
     This filter adds white noise with the amplitude "bg_lvl" to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`.

@@ -97,7 +97,8 @@ class RandomFluctuation(FluidOperator):
     def __call__(self, grid, sub_select=None):
         if sub_select is None:
             sub_select = Ellipsis
+        rng = np.random.default_rng()
         for field, mag in self.fields.items():
             vals = grid[field][sub_select]
-            rc = 1.0 + (np.random.random(vals.shape) - 0.5) * mag
+            rc = 1.0 + (rng.random(vals.shape) - 0.5) * mag
             grid[field][sub_select] *= rc

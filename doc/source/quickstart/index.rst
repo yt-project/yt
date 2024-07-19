@@ -33,12 +33,12 @@ git:
    git clone https://github.com/yt-project/yt
 
 Now start the IPython notebook from within the repository (we presume you have
-yt and [jupyter](https://jupyter.org/) installed):
+yt and [jupyterlab](https://jupyterlab.readthedocs.io/en/latest/) installed):
 
 .. code-block:: bash
 
    cd yt/doc/source/quickstart
-   yt notebook
+   jupyter lab
 
 This command will give you information about the notebook server and how to
 access it.  You will basically just pick a password (for security reasons) and then

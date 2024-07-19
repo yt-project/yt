@@ -109,7 +109,7 @@ def _distance_to_main_clump(clump, units="pc"):
     distance = np.sqrt(((master_com - my_com) ** 2).sum())
     distance.convert_to_units("pc")
     return (
-        "Distance from master center of mass: %%.6e %s." % units,
+        f"Distance from master center of mass: %.6e {units}.",
         distance.in_units(units),
     )
 

@@ -126,10 +126,6 @@ used internally.
   with a large number of grids, setting this to False can speed up loading
   your dataset possibly at the cost of grid-aligned artifacts showing up in
   slice visualizations.
-* ``notebook_password`` (default: empty): If set, this will be fed to the
-  IPython notebook created by ``yt notebook``.  Note that this should be an
-  sha512 hash, not a plaintext password.  Starting ``yt notebook`` with no
-  setting will provide instructions for setting this.
 * ``requires_ds_strict`` (default: ``True``): If true, answer tests wrapped
   with :func:`~yt.utilities.answer_testing.framework.requires_ds` will raise
   :class:`~yt.utilities.exceptions.YTUnidentifiedDataType` rather than consuming

@@ -24,7 +24,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 
 # Plot the density as a log-log plot using the default settings
-dens_plot = ax.loglog(rp.x.value, rp[("gas", "density")].value)
+dens_plot = ax.loglog(rp.x.value, rp["gas", "density"].value)
 
 # Here we set the labels of the plot axes
 

@@ -54,20 +54,20 @@ def test_d9p_global_values():
     ad = ds.all_data()
     # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
     AnaNStars = 6255
-    assert_equal(ad[("stars", "particle_type")].size, AnaNStars)
-    assert_equal(ad[("specie4", "particle_type")].size, AnaNStars)
+    assert_equal(ad["stars", "particle_type"].size, AnaNStars)
+    assert_equal(ad["specie4", "particle_type"].size, AnaNStars)
 
     # The *real* answer is 2833405, but yt misses one particle since it lives
     # on a domain boundary. See issue 814. When that is fixed, this test
     # will need to be updated
     AnaNDM = 2833404
-    assert_equal(ad[("darkmatter", "particle_type")].size, AnaNDM)
+    assert_equal(ad["darkmatter", "particle_type"].size, AnaNDM)
     assert_equal(
         (
-            ad[("specie0", "particle_type")].size
-            + ad[("specie1", "particle_type")].size
-            + ad[("specie2", "particle_type")].size
-            + ad[("specie3", "particle_type")].size
+            ad["specie0", "particle_type"].size
+            + ad["specie1", "particle_type"].size
+            + ad["specie2", "particle_type"].size
+            + ad["specie3", "particle_type"].size
         ),
         AnaNDM,
     )
@@ -89,29 +89,29 @@ def test_d9p_global_values():
     assert_almost_equal(Volume, AnaVolume)
 
     AnaNCells = 4087490
-    assert_equal(len(ad[("index", "cell_volume")]), AnaNCells)
+    assert_equal(len(ad["index", "cell_volume"]), AnaNCells)
 
     AnaTotDMMass = YTQuantity(1.01191786808255e14, "Msun")
     assert_almost_equal(
-        ad[("darkmatter", "particle_mass")].sum().in_units("Msun"), AnaTotDMMass
+        ad["darkmatter", "particle_mass"].sum().in_units("Msun"), AnaTotDMMass
     )
 
     AnaTotStarMass = YTQuantity(1776701.3990607238, "Msun")
     assert_almost_equal(
-        ad[("stars", "particle_mass")].sum().in_units("Msun"), AnaTotStarMass
+        ad["stars", "particle_mass"].sum().in_units("Msun"), AnaTotStarMass
     )
 
     AnaTotStarMassInitial = YTQuantity(2423468.2801332865, "Msun")
     assert_almost_equal(
-        ad[("stars", "particle_mass_initial")].sum().in_units("Msun"),
+        ad["stars", "particle_mass_initial"].sum().in_units("Msun"),
         AnaTotStarMassInitial,
     )
 
     AnaTotGasMass = YTQuantity(1.7826982029216785e13, "Msun")
-    assert_almost_equal(ad[("gas", "cell_mass")].sum().in_units("Msun"), AnaTotGasMass)
+    assert_almost_equal(ad["gas", "cell_mass"].sum().in_units("Msun"), AnaTotGasMass)
 
     AnaTotTemp = YTQuantity(150219844793.3907, "K")  # just leaves
-    assert_almost_equal(ad[("gas", "temperature")].sum().in_units("K"), AnaTotTemp)
+    assert_almost_equal(ad["gas", "temperature"].sum().in_units("K"), AnaTotTemp)
 
 
 @requires_file(d9p)

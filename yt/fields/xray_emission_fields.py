@@ -26,10 +26,7 @@ def _get_data_file(table_type, data_dir=None):
         data_dir = supp_data_dir if os.path.exists(supp_data_dir) else "."
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
-        msg = "Failed to find emissivity data file {}! Please download from {}".format(
-            data_file,
-            data_url,
-        )
+        msg = f"Failed to find emissivity data file {data_file}! Please download from {data_url}"
         mylog.error(msg)
         raise OSError(msg)
     return data_path

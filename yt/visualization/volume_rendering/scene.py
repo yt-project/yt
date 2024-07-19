@@ -29,7 +29,6 @@ from .zbuffer_array import ZBuffer
 
 
 class Scene:
-
     """A virtual landscape for a volume rendering.
 
     The Scene class is meant to be the primary container for the
@@ -142,8 +141,8 @@ class Scene:
             lens_str = str(self.camera.lens)
             if "fisheye" in lens_str or "spherical" in lens_str:
                 raise NotImplementedError(
-                    "Line annotation sources are not supported for %s."
-                    % (type(self.camera.lens).__name__),
+                    "Line annotation sources are not supported "
+                    f"for {type(self.camera.lens).__name__}."
                 )
 
         if isinstance(render_source, (LineSource, PointSource)):
@@ -526,7 +525,9 @@ class Scene:
         from matplotlib.figure import Figure
 
         s = im.shape
-        self._render_figure = Figure(figsize=(s[1] / float(dpi), s[0] / float(dpi)))
+        self._render_figure = Figure(
+            figsize=(s[1] / float(dpi), s[0] / float(dpi)), dpi=dpi
+        )
         self._render_figure.clf()
         ax = self._render_figure.add_subplot(111)
         ax.set_position([0, 0, 1, 1])

@@ -140,6 +140,7 @@ class Camera(ParallelAnalysisInterface):
     >>> image = cam.snapshot(fn="my_rendering.png")
 
     """
+
     _sampler_object = VolumeRenderSampler
     _tf_figure = None
     _render_figure = None

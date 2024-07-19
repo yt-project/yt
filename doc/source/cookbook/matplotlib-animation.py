@@ -8,7 +8,7 @@ ts = yt.load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_*")
 plot = yt.SlicePlot(ts[0], "z", ("gas", "density"))
 plot.set_zlim(("gas", "density"), 8e-29, 3e-26)
 
-fig = plot.plots[("gas", "density")].figure
+fig = plot.plots["gas", "density"].figure
 
 
 # animate must accept an integer frame number. We use the frame number

@@ -2,7 +2,7 @@ from numpy.testing import assert_allclose, assert_array_less, assert_raises
 
 import yt
 from yt.loaders import load
-from yt.testing import fake_random_ds, requires_file
+from yt.testing import fake_random_ds, requires_file, requires_module
 from yt.utilities.exceptions import YTBoundsDefinitionError
 
 
@@ -34,6 +34,7 @@ def test_one_zone_octree_deposit():
     assert sp["deposit", "io_cic"].shape == (1,)
 
 
+@requires_module("h5py")
 @requires_file(RAMSES)
 @requires_file(ISOGAL)
 def test_mesh_sampling():
@@ -52,6 +53,7 @@ def test_mesh_sampling():
         assert_array_less(-dist, dx)
 
 
+@requires_module("h5py")
 @requires_file(RAMSES)
 @requires_file(ISOGAL)
 def test_mesh_sampling_for_filtered_particles():
@@ -61,7 +63,7 @@ def test_mesh_sampling_for_filtered_particles():
         @yt.particle_filter(requires=["particle_position_x"], filtered_type="io")
         def left(pfilter, data):
             return (
-                data[(pfilter.filtered_type, "particle_position_x")].to("code_length")
+                data[pfilter.filtered_type, "particle_position_x"].to("code_length")
                 < 0.5
             )
 

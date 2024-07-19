@@ -231,7 +231,7 @@ class Streamlines(ParallelAnalysisInterface):
         >>> stream = streamlines.path(0)
         >>> fig, ax = plt.subplots()
         >>> ax.set_yscale("log")
-        >>> ax.plot(stream["t"], stream[("gas", "density")], "-x")
+        >>> ax.plot(stream["t"], stream["gas", "density"], "-x")
 
         """
         return YTStreamline(

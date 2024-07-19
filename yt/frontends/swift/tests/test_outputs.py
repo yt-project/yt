@@ -21,7 +21,7 @@ def test_non_cosmo_dataset():
     field = ("gas", "density")
     ad = ds.all_data()
     yt_density = ad[field]
-    yt_coords = ad[(field[0], "position")]
+    yt_coords = ad[field[0], "position"]
 
     # load some data the old fashioned way
     fh = h5py.File(ds.parameter_filename, mode="r")
@@ -69,7 +69,7 @@ def test_cosmo_dataset():
     field = ("gas", "density")
     ad = ds.all_data()
     yt_density = ad[field]
-    yt_coords = ad[(field[0], "position")]
+    yt_coords = ad[field[0], "position"]
 
     # load some data the old fashioned way
     fh = h5py.File(ds.parameter_filename, mode="r")

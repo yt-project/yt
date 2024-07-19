@@ -16,7 +16,7 @@ sphere = ds.sphere("max", (1.0, "Mpc"))
 surface = ds.surface(sphere, ("gas", "density"), 1e-24)
 
 # Color this isodensity surface according to the log of the temperature field
-colors = yt.apply_colormap(np.log10(surface[("gas", "temperature")]), cmap_name="hot")
+colors = yt.apply_colormap(np.log10(surface["gas", "temperature"]), cmap_name="hot")
 
 # Create a 3D matplotlib figure for visualizing the surface
 fig = plt.figure()

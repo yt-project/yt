@@ -26,7 +26,7 @@ def data_source_or_all(data_source):
         raise RuntimeError(
             "The data_source is not a valid 3D data container.\n"
             "Expected an object of type YTSelectionContainer3D but received "
-            "an object of type %s." % type(data_source)
+            f"an object of type {type(data_source)}."
         )
     return data_source
 

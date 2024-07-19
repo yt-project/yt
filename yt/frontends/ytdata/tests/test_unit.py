@@ -114,7 +114,7 @@ def test_non_square_frb():
     expected_vals = arr[:, :, 5].T
     print(
         "\nConfirmation that initial frb results are expected:",
-        (expected_vals == frb[("gas", "density")].v).all(),
+        (expected_vals == frb["gas", "density"].v).all(),
         "\n",
     )
 
@@ -122,9 +122,9 @@ def test_non_square_frb():
     reloaded_ds = load(fname)
 
     assert_array_equal(
-        frb[("gas", "density")].shape, reloaded_ds.data[("gas", "density")].shape
+        frb["gas", "density"].shape, reloaded_ds.data["gas", "density"].shape
     )
-    assert_array_equal(frb[("gas", "density")], reloaded_ds.data[("gas", "density")])
+    assert_array_equal(frb["gas", "density"], reloaded_ds.data["gas", "density"])
 
     os.chdir(curdir)
     if tmpdir != ".":

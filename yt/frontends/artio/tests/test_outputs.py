@@ -41,7 +41,7 @@ def test_sizmbhloz():
                     )
             yield FieldValuesTest(ds, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj[("index", "ones")].sum()
+        s1 = dobj["index", "ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
     assert_equal(ds.particle_type_counts, {"N-BODY": 100000, "STAR": 110650})

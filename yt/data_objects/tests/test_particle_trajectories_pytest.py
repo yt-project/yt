@@ -95,7 +95,7 @@ def test_ptype():
     # Setup filters on the 'particle_dummy' field, keeping only the first 50
     @particle_filter(name="dummy", requires=["particle_dummy"])
     def dummy(pfilter, data):
-        return data[(pfilter.filtered_type, "particle_dummy")] <= n_particles // 2
+        return data[pfilter.filtered_type, "particle_dummy"] <= n_particles // 2
 
     # Setup fake particle datasets with repeated ids. This should work because
     # the ids are unique among `dummy_particles` so let's test this

@@ -31,6 +31,11 @@ if find_spec("setuptools") is not None:
 else:
     SETUPTOOLS_VERSION = None
 
+if find_spec("pandas") is not None:
+    PANDAS_VERSION = Version(version("pandas"))
+else:
+    PANDAS_VERSION = None
+
 
 def pytest_addoption(parser):
     """
@@ -156,17 +161,10 @@ def pytest_configure(config):
                 ":DeprecationWarning",
             )
 
-    if find_spec("astropy") is not None:
-        # at the time of writing, astropy's wheels are behind numpy's latest
-        # version but this doesn't cause actual problems in our test suite
-        # last updated with astropy 5.0 + numpy 1.22 + pytest 6.2.5
+    if PANDAS_VERSION is not None and PANDAS_VERSION >= Version("2.2.0"):
         config.addinivalue_line(
             "filterwarnings",
-            (
-                "ignore:numpy.ndarray size changed, may indicate binary incompatibility. Expected "
-                r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
-                " from PyObject:RuntimeWarning"
-            ),
+            r"ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning",
         )
 
     if sys.version_info >= (3, 12):
@@ -176,6 +174,16 @@ def pytest_configure(config):
             "filterwarnings",
             r"ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning",
         )
+
+        if find_spec("ratarmount"):
+            # On Python 3.12+, there is a deprecation warning when calling os.fork()
+            # in a multi-threaded process. We use this mechanism to mount archives.
+            config.addinivalue_line(
+                "filterwarnings",
+                r"ignore:This process \(pid=\d+\) is multi-threaded, use of fork\(\) "
+                r"may lead to deadlocks in the child\."
+                ":DeprecationWarning",
+            )
 
 
 def pytest_collection_modifyitems(config, items):

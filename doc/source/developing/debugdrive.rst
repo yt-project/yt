@@ -66,7 +66,7 @@ will induce the requested behavior.
    SIGUSR1
      This will cause the python code to print a stack trace, showing exactly
      where in the function stack it is currently executing.
-   SIGUSR1
+   SIGUSR2
      This will cause the python code to insert an IPython session wherever it
      currently is, with all local variables in the local namespace.  It should
      allow you to change the state variables.

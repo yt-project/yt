@@ -229,7 +229,7 @@ class IOHandlerInMemory(BaseIOHandler):
                 raise RuntimeError
             g = chunks[0].objs[0]
             for ftype, fname in fields:
-                rv[(ftype, fname)] = self.grids_in_memory[g.id][fname].swapaxes(0, 2)
+                rv[ftype, fname] = self.grids_in_memory[g.id][fname].swapaxes(0, 2)
             return rv
         if size is None:
             size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
@@ -323,7 +323,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             f = h5py.File(g.filename, mode="r")
             gds = f.get("/Grid%08i" % g.id)
             for ftype, fname in fields:
-                rv[(ftype, fname)] = np.atleast_3d(gds.get(fname)[()].transpose())
+                rv[ftype, fname] = np.atleast_3d(gds.get(fname)[()].transpose())
             f.close()
             return rv
         if size is None:

@@ -246,7 +246,7 @@ class FLASHDataset(Dataset):
             else:
                 raise RuntimeError(
                     "Runtime parameter unitsystem with "
-                    "value %s is unrecognized" % self["unitsystem"]
+                    f"value {self['unitsystem']} is unrecognized"
                 )
         else:
             b_factor = 1.0
@@ -383,6 +383,10 @@ class FLASHDataset(Dataset):
             nblockx = self.parameters["nblockx"]
             nblocky = self.parameters["nblocky"]
             nblockz = self.parameters["nblockz"]
+        elif self.parameters["globalnumblocks"] == 1:  # non-fixed block size UG
+            nblockx = 1
+            nblocky = 1
+            nblockz = 1
         else:  # Uniform Grid
             nblockx = self.parameters["iprocs"]
             nblocky = self.parameters["jprocs"]

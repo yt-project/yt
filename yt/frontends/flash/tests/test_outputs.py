@@ -128,7 +128,7 @@ def test_FLASH25_dataset():
 
     assert_equal(ds.index.num_grids, 73)
     dd = ds.all_data()
-    dd[("gas", "density")]
+    dd["gas", "density"]
 
 
 @requires_module("h5py")

@@ -168,7 +168,7 @@ only the particles with ``particle_type`` (i.e.  field = ``('all',
 
     @yt.particle_filter(requires=["particle_type"], filtered_type="all")
     def stars(pfilter, data):
-        filter = data[(pfilter.filtered_type, "particle_type")] == 2
+        filter = data[pfilter.filtered_type, "particle_type"] == 2
         return filter
 
 The :func:`~yt.data_objects.particle_filters.particle_filter` decorator takes a
@@ -188,7 +188,7 @@ As an alternative syntax, you can also define a new particle filter via the
 .. code-block:: python
 
     def stars(pfilter, data):
-        filter = data[(pfilter.filtered_type, "particle_type")] == 2
+        filter = data[pfilter.filtered_type, "particle_type"] == 2
         return filter
 
 

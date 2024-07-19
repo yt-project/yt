@@ -8,6 +8,6 @@ def test_code_units_xy_labels():
     ds = data_dir_load("amrvac/bw_3d0000.dat", kwargs={"unit_system": "code"})
     p = SlicePlot(ds, "x", ("gas", "density"))
 
-    ax = p.plots[("gas", "density")].axes
+    ax = p.plots["gas", "density"].axes
     assert "code length" in ax.get_xlabel().replace("\\", "")
     assert "code length" in ax.get_ylabel().replace("\\", "")

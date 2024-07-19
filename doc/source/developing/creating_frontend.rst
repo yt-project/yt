@@ -56,7 +56,7 @@ called ``_is_valid()`` that lets the ``yt.load`` method help identify an
 input file as belonging to *this* particular ``Dataset`` subclass
 (see :ref:`data-format-detection`).
 For the most part, the examples of
-``yt.frontends.boxlib.data_structures.OrionDataset`` and
+``yt.frontends.amrex.data_structures.OrionDataset`` and
 ``yt.frontends.enzo.data_structures.EnzoDataset`` should be followed,
 but ``yt.frontends.chombo.data_structures.ChomboDataset``, as a
 slightly newer addition, can also be used as an instructive example.
@@ -64,7 +64,8 @@ slightly newer addition, can also be used as an instructive example.
 A new set of fields must be added in the file ``fields.py`` in your
 new directory.  For the most part this means subclassing
 ``FieldInfoContainer`` and adding the necessary fields specific to
-your code. Here is a snippet from the base BoxLib field container:
+your code. Here is a snippet from the base BoxLib field container (defined in
+``yt.frontends.amrex.fields``):
 
 .. code-block:: python
 
@@ -273,7 +274,7 @@ that is needed:
 
 
 Even one of the more complex grid objects,
-``yt.frontends.boxlib.BoxlibGrid``, is still relatively simple.
+``yt.frontends.amrex.BoxlibGrid``, is still relatively simple.
 
 Data Reading Functions
 ----------------------
@@ -310,7 +311,7 @@ At a minimum, one should also override the following methods
 If your dataset has particle information, you'll want to override the
 ``_read_particle_coords()`` and ``read_particle_fields()`` methods as
 well.  Each code is going to read data from disk in a different
-fashion, but the ``yt.frontends.boxlib.io.IOHandlerBoxlib`` is a
+fashion, but the ``yt.frontends.amrex.io.IOHandlerBoxlib`` is a
 decent place to start.
 
 And that just about covers it. Please feel free to email

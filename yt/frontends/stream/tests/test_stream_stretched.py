@@ -130,4 +130,4 @@ def test_cell_width_with_nproc(data_cell_widths_N16):
     # and try a selection
     c = (grid.RightEdge + grid.LeftEdge) / 2.0
     reg = ds.region(c, grid.LeftEdge, grid.RightEdge)
-    assert reg[("gas", "density")].size == n_cells
+    assert reg["gas", "density"].size == n_cells

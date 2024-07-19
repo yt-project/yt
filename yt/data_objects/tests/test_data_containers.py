@@ -49,7 +49,7 @@ class TestDataContainers(unittest.TestCase):
         # Delete the key and check if exits
         del proj["px"]
         assert_equal("px" in proj.keys(), False)
-        del proj[("gas", "density")]
+        del proj["gas", "density"]
         assert_equal("density" in proj.keys(), False)
 
         # Delete a non-existent field
@@ -163,7 +163,7 @@ class TestDataContainers(unittest.TestCase):
 
         @particle_filter(requires=["particle_mass"], filtered_type="io")
         def massive(pfilter, data):
-            return data[(pfilter.filtered_type, "particle_mass")].to("code_mass") > 0.5
+            return data[pfilter.filtered_type, "particle_mass"].to("code_mass") > 0.5
 
         ds.add_particle_filter("massive")
 

@@ -4,6 +4,7 @@ Chimera-specific fields
 
 
 """
+
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 

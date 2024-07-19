@@ -145,13 +145,13 @@ def _write_fields_to_gdf(
 
         # check that they actually contain something...
         if display_name:
-            sg.attrs["field_name"] = np.string_(display_name)
+            sg.attrs["field_name"] = np.bytes_(display_name)
         else:
-            sg.attrs["field_name"] = np.string_(str(field))
+            sg.attrs["field_name"] = np.bytes_(str(field))
         if units:
-            sg.attrs["field_units"] = np.string_(units)
+            sg.attrs["field_units"] = np.bytes_(units)
         else:
-            sg.attrs["field_units"] = np.string_("None")
+            sg.attrs["field_units"] = np.bytes_("None")
         # @todo: is this always true?
         sg.attrs["staggering"] = 0
 
@@ -324,7 +324,7 @@ def _create_new_gdf(
 
     # @todo: Particle type iterator
     sg = g.create_group(particle_type_name)
-    sg["particle_type_name"] = np.string_(particle_type_name)
+    sg["particle_type_name"] = np.bytes_(particle_type_name)
 
     ###
     # root datasets -- info about the grids

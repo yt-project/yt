@@ -968,7 +968,7 @@ class YTClumpTreeDataset(YTNonspatialDataset):
 
     def _load_tree(self):
         my_tree = {}
-        for i, clump_id in enumerate(self.data[("clump", "clump_id")]):
+        for i, clump_id in enumerate(self.data["clump", "clump_id"]):
             my_tree[clump_id] = YTClumpContainer(
                 clump_id,
                 i,

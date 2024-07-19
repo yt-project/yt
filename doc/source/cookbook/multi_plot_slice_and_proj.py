@@ -43,12 +43,12 @@ for dax, tax, vax in zip(dens_axes, temp_axes, vels_axes):
 # Converting our Fixed Resolution Buffers to numpy arrays so that matplotlib
 # can render them
 
-slc_dens = np.array(slc_frb[("gas", "density")])
-proj_dens = np.array(proj_frb[("gas", "density")])
-slc_temp = np.array(slc_frb[("gas", "temperature")])
-proj_temp = np.array(proj_frb[("gas", "temperature")])
-slc_vel = np.array(slc_frb[("gas", "velocity_magnitude")])
-proj_vel = np.array(proj_frb[("gas", "velocity_magnitude")])
+slc_dens = np.array(slc_frb["gas", "density"])
+proj_dens = np.array(proj_frb["gas", "density"])
+slc_temp = np.array(slc_frb["gas", "temperature"])
+proj_temp = np.array(proj_frb["gas", "temperature"])
+slc_vel = np.array(slc_frb["gas", "velocity_magnitude"])
+proj_vel = np.array(proj_frb["gas", "velocity_magnitude"])
 
 plots = [
     dens_axes[0].imshow(slc_dens, origin="lower", norm=LogNorm()),

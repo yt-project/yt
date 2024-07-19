@@ -244,9 +244,7 @@ def setup_magnetic_field_fields(
         rm_scale = pc.qp.to("C", "SI") ** 3 / (4.0 * np.pi * pc.eps_0)
     else:
         rm_scale = pc.qp**3 / pc.clight
-    rm_scale *= registry.ds.quan(1.0, "rad") / (
-        2.0 * np.pi * pc.me**2 * pc.clight**3
-    )
+    rm_scale *= registry.ds.quan(1.0, "rad") / (2.0 * np.pi * pc.me**2 * pc.clight**3)
     rm_units = registry.ds.quan(1.0, "rad/m**2").units / unit_system["length"]
 
     def _rotation_measure(field, data):

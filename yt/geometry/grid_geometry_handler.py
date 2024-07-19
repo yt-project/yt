@@ -459,7 +459,7 @@ class GridIndex(Index, abc.ABC):
         Mostly useful for cases where we have irregularly spaced or structured
         grids.
         """
-        dds = self.ds.domain_width[(axes,)] / (
+        dds = self.ds.domain_width[axes,] / (
             self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
         pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]

@@ -218,10 +218,10 @@ method:
     plot.save()
 
     arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [25, 25, 25], dims=[16, 16, 16])
-    ag_density = arbitrary_grid[("gas", "density")]
+    ag_density = arbitrary_grid["gas", "density"]
 
     covering_grid = ds.covering_grid(4, 0, 16)
-    cg_density = covering_grid[("gas", "density")]
+    cg_density = covering_grid["gas", "density"]
 
 In the above example the ``covering_grid`` and the ``arbitrary_grid`` will return
 the same data. In fact, these containers are very similar but provide a
@@ -296,10 +296,10 @@ gather machinery also added.
     print(octree.sph_smoothing_style)
 
     # the density will be calculated using SPH scatter
-    density = octree[("PartType0", "density")]
+    density = octree["PartType0", "density"]
 
     # this will return the x positions of the octs
-    x = octree[("index", "x")]
+    x = octree["index", "x"]
 
 The above code can be modified to use the gather approach by using
 ``ds.sph_smoothing_style = 'gather'`` before any field access. The octree just

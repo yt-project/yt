@@ -6,7 +6,6 @@ AdaptaHOP data-file handling function
 
 """
 
-
 from functools import partial
 from operator import attrgetter
 from typing import Union

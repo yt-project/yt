@@ -172,9 +172,7 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
         if np.max(self.domain_ind) >= nvals[-1]:
             print(
-                "nocts, domain_ind >= 0, max {} {} {}".format(
-                    self.oct_handler.nocts, nvals[-1], np.max(self.domain_ind)
-                )
+                f"nocts, domain_ind >= 0, max {self.oct_handler.nocts} {nvals[-1]} {np.max(self.domain_ind)}"
             )
             raise Exception()
         # We allocate number of zones, not number of octs

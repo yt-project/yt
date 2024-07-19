@@ -243,13 +243,13 @@ shape is the same, but the number of cells with data is less
        level=0, left_edge=[0, 0.0, 0.0], dims=ds.domain_dimensions, data_source=sp
    )
 
-   print(cg_sp[("gas", "density")].shape)
+   print(cg_sp["gas", "density"].shape)
    (64, 64, 64)
 
-   print(cg_sp[("gas", "density")].size)
+   print(cg_sp["gas", "density"].size)
    262144
 
-   print(cg_sp[("gas", "density")][cg_sp[("gas", "density")] != 0].size)
+   print(cg_sp["gas", "density"][cg_sp["gas", "density"] != 0].size)
    17256
 
 The ``data_source`` can be any :ref:`3D Data Container <region-reference>`. Also

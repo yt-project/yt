@@ -208,9 +208,9 @@ class TrilinearFieldInterpolator:
         y_vals = data_object[self.y_name].ravel().astype("float64")
         z_vals = data_object[self.z_name].ravel().astype("float64")
 
-        x_i = np.digitize(x_vals, self.x_bins).astype("int_") - 1
-        y_i = np.digitize(y_vals, self.y_bins).astype("int_") - 1
-        z_i = np.digitize(z_vals, self.z_bins).astype("int_") - 1
+        x_i = np.digitize(x_vals, self.x_bins).astype("int64") - 1
+        y_i = np.digitize(y_vals, self.y_bins).astype("int64") - 1
+        z_i = np.digitize(z_vals, self.z_bins).astype("int64") - 1
         if (
             np.any((x_i == -1) | (x_i == len(self.x_bins) - 1))
             or np.any((y_i == -1) | (y_i == len(self.y_bins) - 1))
@@ -314,10 +314,10 @@ class QuadrilinearFieldInterpolator:
         z_vals = data_object[self.z_name].ravel().astype("float64")
         w_vals = data_object[self.w_name].ravel().astype("float64")
 
-        x_i = np.digitize(x_vals, self.x_bins).astype("int") - 1
-        y_i = np.digitize(y_vals, self.y_bins).astype("int") - 1
-        z_i = np.digitize(z_vals, self.z_bins).astype("int") - 1
-        w_i = np.digitize(w_vals, self.w_bins).astype("int") - 1
+        x_i = np.digitize(x_vals, self.x_bins).astype("int64") - 1
+        y_i = np.digitize(y_vals, self.y_bins).astype("int64") - 1
+        z_i = np.digitize(z_vals, self.z_bins).astype("int64") - 1
+        w_i = np.digitize(w_vals, self.w_bins).astype("int64") - 1
         if (
             np.any((x_i == -1) | (x_i == len(self.x_bins) - 1))
             or np.any((y_i == -1) | (y_i == len(self.y_bins) - 1))

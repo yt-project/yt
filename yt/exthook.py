@@ -18,6 +18,7 @@
     :copyright: (c) 2015 by Armin Ronacher.
     :license: BSD, see LICENSE for more details.
 """
+
 # This source code was originally in flask/exthook.py
 import os
 import sys
