@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from collections.abc import Mapping
 from functools import wraps
 from importlib.util import find_spec
 from shutil import which
@@ -19,6 +20,7 @@ from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import AnyFieldKey
 from yt.config import ytcfg
 from yt.frontends.stream.data_structures import StreamParticlesDataset
 from yt.funcs import is_sequence
@@ -909,18 +911,18 @@ def fake_sph_flexible_grid_ds(
             okinds &= pos[:, ax] >= bbox[ax, 0]
         npart = sum(okinds)
     else:
-        okinds: slice = slice(None, None, None)
+        okinds = np.ones((npart,), dtype=bool)
 
-    data = {
+    data: Mapping[AnyFieldKey, tuple[np.ndarray, str]] = {
         "particle_position_x": (np.copy(pos[okinds, 0]), "cm"),
         "particle_position_y": (np.copy(pos[okinds, 1]), "cm"),
         "particle_position_z": (np.copy(pos[okinds, 2]), "cm"),
-        "particle_mass": (mass[okinds], "g"),
+        "particle_mass": (np.copy(mass[okinds]), "g"),
         "particle_velocity_x": (np.zeros(npart), "cm/s"),
         "particle_velocity_y": (np.zeros(npart), "cm/s"),
         "particle_velocity_z": (np.zeros(npart), "cm/s"),
         "smoothing_length": (np.ones(npart) * 0.5 * hsml_factor, "cm"),
-        "density": (rho[okinds], "g/cm**3"),
+        "density": (np.copy(rho[okinds]), "g/cm**3"),
     }
 
     ds = load_particles(
@@ -981,7 +983,7 @@ def fake_random_sph_ds(
     hsml = gen.uniform(low=hsmlrange[0], high=hsmlrange[1], size=npart)
     dens = mass / hsml**3 * unitrho
 
-    data = {
+    data: Mapping[AnyFieldKey, tuple[np.ndarray, str]] = {
         "particle_position_x": (posx, "cm"),
         "particle_position_y": (posy, "cm"),
         "particle_position_z": (posz, "cm"),

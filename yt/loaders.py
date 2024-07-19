@@ -834,7 +834,7 @@ def load_particles(
     field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
-    pdata: dict[AnyFieldKey, np.ndarray] = {}
+    pdata: dict[AnyFieldKey, Union[np.ndarray, tuple[np.ndarray, str]]] = {}
     for key in data.keys():
         field: FieldKey
         if not isinstance(key, tuple):
