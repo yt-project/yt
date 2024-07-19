@@ -395,10 +395,10 @@ def test_sph_slice_general_offaxis(
         e3hat=e3dir,
     )
 
-    source = ds.all_data()
+    # source = ds.all_data()
     # couple to dataset -> right unit registry
     center = ds.arr(center, "cm")
-    #print("position:\n", source["gas", "position"])
+    # print("position:\n", source["gas", "position"])
     slc = yt.SlicePlot(
         ds,
         e1dir,
