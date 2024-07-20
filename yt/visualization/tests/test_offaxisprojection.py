@@ -260,9 +260,9 @@ def test_offaxis_moment():
         np.min(p1_expsq[p1_expsq > 0]), np.min(p1_sqexp[p1_sqexp > 0])
     )
     # print(mindiff)
-    safeorbad = np.logical_not(np.logical_and(
-        p1_expsq - p1_sqexp < 0, p1_expsq - p1_sqexp > -1.0 * mindiff
-    ))
+    safeorbad = np.logical_not(
+        np.logical_and(p1_expsq - p1_sqexp < 0, p1_expsq - p1_sqexp > -1.0 * mindiff)
+    )
     # avoid errors from sqrt(negative)
     # sqrt in zeros_like insures correct units
     p1res = np.zeros_like(np.sqrt(p1_expsq))
