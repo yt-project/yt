@@ -92,7 +92,7 @@ jobs:
 
       # keep in sync with pyproject.toml
       run: |
-        python -m pip install "Cython>=3.0.3, <3.1"
+        python -m pip install Cython>=3.0.3
         python -m pip install numpy>=1.25
         python -m pip install ewah-bool-utils>=1.0.2
         python -m pip install --upgrade wheel

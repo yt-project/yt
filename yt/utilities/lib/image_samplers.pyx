@@ -37,8 +37,6 @@ from ._octree_raytracing cimport RayInfo, _OctreeRayTracing
 cdef extern from "platform_dep.h":
     long int lrint(double x) noexcept nogil
 
-DEF Nch = 4
-
 from cython.parallel import parallel, prange
 
 from cpython.exc cimport PyErr_CheckSignals
