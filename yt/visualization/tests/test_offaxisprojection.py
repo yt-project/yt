@@ -252,7 +252,6 @@ def test_offaxis_moment():
     # )
     p1_expsq = p1.frb["gas", "velocity_los_squared"]
     p1_sqexp = p1.frb["gas", "velocity_los"] ** 2
-    p1res = np.sqrt(p1_expsq - p1_sqexp)
     # set values to zero that have <v>**2 - <v>**2 < 0, but
     # the absolute values are much smaller than the smallest
     # postive values of <v>**2 and <v>**2
@@ -260,10 +259,13 @@ def test_offaxis_moment():
     mindiff = 1e-10 * min(
         np.min(p1_expsq[p1_expsq > 0]), np.min(p1_sqexp[p1_sqexp > 0])
     )
-    print(mindiff)
-    setzero = np.logical_and(
+    # print(mindiff)
+    safeorbad = np.logical_not(np.logical_and(
         p1_expsq - p1_sqexp < 0, p1_expsq - p1_sqexp > -1.0 * mindiff
-    )
-    p1res[setzero] = 0.0
+    ))
+    # avoid errors from sqrt(negative)
+    # sqrt in zeros_like insures correct units
+    p1res = np.zeros_like(np.sqrt(p1_expsq))
+    p1res[safeorbad] = np.sqrt(p1_expsq[safeorbad] - p1_sqexp[safeorbad])
     p2res = p2.frb["gas", "velocity_los"]
     assert_rel_equal(p1res, p2res, 10)
