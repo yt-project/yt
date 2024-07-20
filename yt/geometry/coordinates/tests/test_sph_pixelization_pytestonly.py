@@ -308,8 +308,8 @@ def test_sph_slice_general_alongaxes(
     expected = expected.reshape((outgridsize, outgridsize))
     # expected[np.isnan(expected)] = 0.0  # convention in the slices
 
-    print("expected:\n", expected)
-    print("recovered:\n", img.v)
+    # print("expected:\n", expected)
+    # print("recovered:\n", img.v)
     assert_rel_equal(expected, img.v, 5)
 
 
@@ -466,8 +466,8 @@ def test_sph_slice_general_offaxis(
     # expected[np.isnan(expected)] = 0.0  # convention in the slices
 
     # print(axis, shiftcenter, depth, periodic, weighted)
-    print("expected:\n", expected)
-    print("recovered:\n", img.v)
+    # print("expected:\n", expected)
+    # print("recovered:\n", img.v)
     assert_rel_equal(expected, img.v, 4)
 
 
@@ -542,6 +542,6 @@ def test_sph_grid(
     # expected[np.isnan(expected)] = 0.0  # convention in the slices
 
     # print(axis, shiftcenter, depth, periodic, weighted)
-    print("expected:\n", expected)
-    print("recovered:\n", res.v)
+    # print("expected:\n", expected)
+    # print("recovered:\n", res.v)
     assert_rel_equal(expected, res.v, 4)
