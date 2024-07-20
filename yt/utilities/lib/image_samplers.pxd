@@ -15,7 +15,8 @@ cimport numpy as np
 from .partitioned_grid cimport PartitionedGrid
 from .volume_container cimport VolumeContainer
 
-DEF Nch = 4
+cdef enum:
+    Nch = 4
 
 # NOTE: We don't want to import the field_interpolator_tables here, as it
 # breaks a bunch of C++ interop.  Maybe some day it won't.  So, we just forward
