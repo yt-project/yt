@@ -12,7 +12,6 @@ yt supports :ref:`many different code formats <code-support>`, and we provide
 :ref:`instructions on how to load and examine each data type <examining-data>`.
 
 
-
 Table of Contents
 -----------------
 
