@@ -9,7 +9,7 @@ requires = [
   "numpy>=2.0.0",
   "ewah-bool-utils>=1.2.0",
 ]
-build-backend = "setuptools.build_meta:__legacy__"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "yt"

@@ -1,10 +1,15 @@
 import glob
 import os
+import sys
 from collections import defaultdict
 from distutils.ccompiler import get_default_compiler
 from importlib import resources as importlib_resources
 
 from setuptools import Distribution, setup
+
+# ensure enclosing directory is in PYTHON_PATH to allow importing from setupext.py
+if (script_dir := os.path.dirname(__file__)) not in sys.path:
+    sys.path.insert(0, script_dir)
 
 from setupext import (
     NUMPY_MACROS,
