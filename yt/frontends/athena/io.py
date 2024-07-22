@@ -1,15 +1,9 @@
-import sys
-
 import numpy as np
 
 from yt.funcs import mylog
 from yt.utilities.io_handler import BaseIOHandler
 
 from .data_structures import chk23
-
-if sys.version_info < (3, 10):
-    pass
-
 
 float_size = {"float": np.dtype(">f4").itemsize, "double": np.dtype(">f8").itemsize}
 
