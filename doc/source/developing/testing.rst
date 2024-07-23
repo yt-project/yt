@@ -152,6 +152,10 @@ More pytest options can be found by using the ``--help`` flag
 
 Answer Testing
 --------------
+.. note::
+    This section documents answer tests run with ``pytest``. The plan is to
+    switch to using ``pytest`` for answer tests at some point in the future,
+    but currently (July 2024), answer tests are actually run using ``nose``. 
 
 What Do Answer Tests Do
 ^^^^^^^^^^^^^^^^^^^^^^^
