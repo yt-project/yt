@@ -81,7 +81,7 @@ def off_axis_projection(
     north_vector : optional, array_like, default None
         A vector that, if specified, restricts the orientation such that the
         north vector dotted into the image plane points "up". Useful for rotations
-    depth: float, tuple[float, str], or unyt_array or size 1.
+    depth: float, tuple[float, str], or unyt_array of size 1.
         specify the depth of the projection region (size along the
         line of sight). If no units are given (unyt_array or second
         tuple element), code units are assumed.
