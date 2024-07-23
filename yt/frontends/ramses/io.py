@@ -212,7 +212,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                             d.max(),
                             d.size,
                         )
-                        tr[(ft, f)].append(d)
+                        tr[ft, f].append(d)
         d = {}
         for field in fields:
             tmp = tr.pop(field, None)
@@ -231,11 +231,15 @@ class IOHandlerRAMSES(BaseIOHandler):
             for subset in chunk.objs:
                 rv = self._read_particle_subset(subset, fields)
                 for ptype in sorted(ptf):
-                    yield ptype, (
-                        rv[ptype, pn % "x"],
-                        rv[ptype, pn % "y"],
-                        rv[ptype, pn % "z"],
-                    ), 0.0
+                    yield (
+                        ptype,
+                        (
+                            rv[ptype, pn % "x"],
+                            rv[ptype, pn % "y"],
+                            rv[ptype, pn % "z"],
+                        ),
+                        0.0,
+                    )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         pn = "particle_position_%s"
@@ -388,7 +392,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
         "ly": "particle_angular_momentum_y",
         "lz": "particle_angular_momentum_z",
         "tform": "particle_formation_time",
-        "acc_Rate": "particle_accretion_Rate",
+        "acc_rate": "particle_accretion_rate",
         "del_mass": "particle_delta_mass",
         "rho_gas": "particle_rho_gas",
         "cs**2": "particle_sound_speed",

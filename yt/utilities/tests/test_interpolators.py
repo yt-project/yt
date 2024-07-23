@@ -6,10 +6,6 @@ from yt.testing import fake_random_ds
 from yt.utilities.lib.interpolators import ghost_zone_interpolate
 
 
-def setup():
-    pass
-
-
 def test_linear_interpolator_1d():
     random_data = np.random.random(64)
     fv = {"x": np.mgrid[0.0:1.0:64j]}
@@ -110,7 +106,7 @@ def test_ghost_zone_extrapolation():
         [("index", "x"), ("index", "y"), ("index", "z")], no_ghost=True
     )
     for i, ax in enumerate("xyz"):
-        xc = g[("index", ax)]
+        xc = g["index", ax]
 
         tf = lin.TrilinearFieldInterpolator(
             xc,
@@ -143,7 +139,7 @@ def test_ghost_zone_extrapolation():
         )
 
         ii = (lx, ly, lz)[i]
-        assert_array_equal(ii, vec[("index", ax)])
+        assert_array_equal(ii, vec["index", ax])
         assert_array_equal(ii, xi)
         assert_array_equal(ii, xz)
 

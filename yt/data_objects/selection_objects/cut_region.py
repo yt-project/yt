@@ -27,7 +27,7 @@ class YTCutRegion(YTSelectionContainer3D):
         A list of conditionals that will be evaluated.  In the namespace
         available, these conditionals will have access to 'obj' which is a data
         object of unknown shape, and they must generate a boolean array.  For
-        instance, conditionals = ["obj[('gas', 'temperature')] < 1e3"]
+        instance, conditionals = ["obj['gas', 'temperature'] < 1e3"]
 
     Examples
     --------
@@ -35,7 +35,7 @@ class YTCutRegion(YTSelectionContainer3D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> sp = ds.sphere("max", (1.0, "Mpc"))
-    >>> cr = ds.cut_region(sp, ["obj[('gas', 'temperature')] < 1e3"])
+    >>> cr = ds.cut_region(sp, ["obj['gas', 'temperature'] < 1e3"])
     """
 
     _type_name = "cut_region"
@@ -159,31 +159,31 @@ class YTCutRegion(YTSelectionContainer3D):
 
         pos = np.stack(
             [
-                self[("index", "x")].to(units),
-                self[("index", "y")].to(units),
-                self[("index", "z")].to(units),
+                self["index", "x"].to(units),
+                self["index", "y"].to(units),
+                self["index", "z"].to(units),
             ],
             axis=1,
         ).value
         dx = np.stack(
             [
-                self[("index", "dx")].to(units),
-                self[("index", "dy")].to(units),
-                self[("index", "dz")].to(units),
+                self["index", "dx"].to(units),
+                self["index", "dy"].to(units),
+                self["index", "dz"].to(units),
             ],
             axis=1,
         ).value
         ppos = np.stack(
             [
-                parent[(ptype, "particle_position_x")],
-                parent[(ptype, "particle_position_y")],
-                parent[(ptype, "particle_position_z")],
+                parent[ptype, "particle_position_x"],
+                parent[ptype, "particle_position_y"],
+                parent[ptype, "particle_position_z"],
             ],
             axis=1,
         ).value
 
         mask = np.zeros(ppos.shape[0], dtype=bool)
-        levels = self[("index", "grid_level")].astype("int32").value
+        levels = self["index", "grid_level"].astype("int32").value
         if levels.size == 0:
             return mask
 
@@ -220,15 +220,15 @@ class YTCutRegion(YTSelectionContainer3D):
         parent = getattr(self, "parent", self.base_object)
         units = "code_length"
         mask = points_in_cells(
-            self[("index", "x")].to(units),
-            self[("index", "y")].to(units),
-            self[("index", "z")].to(units),
-            self[("index", "dx")].to(units),
-            self[("index", "dy")].to(units),
-            self[("index", "dz")].to(units),
-            parent[(ptype, "particle_position_x")].to(units),
-            parent[(ptype, "particle_position_y")].to(units),
-            parent[(ptype, "particle_position_z")].to(units),
+            self["index", "x"].to(units),
+            self["index", "y"].to(units),
+            self["index", "z"].to(units),
+            self["index", "dx"].to(units),
+            self["index", "dy"].to(units),
+            self["index", "dz"].to(units),
+            parent[ptype, "particle_position_x"].to(units),
+            parent[ptype, "particle_position_y"].to(units),
+            parent[ptype, "particle_position_z"].to(units),
         )
 
         return mask

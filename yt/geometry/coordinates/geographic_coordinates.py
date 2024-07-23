@@ -1,4 +1,5 @@
 import numpy as np
+import unyt
 
 from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
 
@@ -125,7 +126,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 * data["index", "dlongitude"]
                 * np.pi
                 / 180.0
-                * np.sin((data["index", "latitude"] + 90.0) * np.pi / 180.0)
+                * np.sin((90 - data["index", "latitude"]) * np.pi / 180.0)
             )
 
         registry.add_field(
@@ -137,7 +138,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
-            return (data[("index", "latitude")] + 90) * np.pi / 180.0
+            # theta = 0 at +90 deg, np.pi at -90
+            return (90.0 - data["index", "latitude"]) * np.pi / 180.0
 
         registry.add_field(
             ("index", "theta"),
@@ -147,7 +149,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         )
 
         def _dlatitude_to_dtheta(field, data):
-            return data[("index", "dlatitude")] * np.pi / 180.0
+            return data["index", "dlatitude"] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dtheta"),
@@ -158,14 +160,18 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
-            return (data[("index", "longitude")] + 180) * np.pi / 180.0
+            lonvals = data[("index", "longitude")]
+            neglons = lonvals < 0.0
+            if np.any(neglons):
+                lonvals[neglons] = lonvals[neglons] + 360.0
+            return lonvals * np.pi / 180.0
 
         registry.add_field(
             ("index", "phi"), sampling_type="cell", function=_longitude_to_phi, units=""
         )
 
         def _dlongitude_to_dphi(field, data):
-            return data[("index", "dlongitude")] * np.pi / 180.0
+            return data["index", "dlongitude"] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dphi"),
@@ -186,7 +192,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                     surface_height = data.ds.surface_height
                 else:
                     surface_height = data.ds.quan(0.0, "code_length")
-            return data[("index", "altitude")] + surface_height
+            return data["index", "altitude"] + surface_height
 
         registry.add_field(
             ("index", "r"),
@@ -313,27 +319,28 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def convert_to_cartesian(self, coord):
         offset, factor = self._retrieve_radial_offset()
+
         if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
             rad = self.axis_id[self.radial_axis]
             lon = self.axis_id["longitude"]
             lat = self.axis_id["latitude"]
             r = factor * coord[:, rad] + offset
-            theta = coord[:, lon] * np.pi / 180
-            phi = coord[:, lat] * np.pi / 180
+            colatitude = _latitude_to_colatitude(coord[:, lat])
+            phi = coord[:, lon] * np.pi / 180
             nc = np.zeros_like(coord)
             # r, theta, phi
-            nc[:, lat] = np.cos(phi) * np.sin(theta) * r
-            nc[:, lon] = np.sin(phi) * np.sin(theta) * r
-            nc[:, rad] = np.cos(theta) * r
+            nc[:, lat] = np.cos(phi) * np.sin(colatitude) * r
+            nc[:, lon] = np.sin(phi) * np.sin(colatitude) * r
+            nc[:, rad] = np.cos(colatitude) * r
         else:
             a, b, c = coord
-            theta = b * np.pi / 180
+            colatitude = _latitude_to_colatitude(b)
             phi = a * np.pi / 180
             r = factor * c + offset
             nc = (
-                np.cos(phi) * np.sin(theta) * r,
-                np.sin(phi) * np.sin(theta) * r,
-                np.cos(theta) * r,
+                np.cos(phi) * np.sin(colatitude) * r,
+                np.sin(phi) * np.sin(colatitude) * r,
+                np.cos(colatitude) * r,
             )
         return nc
 
@@ -480,7 +487,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
                     # so we can look at the domain right edge in depth.
                     rax = self.axis_id[self.radial_axis]
                     outer_radius = data.ds.domain_right_edge[rax]
-            return -1.0 * data[("index", "depth")] + outer_radius
+            return -1.0 * data["index", "depth"] + outer_radius
 
         registry.add_field(
             ("index", "r"),
@@ -563,3 +570,16 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
             outermost = factor * self.ds.domain_left_edge[ri] + offset
             width = [outermost, 2.0 * outermost]
         return width
+
+
+def _latitude_to_colatitude(lat_vals):
+    # convert latitude to theta, accounting for units,
+    # including the case where the units are code_length
+    # due to how yt stores the domain_center units for
+    # geographic coordinates.
+    if isinstance(lat_vals, unyt.unyt_array):
+        if lat_vals.units.dimensions == unyt.dimensions.length:
+            return (90.0 - lat_vals.d) * np.pi / 180.0
+        ninety = unyt.unyt_quantity(90.0, "degree")
+        return (ninety - lat_vals).to("radian")
+    return (90 - lat_vals) * np.pi / 180.0

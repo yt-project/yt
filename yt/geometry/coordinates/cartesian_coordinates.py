@@ -46,8 +46,8 @@ def _sample_ray(ray, npoints, field):
     sample_dr = (end_point - start_point) / (npoints - 1)
     sample_points = [np.arange(npoints) * sample_dr[i] for i in range(3)]
     sample_points = uvstack(sample_points).T + start_point
-    ray_coordinates = uvstack([ray[("index", d)] for d in "xyz"]).T
-    ray_dds = uvstack([ray[("index", f"d{d}")] for d in "xyz"]).T
+    ray_coordinates = uvstack([ray["index", d] for d in "xyz"]).T
+    ray_dds = uvstack([ray["index", f"d{d}"] for d in "xyz"]).T
     ray_field = ray[field]
     field_values = ray.ds.arr(np.zeros(npoints), ray_field.units)
     for i, sample_point in enumerate(sample_points):
@@ -593,8 +593,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         mask = mask.transpose()
             else:
                 raise NotImplementedError(
-                    "A pixelization routine has not been implemented for %s "
-                    "data objects" % str(type(data_source))
+                    "A pixelization routine has not been implemented for "
+                    f"{type(data_source)} data objects"
                 )
             buff = buff.transpose()
             mask = mask.transpose()
@@ -618,7 +618,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 
-        indices = np.argsort(data_source["pdx"])[::-1].astype(np.int_)
+        indices = np.argsort(data_source["pdx"])[::-1].astype("int64", copy=False)
         buff = np.full((size[1], size[0]), np.nan, dtype="float64")
         ftype = "index"
         if isinstance(data_source.ds, YTSpatialPlotDataset):

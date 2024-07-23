@@ -107,7 +107,7 @@ class AdaptaHOPDataset(Dataset):
                     pass
 
             if not ok:
-                raise OSError("Could not read headers from file %s" % filename)
+                raise OSError(f"Could not read headers from file {filename}")
 
             istart = fpu.tell()
             fpu.seek(0, 2)
@@ -130,7 +130,7 @@ class AdaptaHOPDataset(Dataset):
                     continue
 
         if not ok:
-            raise OSError("Could not guess fields from file %s" % filename)
+            raise OSError(f"Could not guess fields from file {filename}")
 
         self._header_attributes = header_attributes
         self._halo_attributes = attributes
@@ -347,7 +347,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
         # Build subregion that only contains halo particles
         reg = sph.cut_region(
-            ['np.isin(obj[("io", "particle_identity")].astype("int64"), members)'],
+            ['np.isin(obj["io", "particle_identity"].astype("int64"), members)'],
             locals={"members": members, "np": np},
         )
 

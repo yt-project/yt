@@ -108,11 +108,15 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
             f = self.fields[data_file.filename]
             # This double-reads
             for ptype in sorted(ptf):
-                yield ptype, (
-                    f[ptype, "particle_position_x"],
-                    f[ptype, "particle_position_y"],
-                    f[ptype, "particle_position_z"],
-                ), 0.0
+                yield (
+                    ptype,
+                    (
+                        f[ptype, "particle_position_x"],
+                        f[ptype, "particle_position_y"],
+                        f[ptype, "particle_position_z"],
+                    ),
+                    0.0,
+                )
 
     def _read_smoothing_length(self, chunks, ptf, ptype):
         for data_file in self._sorted_chunk_iterator(chunks):
@@ -144,7 +148,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
                 if selector:
                     data = data[mask]
 
-                return_data[(ptype, field)] = data
+                return_data[ptype, field] = data
 
         return return_data
 

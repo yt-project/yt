@@ -109,6 +109,12 @@ def test_load_sample_small_dataset(
     )
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    # flakyness is probably due to Windows' infamous lack of time resolution
+    # overall, this test doesn't seem worth it.
+    reason="This test is flaky on Windows",
+)
 @requires_module_pytest("pandas", "pooch")
 @pytest.mark.usefixtures("capturable_logger")
 def test_load_sample_timeout(tmp_data_dir, caplog):

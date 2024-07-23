@@ -192,6 +192,9 @@ def fill_hydro(FortranFile f,
     cdef int jump_len, Ncells
     cdef np.uint8_t[::1] mask_level = np.zeros(nlevels, dtype=np.uint8)
 
+    # First, make sure fields are in the same order
+    fields = sorted(fields, key=lambda f: all_fields.index(f))
+
     # The ordering is very important here, as we'll write directly into the memory
     # address the content of the files.
     cdef np.float64_t[::1, :, :] buffer

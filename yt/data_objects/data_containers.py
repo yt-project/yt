@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 
 
 def sanitize_weight_field(ds, field, weight):
-    field_object = ds._get_field_info(field)
     if weight is None:
+        field_object = ds._get_field_info(field)
         if field_object.sampling_type == "particle":
             if field_object.name[0] == "gas":
                 ptype = ds._sph_ptypes[0]
@@ -87,7 +87,7 @@ class YTDataContainer(abc.ABC):
         # constructor, in which case it will override the default.
         # This code ensures it is never not set.
 
-        self.ds: "Dataset"
+        self.ds: Dataset
         if ds is not None:
             self.ds = ds
         else:
@@ -558,11 +558,11 @@ class YTDataContainer(abc.ABC):
         >>> fn = sp.save_as_dataset(fields=[("gas", "density"), ("gas", "temperature")])
         >>> sphere_ds = yt.load(fn)
         >>> # the original data container is available as the data attribute
-        >>> print(sds.data[("gas", "density")])
+        >>> print(sds.data["gas", "density"])
         [  4.46237613e-32   4.86830178e-32   4.46335118e-32 ...,   6.43956165e-30
            3.57339907e-30   2.83150720e-30] g/cm**3
         >>> ad = sphere_ds.all_data()
-        >>> print(ad[("gas", "temperature")])
+        >>> print(ad["gas", "temperature"])
         [  1.00000000e+00   1.00000000e+00   1.00000000e+00 ...,   4.40108359e+04
            4.54380547e+04   4.72560117e+04] K
 
@@ -1410,7 +1410,7 @@ class YTDataContainer(abc.ABC):
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sp = ds.sphere("c", 0.1)
         >>> sp_clone = sp.clone()
-        >>> sp[("gas", "density")]
+        >>> sp["gas", "density"]
         >>> print(sp.field_data.keys())
         [("gas", "density")]
         >>> print(sp_clone.field_data.keys())
@@ -1424,9 +1424,8 @@ class YTDataContainer(abc.ABC):
         s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
             try:
-                s += ", {}={}".format(
-                    i,
-                    getattr(self, i).in_base(unit_system=self.ds.unit_system),
+                s += (
+                    f", {i}={getattr(self, i).in_base(unit_system=self.ds.unit_system)}"
                 )
             except AttributeError:
                 s += f", {i}={getattr(self, i)}"

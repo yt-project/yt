@@ -148,7 +148,7 @@ following:
     density = ad["gas", "density"]
 
     # full field tuple
-    density = ad[("gas", "density")]
+    density = ad["gas", "density"]
 
     # through the ds.fields object
     density = ad[ds.fields.gas.density]
@@ -368,7 +368,7 @@ second sets the corresponding ``value``. Currently available format properties a
 
 .. _efields:
 
-Energy and Momemtum Fields
+Energy and Momentum Fields
 --------------------------
 
 Fields in yt representing energy and momentum quantities follow a specific

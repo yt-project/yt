@@ -865,7 +865,7 @@ class EventsFITSHierarchy(FITSHierarchy):
                 field_unit = "code_length"
             else:
                 field_unit = v
-            self.dataset.field_units[("io", fname)] = field_unit
+            self.dataset.field_units["io", fname] = field_unit
         return
 
     def _parse_index(self):

@@ -1195,9 +1195,9 @@ class PWViewerMPL(PlotWindow):
             if colorbar_label is None:
                 colorbar_label = image.info["label"]
                 if getattr(self, "moment", 1) == 2:
-                    colorbar_label = "%s \\rm{Standard Deviation}" % colorbar_label
+                    colorbar_label = f"{colorbar_label} \\rm{{Standard Deviation}}"
                 if hasattr(self, "projected"):
-                    colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
+                    colorbar_label = f"$\\rm{{Projected }}$ {colorbar_label}"
                 if units is not None and units != "":
                     colorbar_label += _get_units_label(units)
 

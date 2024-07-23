@@ -120,7 +120,7 @@ def load(
     for entrypoint in external_frontends:
         entrypoint.load()
 
-    candidates: list[type["Dataset"]] = []
+    candidates: list[type[Dataset]] = []
     for cls in output_type_registry.values():
         if cls._is_valid(fn, *args, **kwargs):
             candidates.append(cls)
@@ -304,7 +304,7 @@ def load_uniform_grid(
     >>> data = dict(density=arr)
     >>> ds = load_uniform_grid(data, arr.shape, length_unit="cm", bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd[("gas", "density")]
+    >>> dd["gas", "density"]
     unyt_array([0.76017901, 0.96855994, 0.49205428, ..., 0.78798258,
                 0.97569432, 0.99453904], 'g/cm**3')
     """
@@ -569,7 +569,7 @@ def load_amr_grids(
     ... ]
     ...
     >>> for g in grid_data:
-    ...     g[("gas", "density")] = (
+    ...     g["gas", "density"] = (
     ...         np.random.random(g["dimensions"]) * 2 ** g["level"],
     ...         "g/cm**3",
     ...     )

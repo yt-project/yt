@@ -303,7 +303,7 @@ class DerivedField:
             name = self.display_name
 
         # Start with the field name
-        data_label = r"$\rm{%s}" % name
+        data_label = rf"$\rm{{{name}}}"
 
         # Grab the correct units
         if projected:
