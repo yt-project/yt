@@ -1252,7 +1252,11 @@ def pixelize_sph_kernel_projection(
                 # discard if z is outside bounds
                 if ziter[kk] == 999: continue
                 pz = posz[j] + ziterv[kk]
-                if (pz + hsml[j] < z_min) or (pz  - hsml[j] > z_max): continue
+                ## removed hsml 'margin' in the projection direction to avoid
+                ## double-counting particles near periodic edges
+                ## and adding extra 'depth' to projections
+                #if (pz + hsml[j] < z_min) or (pz  - hsml[j] > z_max): continue
+                if (pz < z_min) or (pz > z_max): continue
 
                 for ii in range(2):
                     if xiter[ii] == 999: continue
