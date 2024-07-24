@@ -776,9 +776,9 @@ class ParentageRelationshipsTest(AnswerTestingTest):
 
 
 def dump_images(new_result, old_result, decimals=10):
-    tmpfd, old_image = tempfile.mkstemp(suffix=".png")
+    tmpfd, old_image = tempfile.mkstemp(prefix="baseline_", suffix=".png")
     os.close(tmpfd)
-    tmpfd, new_image = tempfile.mkstemp(suffix=".png")
+    tmpfd, new_image = tempfile.mkstemp(prefix="thisPR_", suffix=".png")
     os.close(tmpfd)
     image_writer.write_projection(new_result, new_image)
     image_writer.write_projection(old_result, old_image)
