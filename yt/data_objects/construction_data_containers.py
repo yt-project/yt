@@ -997,6 +997,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
         normalize = getattr(self.ds, "use_sph_normalization", True)
+        kernel_name = getattr(self.ds, "kernel_name", "cubic")
 
         bounds, size = self._get_grid_bounds_size()
 
@@ -1038,6 +1039,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                         pbar=pbar,
                         check_period=is_periodic,
                         period=period,
+                        kernel_name=kernel_name,
                     )
                     if normalize:
                         pixelize_sph_kernel_arbitrary_grid(
@@ -1053,6 +1055,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                             pbar=pbar,
                             check_period=is_periodic,
                             period=period,
+                            kernel_name=kernel_name,
                         )
 
                 if normalize:
