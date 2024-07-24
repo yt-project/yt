@@ -159,7 +159,7 @@ Answer Testing
     ``nose``. We generally encourage developers to use ``pytest`` for any new
     tests, but if you need to change or update one of the older ``nose``
     tests, or are, e.g., writing a new frontend,
-    an `older version of this documentation <https://yt-project.org/docs/4.0.0/developing/testing.html#answer-testing>`_ 
+    an `older version of this documentation <https://yt-project.org/docs/4.0.0/developing/testing.html#answer-testing>`_
     decribes how the ``nose`` tests work.
 
 What Do Answer Tests Do
