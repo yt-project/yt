@@ -937,6 +937,7 @@ def fake_sph_flexible_grid_ds(
     ds.kernel_name = "cubic"
     return ds
 
+
 def fake_random_sph_ds(
     npart: int,
     bbox: np.ndarray,
