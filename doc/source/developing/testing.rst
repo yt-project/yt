@@ -155,7 +155,12 @@ Answer Testing
 .. note::
     This section documents answer tests run with ``pytest``. The plan is to
     switch to using ``pytest`` for answer tests at some point in the future,
-    but currently (July 2024), answer tests are still implemented and run with ``nose``.
+    but currently (July 2024), answer tests are still implemented and run with
+    ``nose``. We generally encourage developers to use ``pytest`` for any new
+    tests, but if you need to change or update one of the older ``nose``
+    tests, or are, e.g., writing a new frontend,
+    an `older version of this documentation <https://yt-project.org/docs/4.0.0/developing/testing.html#answer-testing>`_ 
+    decribes how the ``nose`` tests work.
 
 What Do Answer Tests Do
 ^^^^^^^^^^^^^^^^^^^^^^^
