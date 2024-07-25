@@ -49,6 +49,8 @@ dependencies = [
     "matplotlib>=3.5",
     "more-itertools>=8.4",
     "numpy>=1.19.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
+    # https://github.com/numpy/numpy/issues/27037
+    "numpy!=2.0.1 ; platform_machine=='arm64' and platform_system=='Darwin'",
     "packaging>=20.9",
     "pillow>=8.0.0",
     "tomli-w>=0.4.0",
