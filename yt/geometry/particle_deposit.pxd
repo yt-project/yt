@@ -14,12 +14,13 @@ import numpy as np
 cimport cython
 from libc.math cimport sqrt
 from libc.stdlib cimport free, malloc
-from numpy.math cimport PI as NPY_PI
 
 from yt.utilities.lib.fp_utils cimport *
 
 from .oct_container cimport Oct, OctreeContainer
 
+cdef extern from "numpy/npy_math.h":
+    double NPY_PI
 
 cdef extern from "platform_dep.h":
     void *alloca(int)
