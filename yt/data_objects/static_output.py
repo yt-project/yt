@@ -23,6 +23,7 @@ from unyt import Unit, UnitSystem, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._maintenance.ipython_compat import IPYWIDGETS_ENABLED
 from yt._typing import (
     AnyFieldKey,
     AxisOrder,
@@ -119,10 +120,7 @@ class MutableAttribute:
         # We can assume that ipywidgets will not be *added* to the system
         # during the course of execution, and if it is, we will not wrap the
         # array.
-        if display_array and find_spec("ipywidgets") is not None:
-            self.display_array = True
-        else:
-            self.display_array = False
+        self.display_array = display_array and IPYWIDGETS_ENABLED
 
     def __get__(self, instance, owner):
         return self.data.get(instance, None)
