@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 from collections import OrderedDict
@@ -42,6 +43,9 @@ from yt.visualization.plot_window import (
     SlicePlot,
     plot_2d,
 )
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def setup_module():
@@ -386,9 +390,13 @@ class TestPlotWindowSave(unittest.TestCase):
             ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
             pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
 
-            [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
-            [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
-            [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+            for px, x in zip(plot.xlim, xlim, strict=True):
+                assert_array_almost_equal(px, x, 14)
+            for py, y in zip(plot.ylim, ylim, strict=True):
+                assert_array_almost_equal(py, y, 14)
+            for pw, w in zip(plot.width, pwidth, strict=True):
+                assert_array_almost_equal(pw, w, 14)
+
             assert aun == plot._axes_unit_names
 
 

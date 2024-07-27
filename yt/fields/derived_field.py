@@ -1,6 +1,7 @@
 import contextlib
 import inspect
 import re
+import sys
 from collections.abc import Iterable
 from typing import Optional, Union
 
@@ -24,6 +25,9 @@ from .field_exceptions import (
     NeedsParameter,
     NeedsProperty,
 )
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def TranslationFunc(field_name):
@@ -255,7 +259,7 @@ class DerivedField:
             else:
                 params.extend(val.parameters)
                 values.extend([fd.get_field_parameter(fp) for fp in val.parameters])
-        return dict(zip(params, values)), permute_params
+        return dict(zip(params, values, strict=True)), permute_params
 
     _unit_registry = None
 

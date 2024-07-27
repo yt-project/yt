@@ -42,7 +42,12 @@ repos:
     types_or: [ python, pyi, jupyter ]
   - id: ruff
     types_or: [ python, pyi, jupyter ]
-    args: [--fix, "--show-fixes"]
+    args: [
+      --fix,
+      --show-fixes,
+      # the following line can be removed after support for Python 3.9 is dropped
+      --extend-select=B905, # zip-without-explicit-strict
+    ]
 
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0

@@ -1,4 +1,5 @@
 import os
+import sys
 import weakref
 
 import numpy as np
@@ -14,6 +15,9 @@ from yt.utilities.file_handler import HDF5FileHandler, valid_hdf5_signature
 from yt.utilities.physical_ratios import cm_per_mpc
 
 from .fields import FLASHFieldInfo
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class FLASHGrid(AMRGridPatch):
@@ -274,7 +278,9 @@ class FLASHDataset(Dataset):
         if nn not in self._handle:
             raise KeyError(nn)
         for tpname, pval in zip(
-            self._handle[nn][:, "name"], self._handle[nn][:, "value"]
+            self._handle[nn][:, "name"],
+            self._handle[nn][:, "value"],
+            strict=True,
         ):
             if tpname.decode("ascii", "ignore").strip() == pname:
                 if hasattr(pval, "decode"):
@@ -306,7 +312,9 @@ class FLASHDataset(Dataset):
                 if hn not in self._handle:
                     continue
                 for varname, val in zip(
-                    self._handle[hn][:, "name"], self._handle[hn][:, "value"]
+                    self._handle[hn][:, "name"],
+                    self._handle[hn][:, "value"],
+                    strict=True,
                 ):
                     vn = varname.strip()
                     if hn.startswith("string"):
@@ -333,7 +341,9 @@ class FLASHDataset(Dataset):
                     )
                 else:
                     zipover = zip(
-                        self._handle[hn][:, "name"], self._handle[hn][:, "value"]
+                        self._handle[hn][:, "name"],
+                        self._handle[hn][:, "value"],
+                        strict=True,
                     )
                 for varname, val in zipover:
                     vn = varname.strip()

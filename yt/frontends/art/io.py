@@ -1,5 +1,6 @@
 import os
 import os.path
+import sys
 from collections import defaultdict
 from functools import partial
 
@@ -15,6 +16,9 @@ from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class IOHandlerART(BaseIOHandler):
@@ -125,7 +129,7 @@ class IOHandlerART(BaseIOHandler):
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
-            for ptb, size, m in zip(pbool, sizes, self.ws):
+            for ptb, size, m in zip(pbool, sizes, self.ws, strict=True):
                 if ptb:
                     data[a : a + size] = m
                     a += size
@@ -135,7 +139,7 @@ class IOHandlerART(BaseIOHandler):
         elif fname == "particle_type":
             a = 0
             data = np.zeros(npa, dtype="int64")
-            for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+            for i, (ptb, size) in enumerate(zip(pbool, sizes, strict=True)):
                 if ptb:
                     data[a : a + size] = i
                     a += size
@@ -218,7 +222,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
-            for ptb, size, m in zip(pbool, sizes, self.ws):
+            for ptb, size, m in zip(pbool, sizes, self.ws, strict=True):
                 if ptb:
                     data[a : a + size] = m
                     a += size
@@ -228,7 +232,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
         elif fname == "particle_type":
             a = 0
             data = np.zeros(npa, dtype="int64")
-            for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+            for i, (ptb, size) in enumerate(zip(pbool, sizes, strict=True)):
                 if ptb:
                     data[a : a + size] = i
                     a += size

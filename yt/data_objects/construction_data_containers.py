@@ -1,6 +1,7 @@
 import fileinput
 import io
 import os
+import sys
 import warnings
 import zipfile
 from functools import partial, wraps
@@ -62,6 +63,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_root_only,
 )
 from yt.visualization.color_maps import get_colormap_lut
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class YTStreamline(YTSelectionContainer1D):
@@ -150,7 +154,9 @@ class YTStreamline(YTSelectionContainer1D):
         mask = np.zeros(points_in_grid.sum(), dtype="int64")
         dts = np.zeros(points_in_grid.sum(), dtype="float64")
         ts = np.zeros(points_in_grid.sum(), dtype="float64")
-        for mi, (i, pos) in enumerate(zip(pids, self.positions[points_in_grid])):
+        for mi, (i, pos) in enumerate(
+            zip(pids, self.positions[points_in_grid], strict=True)
+        ):
             if not points_in_grid[i]:
                 continue
             ci = ((pos - grid.LeftEdge) / grid.dds).astype("int64")
@@ -784,7 +790,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def icoords(self):
         ic = np.indices(self.ActiveDimensions).astype("int64")
         return np.column_stack(
-            [i.ravel() + gi for i, gi in zip(ic, self.get_global_startindex())]
+            [
+                i.ravel() + gi
+                for i, gi in zip(ic, self.get_global_startindex(), strict=True)
+            ]
         )
 
     @property
@@ -1122,7 +1131,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if self.comm.size > 1:
             for i in range(len(fields)):
                 output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
-        for field, v in zip(fields, output_fields):
+        for field, v in zip(fields, output_fields, strict=True):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(v, fi.units)
 
@@ -1221,7 +1230,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             data[field] = (self[field].in_units(units).v, units)
         le = self.left_edge.v
         re = self.right_edge.v
-        bbox = np.array([[l, r] for l, r in zip(le, re)])
+        bbox = np.array([[l, r] for l, r in zip(le, re, strict=True)])
         ds = load_uniform_grid(
             data,
             self.ActiveDimensions,
@@ -1526,7 +1535,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 stacklevel=1,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
-        for field, v in zip(fields, ls.fields):
+        for field, v in zip(fields, ls.fields, strict=True):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]
             fi = self.ds._get_field_info(field)

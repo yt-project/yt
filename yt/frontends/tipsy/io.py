@@ -1,6 +1,7 @@
 import glob
 import os
 import struct
+import sys
 
 import numpy as np
 
@@ -8,6 +9,9 @@ from yt.frontends.sph.io import IOHandlerSPH
 from yt.frontends.tipsy.definitions import npart_mapping
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class IOHandlerTipsyBinary(IOHandlerSPH):
@@ -325,7 +329,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
         ptypes = ["Gas", "Stars", "DarkMatter"]
-        npart = dict(zip(ptypes, pcount))
+        npart = dict(zip(ptypes, pcount, strict=True))
         return npart
 
     @classmethod

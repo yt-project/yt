@@ -55,9 +55,7 @@ from .plot_container import (
     invalidate_plot,
 )
 
-if sys.version_info >= (3, 10):
-    pass
-else:
+if sys.version_info < (3, 10):
     from yt._maintenance.backports import zip
 
 if sys.version_info >= (3, 11):

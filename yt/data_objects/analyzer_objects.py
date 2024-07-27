@@ -1,6 +1,10 @@
 import inspect
+import sys
 
 from yt.utilities.object_registries import analysis_task_registry
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class AnalysisTask:
@@ -14,7 +18,7 @@ class AnalysisTask:
         # does not override
         if len(args) + len(kwargs) != len(self._params):
             raise RuntimeError
-        self.__dict__.update(zip(self._params, args))
+        self.__dict__.update(zip(self._params, args, strict=False))
         self.__dict__.update(kwargs)
 
     def __repr__(self):

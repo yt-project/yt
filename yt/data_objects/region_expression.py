@@ -166,7 +166,7 @@ class RegionExpression:
             if d is not None:
                 d = int(d)
             dims[ax] = d
-        center = [(cl + cr) / 2.0 for cl, cr in zip(left_edge, right_edge)]
+        center = (left_edge + right_edge) / 2.0
         if None not in dims:
             return self.ds.arbitrary_grid(left_edge, right_edge, dims)
         return self.ds.region(center, left_edge, right_edge)

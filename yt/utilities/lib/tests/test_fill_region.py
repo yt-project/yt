@@ -1,7 +1,12 @@
+import sys
+
 import numpy as np
 from numpy.testing import assert_equal
 
 from yt.utilities.lib.misc_utilities import fill_region
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 NDIM = 32
 
@@ -38,5 +43,5 @@ def test_fill_region():
             np.array([2, 2, 2], dtype="i8"),
         )
         for r in range(level + 1):
-            for o, i in zip(output_fields, v):
+            for o, i in zip(output_fields, v, strict=True):
                 assert_equal(o[r::rf, r::rf, r::rf], i)

@@ -1,9 +1,13 @@
 import random
+import sys
 
 import numpy as np
 from numpy.testing import assert_equal, assert_raises
 
 from yt.loaders import load_amr_grids
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def setup_test_ds():
@@ -102,7 +106,7 @@ def test_find_points():
 
     grid_inds = np.zeros((num_points), dtype="int64")
 
-    for ind, ixx, iyy, izz in zip(range(num_points), randx, randy, randz):
+    for ind, ixx, iyy, izz in zip(range(num_points), randx, randy, randz, strict=True):
         pos = np.array([ixx, iyy, izz])
         pt_level = -1
 

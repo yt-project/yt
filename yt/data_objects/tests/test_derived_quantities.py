@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 
@@ -10,6 +12,9 @@ from yt.testing import (
     fake_sph_orientation_ds,
     requires_file,
 )
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def setup_module():
@@ -183,10 +188,14 @@ def test_in_memory_sph_derived_quantities():
     assert_equal(com, [1 / 7, (1 + 2) / 7, (1 + 2 + 3) / 7])
 
     ex = ad.quantities.extrema([("io", "x"), ("io", "y"), ("io", "z")])
-    for fex, ans in zip(ex, [[0, 1], [0, 2], [0, 3]]):
+    for fex, ans in zip(ex, [[0, 1], [0, 2], [0, 3]], strict=True):
         assert_equal(fex, ans)
 
-    for d, v, l in zip("xyz", [1, 2, 3], [[1, 0, 0], [0, 2, 0], [0, 0, 3]]):
+    for d, v, l in [
+        ("x", 1, [1, 0, 0]),
+        ("y", 2, [0, 2, 0]),
+        ("z", 3, [0, 0, 3]),
+    ]:
         max_d, x, y, z = ad.quantities.max_location(("io", d))
         assert_equal(max_d, v)
         assert_equal([x, y, z], l)

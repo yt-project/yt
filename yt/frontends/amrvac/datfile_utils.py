@@ -1,6 +1,10 @@
 import struct
+import sys
 
 import numpy as np
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 # Size of basic types (in bytes)
 SIZE_LOGICAL = 4
@@ -98,7 +102,7 @@ def get_header(istream):
     ]
 
     # Store the values corresponding to the names
-    for val, name in zip(vals, names):
+    for val, name in zip(vals, names, strict=True):
         h[name] = val
     return h
 

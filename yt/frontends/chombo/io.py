@@ -1,10 +1,14 @@
 import re
+import sys
 
 import numpy as np
 
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class IOHandlerChomboHDF5(BaseIOHandler):
@@ -101,7 +105,9 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
         data_no_ghost = data.reshape(shape, order="F")
-        ghost_slice = tuple(slice(g, d + g, None) for g, d in zip(self.ghost, dims))
+        ghost_slice = tuple(
+            slice(g, g + d) for g, d in zip(self.ghost, dims, strict=True)
+        )
         ghost_slice = ghost_slice[0 : self.dim]
         return data_no_ghost[ghost_slice]
 

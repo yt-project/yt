@@ -92,7 +92,7 @@ def test_periodic_region():
         for y in coords:
             for z in coords:
                 center = np.array([x, y, z])
-                for n, w in zip((8, 27), (1.0, 2.0)):
+                for n, w in [(8, 1.0), (27, 2.0)]:
                     le = center - 0.5 * w
                     re = center + 0.5 * w
                     box = ds.box(le, re)
