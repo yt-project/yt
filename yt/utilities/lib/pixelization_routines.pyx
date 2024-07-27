@@ -1284,6 +1284,191 @@ def pixelize_sph_kernel_projection(
 
     return mask
 
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def pixelize_sph_kernel_projection_with_depth_check(
+        np.float64_t[:, :] buff,
+        np.uint8_t[:, :] mask,
+        any_float[:] posx,
+        any_float[:] posy,
+        any_float[:] posz,
+        any_float[:] hsml,
+        any_float[:] pmass,
+        any_float[:] pdens,
+        any_float[:] quantity_to_smooth,
+        bounds,
+        kernel_name="cubic",
+        weight_field=None,
+        int check_period=1,
+        period=None):
+
+    cdef np.intp_t xsize, ysize
+    cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
+    cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
+    cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
+    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, px, py, pz
+    cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
+    cdef int i, j, ii, jj, kk
+    cdef np.float64_t[:] _weight_field
+    cdef int * xiter
+    cdef int * yiter
+    cdef int * ziter
+    cdef np.float64_t * xiterv
+    cdef np.float64_t * yiterv
+    cdef np.float64_t * ziterv
+
+    if weight_field is not None:
+        _weight_field = weight_field
+
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
+        period_z = period[2]
+
+    # we find the x and y range over which we have pixels and we find how many
+    # pixels we have in each dimension
+    xsize, ysize = buff.shape[0], buff.shape[1]
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+
+    # we also want to skip particles outside the rotated z bounds
+    z_min = bounds[4]
+    z_max = bounds[5]
+
+    dx = (x_max - x_min) / xsize
+    dy = (y_max - y_min) / ysize
+
+    idx = 1.0/dx
+    idy = 1.0/dy
+
+    if kernel_name not in kernel_tables:
+        kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
+    cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
+
+    with nogil, parallel():
+        # loop through every particle
+        # NOTE: this loop can be quite time consuming. see description in
+        # pixelize_sph_kernel_projection.
+
+        local_buff = <np.float64_t *> malloc(sizeof(np.float64_t) * xsize * ysize)
+        xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        yiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        ziterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        xiter = <int *> malloc(sizeof(int) * 2)
+        yiter = <int *> malloc(sizeof(int) * 2)
+        ziter = <int *> malloc(sizeof(int) * 2)
+        xiter[0] = yiter[0] = ziter[0] = 0
+        xiterv[0] = yiterv[0] = ziterv[0] = 0.0
+        for i in range(xsize * ysize):
+            local_buff[i] = 0.0
+
+        for j in prange(0, posx.shape[0], schedule="dynamic"):
+            if j % 100000 == 0:
+                with gil:
+                    PyErr_CheckSignals()
+
+            xiter[1] = yiter[1] = ziter[1] = 999
+
+            if check_period == 1:
+                if posx[j] - hsml[j] < x_min:
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif posx[j] + hsml[j] > x_max:
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if posy[j] - hsml[j] < y_min:
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif posy[j] + hsml[j] > y_max:
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
+                if posz[j] - hsml[j] < z_min:
+                    ziter[1] = +1
+                    ziterv[1] = period_z
+                elif posz[j] + hsml[j] > z_max:
+                    ziter[1] = -1
+                    ziterv[1] = -period_z
+
+            # we set the smoothing length squared with lower limit of the pixel
+            h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
+            ih_j2 = 1.0/h_j2
+
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**2 * quantity_to_smooth[j]
+            if weight_field is not None:
+                prefactor_j *= _weight_field[j]
+
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
+                if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
+
+
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
+                    if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
+
+                    for kk in range(2):
+                        # discard if z is outside bounds
+                        if ziter[kk] == 999: continue
+                        pz = posz[j] + ziterv[kk]
+                        if (pz + hsml[j] < z_min) or (pz  - hsml[j] > z_max): continue
+
+                        # here we find the pixels which this particle contributes to
+                        x0 = <np.int64_t> ((px - hsml[j] - x_min)*idx)
+                        x1 = <np.int64_t> ((px + hsml[j] - x_min)*idx)
+                        x0 = iclip(x0-1, 0, xsize)
+                        x1 = iclip(x1+1, 0, xsize)
+
+                        y0 = <np.int64_t> ((py - hsml[j] - y_min)*idy)
+                        y1 = <np.int64_t> ((py + hsml[j] - y_min)*idy)
+                        y0 = iclip(y0-1, 0, ysize)
+                        y1 = iclip(y1+1, 0, ysize)
+
+                        # found pixels we deposit on, loop through those pixels
+                        for xi in range(x0, x1):
+                            # we use the centre of the pixel to calculate contribution
+                            x = (xi + 0.5) * dx + x_min
+
+                            posx_diff = px - x
+                            posx_diff = posx_diff * posx_diff
+
+                            if posx_diff > h_j2: continue
+
+                            for yi in range(y0, y1):
+                                y = (yi + 0.5) * dy + y_min
+
+                                posy_diff = py - y
+                                posy_diff = posy_diff * posy_diff
+                                if posy_diff > h_j2: continue
+
+                                q_ij2 = (posx_diff + posy_diff) * ih_j2
+                                if q_ij2 >= 1:
+                                    continue
+
+                                # see equation 32 of the SPLASH paper
+                                # now we just use the kernel projection
+                                local_buff[xi + yi*xsize] +=  prefactor_j * itab.interpolate(q_ij2)
+                                mask[xi, yi] = 1
+
+        with gil:
+            for xxi in range(xsize):
+                for yyi in range(ysize):
+                    buff[xxi, yyi] += local_buff[xxi + yyi*xsize]
+        free(local_buff)
+        free(xiterv)
+        free(yiterv)
+        free(ziterv)
+        free(xiter)
+        free(yiter)
+        free(ziter)
+
+    return mask
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def interpolate_sph_positions_gather(np.float64_t[:] buff,
@@ -1912,6 +2097,61 @@ def rotate_particle_coord(np.float64_t[:] px,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def rotate_particle_coord_with_z(np.float64_t[:] px,
+                                 np.float64_t[:] py,
+                                 np.float64_t[:] pz,
+                                 center,
+                                 width,
+                                 normal_vector,
+                                 north_vector):
+    # same as rotate_particle_coord but returns rotated z coords and bounds.
+    # This is a separate function so that we can avoid allocating the z-related
+    # arrays when they will not be used.
+    cdef int num_particles = np.size(px)
+    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype="float64")
+    cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype="float64")
+    cdef np.float64_t[:, :] normal_rotation_matrix
+    cdef np.float64_t[:] transformed_north_vector
+    cdef np.float64_t[:, :] north_rotation_matrix
+    cdef np.float64_t[:, :] rotation_matrix
+
+    normal_rotation_matrix = get_rotation_matrix(normal_vector, z_axis)
+    transformed_north_vector = np.matmul(normal_rotation_matrix, north_vector)
+    north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
+    rotation_matrix = np.matmul(north_rotation_matrix, normal_rotation_matrix)
+
+    cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype="float64")
+    cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype="float64")
+    cdef np.float64_t[:] pz_rotated = np.empty(num_particles, dtype="float64")
+    cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype="float64")
+    cdef np.float64_t[:] rotated_coordinates
+    cdef np.float64_t[:] rotated_center
+    rotated_center = rotation_matmul(
+        rotation_matrix, np.array([center[0], center[1], center[2]]))
+
+    # set up the rotated bounds
+    cdef np.float64_t rot_bounds_x0 = rotated_center[0] - width[0] / 2
+    cdef np.float64_t rot_bounds_x1 = rotated_center[0] + width[0] / 2
+    cdef np.float64_t rot_bounds_y0 = rotated_center[1] - width[1] / 2
+    cdef np.float64_t rot_bounds_y1 = rotated_center[1] + width[1] / 2
+    cdef np.float64_t rot_bounds_z0 = rotated_center[2] - width[2] / 2
+    cdef np.float64_t rot_bounds_z1 = rotated_center[2] + width[2] / 2
+
+    for i in range(num_particles):
+        coordinate_matrix[0] = px[i]
+        coordinate_matrix[1] = py[i]
+        coordinate_matrix[2] = pz[i]
+        rotated_coordinates = rotation_matmul(
+            rotation_matrix, coordinate_matrix)
+        px_rotated[i] = rotated_coordinates[0]
+        py_rotated[i] = rotated_coordinates[1]
+        pz_rotated[i] = rotated_coordinates[2]
+
+    return px_rotated, py_rotated, pz_rotated, rot_bounds_x0, rot_bounds_x1, rot_bounds_y0, rot_bounds_y1, rot_bounds_z0, rot_bounds_z1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def off_axis_projection_SPH(np.float64_t[:] px,
                             np.float64_t[:] py,
                             np.float64_t[:] pz,
@@ -1926,28 +2166,53 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                             np.uint8_t[:, :] mask,
                             normal_vector,
                             north_vector,
-                            weight_field=None):
+                            weight_field=None,
+                            depth_set=False):
     # Do nothing in event of a 0 normal vector
     if np.allclose(normal_vector, 0.):
         return
 
-    px_rotated, py_rotated, \
-    rot_bounds_x0, rot_bounds_x1, \
-    rot_bounds_y0, rot_bounds_y1 = rotate_particle_coord(px, py, pz,
-                                                         center, width, normal_vector, north_vector)
+    if depth_set:
+        px_rotated, py_rotated, pz_rotated, \
+        rot_bounds_x0, rot_bounds_x1, \
+        rot_bounds_y0, rot_bounds_y1, \
+        rot_bounds_z0, rot_bounds_z1 = rotate_particle_coord_with_z(px, py, pz,
+                                                             center, width, normal_vector, north_vector)
 
-    pixelize_sph_kernel_projection(projection_array,
-                                   mask,
-                                   px_rotated,
-                                   py_rotated,
-                                   smoothing_lengths,
-                                   particle_masses,
-                                   particle_densities,
-                                   quantity_to_smooth,
-                                   [rot_bounds_x0, rot_bounds_x1,
-                                    rot_bounds_y0, rot_bounds_y1],
-                                   weight_field=weight_field,
-                                   check_period=0)
+        pixelize_sph_kernel_projection_with_depth_check(projection_array,
+                                                       mask,
+                                                       px_rotated,
+                                                       py_rotated,
+                                                       pz_rotated,
+                                                       smoothing_lengths,
+                                                       particle_masses,
+                                                       particle_densities,
+                                                       quantity_to_smooth,
+                                                       [rot_bounds_x0, rot_bounds_x1,
+                                                        rot_bounds_y0, rot_bounds_y1,
+                                                        rot_bounds_z0, rot_bounds_z1],
+                                                       weight_field=weight_field,
+                                                       check_period=0)
+    else:
+        px_rotated, py_rotated, \
+        rot_bounds_x0, rot_bounds_x1, \
+        rot_bounds_y0, rot_bounds_y1 = rotate_particle_coord(px, py, pz,
+                                                             center, width, normal_vector, north_vector)
+
+        pixelize_sph_kernel_projection(projection_array,
+                                       mask,
+                                       px_rotated,
+                                       py_rotated,
+                                       smoothing_lengths,
+                                       particle_masses,
+                                       particle_densities,
+                                       quantity_to_smooth,
+                                       [rot_bounds_x0, rot_bounds_x1,
+                                        rot_bounds_y0, rot_bounds_y1],
+                                       weight_field=weight_field,
+                                       check_period=0)
+
+
 
 
 @cython.boundscheck(False)

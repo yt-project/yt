@@ -32,6 +32,8 @@ def off_axis_projection(
     north_vector=None,
     num_threads=1,
     method="integrate",
+    *,
+    depth_set=False,
 ):
     r"""Project through a dataset, off-axis, and return the image plane.
 
@@ -97,6 +99,10 @@ def off_axis_projection(
         This should only be used for uniform resolution grid datasets, as other
         datasets may result in unphysical images.
         or camera movements.
+    depth_set : bool
+        If True, will check the rotated z bounds and limit particles included.
+        If False (the default), will use all particles in the rotated x-y plane.
+
     Returns
     -------
     image : array
@@ -230,6 +236,7 @@ def off_axis_projection(
                     mask,
                     normal_vector,
                     north,
+                    depth_set=depth_set,
                 )
 
             # Assure that the path length unit is in the default length units
@@ -269,6 +276,7 @@ def off_axis_projection(
                     normal_vector,
                     north,
                     weight_field=chunk[weight].in_units(wounits),
+                    depth_set=depth_set,
                 )
 
             for chunk in data_source.chunks([], "io"):
@@ -287,6 +295,7 @@ def off_axis_projection(
                     mask,
                     normal_vector,
                     north,
+                    depth_set=depth_set,
                 )
 
             normalization_2d_utility(buf, weight_buff)
