@@ -64,7 +64,7 @@ def test_non_cosmo_dataset_selection():
 @requires_file(EAGLE_6)
 def test_cosmo_dataset():
     ds = load(EAGLE_6)
-    assert type(ds) == SwiftDataset
+    assert type(ds) is SwiftDataset
 
     field = ("gas", "density")
     ad = ds.all_data()
