@@ -655,6 +655,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
     level : int
         The resolution level data to which data will be gridded. Level
         0 is the root grid dx for that dataset.
+        (The grid resolution will be simulation size / 2**level along
+         each grid axis.)
     left_edge : array_like
         The left edge of the region to be extracted.  Specify units by supplying
         a YTArray, otherwise code length units are assumed.
@@ -1004,14 +1006,15 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
         normalize = getattr(self.ds, "use_sph_normalization", True)
+        kernel_name = getattr(self.ds, "kernel_name", "cubic")
 
         bounds, size = self._get_grid_bounds_size()
 
         period = self.ds.coordinates.period.copy()
         if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
-        # TODO maybe there is a better way of handling this
-        is_periodic = int(any(self.ds.periodicity))
+        # check periodicity per dimension
+        is_periodic = self.ds.periodicity
 
         if smoothing_style == "scatter":
             for field in fields:
@@ -1045,6 +1048,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                         pbar=pbar,
                         check_period=is_periodic,
                         period=period,
+                        kernel_name=kernel_name,
                     )
                     if normalize:
                         pixelize_sph_kernel_arbitrary_grid(
@@ -1060,6 +1064,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                             pbar=pbar,
                             check_period=is_periodic,
                             period=period,
+                            kernel_name=kernel_name,
                         )
 
                 if normalize:

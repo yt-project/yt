@@ -45,3 +45,5 @@
 --ignore-file=test_set_log_level\.py
 --ignore-file=test_field_parsing\.py
 --ignore-file=test_disks\.py
+--ignore-file=test_offaxisprojection_pytestonly\.py
+--ignore-file=test_sph_pixelization_pytestonly\.py

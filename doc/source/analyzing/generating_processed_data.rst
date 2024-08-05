@@ -54,7 +54,8 @@ the transformation of a variable mesh of points consisting of positions and
 sizes into a fixed-size array that appears like an image.  This process is that
 of pixelization, which yt handles transparently internally.  You can access
 this functionality by constructing a
-:class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` and supplying
+:class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+and supplying
 to it your :class:`~yt.data_objects.data_containers.YTSelectionContainer2D`
 object, as well as some information about how you want the final image to look.
 You can specify both the bounds of the image (in the appropriate x-y plane) and
@@ -62,8 +63,8 @@ the resolution of the output image.  You can then have yt pixelize any field
 you like.
 
 .. note:: In previous versions of yt, there was a special class of
-          FixedResolutionBuffer for off-axis slices.  This is no longer
-          necessary.
+          FixedResolutionBuffer for off-axis slices.  This is still used
+          for off-axis SPH data projections: OffAxisFixedResolutionBuffer.
 
 To create :class:`~yt.data_objects.data_containers.YTSelectionContainer2D` objects, you can
 access them as described in :ref:`data-objects`, specifically the section
@@ -99,7 +100,10 @@ this, see :ref:`saving-grid-data-containers`.
 In the FITS case, there is an option for setting the ``units`` of the coordinate system in
 the file. If you want to overwrite a file with the same name, set ``clobber=True``.
 
-The :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` can even be exported
+The :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+(and its
+:class:`~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer`
+subclass) can even be exported
 as a 2D dataset itself, which may be operated on in the same way as any other dataset in yt:
 
 .. code-block:: python
