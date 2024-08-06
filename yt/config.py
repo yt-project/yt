@@ -45,7 +45,6 @@ ytcfg_defaults["yt"] = {
     "ray_tracing_engine": "yt",
     "internals": {
         "within_testing": False,
-        "within_pytest": False,
         "parallel": False,
         "strict_requires": False,
         "global_parallel_rank": 0,
