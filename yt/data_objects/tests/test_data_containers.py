@@ -126,8 +126,12 @@ class TestDataContainers(unittest.TestCase):
             data_source=dd,
         )
         frb = proj.to_frb((1.0, "unitary"), 64)
-        assert_equal(frb.radius, (1.0, "unitary"))
-        assert_equal(frb.buff_size, 64)
+        assert_equal(frb.radius, ds.quan(1.0, "unitary"))
+        assert_equal(frb.buff_size, (64, 64))
+
+        # exercise field access
+        # see https://github.com/yt-project/yt/issues/4789
+        frb["r"]
 
     def test_extract_isocontours(self):
         # Test isocontour properties for AMRGridData
