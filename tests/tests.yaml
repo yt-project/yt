@@ -206,6 +206,7 @@ other_tests:
      - "--ignore-file=test_normal_plot_api\\.py"
      - "--ignore-file=test_on_demand_imports\\.py"
      - "--ignore-file=test_outputs_pytest\\.py"
+     - "--ignore-file=test_parameter_file_storage\\.py"
      - "--ignore-file=test_profile_plots\\.py"
      - "--ignore-file=test_raw_field_slices\\.py"
      - "--ignore-file=test_registration\\.py"
