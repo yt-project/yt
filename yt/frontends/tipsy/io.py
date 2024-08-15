@@ -58,7 +58,10 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         if mask is None:
             size = 0
         elif isinstance(mask, slice):
-            size = vals[fields[0]].size
+            if fields[0] == "smoothing_length":
+                size = hsml.size
+            else:
+                size = vals[fields[0]].size
         else:
             size = mask.sum()
         rv = {}
