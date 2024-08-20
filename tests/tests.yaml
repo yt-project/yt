@@ -108,7 +108,7 @@ answer_tests:
   local_gdf_002:
     - yt/frontends/gdf/tests/test_outputs_nose.py:test_sedov_tunnel
 
-  local_gizmo_008:  # PR 4939
+  local_gizmo_009:  # PR 4939
     - yt/frontends/gizmo/tests/test_outputs.py:test_gizmo_64
 
   local_halos_012:  # PR 3325
@@ -118,7 +118,7 @@ answer_tests:
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_owls_008:  # PR 4939
+  local_owls_009:  # PR 4939
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
