@@ -36,12 +36,10 @@ repos:
         additional_dependencies: [black==24.3.0]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.5.6
+  rev: v0.6.1
   hooks:
   - id: ruff-format
-    types_or: [ python, pyi, jupyter ]
   - id: ruff
-    types_or: [ python, pyi, jupyter ]
     args: [
       --fix,
       --show-fixes,
