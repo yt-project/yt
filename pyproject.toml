@@ -34,6 +34,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Visualization",
@@ -496,7 +497,7 @@ show_error_context = true
 exclude = "(test_*|lodgeit)"
 
 [tool.cibuildwheel]
-build = "cp39-* cp310-* cp311-* cp312-*"
+build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
 build-verbosity = 1
 test-skip = "*-musllinux*"
 test-extras = "test"
