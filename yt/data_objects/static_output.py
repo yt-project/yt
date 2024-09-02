@@ -13,12 +13,11 @@ from collections.abc import MutableMapping
 from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import numpy as np
 import unyt as un
 from more_itertools import unzip
-from sympy import Symbol
 from unyt import Unit, UnitSystem, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
 
@@ -74,6 +73,9 @@ from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
+
+if TYPE_CHECKING:
+    from sympy import Symbol
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
