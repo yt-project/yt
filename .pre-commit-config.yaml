@@ -43,8 +43,6 @@ repos:
     args: [
       --fix,
       --show-fixes,
-      # the following line can be removed after support for Python 3.9 is dropped
-      --extend-select=B905, # zip-without-explicit-strict
     ]
 
 -   repo: https://github.com/pre-commit/pygrep-hooks

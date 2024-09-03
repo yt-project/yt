@@ -33,7 +33,7 @@ jobs:
         # run with oldest supported python version
         # so that we always get compatible versions of
         # core dependencies at type-check time
-        python-version: '3.9'
+        python-version: '3.10'
 
     - name: Build
       run: |

@@ -397,7 +397,7 @@ def get_python_include_dirs():
 NUMPY_MACROS = [
     ("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION"),
     # keep in sync with runtime requirements (pyproject.toml)
-    ("NPY_TARGET_VERSION", "NPY_1_19_API_VERSION"),
+    ("NPY_TARGET_VERSION", "NPY_1_21_API_VERSION"),
 ]
 
 
