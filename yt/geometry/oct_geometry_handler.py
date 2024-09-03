@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 
 from yt.fields.field_detector import FieldDetector
@@ -123,7 +121,7 @@ class OctreeIndex(Index):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[tuple[int, ...]] = None,
+        axes: tuple[int, ...] | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.

@@ -15,7 +15,6 @@ import time
 import warnings
 import zlib
 from collections import defaultdict
-from typing import Optional
 
 import numpy as np
 from matplotlib import image as mpimg
@@ -46,10 +45,6 @@ from yt.visualization import (
     plot_window as pw,
     profile_plotter as profile_plotter,
 )
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
-
 
 mylog = logging.getLogger("nose.plugins.answer-testing")
 run_big_data = False
@@ -887,12 +882,12 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         ds_fn: str,
         plot_field: str,
         plot_axis: str,
-        attr_name: Optional[str] = None,
-        attr_args: Optional[tuple] = None,
-        decimals: Optional[int] = 12,
-        plot_type: Optional[str] = "SlicePlot",
-        callback_id: Optional[str] = "",
-        callback_runners: Optional[tuple] = None,
+        attr_name: str | None = None,
+        attr_args: tuple | None = None,
+        decimals: int | None = 12,
+        plot_type: str | None = "SlicePlot",
+        callback_id: str | None = "",
+        callback_runners: tuple | None = None,
     ):
         super().__init__(ds_fn)
         self.plot_type = plot_type

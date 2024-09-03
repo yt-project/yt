@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 import uuid
 import weakref
@@ -7,7 +6,6 @@ from collections import UserDict
 from functools import cached_property
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Optional
 
 import numpy as np
 from more_itertools import always_iterable
@@ -46,9 +44,6 @@ from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import process_data, set_particle_types
 from .fields import StreamFieldInfo
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class StreamGrid(AMRGridPatch):
@@ -337,7 +332,7 @@ class StreamDataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
         *,
-        axis_order: Optional[AxisOrder] = None,
+        axis_order: AxisOrder | None = None,
     ):
         self.fluid_types += ("stream",)
         self.geometry = Geometry(geometry)
@@ -553,7 +548,7 @@ class StreamParticlesDataset(StreamDataset):
         unit_system="cgs",
         default_species_fields=None,
         *,
-        axis_order: Optional[AxisOrder] = None,
+        axis_order: AxisOrder | None = None,
     ):
         super().__init__(
             stream_handler,

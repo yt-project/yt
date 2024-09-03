@@ -1,10 +1,6 @@
 import struct
-import sys
 
 import numpy as np
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 # Size of basic types (in bytes)
 SIZE_LOGICAL = 4

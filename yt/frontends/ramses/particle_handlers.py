@@ -1,8 +1,9 @@
 import abc
 import os
 import struct
+from collections.abc import Callable
 from itertools import chain, count
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -53,7 +54,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
     fname: str
 
     # The name of the file descriptor (if any)
-    file_descriptor: Optional[str] = None
+    file_descriptor: str | None = None
 
     # The attributes of the header
     attrs: tuple[tuple[str, int, str], ...]
@@ -68,7 +69,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
     ]
 
     # Name of the config section (if any)
-    config_field: Optional[str] = None
+    config_field: str | None = None
 
     ## These properties are computed dynamically
     # Mapping from field to offset in file

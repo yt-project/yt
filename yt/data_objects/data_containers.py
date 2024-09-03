@@ -1,5 +1,4 @@
 import abc
-import sys
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
@@ -28,9 +27,6 @@ from yt.utilities.exceptions import (
 from yt.utilities.object_registries import data_object_registry
 from yt.utilities.on_demand_imports import _firefly as firefly
 from yt.utilities.parameter_file_storage import ParameterFileStore
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 if TYPE_CHECKING:
     from yt.data_objects.static_output import Dataset

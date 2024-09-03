@@ -1,4 +1,3 @@
-import sys
 from copy import deepcopy
 
 import numpy as np
@@ -34,9 +33,6 @@ from yt.visualization.image_writer import apply_colormap, write_bitmap, write_im
 from yt.visualization.volume_rendering.blenders import enhance_rgba
 
 from .transfer_functions import ProjectionTransferFunction
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def get_corners(le, re):

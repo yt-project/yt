@@ -1,5 +1,4 @@
 import os
-import sys
 import weakref
 
 import numpy as np
@@ -15,9 +14,6 @@ from yt.utilities.file_handler import HDF5FileHandler, valid_hdf5_signature
 from yt.utilities.physical_ratios import cm_per_mpc
 
 from .fields import FLASHFieldInfo
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class FLASHGrid(AMRGridPatch):

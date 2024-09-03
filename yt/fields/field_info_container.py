@@ -1,7 +1,6 @@
 import sys
 from collections import UserDict
 from collections.abc import Callable
-from typing import Optional
 
 from unyt.exceptions import UnitConversionError
 
@@ -350,7 +349,7 @@ class FieldInfoContainer(UserDict):
         function: Callable,
         sampling_type: str,
         *,
-        alias: Optional[DerivedField] = None,
+        alias: DerivedField | None = None,
         force_override: bool = False,
         **kwargs,
     ) -> None:
@@ -407,7 +406,7 @@ class FieldInfoContainer(UserDict):
         else:
             raise ValueError(f"Expected name to be a tuple[str, str], got {name}")
 
-    def load_all_plugins(self, ftype: Optional[str] = "gas") -> None:
+    def load_all_plugins(self, ftype: str | None = "gas") -> None:
         if ftype is None:
             return
         mylog.debug("Loading field plugins for field type: %s.", ftype)
@@ -451,8 +450,8 @@ class FieldInfoContainer(UserDict):
         self,
         alias_name: FieldKey,
         original_name: FieldKey,
-        units: Optional[str] = None,
-        deprecate: Optional[tuple[str, Optional[str]]] = None,
+        units: str | None = None,
+        deprecate: tuple[str, str | None] | None = None,
     ):
         """
         Alias one field to another field.

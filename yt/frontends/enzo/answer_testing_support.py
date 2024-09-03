@@ -1,5 +1,4 @@
 import os
-import sys
 from functools import wraps
 
 import numpy as np
@@ -15,9 +14,6 @@ from yt.utilities.answer_testing.framework import (
     can_run_ds,
     temp_cwd,
 )
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class AssertWrapper:

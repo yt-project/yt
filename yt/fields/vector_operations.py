@@ -19,9 +19,6 @@ from yt.utilities.math_utils import (
 
 from .derived_field import NeedsParameter, ValidateParameter, ValidateSpatial
 
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
-
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:

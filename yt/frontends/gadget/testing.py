@@ -1,13 +1,8 @@
-import sys
-
 import numpy as np
 
 from .data_structures import GadgetBinaryHeader, GadgetDataset
 from .definitions import gadget_field_specs, gadget_ptype_specs
 from .io import IOHandlerGadgetBinary
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 vector_fields = dict(IOHandlerGadgetBinary._vector_fields)
 

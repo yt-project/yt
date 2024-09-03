@@ -1,14 +1,10 @@
 import re
-import sys
 
 import numpy as np
 
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class IOHandlerChomboHDF5(BaseIOHandler):

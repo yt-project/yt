@@ -1,7 +1,7 @@
 import base64
 import os
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import matplotlib
 import numpy as np
@@ -274,9 +274,9 @@ class ProfilePlot(BaseLinePlot):
     @validate_plot
     def save(
         self,
-        name: Optional[str] = None,
-        suffix: Optional[str] = None,
-        mpl_kwargs: Optional[dict[str, Any]] = None,
+        name: str | None = None,
+        suffix: str | None = None,
+        mpl_kwargs: dict[str, Any] | None = None,
     ):
         r"""
         Saves a 1d profile plot.
@@ -297,7 +297,7 @@ class ProfilePlot(BaseLinePlot):
         # Mypy is hardly convinced that we have a `profiles` attribute
         # at this stage, so we're lasily going to deactivate it locally
         unique = set(self.plots.values())
-        iters: Iterable[tuple[Union[int, FieldKey], PlotMPL]]
+        iters: Iterable[tuple[int | FieldKey, PlotMPL]]
         if len(unique) < len(self.plots):
             iters = enumerate(sorted(unique))
         else:
@@ -1226,9 +1226,7 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @validate_plot
-    def save(
-        self, name: Optional[str] = None, suffix: Optional[str] = None, mpl_kwargs=None
-    ):
+    def save(self, name: str | None = None, suffix: str | None = None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
 

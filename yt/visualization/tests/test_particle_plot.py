@@ -1,6 +1,5 @@
 import os
 import shutil
-import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -21,9 +20,6 @@ from yt.utilities.answer_testing.framework import (
 )
 from yt.visualization.api import ParticlePhasePlot, ParticlePlot, ParticleProjectionPlot
 from yt.visualization.tests.test_plotwindow import ATTR_ARGS, WIDTH_SPECS
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def setup_module():

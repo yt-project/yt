@@ -1,8 +1,6 @@
 import os
-import sys
 import weakref
 from collections import defaultdict
-from typing import Optional
 
 import numpy as np
 
@@ -21,9 +19,6 @@ from yt.funcs import mylog, setdefaultattr
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.exceptions import YTParticleDepositionNotImplemented
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class ARTIOOctreeSubset(OctreeSubset):
@@ -346,7 +341,7 @@ class ARTIOIndex(Index):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[tuple[int, ...]] = None,
+        axes: tuple[int, ...] | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.

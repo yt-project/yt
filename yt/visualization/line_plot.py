@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import Optional
 
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
@@ -163,7 +162,7 @@ class LinePlot(BaseLinePlot):
         end_point,
         npoints,
         figure_size=None,
-        fontsize: Optional[float] = None,
+        fontsize: float | None = None,
         field_labels=None,
     ):
         """

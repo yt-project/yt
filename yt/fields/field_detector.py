@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import Union
 
 import numpy as np
 
@@ -102,7 +101,7 @@ class FieldDetector(defaultdict):
             return arr
         return arr.reshape(self.ActiveDimensions, order="C")
 
-    def __missing__(self, item: Union[tuple[str, str], str]):
+    def __missing__(self, item: tuple[str, str] | str):
         from yt.fields.derived_field import NullFunc
 
         if not isinstance(item, tuple):

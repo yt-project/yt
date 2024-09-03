@@ -1,14 +1,10 @@
 import os
-import sys
 from collections import UserDict
 from io import StringIO
 
 import numpy as np
 
 from yt.funcs import mylog
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def get_thingking_deps():

@@ -1,7 +1,6 @@
 import os
 import re
 import string
-import sys
 import time
 import weakref
 from collections import defaultdict
@@ -21,9 +20,6 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
 
 from .fields import EnzoFieldInfo
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class EnzoGrid(AMRGridPatch):

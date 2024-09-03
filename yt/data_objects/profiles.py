@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 from more_itertools import collapse
 
@@ -24,9 +22,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
     parallel_objects,
 )
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def _sanitize_min_max_units(amin, amax, finfo, registry):

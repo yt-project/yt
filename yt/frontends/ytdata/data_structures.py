@@ -1,5 +1,4 @@
 import os
-import sys
 import weakref
 from collections import defaultdict
 from functools import cached_property
@@ -33,9 +32,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_roo
 from yt.utilities.tree_container import TreeContainer
 
 from .fields import YTDataContainerFieldInfo, YTGridFieldInfo
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 _grid_data_containers = ["arbitrary_grid", "covering_grid", "smoothed_covering_grid"]
 _set_attrs = {"periodicity": "_periodicity"}

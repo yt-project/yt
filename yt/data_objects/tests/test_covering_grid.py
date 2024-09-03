@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
@@ -12,10 +10,6 @@ from yt.testing import (
     requires_module,
 )
 from yt.units import kpc
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
-
 
 # cylindrical data for covering_grid test
 cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"

@@ -10,9 +10,6 @@ from yt.units import dimensions
 
 from .field_plugin_registry import register_field_plugin
 
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
-
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:

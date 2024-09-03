@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import UnstructuredMesh
@@ -12,9 +10,6 @@ from yt.utilities.logger import ytLogger as mylog
 
 from .fields import ExodusIIFieldInfo
 from .util import get_num_pseudo_dims, load_info_records, sanitize_string
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):

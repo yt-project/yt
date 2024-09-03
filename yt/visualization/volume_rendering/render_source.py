@@ -2,7 +2,7 @@ import abc
 import warnings
 from functools import wraps
 from types import ModuleType
-from typing import Literal, Optional, Union
+from typing import Literal
 
 import numpy as np
 
@@ -39,7 +39,7 @@ from .utils import (
 )
 from .zbuffer_array import ZBuffer
 
-OptionalModule = Union[ModuleType, NotAModule]
+OptionalModule = ModuleType | NotAModule
 mesh_traversal: OptionalModule = NotAModule("pyembree")
 mesh_construction: OptionalModule = NotAModule("pyembree")
 
@@ -144,7 +144,7 @@ class RenderSource(ParallelAnalysisInterface, abc.ABC):
 
     """
 
-    volume_method: Optional[str] = None
+    volume_method: str | None = None
 
     def __init__(self):
         super().__init__()

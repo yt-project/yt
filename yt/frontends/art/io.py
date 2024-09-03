@@ -1,6 +1,5 @@
 import os
 import os.path
-import sys
 from collections import defaultdict
 from functools import partial
 
@@ -16,9 +15,6 @@ from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class IOHandlerART(BaseIOHandler):

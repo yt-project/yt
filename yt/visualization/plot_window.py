@@ -2,7 +2,7 @@ import abc
 import sys
 from collections import defaultdict
 from numbers import Number
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import matplotlib
 import numpy as np
@@ -60,9 +60,6 @@ from .plot_container import (
 
 if TYPE_CHECKING:
     from yt.visualization.plot_modifications import PlotCallback
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
@@ -229,7 +226,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
-        self._frb: Optional[FixedResolutionBuffer] = None
+        self._frb: FixedResolutionBuffer | None = None
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
@@ -346,7 +343,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         # At this point the frb has the valid bounds, size, aliasing, etc.
         if old_fields is not None:
             # Restore the old fields
-            for key, units in zip(old_fields, old_units):
+            for key, units in zip(old_fields, old_units, strict=False):
                 self._frb.render(key)
                 equiv = self._equivalencies[key]
                 if equiv[0] is None:
@@ -869,8 +866,8 @@ class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
-    _frb_generator: Optional[type[FixedResolutionBuffer]] = None
-    _plot_type: Optional[str] = None
+    _frb_generator: type[FixedResolutionBuffer] | None = None
+    _plot_type: str | None = None
 
     def __init__(self, *args, **kwargs) -> None:
         if self._frb_generator is None:
@@ -1263,7 +1260,7 @@ class PWViewerMPL(PlotWindow):
         )
 
     @invalidate_plot
-    def clear_annotations(self, index: Optional[int] = None):
+    def clear_annotations(self, index: int | None = None):
         """
         Clear callbacks from the plot.  If index is not set, clear all
         callbacks.  If index is set, clear that index (ie 0 is the first one
@@ -1398,7 +1395,7 @@ class NormalPlot:
     """
 
     @staticmethod
-    def sanitize_normal_vector(ds, normal) -> Union[str, np.ndarray]:
+    def sanitize_normal_vector(ds, normal) -> str | np.ndarray:
         """Return the name of a cartesian axis whener possible,
         or a 3-element 1D ndarray of float64 in any other valid case.
         Fail with a descriptive error message otherwise.

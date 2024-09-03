@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 
@@ -28,7 +28,7 @@ header_dt = (
 KNOWN_REVISIONS: list[int] = [0, 1, 2]
 
 # using typing.Any here in lieu of numpy.typing.DTypeLike (should be backported for numpy < 1.20)
-HaloDataType = Union[tuple[str, Any], tuple[str, Any, tuple[int, int]]]
+HaloDataType = tuple[str, Any] | tuple[str, Any, tuple[int, int]]
 halo_dt: list[HaloDataType] = [
     ("particle_identifier", np.int64),
     ("particle_position_x", np.float32),

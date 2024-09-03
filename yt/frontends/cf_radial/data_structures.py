@@ -8,7 +8,6 @@ CF Radial data structures
 import contextlib
 import os
 import weakref
-from typing import Optional
 
 import numpy as np
 from unyt import unyt_array
@@ -91,10 +90,10 @@ class CFRadialDataset(Dataset):
         dataset_type="cf_radial",
         storage_filename=None,
         storage_overwrite: bool = False,
-        grid_shape: Optional[tuple[int, int, int]] = None,
-        grid_limit_x: Optional[tuple[float, float]] = None,
-        grid_limit_y: Optional[tuple[float, float]] = None,
-        grid_limit_z: Optional[tuple[float, float]] = None,
+        grid_shape: tuple[int, int, int] | None = None,
+        grid_limit_x: tuple[float, float] | None = None,
+        grid_limit_y: tuple[float, float] | None = None,
+        grid_limit_z: tuple[float, float] | None = None,
         units_override=None,
     ):
         """
@@ -195,7 +194,7 @@ class CFRadialDataset(Dataset):
         self.refine_by = 2  # refinement factor between a grid and its subgrid
 
     @contextlib.contextmanager
-    def _handle(self, filename: Optional[str] = None):
+    def _handle(self, filename: str | None = None):
         if filename is None:
             if hasattr(self, "filename"):
                 filename = self.filename
@@ -206,7 +205,7 @@ class CFRadialDataset(Dataset):
             yield xrds
 
     def _validate_grid_dim(
-        self, radar, dim: str, grid_limit: Optional[tuple[float, float]] = None
+        self, radar, dim: str, grid_limit: tuple[float, float] | None = None
     ) -> tuple[float, float]:
         if grid_limit is None:
             if dim.lower() == "z":
@@ -236,7 +235,7 @@ class CFRadialDataset(Dataset):
         return grid_limit
 
     def _validate_grid_shape(
-        self, grid_shape: Optional[tuple[int, int, int]] = None
+        self, grid_shape: tuple[int, int, int] | None = None
     ) -> tuple[int, int, int]:
         if grid_shape is None:
             grid_shape = (100, 100, 100)

@@ -47,6 +47,7 @@ def test_halo_loading():
     for halo_id, Npart in zip(
         ds.r["halos", "particle_identifier"],
         ds.r["halos", "num_p"],
+        strict=False,
     ):
         halo = ds.halo("halos", halo_id)
         assert halo is not None
