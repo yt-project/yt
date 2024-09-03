@@ -1,5 +1,4 @@
 import base64
-import builtins
 import os
 from collections.abc import Iterable
 from functools import wraps
@@ -9,6 +8,7 @@ import matplotlib
 import numpy as np
 from more_itertools.more import always_iterable, unzip
 
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt._typing import FieldKey
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
@@ -342,7 +342,7 @@ class ProfilePlot(BaseLinePlot):
         >>> pp.show()
 
         """
-        if "__IPYTHON__" in dir(builtins):
+        if IS_IPYTHON:
             from IPython.display import display
 
             display(self)

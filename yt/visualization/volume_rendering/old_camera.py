@@ -1,9 +1,9 @@
-import builtins
 import sys
 from copy import deepcopy
 
 import numpy as np
 
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
@@ -900,7 +900,7 @@ class Camera(ParallelAnalysisInterface):
         >>> cam.show()
 
         """
-        if "__IPYTHON__" in dir(builtins):
+        if IS_IPYTHON:
             from IPython.core.displaypub import publish_display_data
 
             image = self.snapshot()[:, :, :3]
