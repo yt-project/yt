@@ -21,7 +21,7 @@ jobs:
       matrix:
         os: [
           ubuntu-20.04,
-          windows-2019,
+          windows-2022,
           macos-13, # x86_64
           macos-14, # arm64
         ]
