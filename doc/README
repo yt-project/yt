@@ -1,0 +1,10 @@
+This directory contains the uncompiled yt documentation.  It's written to be
+used with Sphinx, a tool designed for writing Python documentation.  Sphinx is
+available at this URL:
+
+http://www.sphinx-doc.org/en/master/
+
+Because the documentation requires a number of dependencies, we provide
+pre-built versions online, accessible here:
+
+https://yt-project.org/docs/dev/

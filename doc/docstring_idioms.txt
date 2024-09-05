@@ -1,0 +1,54 @@
+Idioms for Docstrings in yt
+===========================
+
+For a full list of recognized constructs for marking up docstrings, see the
+Sphinx documentation:
+
+http://www.sphinx-doc.org/en/master/
+
+Specifically, this section:
+
+http://www.sphinx-doc.org/en/master/usage/restructuredtext/
+http://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#cross-referencing-syntax
+
+Variables in Examples
+---------------------
+
+In order to construct short, useful examples, some variables must be specified.
+However, because often examples require a bit of setup, here is a list of
+useful variable names that correspond to specific instances that the user is
+presupposed to have created.
+
+   * `ds`: a dataset, loaded successfully
+   * `sp`: a sphere
+   * `c`: a 3-component "center"
+   * `L`: a 3-component vector that corresponds to either angular momentum or a
+     normal vector
+
+Cross-Referencing
+-----------------
+
+To enable sufficient linkages between different sections of the documentation,
+good cross-referencing is key.  To reference a section of the documentation,
+you can use this construction:
+
+    For more information, see :ref:`image_writer`.
+
+This will insert a link to the section in the documentation which has been
+identified with `image_writer` as its name.
+
+Referencing Classes and Functions
+---------------------------------
+
+To indicate the return type of a given object, you can reference it using this
+construction:
+
+    This function returns a :class:`ProjectionPlot`.
+
+To reference a function, you can use:
+
+    To write out this array, use :func:`save_image`.
+
+To reference a method, you can use:
+
+    To add a projection, use :meth:`ProjectionPlot.set_width`.

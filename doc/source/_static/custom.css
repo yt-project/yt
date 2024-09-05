@@ -1,0 +1,117 @@
+blockquote {
+    font-size: 16px;
+    border-left: none;
+}
+
+dd {
+    margin-left: 30px;
+}
+
+/*
+
+Collapse the navbar when its width is less than 1200 pixels.  This may need to
+be adjusted if the navbar menu changes.
+
+*/
+
+@media (max-width: 1200px) {
+    .navbar-header {
+        float: none;
+    }
+    .navbar-toggle {
+        display: block;
+    }
+    .navbar-collapse {
+        border-top: 1px solid transparent;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    .navbar-collapse.collapse {
+        display: none!important;
+    }
+    .navbar-nav {
+        float: none!important;
+        margin: 7.5px -15px;
+    }
+    .navbar-nav>li {
+        float: none;
+    }
+    .navbar-nav>li>a {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    /* since 3.1.0 */
+    .navbar-collapse.collapse.in {
+        display: block!important;
+    }
+    .collapsing {
+        overflow: hidden!important;
+    }
+}
+
+/*
+
+Sphinx code literals conflict with the notebook code tag, so we special-case
+literals that are inside text.
+
+*/
+
+p code {
+    color:  #d14;
+    white-space: nowrap;
+    font-size: 90%;
+    background-color: #f9f2f4;
+    font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/*
+
+Nicer, controllable formatting for tables that have multi-line headers.
+
+*/
+
+th.head {
+    white-space: pre;
+}
+
+/*
+
+labels have a crappy default color that is almost invisible in our doc theme so
+we use a darker color.
+
+*/
+
+.label {
+    color: #333333;
+}
+
+/*
+
+Hack to prevent internal link targets being positioned behind the navbar.
+
+See: https://github.com/twbs/bootstrap/issues/1768
+
+*/
+
+*[id]:before :not(p) {
+  display: block;
+  content: " ";
+  margin-top: -45px;
+  height: 45px;
+  visibility: hidden;
+}
+
+/*
+
+Make tables span only half the page.
+
+*/
+
+.table {
+    width: 50%
+}
+
+
+.navbar-form.navbar-right:last-child {
+    margin-right: -60px;
+    float: left !important;
+}

@@ -1,0 +1,13 @@
+# config file for mergeable: https://github.com/mergeability/mergeable
+version: 2
+mergeable:
+  - when: pull_request.*
+    validate:
+      - do: title
+        must_exclude:
+          regex: ^\[?WIP\b
+          message: "WIP pull requests can't be merged."
+      - do: label
+        must_include:
+          regex: 'bug|enhancement|new feature|docs|infrastructure|dead code|refactor'
+          message: "Please label this pull request with one of: bug, enhancement, new feature, docs or infrastructure."

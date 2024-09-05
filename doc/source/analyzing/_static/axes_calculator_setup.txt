@@ -1,0 +1,24 @@
+NAME = "axes_calculator"
+EXT_SOURCES = ["axes.c"]
+EXT_LIBRARIES = []
+EXT_LIBRARY_DIRS = []
+EXT_INCLUDE_DIRS = []
+DEFINES = []
+
+from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Distutils import build_ext
+
+ext_modules = [Extension(NAME,
+                 [NAME+".pyx"] + EXT_SOURCES,
+                 libraries = EXT_LIBRARIES,
+                 library_dirs = EXT_LIBRARY_DIRS,
+                 include_dirs = EXT_INCLUDE_DIRS,
+                 define_macros = DEFINES)
+]
+
+setup(
+  name = NAME,
+  cmdclass = {'build_ext': build_ext},
+  ext_modules = ext_modules
+)

@@ -1,0 +1,16 @@
+[run]
+plugins = Cython.Coverage
+branch = True
+
+[report]
+omit=*.yml
+     */api.py
+	 */__init__.py
+	 */__config__.py
+	 */tests/*
+	 yt/analysis_modules/*
+	 yt/mods.py
+	 yt/utilities/fits_image.py
+	 yt/utilities/lodgeit.py
+
+ignore_errors = True

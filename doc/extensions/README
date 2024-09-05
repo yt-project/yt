@@ -1,0 +1,4 @@
+This includes a version of the Numpy Documentation extension that has been
+slightly modified to emit extra TOC tree items.
+
+-- Matt Turk, March 25, 2011
