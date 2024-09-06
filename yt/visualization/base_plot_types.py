@@ -341,7 +341,11 @@ class ImagePlotMPL(PlotMPL, ABC):
         self.image.axes.set_facecolor(self.colorbar_handler.background_color)
 
         self.cax.tick_params(which="both", direction="in")
-        self.cb = self.figure.colorbar(self.image, self.cax)
+
+        # For creating a multipanel plot by ImageGrid, we need the location keyword
+        self.cb = self.figure.colorbar(
+            self.image, self.cax, location=getattr(self.cax, "orientation", None)
+        )
 
         cb_axis: Axis
         if self.cb.orientation == "vertical":
