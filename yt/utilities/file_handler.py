@@ -92,6 +92,24 @@ def valid_netcdf_signature(fn: str, /) -> bool:
         )
 
 
+class OpenPMDFileHandler:
+    handle = None
+
+    def __init__(self, filename):
+        from yt.utilities.on_demand_imports import _openpmd_api
+
+        io = _openpmd_api.io
+        self.handle = io.Series(filename, io.Access_Type.read_only)
+
+    @property
+    def attrs(self):
+        return self.handle.attributes
+
+    def close(self):
+        if self.handle is not None:
+            self.handle.close()
+
+
 def valid_netcdf_classic_signature(filename):
     issue_deprecation_warning(
         "valid_netcdf_classic_signature is not used within yt any more and is deprecated.",

@@ -52,11 +52,11 @@ def parse_unit_dimension(unit_dimension):
 
 
 def is_const_component(record_component):
-    """Determines whether a group or dataset in the HDF5 file is constant.
+    """Determines whether an iteration record is constant
 
     Parameters
     ----------
-    record_component : h5py.Group or h5py.Dataset
+    record_component : openpmd_api.openpmd_api_cxx.Record_component
 
     Returns
     -------
@@ -68,23 +68,104 @@ def is_const_component(record_component):
     .. https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md,
        section 'Constant Record Components'
     """
-    return "value" in record_component.attrs.keys()
+    return "value" in record_component.attributes
 
 
-def get_component(group, component_name, index=0, offset=None):
-    """Grabs a dataset component from a group as a whole or sliced.
+"""
+def component_ordering(record_component = np.array, geometry = str, data_order = str, axes_labels = list):
+    This function converts arrays of the on-disk record component shape to a readable, column-major style
+    Example
+    -------
+    np.shape(record_component_array) == (256, 512), C-order (row-major, ie axes_labels = ['z', 'x']
+
+    component_ordering(record_component_array) == np.array([512,256]) to represent [nX, nZ] where nX and nZ are
+    the number of cells in the x and z dimensions
 
     Parameters
     ----------
-    group : h5py.Group
-    component_name : str
-        relative path of the component in the group
+    mesh: openpmd_api.openpmd_api_cxx.Mesh
+    record_axis: a string which specifies which desired axis
+
+    Returns
+    -------
+    int
+        specifying index of axis
+    if "cartesian" in geometry:
+        if data_order == "C": #row major
+            assert(axes_labels == sorted(axes_labels)[::-1]) #is this true generally?
+            #[::-1]
+            return record_component
+        elif data_order == "F": #column major
+            assert(axes_labels == sorted(axes_labels))
+            mylog.warning("Fortran dataOrder is not yet supported :( ")
+            raise NotImplementedError
+    else:
+        mylog.warning("'{}' geometry is not yet supported :( )".format(geometry))
+        raise NotImplementedError
+"""
+
+
+def pad_to_threed(
+    record_component=np.array,
+    fill_value=int,
+    geometry=str,
+    axes_labels=list,
+    data_order=str,
+):
+    """This function converts grid and domain dimension/edge arrays to column-major, 3D arrays with
+    padded dimensions filled with fill_value.
+    """
+    if "cartesian" in geometry:
+        if data_order == "C":
+            assert sorted(axes_labels) == axes_labels[::-1]
+            record_component = record_component[::-1]
+        elif data_order == "F":
+            assert sorted(axes_labels) == axes_labels
+        record_component = np.append(
+            record_component, np.full(3 - record_component.shape[0], fill_value)
+        )
+        return record_component
+    else:
+        mylog.warning(f"'{geometry}' geometry is not yet supported :( )")
+        raise NotImplementedError
+
+
+def coordinate_mapping(component=str):
+    """Conversion between yt axes and openpmd_api axes.
+    Parameters
+    ----------
+    component : string
+        component is a constant record component refering to the axis omitted in the simulation
+
+    Example
+    --------
+    Dataset has MeshRecord.axes_labels == ['z', 'x'] which is transposed for yt to
+    result in a OpenPMDDataset with domain_dimensions = [nX, nZ, 1]
+    where nX and nZ represent the number of cells along the now X and Y axes, and the z axis has been padded.
+
+    When we annotate particles, yt will call on x and y particle postitions, but y particle positions are
+    actually z particle positions in the openpmd_api.
+
+    """
+    coord_dict = {"x": "x", "y": "z", "z": "y"}
+    return coord_dict[component]
+
+
+def get_component(record, record_axis, index=0, extent=None):
+    """Grabs a Record Component from a Record as a whole or sliced.
+
+    Parameters
+    ----------
+    record : openpmd_api_cxx.Record
+    record_axis : str
+        the openpmd_api_cxx.Record_Component string key, not necessarily a physical axis
     index : int, optional
         first entry along the first axis to read
-    offset : int, optional
+    extent : int, optional
         number of entries to read
-        if not supplied, every entry after index is returned
-
+        note that the previous frontend named this variable offset,
+        which we thinks adds some confusion.
+        If not supplied, every entry after index is returned.
     Notes
     -----
     This scales every entry of the component with the respective "unitSI".
@@ -95,18 +176,32 @@ def get_component(group, component_name, index=0, offset=None):
         (N,) 1D in case of particle data
         (O,P,Q) 1D/2D/3D in case of mesh data
     """
-    record_component = group[component_name]
-    unit_si = record_component.attrs["unitSI"]
+    record_component = record[record_axis]
+    unit_si = record_component.get_attribute("unitSI")
     if is_const_component(record_component):
-        shape = np.asarray(record_component.attrs["shape"])
-        if offset is None:
-            shape[0] -= index
+        shape = np.asarray(record_component.get_attribute("shape"))
+        if extent is None:
+            shape -= index
         else:
-            shape[0] = offset
+            shape = extent
         # component is constant, craft an array by hand
-        return np.full(shape, record_component.attrs["value"] * unit_si)
+        registered = record_component.get_attribute("value")
+        return np.full(shape, registered * unit_si)
     else:
-        if offset is not None:
-            offset += index
-        # component is a dataset, return it (possibly masked)
-        return np.multiply(record_component[index:offset], unit_si)
+        if extent is not None:
+            extent += index
+            if len(record_component.shape) == 3:
+                registered = record_component[
+                    index[0] : extent[0], index[1] : extent[1], index[2] : extent[2]
+                ]
+            elif len(record_component.shape) == 2:
+                registered = record_component[
+                    index[0] : extent[0], index[1] : extent[1]
+                ]
+            elif len(record_component.shape) == 1:
+                registered = record_component[index:extent]
+        else:
+            # when we don't slice we have to `load_chunk()`
+            registered = record_component.load_chunk()
+        record_component.series_flush()
+        return np.multiply(registered, unit_si)
