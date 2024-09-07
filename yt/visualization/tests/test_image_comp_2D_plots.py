@@ -147,6 +147,24 @@ def test_particleprojectionplot_set_colorbar_properties():
     return p.plots[field].figure
 
 
+@pytest.mark.skipif(
+    mpl.__version_info__ < (3, 7),
+    reason="colorbar cannot currently be set horizontal in multi-panel plot with matplotlib older than 3.7.0",
+)
+@pytest.mark.parametrize("cbar_location", ["top", "bottom", "left", "right"])
+@pytest.mark.mpl_image_compare
+def test_multipanelplot_colorbar_orientation(cbar_location):
+    ds = fake_random_ds(16)
+    fields = [
+        ("gas", "density"),
+        ("gas", "velocity_x"),
+        ("gas", "velocity_y"),
+        ("gas", "velocity_magnitude"),
+    ]
+    p = SlicePlot(ds, "z", fields)
+    return p.export_to_mpl_figure((2, 2), cbar_location=cbar_location)
+
+
 class TestProfilePlot:
     @classmethod
     def setup_class(cls):
