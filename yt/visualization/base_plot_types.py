@@ -353,7 +353,7 @@ class ImagePlotMPL(PlotMPL, ABC):
                     "Colorbar orientation would be wrong in the current Matplotlib version (< 3.7.0)",
                     stacklevel=6,
                 )
-                self.cb = self.figure.colorbar(self.image, self.cax)
+            self.cb = self.figure.colorbar(self.image, self.cax)
 
         cb_axis: Axis
         if self.cb.orientation == "vertical":
