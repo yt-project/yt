@@ -346,15 +346,14 @@ class ImagePlotMPL(PlotMPL, ABC):
         # we may need the location keyword, which was introduced since Matplotlib 3.7.0
         cb_location = getattr(self.cax, "orientation", None)
         if matplotlib.__version_info__ >= (3, 7):
-            cb_kwargs = {"location": cb_location}
+            self.cb = self.figure.colorbar(self.image, self.cax, location=cb_location)
         else:
-            cb_kwargs = {}
             if cb_location in ["top", "bottom"]:
                 warnings.warn(
                     "Colorbar orientation would be wrong in the current Matplotlib version (< 3.7.0)",
                     stacklevel=6,
                 )
-        self.cb = self.figure.colorbar(self.image, self.cax, **cb_kwargs)
+                self.cb = self.figure.colorbar(self.image, self.cax)
 
         cb_axis: Axis
         if self.cb.orientation == "vertical":
