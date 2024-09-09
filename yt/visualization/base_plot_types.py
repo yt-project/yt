@@ -352,7 +352,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             if cb_location in ["top", "bottom"]:
                 warnings.warn(
                     "Colorbar orientation would be wrong in the current Matplotlib version (< 3.7.0)",
-                    stacklevel=2,
+                    stacklevel=6,
                 )
         self.cb = self.figure.colorbar(self.image, self.cax, **cb_kwargs)
 
