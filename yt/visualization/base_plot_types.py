@@ -540,7 +540,9 @@ class ImagePlotMPL(PlotMPL, ABC):
         labels = super()._get_labels()
         cbax = self.cb.ax
         labels += cbax.yaxis.get_ticklabels()
+        labels += cbax.xaxis.get_ticklabels()
         labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
+        labels += [cbax.xaxis.label, cbax.xaxis.get_offset_text()]
         return labels
 
     def hide_axes(self, *, draw_frame=None):
