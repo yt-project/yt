@@ -538,11 +538,12 @@ class ImagePlotMPL(PlotMPL, ABC):
 
     def _get_labels(self):
         labels = super()._get_labels()
-        cbax = self.cb.ax
-        labels += cbax.yaxis.get_ticklabels()
-        labels += cbax.xaxis.get_ticklabels()
-        labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
-        labels += [cbax.xaxis.label, cbax.xaxis.get_offset_text()]
+        if getattr(self.cb, "orientation", "vertical") == "horizontal":
+            cbaxis = self.cb.ax.xaxis
+        else:
+            cbaxis = self.cb.ax.yaxis
+        labels += cbaxis.get_ticklabels()
+        labels += [cbaxis.label, cbaxis.get_offset_text()]
         return labels
 
     def hide_axes(self, *, draw_frame=None):
