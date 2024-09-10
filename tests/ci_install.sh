@@ -32,7 +32,7 @@ fi
 # but the primary intention is to embed this script in CI jobs
 if [[ ${dependencies} == "minimal" ]]; then
     # test with minimal versions of runtime dependencies
-    python -m pip install -e ".[test,minimal]"
+    python -m pip install -e ".[test]" -r requirements/minimal_env.txt
 elif [[ ${dependencies} == "cartopy" ]]; then
     python -m pip install 'cartopy>=0.22'
     # scipy is an optional dependency to cartopy
