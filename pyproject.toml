@@ -42,6 +42,8 @@ keywords = [
     "astronomy astrophysics visualization amr adaptivemeshrefinement",
 ]
 requires-python = ">=3.9.2"
+
+# keep in sync with requirements/minimal_env.txt
 dependencies = [
     "cmyt>=1.1.2",
     "ewah-bool-utils>=1.2.0",
@@ -190,36 +192,8 @@ full = [
 ]
 
 # dev-only extra targets
-doc = [
-    "alabaster>=0.7.13",
-    "bottle>=0.12.25",
-    "ipykernel>=6.29.4",
-    "jinja2<3.1.0", # see https://github.com/readthedocs/readthedocs.org/issues/9037
-    "jupyter-client>=8.3.1",
-    "nbsphinx>=0.9.3",
-    "nose~=1.3.7; python_version < '3.10'",
-    "pytest>=6.1",
-    "pyx>=0.15",
-    "sphinx>=7.2.5",
-    "sphinx-bootstrap-theme>=0.8.1",
-    "sphinx-rtd-theme>=1.3.0",
-]
 mapserver = [
     "bottle",
-]
-minimal = [
-    "cmyt==1.1.2",
-    "ewah-bool-utils==1.2.0",
-    "matplotlib==3.5",
-    "more-itertools==8.4",
-    "numpy==1.19.3",
-    "packaging==20.9",
-    "pillow==8.0.0",
-    "tomli-w==0.4.0",
-    "tqdm==3.4.0",
-    "unyt==2.9.2",
-    "tomli==1.2.3;python_version < '3.11'",
-    "typing-extensions==4.4.0;python_version < '3.12'",
 ]
 test = [
     "pyaml>=17.10.0",
@@ -230,13 +204,6 @@ test = [
     "nose-exclude; python_version < '3.10'",
     "nose-timer~=1.0.0; python_version < '3.10'",
     "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
-]
-typecheck = [
-    "mypy==1.8.0",
-    "types-PyYAML==6.0.12.12",
-    "types-chardet==5.0.4.6",
-    "types-requests==2.31.0.20240125",
-    "typing-extensions==4.4.0; python_version < '3.12'",
 ]
 
 [project.scripts]

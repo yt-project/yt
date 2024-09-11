@@ -70,5 +70,6 @@ include yt/default.mplstyle
 
 prune yt/frontends/_skeleton
 recursive-include yt/frontends/amrvac *.par
+recursive-exclude requirements *.txt
 exclude .codecov.yml .coveragerc .git-blame-ignore-revs .gitmodules .hgchurn .mailmap
 exclude .pre-commit-config.yaml clean.sh nose_answer.cfg nose_unit.cfg nose_ignores.txt
