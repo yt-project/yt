@@ -11,9 +11,11 @@ from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
+from yt.utilities.exceptions import YTException
 from yt.utilities.lib.api import (  # type: ignore
     CICDeposit_2,
     add_points_to_greyscale_image,
+    add_points_to_greyscale_image_with_lagrangian_tesselation,
 )
 from yt.utilities.lib.pixelization_routines import (
     pixelize_cylinder,
@@ -719,9 +721,11 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         if axis is not None:
             self.xax = self.ds.coordinates.x_axis[axis]
             self.yax = self.ds.coordinates.y_axis[axis]
+            self.zax = list({0, 1, 2} - {self.xax, self.yax})[0]
             axis_name = self.ds.coordinates.axis_name
             self.x_field = f"particle_position_{axis_name[self.xax]}"
             self.y_field = f"particle_position_{axis_name[self.yax]}"
+            self.z_field = f"particle_position_{axis_name[self.zax]}"
 
     @override
     def _generate_image_and_mask(self, item) -> None:
@@ -809,6 +813,43 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 buff_mask,
                 x_bin_edges,
                 y_bin_edges,
+            )
+        elif deposition == "lagrangian_tesselation":
+            z_data = self.data_source.dd[ftype, self.z_field]
+            dz = z_data.in_units("code_length").d
+            # TODO: handle periodicity
+            pz = dz / (bounds[1] - bounds[0])
+            order = np.argsort(self.data_source.dd[ftype, "particle_index"])
+
+            # Check all particles have the same mass
+            if not np.allclose(
+                self.data_source.dd[ftype, "particle_mass"].v,
+                self.data_source.dd[ftype, "particle_mass"][0].v,
+            ):
+                raise YTException(
+                    "Particles must have the same mass for Lagrangian "
+                    "tesselation to make sense."
+                )
+
+            # Check particles are compatible with being initially on a grid
+            Ngrid = 1
+            while Ngrid**3 < len(order):
+                Ngrid += 1
+
+            if Ngrid**3 != len(order):
+                raise YTException(
+                    "Particles must initially reside on a grid for Lagrangian "
+                    "tesselation to make sense."
+                )
+            p3d = np.stack([px[order], py[order], pz[order]], axis=1).reshape(
+                Ngrid, Ngrid, Ngrid, 3
+            )
+
+            add_points_to_greyscale_image_with_lagrangian_tesselation(
+                buff,
+                buff_mask,
+                p3d.copy(),
+                splat_vals[None, None, :],
             )
         else:
             raise ValueError(f"Received unknown deposition method '{deposition}'")
