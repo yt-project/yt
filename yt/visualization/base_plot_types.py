@@ -343,14 +343,15 @@ class ImagePlotMPL(PlotMPL, ABC):
         self.cax.tick_params(which="both", direction="in")
 
         # For creating a multipanel plot by ImageGrid
-        # we may need the location keyword, which was introduced since Matplotlib 3.7.0
+        # we may need the location keyword, which requires Matplotlib >= 3.7.0
         cb_location = getattr(self.cax, "orientation", None)
         if matplotlib.__version_info__ >= (3, 7):
             self.cb = self.figure.colorbar(self.image, self.cax, location=cb_location)
         else:
             if cb_location in ["top", "bottom"]:
                 warnings.warn(
-                    "Colorbar orientation would be wrong in the current Matplotlib version (< 3.7.0)",
+                    "Cannot properly set the orientation of colorbar. "
+                    "Consider upgrading matplotlib to version 3.7 or newer",
                     stacklevel=6,
                 )
             self.cb = self.figure.colorbar(self.image, self.cax)
