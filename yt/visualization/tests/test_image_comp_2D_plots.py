@@ -174,9 +174,7 @@ class TestMultipanelPlot:
         if mpl.__version_info__ < (3, 7):
             with pytest.warns(
                 UserWarning,
-                match=(
-                    r"Colorbar orientation would be wrong in the current Matplotlib version \(\< 3\.7\.0\)"
-                ),
+                match="Cannot properly set the orientation of colorbar.",
             ):
                 p.export_to_mpl_figure((2, 2), cbar_location=cbar_location)
         else:
