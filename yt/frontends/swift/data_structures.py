@@ -2,11 +2,10 @@ import numpy as np
 
 from yt.data_objects.static_output import ParticleFile
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
+from yt.frontends.sph.fields import SPHFieldInfo
 from yt.funcs import only_on_root
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
-
-from .fields import SwiftFieldInfo
 
 
 class SwiftParticleFile(ParticleFile):
@@ -16,7 +15,7 @@ class SwiftParticleFile(ParticleFile):
 class SwiftDataset(SPHDataset):
     _load_requirements = ["h5py"]
     _index_class = SPHParticleIndex
-    _field_info_class = SwiftFieldInfo
+    _field_info_class = SPHFieldInfo
     _file_class = SwiftParticleFile
 
     _particle_mass_name = "Masses"
@@ -98,15 +97,7 @@ class SwiftDataset(SPHDataset):
         # Read from the HDF5 file, this gives us all the info we need. The rest
         # of this function is just parsing.
         header = self._get_info_attributes("Header")
-        # RuntimePars were removed from snapshots at SWIFT commit 6271388
-        # between SWIFT versions 0.8.5 and 0.9.0
-        with h5py.File(self.filename, mode="r") as handle:
-            has_runtime_pars = "RuntimePars" in handle.keys()
-
-        if has_runtime_pars:
-            runtime_parameters = self._get_info_attributes("RuntimePars")
-        else:
-            runtime_parameters = {}
+        # runtime_parameters = self._get_info_attributes("RuntimePars")
 
         policy = self._get_info_attributes("Policy")
         # These are the parameterfile parameters from *.yml at runtime
@@ -122,10 +113,7 @@ class SwiftDataset(SPHDataset):
         self.dimensionality = int(header["Dimension"])
 
         # SWIFT is either all periodic, or not periodic at all
-        if has_runtime_pars:
-            periodic = int(runtime_parameters["PeriodicBoundariesOn"])
-        else:
-            periodic = int(parameters["InitialConditions:periodic"])
+        periodic = int(parameters["InitialConditions:periodic"])
 
         if periodic:
             self._periodicity = [True] * self.dimensionality
@@ -143,14 +131,7 @@ class SwiftDataset(SPHDataset):
                 self.current_redshift = float(header["Redshift"])
                 # These won't be present if self.cosmological_simulation is false
                 self.omega_lambda = float(parameters["Cosmology:Omega_lambda"])
-                # Cosmology:Omega_m parameter deprecated at SWIFT commit d2783c2
-                # Between SWIFT versions 0.9.0 and 1.0.0
-                if "Cosmology:Omega_cdm" in parameters:
-                    self.omega_matter = float(parameters["Cosmology:Omega_b"]) + float(
-                        parameters["Cosmology:Omega_cdm"]
-                    )
-                else:
-                    self.omega_matter = float(parameters["Cosmology:Omega_m"])
+                self.omega_matter = float(parameters["Cosmology:Omega_m"])
                 # This is "little h"
                 self.hubble_constant = float(parameters["Cosmology:h"])
             except KeyError:
@@ -174,10 +155,9 @@ class SwiftDataset(SPHDataset):
         # Store the un-parsed information should people want it.
         self.parameters = {
             "header": header,
+            # "runtime_parameters": runtime_parameters,
             "policy": policy,
             "parameters": parameters,
-            # NOTE: runtime_parameters may be empty
-            "runtime_parameters": runtime_parameters,
             "hydro": hydro,
             "subgrid": subgrid,
         }
