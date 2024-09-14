@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, TypeAlias
 
 import numpy as np
 import unyt as un
@@ -25,7 +25,7 @@ AxisName = str
 AxisOrder = tuple[AxisName, AxisName, AxisName]
 
 # types that can be converted to un.Unit
-Unit = un.Unit | str
+Unit: TypeAlias = un.Unit | str
 
 # types that can be converted to un.unyt_quantity
 Quantity = un.unyt_quantity | tuple[float, Unit]
