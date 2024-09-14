@@ -134,7 +134,7 @@ class FixedResolutionBuffer:
         # the filter methods for the present class are defined only when
         # fixed_resolution_filters is imported, so we need to guarantee
         # that it happens no later than instantiation
-        from yt.visualization.fixed_resolution_filters import (
+        from yt.visualization.fixed_resolution_filters import (  # noqa
             FixedResolutionBufferFilter,
         )
 

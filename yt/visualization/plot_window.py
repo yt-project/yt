@@ -2,7 +2,7 @@ import abc
 import sys
 from collections import defaultdict
 from numbers import Number
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import matplotlib
 import numpy as np
@@ -54,6 +54,9 @@ from .plot_container import (
     invalidate_figure,
     invalidate_plot,
 )
+
+if TYPE_CHECKING:
+    from yt.visualization.plot_modifications import PlotCallback
 
 if sys.version_info < (3, 10):
     from yt._maintenance.backports import zip
@@ -866,7 +869,6 @@ class PWViewerMPL(PlotWindow):
         # the filter methods for the present class are defined only when
         # fixed_resolution_filters is imported, so we need to guarantee
         # that it happens no later than instantiation
-        from yt.visualization.plot_modifications import PlotCallback
 
         self._callbacks: list[PlotCallback] = []
 

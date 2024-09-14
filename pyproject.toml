@@ -261,6 +261,7 @@ select = [
     "C4",   # flake8-comprehensions
     "B",    # flake8-bugbear
     "G",    # flake8-logging-format
+    "TCH",  # flake8-type-checking
     "YTT",  # flake8-2020
     "UP",   # pyupgrade
     "I",    # isort

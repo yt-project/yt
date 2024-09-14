@@ -1,8 +1,7 @@
 import base64
 import os
-from collections.abc import Iterable
 from functools import wraps
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import matplotlib
 import numpy as np
@@ -27,6 +26,11 @@ from .plot_container import (
     invalidate_plot,
     validate_plot,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from yt._typing import FieldKey
 
 
 def invalidate_profile(f):
