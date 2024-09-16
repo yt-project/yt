@@ -9,6 +9,7 @@ import sys
 import time
 import types
 import warnings
+from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from urllib.parse import urlsplit
@@ -697,7 +698,7 @@ def load_amr_grids(
 
 
 def load_particles(
-    data: dict[AnyFieldKey, np.ndarray],
+    data: Mapping[AnyFieldKey, Union[np.ndarray, tuple[np.ndarray, str]]],
     length_unit=None,
     bbox=None,
     sim_time=None,
@@ -836,7 +837,7 @@ def load_particles(
     field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
-    pdata: dict[AnyFieldKey, np.ndarray] = {}
+    pdata: dict[AnyFieldKey, Union[np.ndarray, tuple[np.ndarray, str]]] = {}
     for key in data.keys():
         field: FieldKey
         if not isinstance(key, tuple):

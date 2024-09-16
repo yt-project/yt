@@ -1654,6 +1654,7 @@ class FITSOffAxisProjection(FITSImageData):
                 north_vector=north_vector,
                 method=method,
                 weight=weight_field,
+                depth=depth,
             ).swapaxes(0, 1)
 
             if moment == 2:
@@ -1681,6 +1682,7 @@ class FITSOffAxisProjection(FITSImageData):
                     north_vector=north_vector,
                     method=method,
                     weight=weight_field,
+                    depth=depth,
                 ).swapaxes(0, 1)
 
                 buf[key] = compute_stddev_image(buff2, buf[key])

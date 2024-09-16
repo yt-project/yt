@@ -2443,6 +2443,8 @@ class StereoSphericalCamera(Camera):
 data_object_registry["stereospherical_camera"] = StereoSphericalCamera
 
 
+# replaced in volume_rendering API by the function of the same name in
+# yt/visualization/volume_rendering/off_axis_projection
 def off_axis_projection(
     ds,
     center,
