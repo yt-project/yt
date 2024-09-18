@@ -6,11 +6,10 @@ import shutil
 import sys
 import tempfile
 import unittest
-from collections.abc import Mapping
 from functools import wraps
 from importlib.util import find_spec
 from shutil import which
-from typing import Callable, Union
+from typing import TYPE_CHECKING, Callable, Union
 from unittest import SkipTest
 
 import matplotlib
@@ -20,12 +19,16 @@ from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey
 from yt.config import ytcfg
 from yt.frontends.stream.data_structures import StreamParticlesDataset
 from yt.funcs import is_sequence
 from yt.loaders import load, load_particles
 from yt.units.yt_array import YTArray, YTQuantity
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from yt._typing import AnyFieldKey
 
 if sys.version_info < (3, 10):
     from yt._maintenance.backports import zip

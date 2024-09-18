@@ -1,10 +1,12 @@
 import os
+import warnings
 from functools import partial
 
 import numpy as np
 
 from yt import units
 from yt._typing import KnownFieldsT
+from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.ramses.io import convert_ramses_conformal_time_to_physical_age
 from yt.utilities.cython_fortran_utils import FortranFile
@@ -196,10 +198,38 @@ class RAMSESFieldInfo(FieldInfoContainer):
         )
 
     def setup_fluid_fields(self):
-        def _temperature(field, data):
+        def _temperature_over_mu(field, data):
             rv = data["gas", "pressure"] / data["gas", "density"]
             rv *= mass_hydrogen_cgs / boltzmann_constant_cgs
             return rv
+
+        self.add_field(
+            ("gas", "temperature_over_mu"),
+            sampling_type="cell",
+            function=_temperature_over_mu,
+            units=self.ds.unit_system["temperature"],
+        )
+        found_cooling_fields = self.create_cooling_fields()
+
+        if found_cooling_fields:
+
+            def _temperature(field, data):
+                return data["gas", "temperature_over_mu"] * data["gas", "mu"]
+
+        else:
+
+            def _temperature(field, data):
+                if not isinstance(data, FieldDetector):
+                    warnings.warn(
+                        "Trying to calculate temperature but the cooling tables "
+                        "couldn't be found or read. yt will return T/µ instead of "
+                        "T — this is equivalent to assuming µ=1.0. To suppress this, "
+                        "derive the temperature from temperature_over_mu with "
+                        "some values for mu.",
+                        category=RuntimeWarning,
+                        stacklevel=1,
+                    )
+                return data["gas", "temperature_over_mu"]
 
         self.add_field(
             ("gas", "temperature"),
@@ -207,7 +237,6 @@ class RAMSESFieldInfo(FieldInfoContainer):
             function=_temperature,
             units=self.ds.unit_system["temperature"],
         )
-        self.create_cooling_fields()
 
         self.species_names = [
             known_species_names[fn]
@@ -373,7 +402,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
                     units=flux_unit,
                 )
 
-    def create_cooling_fields(self):
+    def create_cooling_fields(self) -> bool:
+        "Create cooling fields from the cooling files. Return True if successful."
         num = os.path.basename(self.ds.parameter_filename).split(".")[0].split("_")[1]
         filename = "%s/cooling_%05i.out" % (
             os.path.dirname(self.ds.parameter_filename),
@@ -382,15 +412,15 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         if not os.path.exists(filename):
             mylog.warning("This output has no cooling fields")
-            return
+            return False
 
         # Function to create the cooling fields
         def _create_field(name, interp_object, unit):
             def _func(field, data):
-                shape = data["gas", "temperature"].shape
+                shape = data["gas", "temperature_over_mu"].shape
                 d = {
                     "lognH": np.log10(_X * data["gas", "density"] / mh).ravel(),
-                    "logT": np.log10(data["gas", "temperature"]).ravel(),
+                    "logT": np.log10(data["gas", "temperature_over_mu"]).ravel(),
                 }
                 rv = interp_object(d).reshape(shape)
                 if name[-1] != "mu":
@@ -425,7 +455,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                         "This cooling file format is no longer supported. "
                         "Cooling field loading skipped."
                     )
-                    return
+                    return False
                 if var.size == n1 * n2:
                     tvals[tname] = {
                         "data": var.reshape((n1, n2), order="F"),
@@ -446,7 +476,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             ["lognH", "logT"],
             truncate=True,
         )
-        _create_field(("gas", "mu"), interp, tvals["mu"]["unit"])
+        _create_field(("gas", "mu"), interp, "dimensionless")
 
         # Add the number density field, based on mu
         def _number_density(field, data):
@@ -504,3 +534,5 @@ class RAMSESFieldInfo(FieldInfoContainer):
             function=_net_cool,
             units=cooling_function_units,
         )
+
+        return True
