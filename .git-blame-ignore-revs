@@ -50,3 +50,6 @@ ec8bb45ea1603f3862041fa9e8ec274afd9bbbfd
 
 # migration: black -> ruff-format
 3214662dc7d53f7ac56b3589c5a27ef075f83ab4
+
+# auto upgrade syntax from Python 3.9 to 3.10
+e86625e780b77a42aedad711e5a9a945ce650974
