@@ -60,6 +60,22 @@ class BaseIOHandler:
             raise ValueError
         self.queue[grid][field] = data
 
+    @property
+    def _particle_dtypes(self) -> defaultdict[FieldKey, type]:
+        # returns a defaultdict of data types for particle fields.
+        # defaults for all fields are float64, except for the particle_index
+        # field (or its alias if it exists), which is set as int64. Important
+        # to note that the data type will only be preserved for direct reads
+        # and any operations will either implicity (via unyt) or explicitly
+        # convert to float64.
+        dtypes: defaultdict[FieldKey, type] = defaultdict(lambda: np.float64)
+        for ptype in self.ds.particle_types:
+            p_index = (ptype, "particle_index")
+            if p_index in self.ds.field_info.field_aliases:
+                p_index = self.ds.field_info.field_aliases[p_index]
+            dtypes[p_index] = np.int64
+        return dtypes
+
     def _field_in_backup(self, grid, backup_file, field_name):
         if os.path.exists(backup_file):
             fhandle = h5py.File(backup_file, mode="r")
@@ -173,6 +189,7 @@ class BaseIOHandler:
         # field_maps stores fields, accounting for field unions
         ptf: defaultdict[str, list[str]] = defaultdict(list)
         field_maps: defaultdict[FieldKey, list[FieldKey]] = defaultdict(list)
+        p_dtypes = self._particle_dtypes
 
         # We first need a set of masks for each particle type
         chunks = list(chunks)
@@ -206,14 +223,14 @@ class BaseIOHandler:
                 vals = data.pop(field_f)
                 # note: numpy.concatenate has a dtype argument that would avoid
                 # a copy using .astype(...), available in numpy>=1.20
-                rv[field_f] = np.concatenate(vals, axis=0).astype("float64")
+                rv[field_f] = np.concatenate(vals, axis=0).astype(p_dtypes[field_f])
             else:
                 shape = [0]
                 if field_f[1] in self._vector_fields:
                     shape.append(self._vector_fields[field_f[1]])
                 elif field_f[1] in self._array_fields:
                     shape.append(self._array_fields[field_f[1]])
-                rv[field_f] = np.empty(shape, dtype="float64")
+                rv[field_f] = np.empty(shape, dtype=p_dtypes[field_f])
         return rv
 
     def _read_particle_fields(self, chunks, ptf, selector):
