@@ -1159,8 +1159,11 @@ class RAMSESDataset(Dataset):
         try:
             with open(namelist_file) as f:
                 nml = f90nml.read(f)
-        except ImportError as e:
-            nml = f"An error occurred when reading the namelist: {str(e)}"
+        except ImportError as err:
+            mylog.warning(
+                "`namelist.txt` file found but missing package f90nml to read it:",
+                exc_info=err,
+            )
             return False
         except (ValueError, StopIteration, AssertionError) as err:
             # Note: f90nml may raise a StopIteration, a ValueError or an AssertionError if
