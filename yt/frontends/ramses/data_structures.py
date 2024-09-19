@@ -887,7 +887,37 @@ class RAMSESDataset(Dataset):
                 self.fluid_types += (FH.ftype,)
 
         self.storage_filename = storage_filename
+
         self.self_shielding = self_shielding
+
+    @property
+    def self_shielding(self) -> bool:
+        if self._self_shielding is not None:
+            return self._self_shielding
+
+        # Read namelist.txt file (if any)
+        has_namelist = self.read_namelist()
+
+        if not has_namelist:
+            self._self_shielding = False
+            return self._self_shielding
+
+        nml = self.parameters["namelist"]
+
+        # "self_shielding" is stored in physics_params in older versions of the code
+        physics_params = nml.get("physics_params", default={})
+        # and in "cooling_params" in more recent ones
+        cooling_params = nml.get("cooling_params", default={})
+
+        self_shielding = physics_params.get("self_shielding", False)
+        self_shielding |= cooling_params.get("self_shielding", False)
+
+        self._self_shielding = self_shielding
+        return self_shielding
+
+    @self_shielding.setter
+    def self_shielding(self, value):
+        self._self_shielding = value
 
     @staticmethod
     def _sanitize_max_level(max_level, max_level_convention):
@@ -1118,19 +1148,7 @@ class RAMSESDataset(Dataset):
         if self.num_groups > 0:
             self.group_size = rheader["ncpu"] // self.num_groups
 
-        # Read namelist.txt file (if any)
-        has_namelist = self.read_namelist()
-
-        if self.self_shielding is None and has_namelist:
-            nml = self.parameters["namelist"]
-
-            # "self_shielding" is stored in physics_params in older versions of the code
-            physics_params = nml.get("physics_params", default={})
-            # and in "cooling_params" in more recent ones
-            cooling_params = nml.get("cooling_params", default={})
-
-            self.self_shielding = physics_params.get("self_shielding", False)
-            self.self_shielding |= cooling_params.get("self_shielding", False)
+        self.read_namelist()
 
     def read_namelist(self) -> bool:
         """Read the namelist.txt file in the output folder, if present"""
