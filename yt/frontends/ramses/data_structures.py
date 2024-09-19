@@ -799,7 +799,7 @@ class RAMSESDataset(Dataset):
     force_cosmological: bool | None
     _force_max_level: tuple[int, str]
     _bbox: list[list[float]] | None
-    self_shielding: bool | None = None
+    _self_shielding: bool | None = None
 
     def __init__(
         self,
