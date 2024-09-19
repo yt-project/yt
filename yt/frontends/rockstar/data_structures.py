@@ -216,7 +216,7 @@ class RockstarHaloContainer:
     @cached_property
     def ihalo(self):
         halo_id = self.particle_identifier
-        halo_ids = list(self.halo_ds.r["halos", "particle_identifier"].astype(int))
+        halo_ids = list(self.halo_ds.r["halos", "particle_identifier"].astype("i8"))
         ihalo = halo_ids.index(halo_id)
 
         assert halo_ids[ihalo] == halo_id
