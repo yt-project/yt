@@ -2,9 +2,29 @@ import os
 
 import numpy as np
 
+from yt.utilities import fortran_utils as fpu
 from yt.utilities.io_handler import BaseParticleIOHandler
 
-from .definitions import halo_dts
+from .definitions import halo_dts, header_dt
+
+
+def _can_load_with_format(
+    filename: str, header_fmt: tuple[str, int, str], halo_format: np.dtype
+) -> bool:
+    with open(filename, "rb") as f:
+        header = fpu.read_cattrs(f, header_fmt, "=")
+        Nhalos = header["num_halos"]
+        Nparttot = header["num_particles"]
+        halos = np.fromfile(f, dtype=halo_format, count=Nhalos)
+
+        # Make sure all masses are > 0
+        if np.any(halos["particle_mass"] <= 0):
+            return False
+        # Make sure number of particles sums to expected value
+        if halos["num_p"].sum() != Nparttot:
+            return False
+
+    return True
 
 
 class IOHandlerRockstarBinary(BaseParticleIOHandler):
@@ -12,7 +32,24 @@ class IOHandlerRockstarBinary(BaseParticleIOHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._halo_dt = halo_dts[self.ds.parameters["format_revision"]]
+        self._halo_dt = self.detect_rockstar_format(
+            self.ds.filename,
+            self.ds.parameters["format_revision"],
+        )
+
+    @staticmethod
+    def detect_rockstar_format(
+        filename: str,
+        guess: int | str,
+    ) -> bool:
+        revisions = list(halo_dts.keys())
+        if guess in revisions:
+            revisions.pop(revisions.index(guess))
+        revisions = [guess] + revisions
+        for revision in revisions:
+            if _can_load_with_format(filename, header_dt, halo_dts[revision]):
+                return halo_dts[revision]
+        raise RuntimeError(f"Could not detect Rockstar format for file {filename}")
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
