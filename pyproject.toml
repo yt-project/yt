@@ -267,6 +267,7 @@ select = [
     "UP",   # pyupgrade
     "I",    # isort
     "NPY",  # numpy specific rules
+    "RUF031"# incorrectly-parenthesized-tuple-in-subscript
 ]
 ignore = [
     "E501",  # line too long
