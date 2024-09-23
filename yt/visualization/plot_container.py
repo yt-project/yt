@@ -1033,7 +1033,7 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
             issue_deprecation_warning(
                 "Passing `zmax=None` explicitly is deprecated. "
                 "If you wish to explicitly set zmax to the maximal "
-                "data value, pass `zmin='max'` instead. "
+                "data value, pass `zmax='max'` instead. "
                 "Otherwise leave this argument unset.",
                 since="4.1",
                 stacklevel=5,
