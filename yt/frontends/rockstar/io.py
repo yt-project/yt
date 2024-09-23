@@ -1,4 +1,5 @@
 import os
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -9,7 +10,7 @@ from .definitions import halo_dts, header_dt
 
 
 def _can_load_with_format(
-    filename: str, header_fmt: tuple[str, int, str], halo_format: np.dtype
+    filename: str, header_fmt: Sequence[tuple[str, int, str]], halo_format: np.dtype
 ) -> bool:
     with open(filename, "rb") as f:
         header = fpu.read_cattrs(f, header_fmt, "=")
@@ -40,9 +41,9 @@ class IOHandlerRockstarBinary(BaseParticleIOHandler):
     @staticmethod
     def detect_rockstar_format(
         filename: str,
-        guess: int | str,
-    ) -> bool:
-        revisions = list(halo_dts.keys())
+        guess: int,
+    ) -> np.dtype:
+        revisions: list[int] = list(halo_dts.keys())
         if guess in revisions:
             revisions.pop(revisions.index(guess))
         revisions = [guess] + revisions
