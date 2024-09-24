@@ -193,7 +193,7 @@ class RockstarHaloContainer:
         self.particle_identifier = particle_identifier
 
     def __repr__(self):
-        return "%s_%s_%09d" % (self.halo_ds, self.ptype, self.particle_identifier)
+        return f"{self.halo_ds}_{self.ptype}_{self.particle_identifier:09d}"
 
     def __getitem__(self, key):
         if isinstance(key, tuple):
