@@ -1,3 +1,5 @@
+from libc.math cimport sin, cos, atan2, sqrt, acos
+
 cdef class CuttingPlaneSelector(SelectorObject):
     cdef public np.float64_t norm_vec[3]
     cdef public np.float64_t d
@@ -114,4 +116,27 @@ cdef class CuttingPlaneSelector(SelectorObject):
     def _get_state_attnames(self):
         return ("d", "norm_vec")
 
+cdef class SphericalCuttingPlaneSelector(CuttingPlaneSelector):
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void transform_rtp_to_xyz(self, np.float64_t in_pos[3], np.float64_t out_pos[3]) noexcept nogil:
+        # See `spherical_coordinates.py` for more details
+        # r => in_pos[0] theta => in_pos[1] phi => in_pos[2]
+        out_pos[0] = in_pos[0] * cos(in_pos[2]) * sin(in_pos[1])
+        out_pos[1] = in_pos[0] * sin(in_pos[2]) * sin(in_pos[1])
+        out_pos[2] = in_pos[0] * cos(in_pos[1])
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void transform_xyz_to_rtp(self, np.float64_t in_pos[3], np.float64_t out_pos[3]) noexcept nogil:
+        # we have to have 012 be xyz and 012 be rtp
+        out_pos[0] = sqrt(in_pos[0]*in_pos[0] + in_pos[1]*in_pos[1] + in_pos[2]*in_pos[2])
+        out_pos[1] = acos(in_pos[2] / out_pos[0])
+        out_pos[2] = atan2(in_pos[1], in_pos[0])
+
 cutting_selector = CuttingPlaneSelector
+
+spherical_cutting_selector = SphericalCuttingPlaneSelector

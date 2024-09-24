@@ -128,6 +128,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
     ):
         # use Aitoff projection
         # http://paulbourke.net/geometry/transformationprojection/
+        # We should be supplying an offset here, but it needs checking.
         bounds = tuple(_.ndview for _ in self._aitoff_bounds)
         buff, mask = pixelize_aitoff(
             azimuth=data_source["py"],
@@ -157,6 +158,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
                 data_source[field],
                 bounds,
                 return_mask=True,
+                offset=data_source.offset,
             )
         elif name == "phi":
             # Note that we feed in buff.T here
@@ -169,6 +171,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
                 data_source[field],
                 bounds,
                 return_mask=True,
+                offset=data_source.offset,
             ).T
         else:
             raise RuntimeError
