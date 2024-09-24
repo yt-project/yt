@@ -104,18 +104,28 @@ def create_relative_field(
         )
 
 
-def create_los_field(registry, basename, field_units, ftype="gas", slice_info=None):
+def create_los_field(
+    registry, basename, field_units, ftype="gas", sampling_type=None, slice_info=None
+):
     axis_order = registry.ds.coordinates.axis_order
 
+    if sampling_type is None:
+        sampling_type = "local"
+
+    if sampling_type == "particle" and basename.startswith("particle_"):
+        basenm = basename.split("_", 1)[1]
+    else:
+        basenm = basename
+
     validators = [
-        ValidateParameter(f"bulk_{basename}"),
+        ValidateParameter(f"bulk_{basenm}"),
         ValidateParameter("axis", {"axis": [0, 1, 2]}),
     ]
 
     field_comps = [(ftype, f"{basename}_{ax}") for ax in axis_order]
 
     def _los_field(field, data):
-        if data.has_field_parameter(f"bulk_{basename}"):
+        if data.has_field_parameter(f"bulk_{basenm}"):
             fns = [(fc[0], f"relative_{fc[1]}") for fc in field_comps]
         else:
             fns = field_comps
@@ -132,7 +142,7 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
 
     registry.add_field(
         (ftype, f"{basename}_los"),
-        sampling_type="local",
+        sampling_type=sampling_type,
         function=_los_field,
         units=field_units,
         validators=validators,
