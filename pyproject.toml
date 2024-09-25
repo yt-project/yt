@@ -81,7 +81,7 @@ answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 
 [project.optional-dependencies]
 # some generic, reusable constraints on optional-deps
-HDF5 = ["h5py>=3.1.0"]
+HDF5 = ["h5py>=3.1.0,!=3.12.0; platform_system=='Windows'"]  # see https://github.com/h5py/h5py/issues/2505
 netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
 Fortran = ["f90nml>=1.1"]
 
@@ -205,7 +205,6 @@ test = [
     "nose-exclude; python_version < '3.10'",
     "nose-timer~=1.0.0; python_version < '3.10'",
     "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
-    "h5py!=3.12.0", # see https://github.com/h5py/h5py/issues/2505
 ]
 
 [project.scripts]
