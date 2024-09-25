@@ -7,7 +7,7 @@ updates:
   groups:
     actions:
       patterns:
-      - '*'
+      - 'typecheck.txt'
 
 - package-ecosystem: github-actions
   directory: /.github/workflows
