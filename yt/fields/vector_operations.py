@@ -112,6 +112,9 @@ def create_los_field(
     if sampling_type is None:
         sampling_type = "local"
 
+    # Here we need to check if we are a particle field, so that we can
+    # correctly identify the "bulk" field parameter corresponding to
+    # this vector field.
     if sampling_type == "particle" and basename.startswith("particle_"):
         basenm = basename.split("_", 1)[1]
     else:
