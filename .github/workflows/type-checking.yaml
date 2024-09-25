@@ -7,7 +7,8 @@ on:
   pull_request:
     paths:
       - yt/**/*.py
-      - setup.cfg
+      - pyproject.toml
+      - requirements/typecheck.txt
       - .github/workflows/type-checking.yaml
   workflow_dispatch:
 
