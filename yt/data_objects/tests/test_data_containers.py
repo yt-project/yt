@@ -160,6 +160,7 @@ class TestDataContainers(unittest.TestCase):
         # their parent field to be created
         ds = fake_particle_ds()
         dd = ds.all_data()
+        dd.set_field_parameter("axis", 0)
 
         @particle_filter(requires=["particle_mass"], filtered_type="io")
         def massive(pfilter, data):
