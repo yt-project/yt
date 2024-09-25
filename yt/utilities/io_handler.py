@@ -67,7 +67,7 @@ class BaseIOHandler:
         # field (or its alias if it exists), which is set as int64. Important
         # to note that the data type will only be preserved for direct reads
         # and any operations will either implicity (via unyt) or explicitly
-        # convert to float64. Furthermore, float32 and int32 are not supported. 
+        # convert to float64. Furthermore, float32 and int32 are not supported.
         dtypes: defaultdict[FieldKey, type] = defaultdict(lambda: np.float64)
         for ptype in self.ds.particle_types:
             p_index = (ptype, "particle_index")
