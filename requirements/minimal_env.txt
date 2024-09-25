@@ -59,7 +59,7 @@ tomli==1.2.3
     #   setuptools-scm
 tomli-w==0.4.0
     # via yt (pyproject.toml)
-tqdm==3.4.0
+tqdm==4.66.5
     # via yt (pyproject.toml)
 typing-extensions==4.4.0
     # via
