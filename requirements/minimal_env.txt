@@ -35,7 +35,7 @@ packaging==20.9
     #   yt (pyproject.toml)
     #   matplotlib
     #   setuptools-scm
-pillow==8.0.0
+pillow==10.4.0
     # via
     #   yt (pyproject.toml)
     #   matplotlib
