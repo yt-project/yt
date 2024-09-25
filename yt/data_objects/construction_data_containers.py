@@ -1426,7 +1426,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     filename = None
     _min_level = None
 
-    @wraps(YTCoveringGrid.__init__)
+    @wraps(YTCoveringGrid.__init__)  # type: ignore [misc]
     def __init__(self, *args, **kwargs):
         ds = kwargs["ds"]
         self._base_dx = (
