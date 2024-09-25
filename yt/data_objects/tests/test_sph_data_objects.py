@@ -64,6 +64,16 @@ REGION_ANSWERS = {
 }
 
 
+def test_slice_to_frb():
+    ds = fake_sph_orientation_ds()
+    frb = ds.slice(0, 0.5).to_frb(ds.domain_width[0], (64, 64))
+    ref_vals = frb["gas", "density"]
+    for center in ((0.5, "code_length"), (0.5, "cm"), ds.quan(0.5, "code_length")):
+        frb = ds.slice(0, center).to_frb(ds.domain_width[0], (64, 64))
+        vals = frb["gas", "density"]
+        assert_equal(vals, ref_vals)
+
+
 def test_region():
     ds = fake_sph_orientation_ds()
     for (left_edge, right_edge), answer in REGION_ANSWERS.items():

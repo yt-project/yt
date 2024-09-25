@@ -1106,7 +1106,7 @@ def validate_3d_array(obj):
 def validate_float(obj):
     """Validates if the passed argument is a float value.
 
-    Raises an exception if `obj` is a single float value
+    Raises an exception if `obj` is not a single float value
     or a YTQuantity of size 1.
 
     Parameters
