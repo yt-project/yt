@@ -8,7 +8,7 @@ cycler==0.12.1
     # via matplotlib
 ewah-bool-utils==1.2.0
     # via yt (pyproject.toml)
-fonttools==4.53.1
+fonttools==4.54.1
     # via matplotlib
 kiwisolver==1.4.7
     # via matplotlib
