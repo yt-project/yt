@@ -30,7 +30,7 @@ numpy==1.19.3
     #   ewah-bool-utils
     #   matplotlib
     #   unyt
-packaging==20.9
+packaging==24.1
     # via
     #   yt (pyproject.toml)
     #   matplotlib
