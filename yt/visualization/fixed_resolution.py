@@ -17,7 +17,7 @@ from yt.utilities.lib.api import (  # type: ignore
 )
 from yt.utilities.lib.pixelization_routines import (
     pixelize_cylinder,
-    rotate_particle_coord,
+    rotate_particle_coord_pib,
 )
 from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -134,7 +134,7 @@ class FixedResolutionBuffer:
         # the filter methods for the present class are defined only when
         # fixed_resolution_filters is imported, so we need to guarantee
         # that it happens no later than instantiation
-        from yt.visualization.fixed_resolution_filters import (
+        from yt.visualization.fixed_resolution_filters import (  # noqa
             FixedResolutionBufferFilter,
         )
 
@@ -630,6 +630,8 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             self.buff_size[1],
         )
         dd = self.data_source
+        # only need the first two for SPH,
+        # but need the third one for other data formats.
         width = self.ds.arr(
             (
                 self.bounds[1] - self.bounds[0],
@@ -637,6 +639,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 self.bounds[5] - self.bounds[4],
             )
         )
+        depth = dd.depth[0] if dd.depth is not None else None
         buff = off_axis_projection(
             dd.dd,
             dd.center,
@@ -649,6 +652,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             no_ghost=dd.no_ghost,
             interpolated=dd.interpolated,
             north_vector=dd.north_vector,
+            depth=depth,
             method=dd.method,
         )
         if self.data_source.moment == 2:
@@ -679,6 +683,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 no_ghost=dd.no_ghost,
                 interpolated=dd.interpolated,
                 north_vector=dd.north_vector,
+                depth=dd.depth,
                 method=dd.method,
             )
             buff = compute_stddev_image(buff2, buff)
@@ -745,7 +750,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 if hasattr(w, "to_value"):
                     w = w.to_value("code_length")
                 wd.append(w)
-            x_data, y_data, *bounds = rotate_particle_coord(
+            x_data, y_data, *bounds = rotate_particle_coord_pib(
                 dd[ftype, "particle_position_x"].to_value("code_length"),
                 dd[ftype, "particle_position_y"].to_value("code_length"),
                 dd[ftype, "particle_position_z"].to_value("code_length"),

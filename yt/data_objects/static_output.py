@@ -13,16 +13,16 @@ from collections.abc import MutableMapping
 from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import numpy as np
 import unyt as un
 from more_itertools import unzip
-from sympy import Symbol
 from unyt import Unit, UnitSystem, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._maintenance.ipython_compat import IPYWIDGETS_ENABLED
 from yt._typing import (
     AnyFieldKey,
     AxisOrder,
@@ -74,6 +74,9 @@ from yt.utilities.object_registries import data_object_registry, output_type_reg
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
 
+if TYPE_CHECKING:
+    from sympy import Symbol
+
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:
@@ -119,10 +122,7 @@ class MutableAttribute:
         # We can assume that ipywidgets will not be *added* to the system
         # during the course of execution, and if it is, we will not wrap the
         # array.
-        if display_array and find_spec("ipywidgets") is not None:
-            self.display_array = True
-        else:
-            self.display_array = False
+        self.display_array = display_array and IPYWIDGETS_ENABLED
 
     def __get__(self, instance, owner):
         return self.data.get(instance, None)

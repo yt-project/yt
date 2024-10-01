@@ -90,7 +90,7 @@ the top level of a local copy, run
 
 .. code-block:: bash
 
-   $ python -m pip install -e ".[doc]"
+   $ python -m pip install -e . -r requirements/docs.txt
 
 Quick versus Full Documentation Builds
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,6 +1,7 @@
 import fileinput
 import io
 import os
+import sys
 import warnings
 import zipfile
 from functools import partial, wraps
@@ -62,6 +63,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_root_only,
 )
 from yt.visualization.color_maps import get_colormap_lut
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class YTStreamline(YTSelectionContainer1D):
@@ -150,7 +154,9 @@ class YTStreamline(YTSelectionContainer1D):
         mask = np.zeros(points_in_grid.sum(), dtype="int64")
         dts = np.zeros(points_in_grid.sum(), dtype="float64")
         ts = np.zeros(points_in_grid.sum(), dtype="float64")
-        for mi, (i, pos) in enumerate(zip(pids, self.positions[points_in_grid])):
+        for mi, (i, pos) in enumerate(
+            zip(pids, self.positions[points_in_grid], strict=True)
+        ):
             if not points_in_grid[i]:
                 continue
             ci = ((pos - grid.LeftEdge) / grid.dds).astype("int64")
@@ -649,6 +655,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
     level : int
         The resolution level data to which data will be gridded. Level
         0 is the root grid dx for that dataset.
+        (The grid resolution will be simulation size / 2**level along
+         each grid axis.)
     left_edge : array_like
         The left edge of the region to be extracted.  Specify units by supplying
         a YTArray, otherwise code length units are assumed.
@@ -784,7 +792,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def icoords(self):
         ic = np.indices(self.ActiveDimensions).astype("int64")
         return np.column_stack(
-            [i.ravel() + gi for i, gi in zip(ic, self.get_global_startindex())]
+            [
+                i.ravel() + gi
+                for i, gi in zip(ic, self.get_global_startindex(), strict=True)
+            ]
         )
 
     @property
@@ -995,14 +1006,15 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
         normalize = getattr(self.ds, "use_sph_normalization", True)
+        kernel_name = getattr(self.ds, "kernel_name", "cubic")
 
         bounds, size = self._get_grid_bounds_size()
 
         period = self.ds.coordinates.period.copy()
         if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
-        # TODO maybe there is a better way of handling this
-        is_periodic = int(any(self.ds.periodicity))
+        # check periodicity per dimension
+        is_periodic = self.ds.periodicity
 
         if smoothing_style == "scatter":
             for field in fields:
@@ -1036,6 +1048,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                         pbar=pbar,
                         check_period=is_periodic,
                         period=period,
+                        kernel_name=kernel_name,
                     )
                     if normalize:
                         pixelize_sph_kernel_arbitrary_grid(
@@ -1051,6 +1064,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                             pbar=pbar,
                             check_period=is_periodic,
                             period=period,
+                            kernel_name=kernel_name,
                         )
 
                 if normalize:
@@ -1122,7 +1136,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if self.comm.size > 1:
             for i in range(len(fields)):
                 output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
-        for field, v in zip(fields, output_fields):
+        for field, v in zip(fields, output_fields, strict=True):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(v, fi.units)
 
@@ -1221,7 +1235,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             data[field] = (self[field].in_units(units).v, units)
         le = self.left_edge.v
         re = self.right_edge.v
-        bbox = np.array([[l, r] for l, r in zip(le, re)])
+        bbox = np.array([[l, r] for l, r in zip(le, re, strict=True)])
         ds = load_uniform_grid(
             data,
             self.ActiveDimensions,
@@ -1412,7 +1426,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     filename = None
     _min_level = None
 
-    @wraps(YTCoveringGrid.__init__)
+    @wraps(YTCoveringGrid.__init__)  # type: ignore [misc]
     def __init__(self, *args, **kwargs):
         ds = kwargs["ds"]
         self._base_dx = (
@@ -1526,7 +1540,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 stacklevel=1,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
-        for field, v in zip(fields, ls.fields):
+        for field, v in zip(fields, ls.fields, strict=True):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]
             fi = self.ds._get_field_info(field)

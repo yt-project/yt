@@ -36,13 +36,16 @@ repos:
         additional_dependencies: [black==24.3.0]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.5.0
+  rev: v0.6.3
   hooks:
   - id: ruff-format
-    types_or: [ python, pyi, jupyter ]
   - id: ruff
-    types_or: [ python, pyi, jupyter ]
-    args: [--fix, "--show-fixes"]
+    args: [
+      --fix,
+      --show-fixes,
+      # the following line can be removed after support for Python 3.9 is dropped
+      --extend-select=B905, # zip-without-explicit-strict
+    ]
 
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0

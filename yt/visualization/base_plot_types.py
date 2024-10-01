@@ -341,7 +341,20 @@ class ImagePlotMPL(PlotMPL, ABC):
         self.image.axes.set_facecolor(self.colorbar_handler.background_color)
 
         self.cax.tick_params(which="both", direction="in")
-        self.cb = self.figure.colorbar(self.image, self.cax)
+
+        # For creating a multipanel plot by ImageGrid
+        # we may need the location keyword, which requires Matplotlib >= 3.7.0
+        cb_location = getattr(self.cax, "orientation", None)
+        if matplotlib.__version_info__ >= (3, 7):
+            self.cb = self.figure.colorbar(self.image, self.cax, location=cb_location)
+        else:
+            if cb_location in ["top", "bottom"]:
+                warnings.warn(
+                    "Cannot properly set the orientation of colorbar. "
+                    "Consider upgrading matplotlib to version 3.7 or newer",
+                    stacklevel=6,
+                )
+            self.cb = self.figure.colorbar(self.image, self.cax)
 
         cb_axis: Axis
         if self.cb.orientation == "vertical":
@@ -526,9 +539,12 @@ class ImagePlotMPL(PlotMPL, ABC):
 
     def _get_labels(self):
         labels = super()._get_labels()
-        cbax = self.cb.ax
-        labels += cbax.yaxis.get_ticklabels()
-        labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
+        if getattr(self.cb, "orientation", "vertical") == "horizontal":
+            cbaxis = self.cb.ax.xaxis
+        else:
+            cbaxis = self.cb.ax.yaxis
+        labels += cbaxis.get_ticklabels()
+        labels += [cbaxis.label, cbaxis.get_offset_text()]
         return labels
 
     def hide_axes(self, *, draw_frame=None):

@@ -1,6 +1,7 @@
 import itertools as it
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 
@@ -13,9 +14,15 @@ from yt.testing import (
     fake_octree_ds,
     fake_random_ds,
 )
-from yt.visualization.api import OffAxisProjectionPlot, OffAxisSlicePlot
+from yt.visualization.api import (
+    OffAxisProjectionPlot,
+    OffAxisSlicePlot,
+)
 from yt.visualization.image_writer import write_projection
 from yt.visualization.volume_rendering.api import off_axis_projection
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 # TODO: replace this with pytest.mark.parametrize
@@ -85,7 +92,7 @@ def expand_keywords(keywords, full=False):
         keys = sorted(keywords)
         list_of_kwarg_dicts = np.array(
             [
-                dict(zip(keys, prod))
+                dict(zip(keys, prod, strict=True))
                 for prod in it.product(*(keywords[key] for key in keys))
             ]
         )
@@ -235,10 +242,34 @@ def test_offaxis_moment():
         moment=2,
         buff_size=(400, 400),
     )
-    assert_rel_equal(
-        np.sqrt(
-            p1.frb["gas", "velocity_los_squared"] - p1.frb["gas", "velocity_los"] ** 2
-        ),
-        p2.frb["gas", "velocity_los"],
-        10,
+    ## this failed because some <v**2> - <v>**2 values come out
+    ## marginally < 0, resulting in unmatched NaN values in the
+    ## first assert_rel_equal argument. The compute_stddev_image
+    ## function used in OffAxisProjectionPlot checks for and deals
+    ## with these cases.
+    # assert_rel_equal(
+    #    np.sqrt(
+    #        p1.frb["gas", "velocity_los_squared"] - p1.frb["gas", "velocity_los"] ** 2
+    #    ),
+    #    p2.frb["gas", "velocity_los"],
+    #    10,
+    # )
+    p1_expsq = p1.frb["gas", "velocity_los_squared"]
+    p1_sqexp = p1.frb["gas", "velocity_los"] ** 2
+    # set values to zero that have <v>**2 - <v>**2 < 0, but
+    # the absolute values are much smaller than the smallest
+    # postive values of <v>**2 and <v>**2
+    # (i.e., the difference is pretty much zero)
+    mindiff = 1e-10 * min(
+        np.min(p1_expsq[p1_expsq > 0]), np.min(p1_sqexp[p1_sqexp > 0])
     )
+    # print(mindiff)
+    safeorbad = np.logical_not(
+        np.logical_and(p1_expsq - p1_sqexp < 0, p1_expsq - p1_sqexp > -1.0 * mindiff)
+    )
+    # avoid errors from sqrt(negative)
+    # sqrt in zeros_like insures correct units
+    p1res = np.zeros_like(np.sqrt(p1_expsq))
+    p1res[safeorbad] = np.sqrt(p1_expsq[safeorbad] - p1_sqexp[safeorbad])
+    p2res = p2.frb["gas", "velocity_los"]
+    assert_rel_equal(p1res, p2res, 10)

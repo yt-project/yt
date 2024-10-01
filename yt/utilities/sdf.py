@@ -1,10 +1,14 @@
 import os
+import sys
 from collections import UserDict
 from io import StringIO
 
 import numpy as np
 
 from yt.funcs import mylog
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def get_thingking_deps():
@@ -1175,7 +1179,7 @@ class SDFIndex:
 
     def iter_slice_data(self, slice_dim, slice_index, fields):
         mask, offsets, lengths = self.get_slice_chunks(slice_dim, slice_index)
-        for off, l in zip(offsets, lengths):
+        for off, l in zip(offsets, lengths, strict=True):
             data = {}
             chunk = slice(off, off + l)
             for field in fields:

@@ -6,6 +6,7 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 )
 from yt.data_objects.static_output import Dataset
 from yt.funcs import (
+    fix_length,
     is_sequence,
     iter_fields,
     validate_3d_array,
@@ -78,7 +79,7 @@ class YTSlice(YTSelectionContainer2D):
         validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters, data_source)
         self._set_center(center)
-        self.coord = coord
+        self.coord = fix_length(coord, ds)
 
     def _generate_container_field(self, field):
         xax = self.ds.coordinates.x_axis[self.axis]

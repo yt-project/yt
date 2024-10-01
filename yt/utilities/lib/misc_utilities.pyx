@@ -921,7 +921,7 @@ def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
                     if (sp[1] + odsp[1] < LE[1]) or (sp[1] - odsp[1] > RE[1]): continue
                     for zi in range(2):
                         if diter[2][zi] == 999: continue
-                        sp[2] = osp[2] + diterv[2][yi]
+                        sp[2] = osp[2] + diterv[2][zi]
                         if (sp[2] + odsp[2] < LE[2]) or (sp[2] - odsp[2] > RE[2]): continue
                         for i in range(3):
                             ld[i] = <np.int64_t> fmax(((sp[i]-odsp[i]-LE[i])*box_idds[i]),0)

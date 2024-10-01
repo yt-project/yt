@@ -2,7 +2,7 @@ import abc
 import sys
 from collections import defaultdict
 from numbers import Number
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import matplotlib
 import numpy as np
@@ -12,6 +12,8 @@ from unyt.exceptions import UnitConversionError
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import AlphaT
 from yt.data_objects.image_array import ImageArray
+from yt.frontends.sph.data_structures import ParticleDataset
+from yt.frontends.stream.data_structures import StreamParticlesDataset
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import (
     fix_axis,
@@ -20,6 +22,7 @@ from yt.funcs import (
     iter_fields,
     mylog,
     obj_length,
+    parse_center_array,
     validate_moment,
 )
 from yt.geometry.api import Geometry
@@ -55,9 +58,10 @@ from .plot_container import (
     invalidate_plot,
 )
 
-if sys.version_info >= (3, 10):
-    pass
-else:
+if TYPE_CHECKING:
+    from yt.visualization.plot_modifications import PlotCallback
+
+if sys.version_info < (3, 10):
     from yt._maintenance.backports import zip
 
 if sys.version_info >= (3, 11):
@@ -80,20 +84,33 @@ def get_window_parameters(axis, center, width, ds):
     return (bounds, center, display_center)
 
 
-def get_oblique_window_parameters(normal, center, width, ds, depth=None):
+def get_oblique_window_parameters(
+    normal, center, width, ds, depth=None, get3bounds=False
+):
     center, display_center = ds.coordinates.sanitize_center(center, axis=None)
     width = ds.coordinates.sanitize_width(normal, width, depth)
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
-        center = (center - ds.domain_left_edge) / ds.domain_width - 0.5
+        # the original dimensionless center messes up off-axis
+        # SPH projections though -> don't use this center there
+        center = (
+            (center - ds.domain_left_edge) / ds.domain_width - 0.5
+        ) * ds.domain_width
         (normal, perp1, perp2) = ortho_find(normal)
         mat = np.transpose(np.column_stack((perp1, perp2, normal)))
         center = np.dot(mat, center)
 
     w = tuple(el.in_units("code_length") for el in width)
     bounds = tuple(((2 * (i % 2)) - 1) * w[i // 2] / 2 for i in range(len(w) * 2))
-
+    if get3bounds and depth is None:
+        # off-axis projection, depth not specified
+        # -> set 'large enough' depth using half the box diagonal + margin
+        d2 = ds.domain_width[0].in_units("code_length") ** 2
+        d2 += ds.domain_width[1].in_units("code_length") ** 2
+        d2 += ds.domain_width[2].in_units("code_length") ** 2
+        diag = np.sqrt(d2)
+        bounds = bounds + (-0.51 * diag, 0.51 * diag)
     return (bounds, center)
 
 
@@ -868,7 +885,6 @@ class PWViewerMPL(PlotWindow):
         # the filter methods for the present class are defined only when
         # fixed_resolution_filters is imported, so we need to guarantee
         # that it happens no later than instantiation
-        from yt.visualization.plot_modifications import PlotCallback
 
         self._callbacks: list[PlotCallback] = []
 
@@ -1818,9 +1834,12 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
         axis = fix_axis(normal, ds)
+        # print('center at SlicePlot init: ', center)
+        # print('current domain left edge: ', ds.domain_left_edge)
         (bounds, center, display_center) = get_window_parameters(
             axis, center, width, ds
         )
+        # print('center after get_window_parameters: ', center)
         if field_parameters is None:
             field_parameters = {}
 
@@ -2218,7 +2237,9 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
                 f"off-axis slices are not supported for {ds.geometry!r} geometry\n"
                 f"currently supported geometries: {self._supported_geometries!r}"
             )
-
+        # bounds are in cutting plane coordinates, centered on 0:
+        # [xmin, xmax, ymin, ymax]. Can derive width/height back
+        # from these. unit is code_length
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, ds)
         if field_parameters is None:
             field_parameters = {}
@@ -2273,6 +2294,7 @@ class OffAxisProjectionDummyDataSource:
         le=None,
         re=None,
         north_vector=None,
+        depth=None,
         method="integrate",
         data_source=None,
         *,
@@ -2284,6 +2306,7 @@ class OffAxisProjectionDummyDataSource:
         self.axis = None  # always true for oblique data objects
         self.normal_vector = normal_vector
         self.width = width
+        self.depth = depth
         if data_source is None:
             self.dd = ds.all_data()
         else:
@@ -2421,7 +2444,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         fields,
         center="center",
         width=None,
-        depth=(1, "1"),
+        depth=None,
         axes_unit=None,
         weight_field=None,
         max_level=None,
@@ -2439,22 +2462,54 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
     ):
         if ds.geometry not in self._supported_geometries:
             raise NotImplementedError(
-                f"off-axis slices are not supported for {ds.geometry!r} geometry\n"
-                f"currently supported geometries: {self._supported_geometries!r}"
+                "off-axis slices are not supported"
+                f" for {ds.geometry!r} geometry\n"
+                "currently supported geometries:"
+                f" {self._supported_geometries!r}"
             )
-
+        # center_rot normalizes the center to (0,0),
+        # units match bounds
+        # for SPH data, we want to input the original center
+        # the cython backend handles centering to this point and
+        # rotation.
+        # get3bounds gets a depth 0.5 * diagonal + margin in the
+        # depth=None case.
         (bounds, center_rot) = get_oblique_window_parameters(
-            normal, center, width, ds, depth=depth
+            normal,
+            center,
+            width,
+            ds,
+            depth=depth,
+            get3bounds=True,
         )
+        # will probably fail if you try to project an SPH and non-SPH
+        # field in a single call
+        # checks for SPH fields copied from the
+        # _ortho_pixelize method in cartesian_coordinates.py
+
+        ## data_source might be None here
+        ## (OffAxisProjectionDummyDataSource gets used later)
+        if data_source is None:
+            data_source = ds.all_data()
+        field = data_source._determine_fields(fields)[0]
+        finfo = data_source.ds.field_info[field]
+        is_sph_field = finfo.is_sph_field
+        particle_datasets = (ParticleDataset, StreamParticlesDataset)
+
+        if isinstance(data_source.ds, particle_datasets) and is_sph_field:
+            center_use = parse_center_array(center, ds=data_source.ds, axis=None)
+        else:
+            center_use = center_rot
         fields = list(iter_fields(fields))[:]
-        oap_width = ds.arr(
-            (bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
-        )
+        # oap_width = ds.arr(
+        #    (bounds[1] - bounds[0],
+        #     bounds[3] - bounds[2])
+        # )
         OffAxisProj = OffAxisProjectionDummyDataSource(
-            center_rot,
+            center_use,
             ds,
             normal,
-            oap_width,
+            width,
             fields,
             interpolated,
             weight=weight_field,
@@ -2463,6 +2518,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             le=le,
             re=re,
             north_vector=north_vector,
+            depth=depth,
             method=method,
             data_source=data_source,
             moment=moment,

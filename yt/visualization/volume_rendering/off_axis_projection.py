@@ -30,6 +30,7 @@ def off_axis_projection(
     no_ghost=False,
     interpolated=False,
     north_vector=None,
+    depth=None,
     num_threads=1,
     method="integrate",
 ):
@@ -80,6 +81,10 @@ def off_axis_projection(
     north_vector : optional, array_like, default None
         A vector that, if specified, restricts the orientation such that the
         north vector dotted into the image plane points "up". Useful for rotations
+    depth: float, tuple[float, str], or unyt_array of size 1.
+        specify the depth of the projection region (size along the
+        line of sight). If no units are given (unyt_array or second
+        tuple element), code units are assumed.
     num_threads: integer, optional, default 1
         Use this many OpenMP threads during projection.
     method : string
@@ -145,6 +150,16 @@ def off_axis_projection(
         center = data_source.ds.arr(center, "code_length")
     if not hasattr(width, "units"):
         width = data_source.ds.arr(width, "code_length")
+    if depth is not None:
+        # handle units (intrinsic or as a tuple),
+        # then convert to code length
+        # float -> assumed to be in code units
+        if isinstance(depth, tuple):
+            depth = data_source.ds.arr(np.array([depth[0]]), depth[1])
+        if hasattr(depth, "units"):
+            depth = depth.to("code_length").d
+
+        # depth = data_source.ds.arr(depth, "code_length")
 
     if hasattr(data_source.ds, "_sph_ptypes"):
         if method != "integrate":
@@ -203,16 +218,29 @@ def off_axis_projection(
         buf = np.zeros((resolution[0], resolution[1]), dtype="float64")
         mask = np.ones_like(buf, dtype="uint8")
 
-        x_min = center[0] - width[0] / 2
-        x_max = center[0] + width[0] / 2
-        y_min = center[1] - width[1] / 2
-        y_max = center[1] + width[1] / 2
-        z_min = center[2] - width[2] / 2
-        z_max = center[2] + width[2] / 2
+        ## width from fixed_resolution.py is just the size of the domain
+        # x_min = center[0] - width[0] / 2
+        # x_max = center[0] + width[0] / 2
+        # y_min = center[1] - width[1] / 2
+        # y_max = center[1] + width[1] / 2
+        # z_min = center[2] - width[2] / 2
+        # z_max = center[2] + width[2] / 2
+
+        periodic = data_source.ds.periodicity
+        le = data_source.ds.domain_left_edge.to("code_length").d
+        re = data_source.ds.domain_right_edge.to("code_length").d
+        x_min, y_min, z_min = le
+        x_max, y_max, z_max = re
+        bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
+        # only need (rotated) x/y widths
+        _width = (width.to("code_length").d)[:2]
         finfo = data_source.ds.field_info[item]
         ounits = finfo.output_units
-        bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
-
+        kernel_name = None
+        if hasattr(data_source.ds, "kernel_name"):
+            kernel_name = data_source.ds.kernel_name
+        if kernel_name is None:
+            kernel_name = "cubic"
         if weight is None:
             for chunk in data_source.chunks([], "io"):
                 off_axis_projection_SPH(
@@ -224,12 +252,15 @@ def off_axis_projection(
                     chunk[ptype, "smoothing_length"].to("code_length").d,
                     bounds,
                     center.to("code_length").d,
-                    width.to("code_length").d,
+                    _width,
+                    periodic,
                     chunk[item].in_units(ounits),
                     buf,
                     mask,
                     normal_vector,
                     north,
+                    depth=depth,
+                    kernel_name=kernel_name,
                 )
 
             # Assure that the path length unit is in the default length units
@@ -262,13 +293,16 @@ def off_axis_projection(
                     chunk[ptype, "smoothing_length"].to("code_length").d,
                     bounds,
                     center.to("code_length").d,
-                    width.to("code_length").d,
+                    _width,
+                    periodic,
                     chunk[item].in_units(ounits),
                     buf,
                     mask,
                     normal_vector,
                     north,
                     weight_field=chunk[weight].in_units(wounits),
+                    depth=depth,
+                    kernel_name=kernel_name,
                 )
 
             for chunk in data_source.chunks([], "io"):
@@ -281,12 +315,15 @@ def off_axis_projection(
                     chunk[ptype, "smoothing_length"].to("code_length").d,
                     bounds,
                     center.to("code_length").d,
-                    width.to("code_length").d,
+                    _width,
+                    periodic,
                     chunk[weight].to(wounits),
                     weight_buff,
                     mask,
                     normal_vector,
                     north,
+                    depth=depth,
+                    kernel_name=kernel_name,
                 )
 
             normalization_2d_utility(buf, weight_buff)
@@ -300,6 +337,7 @@ def off_axis_projection(
             "north_vector": north_vector,
             "normal_vector": normal_vector,
             "width": width,
+            "depth": depth,
             "units": funits,
             "type": "SPH smoothed projection",
         }
@@ -487,7 +525,8 @@ def off_axis_projection(
             image *= dl
         else:
             mask = image[:, :, 1] == 0
-            image[:, :, 0] /= image[:, :, 1]
+            nmask = np.logical_not(mask)
+            image[:, :, 0][nmask] /= image[:, :, 1][nmask]
             image[mask] = 0
 
     return image[:, :, 0]

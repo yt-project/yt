@@ -1,9 +1,14 @@
+import sys
+
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import yt.utilities.linear_interpolators as lin
 from yt.testing import fake_random_ds
 from yt.utilities.lib.interpolators import ghost_zone_interpolate
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def test_linear_interpolator_1d():
@@ -26,7 +31,7 @@ def test_linear_interpolator_1d():
 def test_linear_interpolator_2d():
     random_data = np.random.random((64, 64))
     # evenly spaced bins
-    fv = dict(zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j]))
+    fv = dict(zip("xy", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j], strict=True))
     bfi = lin.BilinearFieldInterpolator(random_data, (0.0, 1.0, 0.0, 1.0), "xy", True)
     assert_array_equal(bfi(fv), random_data)
 
@@ -45,7 +50,7 @@ def test_linear_interpolator_2d():
 def test_linear_interpolator_3d():
     random_data = np.random.random((64, 64, 64))
     # evenly spaced bins
-    fv = dict(zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j]))
+    fv = dict(zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j], strict=True))
     tfi = lin.TrilinearFieldInterpolator(
         random_data, (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyz", True
     )
@@ -70,7 +75,13 @@ def test_linear_interpolator_3d():
 def test_linear_interpolator_4d():
     random_data = np.random.random((64, 64, 64, 64))
     # evenly spaced bins
-    fv = dict(zip("xyzw", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j]))
+    fv = dict(
+        zip(
+            "xyzw",
+            np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j],
+            strict=True,
+        )
+    )
     tfi = lin.QuadrilinearFieldInterpolator(
         random_data, (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyzw", True
     )

@@ -479,7 +479,7 @@ class EnzoEDataset(Dataset):
             setdefaultattr(self, "velocity_unit", self.quan(k["uvel"], "cm/s"))
         else:
             p = self.parameters
-            for d, u in zip(("length", "time"), ("cm", "s")):
+            for d, u in [("length", "cm"), ("time", "s")]:
                 val = nested_dict_get(p, ("Units", d), default=1)
                 setdefaultattr(self, f"{d}_unit", self.quan(val, u))
             mass = nested_dict_get(p, ("Units", "mass"))

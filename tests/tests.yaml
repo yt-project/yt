@@ -37,7 +37,7 @@ answer_tests:
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
 
-  local_arepo_011:  # PR 4419
+  local_arepo_013:  # PR 4939
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_cr
@@ -92,7 +92,7 @@ answer_tests:
     - yt/frontends/flash/tests/test_outputs.py:test_wind_tunnel
     - yt/frontends/flash/tests/test_outputs.py:test_fid_1to3_b1
 
-  local_gadget_009:  # PR 3258
+  local_gadget_010:  # PR 4939
     - yt/frontends/gadget/tests/test_outputs.py:test_iso_collapse
     - yt/frontends/gadget/tests/test_outputs.py:test_pid_uniqueness
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
@@ -108,7 +108,7 @@ answer_tests:
   local_gdf_002:
     - yt/frontends/gdf/tests/test_outputs_nose.py:test_sedov_tunnel
 
-  local_gizmo_008:  # PR 2909
+  local_gizmo_009:  # PR 4939
     - yt/frontends/gizmo/tests/test_outputs.py:test_gizmo_64
 
   local_halos_012:  # PR 3325
@@ -118,7 +118,7 @@ answer_tests:
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_owls_008:  # PR 2909
+  local_owls_009:  # PR 4939
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
@@ -130,7 +130,7 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
     - yt/visualization/tests/test_callbacks.py:test_axis_manipulations
 
-  local_tipsy_009:  # PR 2909
+  local_tipsy_010:  # PR 4939
     - yt/frontends/tipsy/tests/test_outputs.py:test_pkdgrav
     - yt/frontends/tipsy/tests/test_outputs.py:test_gasoline_dmonly
     - yt/frontends/tipsy/tests/test_outputs.py:test_tipsy_galaxy
@@ -226,5 +226,7 @@ other_tests:
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
+     - "--ignore-file=test_offaxisprojection_pytestonly\\.py"
+     - "--ignore-file=test_sph_pixelization_pytestonly\\.py"
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'

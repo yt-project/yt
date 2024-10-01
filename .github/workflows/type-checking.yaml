@@ -7,7 +7,8 @@ on:
   pull_request:
     paths:
       - yt/**/*.py
-      - setup.cfg
+      - pyproject.toml
+      - requirements/typecheck.txt
       - .github/workflows/type-checking.yaml
   workflow_dispatch:
 
@@ -37,7 +38,7 @@ jobs:
     - name: Build
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install -e .[typecheck]
+        python3 -m pip install -e . -r requirements/typecheck.txt
 
     - run: python -m pip list
 

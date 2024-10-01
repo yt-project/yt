@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
@@ -10,6 +12,10 @@ from yt.testing import (
     requires_module,
 )
 from yt.units import kpc
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
+
 
 # cylindrical data for covering_grid test
 cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
@@ -354,7 +360,7 @@ def test_arbitrary_grid_edge():
         [1.0, 1.0, 1.0] * kpc,
     ]
 
-    for le, re, le_ans, re_ans in zip(ledge, redge, ledge_ans, redge_ans):
+    for le, re, le_ans, re_ans in zip(ledge, redge, ledge_ans, redge_ans, strict=True):
         ag = ds.arbitrary_grid(left_edge=le, right_edge=re, dims=dims)
         assert np.array_equal(ag.left_edge, le_ans)
         assert np.array_equal(ag.right_edge, re_ans)

@@ -1,14 +1,13 @@
 import base64
-import builtins
 import os
-from collections.abc import Iterable
 from functools import wraps
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import matplotlib
 import numpy as np
 from more_itertools.more import always_iterable, unzip
 
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt._typing import FieldKey
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
@@ -27,6 +26,11 @@ from .plot_container import (
     invalidate_plot,
     validate_plot,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from yt._typing import FieldKey
 
 
 def invalidate_profile(f):
@@ -342,7 +346,7 @@ class ProfilePlot(BaseLinePlot):
         >>> pp.show()
 
         """
-        if "__IPYTHON__" in dir(builtins):
+        if IS_IPYTHON:
             from IPython.display import display
 
             display(self)

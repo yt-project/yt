@@ -47,6 +47,10 @@ from yt.visualization import (
     profile_plotter as profile_plotter,
 )
 
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
+
+
 mylog = logging.getLogger("nose.plugins.answer-testing")
 run_big_data = False
 
@@ -769,16 +773,24 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         return result
 
     def compare(self, new_result, old_result):
-        for newp, oldp in zip(new_result["parents"], old_result["parents"]):
+        for newp, oldp in zip(
+            new_result["parents"],
+            old_result["parents"],
+            strict=True,
+        ):
             assert newp == oldp
-        for newc, oldc in zip(new_result["children"], old_result["children"]):
+        for newc, oldc in zip(
+            new_result["children"],
+            old_result["children"],
+            strict=True,
+        ):
             assert newc == oldc
 
 
 def dump_images(new_result, old_result, decimals=10):
-    tmpfd, old_image = tempfile.mkstemp(suffix=".png")
+    tmpfd, old_image = tempfile.mkstemp(prefix="baseline_", suffix=".png")
     os.close(tmpfd)
-    tmpfd, new_image = tempfile.mkstemp(suffix=".png")
+    tmpfd, new_image = tempfile.mkstemp(prefix="thisPR_", suffix=".png")
     os.close(tmpfd)
     image_writer.write_projection(new_result, new_image)
     image_writer.write_projection(old_result, old_image)
@@ -840,7 +852,10 @@ def compare_image_lists(new_result, old_result, decimals):
                 line.strip() for line in results.split("\n") if line.endswith(".png")
             ]
             for fn, img, padded in zip(
-                tempfiles, (expected, actual), (expected_p, actual_p)
+                tempfiles,
+                (expected, actual),
+                (expected_p, actual_p),
+                strict=True,
             ):
                 # padded images are convenient for comparison
                 # but what we really want to store and upload

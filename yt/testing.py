@@ -9,6 +9,7 @@ import unittest
 from functools import wraps
 from importlib.util import find_spec
 from shutil import which
+from typing import TYPE_CHECKING, Callable, Union
 from unittest import SkipTest
 
 import matplotlib
@@ -19,9 +20,18 @@ from unyt.exceptions import UnitOperationError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
+from yt.frontends.stream.data_structures import StreamParticlesDataset
 from yt.funcs import is_sequence
-from yt.loaders import load
+from yt.loaders import load, load_particles
 from yt.units.yt_array import YTArray, YTQuantity
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from yt._typing import AnyFieldKey
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 ANSWER_TEST_TAG = "answer_test"
 
@@ -78,6 +88,111 @@ def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
     return assert_almost_equal(
         np.array(a1) / np.array(a2), 1.0, decimals, err_msg=err_msg, verbose=verbose
     )
+
+
+# tested: volume integral is 1.
+def cubicspline_python(
+    x: Union[float, np.ndarray],
+) -> np.ndarray:
+    """
+    cubic spline SPH kernel function for testing against more
+    effiecient cython methods
+
+    Parameters
+    ----------
+    x:
+        impact parameter / smoothing length [dimenionless]
+
+    Returns
+    -------
+    value of the kernel function
+    """
+    # C is 8/pi
+    _c = 8.0 / np.pi
+    x = np.asarray(x)
+    kernel = np.zeros(x.shape, dtype=x.dtype)
+    half1 = np.where(np.logical_and(x >= 0.0, x <= 0.5))
+    kernel[half1] = 1.0 - 6.0 * x[half1] ** 2 * (1.0 - x[half1])
+    half2 = np.where(np.logical_and(x > 0.5, x <= 1.0))
+    kernel[half2] = 2.0 * (1.0 - x[half2]) ** 3
+    return kernel * _c
+
+
+def integrate_kernel(
+    kernelfunc: Callable[[float], float], b: float, hsml: float
+) -> float:
+    """
+    integrates a kernel function over a line passing entirely
+    through it
+
+    Parameters:
+    -----------
+    kernelfunc:
+        the kernel function to integrate
+    b:
+        impact parameter
+    hsml:
+        smoothing length [same units as impact parameter]
+
+    Returns:
+    --------
+    the integral of the SPH kernel function.
+    units: 1  / units of b and hsml
+    """
+    pre = 1.0 / hsml**2
+    x = b / hsml
+    xmax = np.sqrt(1.0 - x**2)
+    xmin = -1.0 * xmax
+    xe = np.linspace(xmin, xmax, 500)  # shape: 500, x.shape
+    xc = 0.5 * (xe[:-1, ...] + xe[1:, ...])
+    dx = np.diff(xe, axis=0)
+    spv = kernelfunc(np.sqrt(xc**2 + x**2))
+    integral = np.sum(spv * dx, axis=0)
+    return pre * integral
+
+
+_zeroperiods = np.array([0.0, 0.0, 0.0])
+
+
+def distancematrix(
+    pos3_i0: np.ndarray,
+    pos3_i1: np.ndarray,
+    periodic: tuple[bool, bool, bool] = (True,) * 3,
+    periods: np.ndarray = _zeroperiods,
+) -> np.ndarray:
+    """
+    Calculates the distances between two arrays of points.
+
+    Parameters:
+    ----------
+    pos3_i0: shape (first number of points, 3)
+       positions of the first set of points. The second index is
+       for positions along the different cartesian axes
+    pos3_i1: shape (second number of points, 3)
+       as pos3_i0, but for the second set of points
+    periodic:
+       are the positions along each axis periodic (True) or not
+    periods:
+       the periods along each axis. Ignored if positions in a given
+       direction are not periodic.
+
+    Returns:
+    --------
+    a 2D-array of distances between postions `pos3_i0` (changes along
+    index 0) and `pos3_i1` (changes along index 1)
+
+    """
+    d2 = np.zeros((len(pos3_i0), len(pos3_i1)), dtype=pos3_i0.dtype)
+    for ax in range(3):
+        # 'center on' pos3_i1
+        _d = pos3_i0[:, ax, np.newaxis] - pos3_i1[np.newaxis, :, ax]
+        if periodic[ax]:
+            _period = periods[ax]
+            _d += 0.5 * _period  # center on half box size
+            _d %= _period  # wrap coordinate to 0 -- boxsize range
+            _d -= 0.5 * _period  # center back to zero
+        d2 += _d**2
+    return np.sqrt(d2)
 
 
 def amrspace(extent, levels=7, cells=8):
@@ -270,14 +385,14 @@ def fake_random_ds(
         else:
             offsets.append(0.0)
     data = {}
-    for field, offset, u in zip(fields, offsets, units):
+    for field, offset, u in zip(fields, offsets, units, strict=True):
         v = (prng.random_sample(ndims) - offset) * peak_value
         if field[0] == "all":
             v = v.ravel()
         data[field] = (v, u)
     if particles:
         if particle_fields is not None:
-            for field, unit in zip(particle_fields, particle_field_units):
+            for field, unit in zip(particle_fields, particle_field_units, strict=True):
                 if field in ("particle_position", "particle_velocity"):
                     data["io", field] = (prng.random_sample((int(particles), 3)), unit)
                 else:
@@ -347,7 +462,7 @@ def fake_amr_ds(
             "right_edge": right_edge,
             "dimensions": dims,
         }
-        for f, u in zip(fields, units):
+        for f, u in zip(fields, units, strict=True):
             gdata[f] = (prng.random_sample(dims), u)
         if particles:
             for i, f in enumerate(f"particle_position_{ax}" for ax in "xyz"):
@@ -412,7 +527,7 @@ def fake_particle_ds(
         else:
             offsets.append(0.0)
     data = data if data else {}
-    for field, offset, u in zip(fields, offsets, units):
+    for field, offset, u in zip(fields, offsets, units, strict=True):
         if field in data:
             v = data[field]
             continue
@@ -686,6 +801,220 @@ def fake_sph_grid_ds(hsml_factor=1.0):
     return load_particles(data=data, length_unit=1.0, bbox=bbox)
 
 
+def constantmass(i: int, j: int, k: int) -> float:
+    return 1.0
+
+
+_xhat = np.array([1, 0, 0])
+_yhat = np.array([0, 1, 0])
+_zhat = np.array([0, 0, 1])
+_floathalves = 0.5 * np.ones((3,), dtype=np.float64)
+
+
+def fake_sph_flexible_grid_ds(
+    hsml_factor: float = 1.0,
+    nperside: int = 3,
+    periodic: bool = True,
+    e1hat: np.ndarray = _xhat,
+    e2hat: np.ndarray = _yhat,
+    e3hat: np.ndarray = _zhat,
+    offsets: np.ndarray = _floathalves,
+    massgenerator: Callable[[int, int, int], float] = constantmass,
+    unitrho: float = 1.0,
+    bbox: Union[np.ndarray, None] = None,
+    recenter: Union[np.ndarray, None] = None,
+) -> StreamParticlesDataset:
+    """Returns an in-memory SPH dataset useful for testing
+
+    Parameters:
+    -----------
+    hsml_factor:
+        all particles have smoothing lengths of `hsml_factor` * 0.5
+    nperside:
+        the dataset will have `nperside`**3 particles, arranged
+        uniformly on a 3D grid
+    periodic:
+        are the positions taken to be periodic? (applies to all
+        coordinate axes)
+    e1hat: shape (3,)
+        the first basis vector defining the 3D grid. If the basis
+        vectors are not normalized to 1 or not orthogonal, the spacing
+        or overlap between SPH particles will be affected, but this is
+        allowed.
+    e2hat: shape (3,)
+        the second basis vector defining the 3D grid. (See `e1hat`.)
+    e3hat: shape (3,)
+        the third basis vector defining the 3D grid. (See `e1hat`.)
+    offsets: shape (3,)
+        the the zero point of the 3D grid along each coordinate axis
+    massgenerator:
+        a function assigning a mass to each particle, as a function of
+        the e[1-3]hat indices, in order
+    unitrho:
+        defines the density for a particle with mass 1 ('g'), and the
+        standard (uniform) grid `hsml_factor`.
+    bbox: if np.ndarray, shape is (2, 3)
+        the assumed enclosing volume of the particles. Should enclose
+        all the coordinate values. If not specified, a bbox is defined
+        which encloses all coordinates values with a margin. If
+        `periodic`, the size of the `bbox` along each coordinate is
+        also the period along that axis.
+    recenter:
+        if not `None`, after generating the grid, the positions are
+        periodically shifted to move the old center to this positions.
+        Useful for testing periodicity handling.
+        This shift is relative to the halfway positions of the bbox
+        edges.
+
+    Returns:
+    --------
+    A `StreamParticlesDataset` object with particle positions, masses,
+    velocities (zero), smoothing lengths, and densities specified.
+    Values are in cgs units.
+    """
+
+    npart = nperside**3
+
+    pos = np.empty((npart, 3), dtype=np.float64)
+    mass = np.empty((npart,), dtype=np.float64)
+    for i in range(0, nperside):
+        for j in range(0, nperside):
+            for k in range(0, nperside):
+                _pos = (
+                    (offsets[0] + i) * e1hat
+                    + (offsets[1] + j) * e2hat
+                    + (offsets[2] + k) * e3hat
+                )
+                ind = nperside**2 * i + nperside * j + k
+                pos[ind, :] = _pos
+                mass[ind] = massgenerator(i, j, k)
+    rho = unitrho * mass
+
+    if bbox is None:
+        eps = 1e-3
+        margin = (1.0 + eps) * hsml_factor
+        bbox = np.array(
+            [
+                [np.min(pos[:, 0]) - margin, np.max(pos[:, 0]) + margin],
+                [np.min(pos[:, 1]) - margin, np.max(pos[:, 1]) + margin],
+                [np.min(pos[:, 2]) - margin, np.max(pos[:, 2]) + margin],
+            ]
+        )
+
+    if recenter is not None:
+        periods = bbox[:, 1] - bbox[:, 0]
+        # old center -> new position
+        pos += -0.5 * periods[np.newaxis, :] + recenter[np.newaxis, :]
+        # wrap coordinates -> all in [0, boxsize) range
+        pos %= periods[np.newaxis, :]
+        # shift back to original bbox range
+        pos += (bbox[:, 0])[np.newaxis, :]
+    if not periodic:
+        # remove points outside bbox to avoid errors:
+        okinds = np.ones(len(mass), dtype=bool)
+        for ax in [0, 1, 2]:
+            okinds &= pos[:, ax] < bbox[ax, 1]
+            okinds &= pos[:, ax] >= bbox[ax, 0]
+        npart = sum(okinds)
+    else:
+        okinds = np.ones((npart,), dtype=bool)
+
+    data: Mapping[AnyFieldKey, tuple[np.ndarray, str]] = {
+        "particle_position_x": (np.copy(pos[okinds, 0]), "cm"),
+        "particle_position_y": (np.copy(pos[okinds, 1]), "cm"),
+        "particle_position_z": (np.copy(pos[okinds, 2]), "cm"),
+        "particle_mass": (np.copy(mass[okinds]), "g"),
+        "particle_velocity_x": (np.zeros(npart), "cm/s"),
+        "particle_velocity_y": (np.zeros(npart), "cm/s"),
+        "particle_velocity_z": (np.zeros(npart), "cm/s"),
+        "smoothing_length": (np.ones(npart) * 0.5 * hsml_factor, "cm"),
+        "density": (np.copy(rho[okinds]), "g/cm**3"),
+    }
+
+    ds = load_particles(
+        data=data,
+        bbox=bbox,
+        periodicity=(periodic,) * 3,
+        length_unit=1.0,
+        mass_unit=1.0,
+        time_unit=1.0,
+        velocity_unit=1.0,
+    )
+    ds.kernel_name = "cubic"
+    return ds
+
+
+def fake_random_sph_ds(
+    npart: int,
+    bbox: np.ndarray,
+    periodic: Union[bool, tuple[bool, bool, bool]] = True,
+    massrange: tuple[float, float] = (0.5, 2.0),
+    hsmlrange: tuple[float, float] = (0.5, 2.0),
+    unitrho: float = 1.0,
+) -> StreamParticlesDataset:
+    """Returns an in-memory SPH dataset useful for testing
+
+    Parameters:
+    -----------
+    npart:
+        number of particles to generate
+    bbox: shape: (3, 2), units: "cm"
+        the assumed enclosing volume of the particles. Particle
+        positions are drawn uniformly from these ranges.
+    periodic:
+        are the positions taken to be periodic? If a single value,
+        that value is applied to all axes
+    massrange:
+        particle masses are drawn uniformly from this range (unit: "g")
+    hsmlrange: units: "cm"
+        particle smoothing lengths are drawn uniformly from this range
+    unitrho:
+        defines the density for a particle with mass 1 ("g"), and
+        smoothing length 1 ("cm").
+
+    Returns:
+    --------
+    A `StreamParticlesDataset` object with particle positions, masses,
+    velocities (zero), smoothing lengths, and densities specified.
+    Values are in cgs units.
+    """
+
+    if not hasattr(periodic, "__len__"):
+        periodic = (periodic,) * 3
+    gen = np.random.default_rng(seed=0)
+
+    posx = gen.uniform(low=bbox[0][0], high=bbox[0][1], size=npart)
+    posy = gen.uniform(low=bbox[1][0], high=bbox[1][1], size=npart)
+    posz = gen.uniform(low=bbox[2][0], high=bbox[2][1], size=npart)
+    mass = gen.uniform(low=massrange[0], high=massrange[1], size=npart)
+    hsml = gen.uniform(low=hsmlrange[0], high=hsmlrange[1], size=npart)
+    dens = mass / hsml**3 * unitrho
+
+    data: Mapping[AnyFieldKey, tuple[np.ndarray, str]] = {
+        "particle_position_x": (posx, "cm"),
+        "particle_position_y": (posy, "cm"),
+        "particle_position_z": (posz, "cm"),
+        "particle_mass": (mass, "g"),
+        "particle_velocity_x": (np.zeros(npart), "cm/s"),
+        "particle_velocity_y": (np.zeros(npart), "cm/s"),
+        "particle_velocity_z": (np.zeros(npart), "cm/s"),
+        "smoothing_length": (hsml, "cm"),
+        "density": (dens, "g/cm**3"),
+    }
+
+    ds = load_particles(
+        data=data,
+        bbox=bbox,
+        periodicity=periodic,
+        length_unit=1.0,
+        mass_unit=1.0,
+        time_unit=1.0,
+        velocity_unit=1.0,
+    )
+    ds.kernel_name = "cubic"
+    return ds
+
+
 def construct_octree_mask(prng=RandomState(0x1D3D3D3), refined=None):  # noqa B008
     # Implementation taken from url:
     # http://docs.hyperion-rt.org/en/stable/advanced/indepth_oct.html
@@ -856,7 +1185,7 @@ def expand_keywords(keywords, full=False):
         keys = sorted(keywords)
         list_of_kwarg_dicts = np.array(
             [
-                dict(zip(keys, prod))
+                dict(zip(keys, prod, strict=True))
                 for prod in it.product(*(keywords[key] for key in keys))
             ]
         )

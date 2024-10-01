@@ -1,8 +1,13 @@
+import sys
+
 import numpy as np
 from more_itertools import always_iterable
 
 from yt.funcs import mylog
 from yt.utilities.physical_constants import clight, hcgs, kboltz
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class TransferFunction:
@@ -433,7 +438,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-9.0, 0.01, [1.0, 0.0, 0.0, 1.0])
         """
-        for tf, v in zip(self.funcs, height):
+        for tf, v in zip(self.funcs, height, strict=True):
             tf.add_gaussian(location, width, v)
         self.features.append(
             (
@@ -474,7 +479,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_step(-6.0, -5.0, [1.0, 1.0, 1.0, 1.0])
         """
-        for tf, v in zip(self.funcs, value):
+        for tf, v in zip(self.funcs, value, strict=True):
             tf.add_step(start, stop, v)
         self.features.append(
             (
@@ -890,7 +895,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             alpha = np.ones(N, dtype="float64")
         elif alpha is None and not self.grey_opacity:
             alpha = np.logspace(-3, 0, N)
-        for v, a in zip(np.mgrid[mi : ma : N * 1j], alpha):
+        for v, a in zip(np.mgrid[mi : ma : N * 1j], alpha, strict=True):
             self.sample_colormap(v, w, a, colormap=colormap, col_bounds=col_bounds)
 
     def get_colormap_image(self, height, width):

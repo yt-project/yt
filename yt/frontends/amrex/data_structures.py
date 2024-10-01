@@ -833,7 +833,7 @@ class BoxlibDataset(Dataset):
         # in a slightly hidden variable.
         self._max_level = int(header_file.readline())
 
-        for side, init in zip(["left", "right"], [np.zeros, np.ones]):
+        for side, init in [("left", np.zeros), ("right", np.ones)]:
             domain_edge = init(3, dtype="float64")
             domain_edge[: self.dimensionality] = header_file.readline().split()
             setattr(self, f"domain_{side}_edge", domain_edge)

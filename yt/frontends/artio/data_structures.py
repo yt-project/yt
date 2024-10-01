@@ -1,4 +1,5 @@
 import os
+import sys
 import weakref
 from collections import defaultdict
 from typing import Optional
@@ -20,6 +21,9 @@ from yt.funcs import mylog, setdefaultattr
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.exceptions import YTParticleDepositionNotImplemented
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 class ARTIOOctreeSubset(OctreeSubset):
@@ -72,7 +76,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.oct_handler.fill_sfc(
             levels, cell_inds, file_inds, domain_counts, field_indices, tr
         )
-        tr = dict(zip(fields, tr))
+        tr = dict(zip(fields, tr, strict=True))
         return tr
 
     def fill_particles(self, fields):
@@ -118,7 +122,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         ]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
         self.data_size = tr[0].size
-        tr = dict(zip(fields, tr))
+        tr = dict(zip(fields, tr, strict=True))
         return tr
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):

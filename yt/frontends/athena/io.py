@@ -16,11 +16,6 @@ class IOHandlerAthena(BaseIOHandler):
     _data_string = "data:datatype=0"
     _read_table_offset = None
 
-    def _field_dict(self, fhandle):
-        keys = fhandle["field_types"].keys()
-        val = fhandle["field_types"].keys()
-        return dict(zip(keys, val))
-
     def _read_field_names(self, grid):
         pass
 

@@ -112,3 +112,9 @@ def test_tipsy_index():
     ds = data_dir_load(tipsy_gal)
     sl = ds.slice("z", 0.0)
     assert sl["gas", "density"].shape[0] != 0
+
+
+@requires_file(tipsy_gal)
+def test_tipsy_smoothing_length():
+    ds = data_dir_load(tipsy_gal)
+    _ = ds.all_data()["Gas", "smoothing_length"]

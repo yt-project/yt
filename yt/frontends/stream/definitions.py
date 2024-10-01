@@ -1,3 +1,4 @@
+import sys
 from collections import defaultdict
 
 import numpy as np
@@ -12,6 +13,9 @@ from yt.utilities.exceptions import (
 from yt.utilities.logger import ytLogger as mylog
 
 from .fields import StreamFieldInfo
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def assign_particle_data(ds, pdata, bbox):
@@ -135,7 +139,7 @@ def assign_particle_data(ds, pdata, bbox):
     else:
         grid_pdata = [pdata]
 
-    for pd, gi in zip(grid_pdata, sorted(ds.stream_handler.fields)):
+    for pd, gi in zip(grid_pdata, sorted(ds.stream_handler.fields), strict=True):
         ds.stream_handler.fields[gi].update(pd)
         ds.stream_handler.particle_types.update(set_particle_types(pd))
         npart = ds.stream_handler.fields[gi].pop("number_of_particles", 0)

@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 from more_itertools import collapse
 
@@ -22,6 +24,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
     parallel_objects,
 )
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 
 def _sanitize_min_max_units(amin, amax, finfo, registry):
@@ -217,7 +222,7 @@ class ProfileND(ParallelAnalysisInterface):
         # cut_points is set to be everything initially, but
         # we also want to apply a filtering based on min/max
         pfilter = np.ones(bin_fields[0].shape, dtype="bool")
-        for (mi, ma), data in zip(self.bounds, bin_fields):
+        for (mi, ma), data in zip(self.bounds, bin_fields, strict=True):
             pfilter &= data > mi
             pfilter &= data < ma
         return pfilter, [data[pfilter] for data in bin_fields]
@@ -1313,7 +1318,11 @@ def create_profile(
                 data_source.ds.field_info[f].sampling_type == "local"
                 for f in bin_fields + fields
             ]
-            is_local_or_pfield = [pf or lf for (pf, lf) in zip(is_pfield, is_local)]
+            if wf is not None:
+                is_local.append(wf.sampling_type == "local")
+            is_local_or_pfield = [
+                pf or lf for (pf, lf) in zip(is_pfield, is_local, strict=True)
+            ]
             if not all(is_local_or_pfield):
                 raise YTIllDefinedProfile(
                     bin_fields, data_source._determine_fields(fields), wf, is_pfield
@@ -1370,7 +1379,7 @@ def create_profile(
     if extrema is None or not any(collapse(extrema.values())):
         ex = [
             data_source.quantities["Extrema"](f, non_zero=l)
-            for f, l in zip(bin_fields, logs)
+            for f, l in zip(bin_fields, logs, strict=True)
         ]
         # pad extrema by epsilon so cells at bin edges are not excluded
         for i, (mi, ma) in enumerate(ex):
@@ -1456,7 +1465,7 @@ def create_profile(
             o_bins.append(field_obin)
 
     args = [data_source]
-    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
+    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs, strict=True):
         if mi <= 0 and l:
             raise YTIllDefinedBounds(mi, ma)
         args += [f, n, mi, ma, l]
@@ -1464,7 +1473,7 @@ def create_profile(
     if cls is ParticleProfile:
         kwargs["deposition"] = deposition
     if override_bins is not None:
-        for o_bin, ax in zip(o_bins, ["x", "y", "z"]):
+        for o_bin, ax in zip(o_bins, ["x", "y", "z"], strict=False):
             kwargs[f"override_bins_{ax}"] = o_bin
     obj = cls(*args, **kwargs)
     obj.accumulation = accumulation

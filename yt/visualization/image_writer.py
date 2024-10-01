@@ -1,7 +1,6 @@
-import builtins
-
 import numpy as np
 
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.yt_array import YTQuantity
@@ -418,7 +417,7 @@ def display_in_notebook(image, max_val=None):
         three channels.
     """
 
-    if "__IPYTHON__" in dir(builtins):
+    if IS_IPYTHON:
         from IPython.core.displaypub import publish_display_data
 
         data = write_bitmap(image, None, max_val=max_val)

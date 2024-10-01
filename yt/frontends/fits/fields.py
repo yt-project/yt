@@ -70,10 +70,10 @@ class WCSFITSFieldInfo(FITSFieldInfo):
 
             return _world_f
 
-        for (i, axis), name in zip(
-            enumerate([self.ds.lon_axis, self.ds.lat_axis]),
-            [self.ds.lon_name, self.ds.lat_name],
-        ):
+        for i, axis, name in [
+            (0, self.ds.lon_axis, self.ds.lon_name),
+            (1, self.ds.lat_axis, self.ds.lat_name),
+        ]:
             unit = str(wcs_2d.wcs.cunit[i])
             if unit.lower() == "deg":
                 unit = "degree"

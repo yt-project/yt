@@ -1,7 +1,6 @@
-import os
 from collections import defaultdict
 from functools import lru_cache
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 
@@ -16,6 +15,9 @@ from yt.utilities.exceptions import (
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
+
+if TYPE_CHECKING:
+    import os
 
 
 def convert_ramses_ages(ds, conformal_ages):

@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "tomli ; python_full_version < '3.11'",
+#     "tomli-w",
+# ]
+# ///
 import re
 import sys
 

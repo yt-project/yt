@@ -19,6 +19,9 @@ from yt.utilities.math_utils import (
 
 from .derived_field import NeedsParameter, ValidateParameter, ValidateSpatial
 
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
+
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:
@@ -676,7 +679,7 @@ def create_averaged_field(
         )
         i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
 
-        for i, j, k in zip(i_i.ravel(), j_i.ravel(), k_i.ravel()):
+        for i, j, k in zip(i_i.ravel(), j_i.ravel(), k_i.ravel(), strict=True):
             sl = (
                 slice(i, nx - (2 - i)),
                 slice(j, ny - (2 - j)),

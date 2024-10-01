@@ -1,4 +1,5 @@
 import os
+import sys
 import weakref
 from collections import defaultdict
 from functools import cached_property
@@ -32,6 +33,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_roo
 from yt.utilities.tree_container import TreeContainer
 
 from .fields import YTDataContainerFieldInfo, YTGridFieldInfo
+
+if sys.version_info < (3, 10):
+    from yt._maintenance.backports import zip
 
 _grid_data_containers = ["arbitrary_grid", "covering_grid", "smoothed_covering_grid"]
 _set_attrs = {"periodicity": "_periodicity"}
@@ -146,7 +150,7 @@ class SavedDataset(Dataset):
         )
         cgs_units = ("cm", "g", "s", "cm/s", "gauss")
         base_units = np.ones(len(attrs))
-        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
+        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units, strict=True):
             if attr in self.parameters and isinstance(
                 self.parameters[attr], YTQuantity
             ):
