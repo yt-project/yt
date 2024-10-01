@@ -12,7 +12,7 @@ fonttools==4.53.1
     # via matplotlib
 kiwisolver==1.4.7
     # via matplotlib
-matplotlib==3.5.0
+matplotlib==3.9.2
     # via
     #   yt (pyproject.toml)
     #   cmyt
