@@ -16,7 +16,7 @@ matplotlib==3.5.0
     # via
     #   yt (pyproject.toml)
     #   cmyt
-more-itertools==8.4.0
+more-itertools==10.5.0
     # via
     #   yt (pyproject.toml)
     #   cmyt
