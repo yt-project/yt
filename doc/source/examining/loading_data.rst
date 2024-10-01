@@ -570,14 +570,14 @@ specifics described in the following.
 Note that only AthenaPK data is currently automatically converted to the
 standard fields known by yt.
 For other codes, the raw data of the fields stored in the output file is accessible
-and a conversion between those fields and yt standard fields need to be done manually.
+and a conversion between those fields and yt standard fields needs to be done manually.
 
    .. rubric:: Caveats
 
 * Reading particle data from Parthenon output is currently not supported.
-* Only Cartesian coordinate systems are currently supported.
-* Other than periodic boundary conditions are currently not supported by the
-  yt Parthenon frontend.
+* Spherical and cylindrical coordinates only work for AthenaPK data.
+* Only periodic boundary conditions are properly handled. Calculating quantities requiring
+larger stencils (like derivatives) will be incorrect at mesh boundaries that are not periodic.
 
 AthenaPK
 ^^^^^^^^
@@ -658,7 +658,7 @@ that is stored in cgs units on disk:
 
 
     @derived_field(name="density", units="g*cm**-3", sampling_type="cell")
-    def __density(field, data):
+    def _density(field, data):
         return data[("parthenon", "mass.density")] * yt.units.g / yt.units.cm**3
 
 Moreover, an ideal equation of state is assumed with the following parameters,

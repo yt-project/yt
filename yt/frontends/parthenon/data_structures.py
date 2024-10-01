@@ -1,14 +1,13 @@
 import os
 import warnings
 import weakref
-from itertools import chain, product
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.magnetic_field import get_magnetic_normalization
-from yt.funcs import mylog
+from yt.funcs import mylog, setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.chemical_formulas import compute_mu
@@ -16,16 +15,27 @@ from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import ParthenonFieldInfo
 
-geom_map = {
+_geom_map = {
     "UniformCartesian": Geometry.CARTESIAN,
     "UniformCylindrical": Geometry.CYLINDRICAL,
     "UniformSpherical": Geometry.SPHERICAL,
 }
 
-_cis = np.fromiter(
-    chain.from_iterable(product([0, 1], [0, 1], [0, 1])), dtype=np.int64, count=8 * 3
+# fmt: off
+_cis = np.array(
+    [
+        [0, 0, 0],
+        [0, 0, 1],
+        [0, 1, 0],
+        [0, 1, 1],
+        [1, 0, 0],
+        [1, 0, 1],
+        [1, 1, 0],
+        [1, 1, 1],
+    ],
+    dtype="int64",
 )
-_cis.shape = (8, 3)
+# fmt: on
 
 
 class ParthenonGrid(AMRGridPatch):
@@ -86,10 +96,6 @@ class ParthenonHierarchy(GridIndex):
     def _parse_index(self):
         num_grids = self._handle["Info"].attrs["NumMeshBlocks"]
 
-        self.grid_left_edge = np.zeros((num_grids, 3), dtype="float64")
-        self.grid_right_edge = np.zeros((num_grids, 3), dtype="float64")
-        self.grid_dimensions = np.zeros((num_grids, 3), dtype="int32")
-
         # TODO: In an unlikely case this would use too much memory, implement
         #       chunked read along 1 dim
         x = self._handle["Locations"]["x"][:, :]
@@ -97,6 +103,8 @@ class ParthenonHierarchy(GridIndex):
         z = self._handle["Locations"]["z"][:, :]
         mesh_block_size = self._handle["Info"].attrs["MeshBlockSize"]
 
+        self.grids = np.empty(self.num_grids, dtype="object")
+        levels = self._handle["Levels"][:]
         for i in range(num_grids):
             self.grid_left_edge[i] = np.array(
                 [x[i, 0], y[i, 0], z[i, 0]], dtype="float64"
@@ -105,13 +113,6 @@ class ParthenonHierarchy(GridIndex):
                 [x[i, -1], y[i, -1], z[i, -1]], dtype="float64"
             )
             self.grid_dimensions[i] = mesh_block_size
-        levels = self._handle["Levels"][:]
-
-        self.grid_left_edge = self.ds.arr(self.grid_left_edge, "code_length")
-        self.grid_right_edge = self.ds.arr(self.grid_right_edge, "code_length")
-
-        self.grids = np.empty(self.num_grids, dtype="object")
-        for i in range(num_grids):
             self.grids[i] = self.grid(i, self, levels[i])
 
         if self.dataset.dimensionality <= 2:
@@ -130,6 +131,7 @@ class ParthenonHierarchy(GridIndex):
 class ParthenonDataset(Dataset):
     _field_info_class = ParthenonFieldInfo
     _dataset_type = "parthenon"
+    _index_class = ParthenonHierarchy
 
     def __init__(
         self,
@@ -153,16 +155,13 @@ class ParthenonDataset(Dataset):
         yrat = self._handle["Info"].attrs["RootGridDomain"][5]
         zrat = self._handle["Info"].attrs["RootGridDomain"][8]
         if xrat != 1.0 or yrat != 1.0 or zrat != 1.0:
-            self.logarithmic = True
-            raise ValueError(
-                "Logarithmic grids not yet supported in Parthenon frontend."
+            raise NotImplementedError(
+                "Logarithmic grids not yet supported/tested in Parthenon frontend."
             )
-        else:
-            self._index_class = ParthenonHierarchy
-            self.logarithmic = False
+
         self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
 
-        self.geometry = geom_map[self._handle["Info"].attrs["Coordinates"]]
+        self.geometry = _geom_map[self._handle["Info"].attrs["Coordinates"]]
 
         if self.geometry == "cylindrical":
             axis_order = ("r", "theta", "z")
@@ -193,16 +192,15 @@ class ParthenonDataset(Dataset):
             ("mass", "g"),
         ]:
             unit_param = f"Hydro/code_{unit}_cgs"
-            # We set these to cgs for now, but they may have been overridden
-            if getattr(self, unit + "_unit", None) is not None:
-                continue
-            elif unit_param in self.parameters:
-                setattr(
+            # Use units, if provided in output
+            if unit_param in self.parameters:
+                setdefaultattr(
                     self, f"{unit}_unit", self.quan(self.parameters[unit_param], cgs)
                 )
+            # otherwise use code = cgs
             else:
-                mylog.warning(f"Assuming 1.0 = 1.0 {cgs}")
-                setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
+                mylog.warning(f"Assuming 1.0 code_{unit} = 1.0 {cgs}")
+                setdefaultattr(self, f"{unit}_unit", self.quan(1.0, cgs))
 
         self.magnetic_unit = np.sqrt(
             self._magnetic_factor
@@ -217,7 +215,7 @@ class ParthenonDataset(Dataset):
         for key, val in self._handle["Params"].attrs.items():
             if key in self.parameters.keys():
                 mylog.warning(
-                    f"Overriding existing 'f{key}' key in ds.parameters from data 'Params'"
+                    f"Overriding existing {key!r} key in ds.parameters from data 'Params'"
                 )
             self.parameters[key] = val
 
@@ -242,13 +240,11 @@ class ParthenonDataset(Dataset):
                 "OutputFormatVersion"
             ]
         else:
-            self.output_format_version = -1
+            raise NotImplementedError("Could not determine OutputFormatVersion.")
 
-        # Use duck typing to check if num_components is a single int or a list
-        # h5py will return different types if there is a single variable or if there are more
-        try:
-            iter(num_components)
-        except TypeError:
+        # For a single variable, we need to convert it to a list for the following
+        # zip to work.
+        if isinstance(num_components, np.uint64):
             dnames = (dnames,)
             num_components = (num_components,)
 

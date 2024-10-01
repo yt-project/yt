@@ -2,6 +2,7 @@ import numpy as np
 
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
+from yt.funcs import mylog
 from yt.utilities.physical_constants import kboltz, mh
 
 mag_units = "code_magnetic"
@@ -96,6 +97,12 @@ class ParthenonFieldInfo(FieldInfoContainer):
             "parthenon",
             "prim_pressure",
         ) in self.field_list:
+            # only show warning for non-AthenaPK codes
+            if "Hydro/AdiabaticIndex" not in self.ds.parameters:
+                mylog.warning(
+                    f"Adding a specific thermal energy field assuming an ideal gas with an "
+                    f"adiabatic index of {self.ds.gamma}"
+                )
 
             def _specific_thermal_energy(field, data):
                 # TODO This only accounts for ideal gases with adiabatic indices

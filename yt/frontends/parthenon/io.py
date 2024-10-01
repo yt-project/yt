@@ -27,15 +27,8 @@ class IOHandlerParthenon(BaseIOHandler):
         super().__init__(ds)
         self._handle = ds._handle
 
-    def _read_particles(
-        self, fields_to_read, type, args, grid_list, count_list, conv_factors
-    ):
-        pass
-
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype != "parthenon" for ftype, fname in fields)):
-            raise NotImplementedError
         f = self._handle
         rv = {}
         for field in fields:
@@ -56,34 +49,16 @@ class IOHandlerParthenon(BaseIOHandler):
                 ds = f[f"/{dname}"]
             ind = 0
             for chunk in chunks:
-                if self.ds.logarithmic:
-                    for mesh in chunk.objs:
-                        nx, ny, nz = mesh.mesh_dims // self.ds.index.mesh_factors
-                        data = np.empty(mesh.mesh_dims, dtype="=f8")
-                        for n, id in enumerate(mesh.mesh_blocks):
-                            data[
-                                ii[n] * nx : (ii[n] + 1) * nx,
-                                jj[n] * ny : (jj[n] + 1) * ny,
-                                kk[n] * nz : (kk[n] + 1) * nz,
-                            ] = ds[id, fdi, :, :, :].transpose()
-                        ind += mesh.select(selector, data, rv[field], ind)  # caches
-                else:
-                    for gs in grid_sequences(chunk.objs):
-                        start = gs[0].id - gs[0]._id_offset
-                        end = gs[-1].id - gs[-1]._id_offset + 1
-                        # Deprecate this fallback on next major Parthenon release
-                        if self.ds.output_format_version == -1:
-                            data = ds[start:end, :, :, :, fdi].transpose()
-                        else:
-                            data = ds[start:end, fdi, :, :, :].transpose()
-                        for i, g in enumerate(gs):
-                            ind += g.select(selector, data[..., i], rv[field], ind)
+                for gs in grid_sequences(chunk.objs):
+                    start = gs[0].id - gs[0]._id_offset
+                    end = gs[-1].id - gs[-1]._id_offset + 1
+                    data = ds[start:end, fdi, :, :, :].transpose()
+                    for i, g in enumerate(gs):
+                        ind += g.select(selector, data[..., i], rv[field], ind)
             last_dname = dname
         return rv
 
     def _read_chunk_data(self, chunk, fields):
-        if self.ds.logarithmic:
-            pass
         f = self._handle
         rv = {}
         for g in chunk.objs:
@@ -97,11 +72,7 @@ class IOHandlerParthenon(BaseIOHandler):
             for gs in grid_sequences(chunk.objs):
                 start = gs[0].id - gs[0]._id_offset
                 end = gs[-1].id - gs[-1]._id_offset + 1
-                # Deprecate this fallback on next major Parthenon release
-                if self.ds.output_format_version == -1:
-                    data = ds[start:end, :, :, :, fdi].transpose()
-                else:
-                    data = ds[start:end, fdi, :, :, :].transpose()
+                data = ds[start:end, fdi, :, :, :].transpose()
                 for i, g in enumerate(gs):
                     rv[g.id][field] = np.asarray(data[..., i], "=f8")
         return rv
