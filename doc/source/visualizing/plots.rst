@@ -454,7 +454,6 @@ projection through a simulation.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1, 1, 0]  # vector normal to cutting plane
-   north_vector = [-1, 1, 0]
    W = [0.02, 0.02, 0.02]
    c = [0.5, 0.5, 0.5]
    N = 512
