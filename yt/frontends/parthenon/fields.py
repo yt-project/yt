@@ -105,7 +105,6 @@ class ParthenonFieldInfo(FieldInfoContainer):
                 )
 
             def _specific_thermal_energy(field, data):
-                # TODO This only accounts for ideal gases with adiabatic indices
                 return (
                     data["gas", "pressure"]
                     / (data.ds.gamma - 1.0)
