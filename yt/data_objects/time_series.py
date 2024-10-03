@@ -513,6 +513,7 @@ class DatasetSeries:
             iM = (iR + iL) // 2
             dsM = self[iM]
             vM = getattr(dsM, attribute)
+
             if sign * value < sign * vM:
                 iR = iM
                 dsR = dsM

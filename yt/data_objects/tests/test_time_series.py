@@ -148,3 +148,8 @@ def test_get_by_key(FakeDataset, fake_datasets):
 
     with pytest.raises(ValueError):
         ts.get_by_redshift(1000, tolerance=0.1)
+
+    zmid = (ts[0].current_redshift + ts[1].current_redshift) / 2
+
+    assert sfile_list[1] == ts.get_by_redshift(zmid, prefer="smaller").filename
+    assert sfile_list[0] == ts.get_by_redshift(zmid, prefer="larger").filename
