@@ -47,3 +47,4 @@
 --ignore-file=test_disks\.py
 --ignore-file=test_offaxisprojection_pytestonly\.py
 --ignore-file=test_sph_pixelization_pytestonly\.py
+--ignore-file=test_time_series\.py
