@@ -110,7 +110,7 @@ def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count
             if field[1].startswith("particle_position"):
                 np.divide(tr[field], ds["boxlen"], tr[field])
 
-            # Handle over to field handler for special cases, like particle_birth_times
+            # Hand over to field handler for special cases, like particle_birth_times
             particle_handler.handle_field(field, tr)
 
     return tr

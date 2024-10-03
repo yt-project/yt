@@ -505,7 +505,7 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
         if not (fname == "particle_birth_time" and self.ds.cosmological_simulation):
             return
 
-        # onvert conformal time to physical age
+        # convert conformal time to physical age
         ds = self.ds
         conformal_time = data_dict[field]
         physical_time = convert_ramses_conformal_time_to_physical_time(
