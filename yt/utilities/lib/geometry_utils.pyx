@@ -23,12 +23,6 @@ from yt.utilities.exceptions import YTDomainOverflow
 
 from yt.utilities.lib.vec3_ops cimport L2_norm, cross, dot, subtract
 
-DEF ORDER_MAX=20
-DEF INDEX_MAX_64=2097151
-DEF XSHIFT=2
-DEF YSHIFT=1
-DEF ZSHIFT=0
-
 cdef extern from "math.h":
     double exp(double x) noexcept nogil
     float expf(float x) noexcept nogil
