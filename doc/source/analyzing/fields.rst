@@ -439,9 +439,9 @@ which results in:
     p_B = \frac{B^2}{2} \\
     v_A = \frac{B}{\sqrt{\rho}}
 
-Using this convention is currently only available for :ref:`Athena<loading-athena-data>`
-and :ref:`Athena++<loading-athena-pp-data>` datasets, though it will likely be available
-for more datasets in the future.
+Using this convention is currently only available for :ref:`Athena<loading-athena-data>`,
+:ref:`Athena++<loading-athena-pp-data>`, and :ref:`AthenaPK<loading-parthenon-data>` datasets,
+though it will likely be available for more datasets in the future.
 
 yt automatically detects on a per-frontend basis what units the magnetic should be in, and allows conversion between
 different magnetic field units in the different unit systems as well. To determine how to set up special magnetic field handling when designing a new frontend, check out
