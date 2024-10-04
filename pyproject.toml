@@ -41,7 +41,7 @@ keywords = [
 ]
 requires-python = ">=3.9.2"
 
-# keep in sync with requirements/minimal_env.txt
+# keep in sync with minimal_requirements.txt
 dependencies = [
     "cmyt>=1.1.2",
     "ewah-bool-utils>=1.2.0",

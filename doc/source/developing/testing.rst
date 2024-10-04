@@ -484,4 +484,4 @@ during the minimal dependency tests (see
 ``yt/frontends/amrvac/tests/test_read_amrvac_namelist.py`` for a good example).
 If for some reason you need to update the listing of packages that are installed
 for the "minimal" dependency tests, you will need to update
-``requirements/minimal_env.txt``.
+``minimal_requirements.txt``.
