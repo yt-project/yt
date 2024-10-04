@@ -421,7 +421,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 # Ramses assumes a fraction X of Hydrogen within the non-metal gas.
                 # It has to be corrected by metallicity.
                 Z = data["gas", "metallicity"]
-                nH = (1 - _Y) * (1 - Z) * data["gas", "density"] / mh
+                nH = ((1 - _Y) * (1 - Z) * data["gas", "density"] / mh).to("cm**-3")
                 if data.ds.self_shielding:
                     boost = np.maximum(np.exp(-nH / 0.01), 1e-20)
                 else:
