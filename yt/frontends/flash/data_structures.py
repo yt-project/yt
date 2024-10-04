@@ -191,15 +191,19 @@ class FLASHDataset(Dataset):
 
         if self.particle_filename is None:
             # try to guess the particle filename
-            try:
-                self._particle_handle = HDF5FileHandler(
-                    filename.replace("plt_cnt", "part")
-                )
-                self.particle_filename = filename.replace("plt_cnt", "part")
-                mylog.info(
-                    "Particle file found: %s", self.particle_filename.split("/")[-1]
-                )
-            except OSError:
+            if "hdf5_plt_cnt" in filename:
+                # We have a plotfile, look for the particle file
+                try:
+                    pfn = filename.replace("plt_cnt", "part")
+                    self._particle_handle = HDF5FileHandler(pfn)
+                    self.particle_filename = pfn
+                    mylog.info(
+                        "Particle file found: %s", self.particle_filename.split("/")[-1]
+                    )
+                except OSError:
+                    self._particle_handle = self._handle
+            elif "hdf5_chk" in filename:
+                # This is a checkpoint file, should have the particles in it
                 self._particle_handle = self._handle
         else:
             # particle_filename is specified by user
