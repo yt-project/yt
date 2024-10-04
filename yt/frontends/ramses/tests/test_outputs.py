@@ -1,5 +1,8 @@
 import os
 from contextlib import contextmanager
+from pathlib import Path
+from shutil import copytree
+from tempfile import TemporaryDirectory
 
 import numpy as np
 from numpy.testing import assert_equal, assert_raises
@@ -689,23 +692,28 @@ def test_reading_order():
 # Simple context manager that overrides the value of
 # the self_shielding flag in the namelist.txt file
 @contextmanager
-def override_self_shielding(fname: str, section: str, val: bool):
-    with open(fname) as f:
-        old_content = f.read()
-        f.seek(0)
-        namelist_data = f90nml.read(f).todict()
-        sec = namelist_data.get(section, {})
-        sec["self_shielding"] = val
-        namelist_data[section] = sec
+def override_self_shielding(root: Path, section: str, val: bool):
+    # Copy content of root in a temporary folder
+    with TemporaryDirectory() as tmp:
+        tmpdir = Path(tmp) / root.name
+        tmpdir.mkdir()
 
-    with open(fname, "w") as f:
-        new_nml = f90nml.Namelist(namelist_data)
-        new_nml.write(f)
+        # Copy content of `root` in `tmpdir` recursively
+        copytree(root, tmpdir)
 
-    yield
+        fname = Path(tmpdir) / "namelist.txt"
 
-    with open(fname, "w") as f:
-        f.write(old_content)
+        with open(fname) as f:
+            namelist_data = f90nml.read(f).todict()
+            sec = namelist_data.get(section, {})
+            sec["self_shielding"] = val
+            namelist_data[section] = sec
+
+        with open(fname, "w") as f:
+            new_nml = f90nml.Namelist(namelist_data)
+            new_nml.write(f)
+
+        yield tmpdir
 
 
 @requires_file(ramses_new_format)
@@ -720,21 +728,19 @@ def test_self_shielding_logic():
 
     ##################################################
     # Modify the namelist in-situ, reload and check
-    namelist = os.path.join(ds.root_folder, "namelist.txt")
-    # Can be set in any of these two
     for section in ("physics_params", "cooling_params"):
         for val in (True, False):
-            with override_self_shielding(namelist, section, val):
+            with override_self_shielding(ds.root_folder, section, val) as tmp_output:
                 # Autodetection should work
-                ds = yt.load(ramses_new_format)
+                ds = yt.load(tmp_output)
                 assert ds.parameters["namelist"] is not None
                 assert ds.self_shielding is val
 
                 # Manually set should ignore the namelist
-                ds = yt.load(ramses_new_format, self_shielding=True)
+                ds = yt.load(tmp_output, self_shielding=True)
                 assert ds.self_shielding is True
 
-                ds = yt.load(ramses_new_format, self_shielding=False)
+                ds = yt.load(tmp_output, self_shielding=False)
                 assert ds.self_shielding is False
 
     ##################################################
