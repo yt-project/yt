@@ -38,3 +38,23 @@ def test_particle_selection():
     ds = data_dir_load(r1)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
+
+
+@requires_file(r1)
+def test_halo_loading():
+    ds = data_dir_load(r1)
+
+    for halo_id, Npart in zip(
+        ds.r["halos", "particle_identifier"],
+        ds.r["halos", "num_p"],
+    ):
+        halo = ds.halo("halos", halo_id)
+        assert halo is not None
+
+        # Try accessing properties
+        halo.position
+        halo.velocity
+        halo.mass
+
+        # Make sure we can access the member particles
+        assert_equal(len(halo.member_ids), Npart)
