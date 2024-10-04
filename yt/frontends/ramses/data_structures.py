@@ -832,6 +832,10 @@ class RAMSESDataset(Dataset):
         cosmological:
         If set to None, automatically detect cosmological simulation.
         If a boolean, force its value.
+
+        self_shielding:
+        If set to True, assume gas is self-shielded above 0.01 mp/cm^3.
+        This affects the fields related to cooling and the mean molecular weight.
         """
 
         self._fields_in_file = fields
