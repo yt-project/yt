@@ -34,10 +34,12 @@ def test_los_particle_fields():
     sp.set_field_parameter("bulk_velocity", bv)
     ax = [0.1, 0.2, -0.3]
     sp.set_field_parameter("axis", ax)
-    ax /= np.sqrt(np.dot(ax, ax))
-    vlos = sp["all", "relative_particle_velocity_x"] * ax[0]
-    vlos += sp["all", "relative_particle_velocity_y"] * ax[1]
-    vlos += sp["all", "relative_particle_velocity_z"] * ax[2]
+    ax /= np.linalg.norm(ax)
+    vlos = (
+        sp["all", "relative_particle_velocity_x"] * ax[0]
+        + sp["all", "relative_particle_velocity_y"] * ax[1]
+        + sp["all", "relative_particle_velocity_z"] * ax[2]
+    )
     assert_allclose_units(sp["all", "particle_velocity_los"], vlos)
     sp.clear_data()
     ax = 2

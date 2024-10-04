@@ -713,7 +713,7 @@ you want to examine a line-of-sight vector within a 3-D data object, set the
 
 At this time, this functionality is enabled for the velocity and magnetic vector
 fields, ``('gas', 'velocity_los')`` and ``('gas', 'magnetic_field_los')`` for
-the ``"gas"`` field type, and it is also enabled for every particle type with
+the ``"gas"`` field type, as well as every particle type with
 a velocity field, e.g. ``("all", "particle_velocity_los")``. The following fields
 built into yt make use of these line-of-sight fields:
 
