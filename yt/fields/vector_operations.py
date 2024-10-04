@@ -105,16 +105,21 @@ def create_relative_field(
 
 
 def create_los_field(
-    registry, basename, field_units, ftype="gas", slice_info=None, *, sampling_type="local",
+    registry,
+    basename,
+    field_units,
+    ftype="gas",
+    slice_info=None,
+    *,
+    sampling_type="local",
 ):
     axis_order = registry.ds.coordinates.axis_order
-
 
     # Here we need to check if we are a particle field, so that we can
     # correctly identify the "bulk" field parameter corresponding to
     # this vector field.
     if sampling_type == "particle" and basename.startswith("particle_"):
-        basenm = basename.split("_", 1)[1]
+        basenm = basename.removeprefix("particle_")
     else:
         basenm = basename
 
