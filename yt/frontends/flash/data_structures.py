@@ -1,6 +1,7 @@
 import os
 import sys
 import weakref
+from pathlib import Path
 
 import numpy as np
 
@@ -189,20 +190,26 @@ class FLASHDataset(Dataset):
 
         self.particle_filename = particle_filename
 
+        filepath = Path(filename)
+
         if self.particle_filename is None:
             # try to guess the particle filename
-            if "hdf5_plt_cnt" in filename:
+            if "hdf5_plt_cnt" in filepath.name:
                 # We have a plotfile, look for the particle file
                 try:
-                    pfn = filename.replace("plt_cnt", "part")
+                    pfn = str(
+                        filepath.parent.resolve()
+                        / filepath.name.replace("plt_cnt", "part")
+                    )
                     self._particle_handle = HDF5FileHandler(pfn)
                     self.particle_filename = pfn
                     mylog.info(
-                        "Particle file found: %s", self.particle_filename.split("/")[-1]
+                        "Particle file found: %s",
+                        os.path.basename(self.particle_filename),
                     )
                 except OSError:
                     self._particle_handle = self._handle
-            elif "hdf5_chk" in filename:
+            elif "hdf5_chk" in filepath.name:
                 # This is a checkpoint file, should have the particles in it
                 self._particle_handle = self._handle
         else:
