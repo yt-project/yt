@@ -699,7 +699,7 @@ def override_self_shielding(root: Path, section: str, val: bool):
         tmpdir.mkdir()
 
         # Copy content of `root` in `tmpdir` recursively
-        copytree(root, tmpdir)
+        copytree(root, tmpdir, dirs_exist_ok=True)
 
         fname = Path(tmpdir) / "namelist.txt"
 
