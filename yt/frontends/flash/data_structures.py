@@ -218,9 +218,8 @@ class FLASHDataset(Dataset):
 
         # Check if the particle file has the same time
         if self._particle_handle != self._handle:
-            part_time = self._particle_handle.handle.get("real scalars", None)
-            plot_time = self._handle.handle.get("real scalars", None)
-            if part_time is None:
+            plot_time = self._handle.handle.get("real scalars")
+            if (part_time := self._particle_handle.handle.get("real scalars")) is None:
                 raise RuntimeError("FLASH 2.x particle files are not supported!")
             if not np.isclose(part_time[0][1], plot_time[0][1]):
                 self._particle_handle = self._handle
