@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 import matplotlib as mpl
 import numpy as np
 import unyt as un
-from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm
+from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm, TwoSlopeNorm
 from unyt import unyt_quantity
 
 from yt._typing import Quantity, Unit
@@ -61,13 +61,14 @@ class NormHandler:
         "_dynamic_range",
         "_norm_type",
         "_linthresh",
-        "_norm_type",
+        "_vcenter",
         "_norm",
         "prefer_log",
     )
     _constraint_attrs: list[str] = [
         "vmin",
         "vmax",
+        "vcenter",
         "dynamic_range",
         "norm_type",
         "linthresh",
@@ -84,6 +85,7 @@ class NormHandler:
         norm_type: Optional[type[Normalize]] = None,
         norm: Optional[Normalize] = None,
         linthresh: Optional[float] = None,
+        vcenter: Optional[float] = None,
     ):
         self.data_source = weakref.proxy(data_source)
         self.ds = data_source.ds  # should already be a weakref proxy
@@ -95,6 +97,7 @@ class NormHandler:
         self._dynamic_range = dynamic_range
         self._norm_type = norm_type
         self._linthresh = linthresh
+        self._vcenter = vcenter
         self.prefer_log = True
 
         if self.norm is not None and self.has_constraints:
@@ -195,6 +198,22 @@ class NormHandler:
             self._vmax = "max"
         else:
             self._set_quan_attr("_vmax", newval)
+
+    @property
+    def vcenter(self) -> Optional[Union[un.unyt_quantity, Literal["zero"], float]]:
+        return self._vcenter
+
+    @vcenter.setter
+    def vcenter(
+        self, newval: Optional[Union[un.unyt_quantity, Literal["zero"], float]]
+    ) -> None:
+        self._reset_norm()
+        if newval == "zero":
+            self._vcenter = 0.0
+        else:
+            self._set_quan_attr("_vcenter", newval)
+        if newval is not None:
+            self.norm_type = TwoSlopeNorm
 
     @property
     def dynamic_range(self) -> Optional[float]:
@@ -364,6 +383,12 @@ class NormHandler:
 
             kw.setdefault("linthresh", linthresh)
             kw.setdefault("base", 10)
+        elif norm_type is TwoSlopeNorm:
+            if self.vcenter is not None:
+                vcenter = self.to_float(self.vcenter)
+            else:
+                vcenter = 0.0
+            kw.setdefault("vcenter", vcenter)
 
         return norm_type(*args, **kw)
 
