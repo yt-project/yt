@@ -162,6 +162,12 @@ Answer Testing
     an `older version of this documentation <https://yt-project.org/docs/4.0.0/developing/testing.html#answer-testing>`_
     decribes how the ``nose`` tests work.
 
+.. note::
+    Given that nose never had support for Python 3.10 (which as of yt 4.4 is our
+    oldest supported version), it is necessary to patch it to get tests running.
+    This is the command we run on CI to this end
+    ``find .venv/lib/python3.10/site-packages/nose -name '*.py' -exec sed -i -e s/collections.Callable/collections.abc.Callable/g '{}' ';'``
+
 What Do Answer Tests Do
 ^^^^^^^^^^^^^^^^^^^^^^^
 

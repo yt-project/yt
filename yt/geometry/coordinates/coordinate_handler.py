@@ -2,7 +2,7 @@ import abc
 import weakref
 from functools import cached_property
 from numbers import Number
-from typing import Any, Literal, Optional, overload
+from typing import Any, Literal, overload
 
 import numpy as np
 
@@ -134,7 +134,7 @@ class CoordinateHandler(abc.ABC):
     name: str
     _default_axis_order: AxisOrder
 
-    def __init__(self, ds, ordering: Optional[AxisOrder] = None):
+    def __init__(self, ds, ordering: AxisOrder | None = None):
         self.ds = weakref.proxy(ds)
         if ordering is not None:
             self.axis_order = ordering

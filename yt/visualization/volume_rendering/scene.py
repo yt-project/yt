@@ -1,6 +1,5 @@
 import functools
 from collections import OrderedDict
-from typing import Optional, Union
 
 import numpy as np
 
@@ -271,8 +270,8 @@ class Scene:
 
     def save(
         self,
-        fname: Optional[str] = None,
-        sigma_clip: Optional[float] = None,
+        fname: str | None = None,
+        sigma_clip: float | None = None,
         render: bool = True,
     ):
         r"""Saves a rendered image of the Scene to disk.
@@ -361,15 +360,15 @@ class Scene:
 
     def save_annotated(
         self,
-        fname: Optional[str] = None,
-        label_fmt: Optional[str] = None,
+        fname: str | None = None,
+        label_fmt: str | None = None,
         text_annotate=None,
         dpi: int = 100,
-        sigma_clip: Optional[float] = None,
+        sigma_clip: float | None = None,
         render: bool = True,
-        tf_rect: Optional[list[float]] = None,
+        tf_rect: list[float] | None = None,
         *,
-        label_fontsize: Union[float, str] = 10,
+        label_fontsize: float | str = 10,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined

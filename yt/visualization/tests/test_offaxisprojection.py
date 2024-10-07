@@ -1,7 +1,6 @@
 import itertools as it
 import os
 import shutil
-import sys
 import tempfile
 import unittest
 
@@ -20,9 +19,6 @@ from yt.visualization.api import (
 )
 from yt.visualization.image_writer import write_projection
 from yt.visualization.volume_rendering.api import off_axis_projection
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 # TODO: replace this with pytest.mark.parametrize

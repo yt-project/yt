@@ -1,6 +1,5 @@
 import os
 import shutil
-import sys
 import tempfile
 
 import numpy as np
@@ -12,9 +11,6 @@ from yt.fields.derived_field import ValidateParameter
 from yt.loaders import load, load_uniform_grid
 from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def test_clump_finding():

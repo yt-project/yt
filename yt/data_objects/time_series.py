@@ -5,7 +5,7 @@ import os
 import weakref
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import TYPE_CHECKING, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from more_itertools import always_iterable
@@ -148,7 +148,7 @@ class DatasetSeries:
 
     """
 
-    _dataset_cls: Optional[type["Dataset"]] = None
+    _dataset_cls: type["Dataset"] | None = None
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -372,7 +372,7 @@ class DatasetSeries:
         obj = cls(filenames, parallel=parallel)
         return obj
 
-    def _load(self, output_fn, *, hint: Optional[str] = None, **kwargs):
+    def _load(self, output_fn, *, hint: str | None = None, **kwargs):
         from yt.loaders import load
 
         if self._dataset_cls is not None:
@@ -440,8 +440,8 @@ class DatasetSeries:
     def _get_by_attribute(
         self,
         attribute: str,
-        value: Union[unyt_quantity, tuple[float, Union[Unit, str]]],
-        tolerance: Union[None, unyt_quantity, tuple[float, Union[Unit, str]]] = None,
+        value: unyt_quantity | tuple[float, Unit | str],
+        tolerance: None | unyt_quantity | tuple[float, Unit | str] = None,
         prefer: Literal["nearest", "smaller", "larger"] = "nearest",
     ) -> "Dataset":
         r"""
@@ -544,8 +544,8 @@ class DatasetSeries:
 
     def get_by_time(
         self,
-        time: Union[unyt_quantity, tuple[float, Union[Unit, str]]],
-        tolerance: Union[None, unyt_quantity, tuple[float, Union[Unit, str]]] = None,
+        time: unyt_quantity | tuple[float, Unit | str],
+        tolerance: None | unyt_quantity | tuple[float, Unit | str] = None,
         prefer: Literal["nearest", "smaller", "larger"] = "nearest",
     ) -> "Dataset":
         """
@@ -577,7 +577,7 @@ class DatasetSeries:
     def get_by_redshift(
         self,
         redshift: float,
-        tolerance: Optional[float] = None,
+        tolerance: float | None = None,
         prefer: Literal["nearest", "smaller", "larger"] = "nearest",
     ) -> "Dataset":
         """

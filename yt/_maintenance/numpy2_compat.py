@@ -1,12 +1,9 @@
 # avoid deprecation warnings in numpy >= 2.0
 
-from importlib.metadata import version
+import numpy as np
 
-from packaging.version import Version
-
-NUMPY_VERSION = Version(version("numpy"))
-
-if NUMPY_VERSION >= Version("2.0.0dev0"):
-    from numpy import trapezoid as trapezoid  # type: ignore [attr-defined]
+if hasattr(np, "trapezoid"):
+    # np.trapz is deprecated in numpy 2.0 in favor of np.trapezoid
+    trapezoid = np.trapezoid
 else:
-    from numpy import trapz as trapezoid  # type: ignore [attr-defined] # noqa: F401
+    trapezoid = np.trapz  # type: ignore [attr-defined] # noqa: NPY201

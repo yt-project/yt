@@ -1,13 +1,8 @@
-import sys
-
 import numpy as np
 from more_itertools import always_iterable
 
 from yt.funcs import mylog
 from yt.utilities.physical_constants import clight, hcgs, kboltz
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class TransferFunction:

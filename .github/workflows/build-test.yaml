@@ -22,43 +22,51 @@ jobs:
       # run all tests even if e.g. image tests fail early
       fail-fast: false
       matrix:
-        os: [
-          macos-latest,
-          windows-latest,
-          ubuntu-latest,
-        ]
+        os:
+          - ubuntu-latest
+          - macos-latest
         python-version: ['3.12']
         dependencies: [full]
         tests-type: [unit]
         test-runner: [pytest]
+        venv-loc: [bin]
         include:
+          - os: windows-latest
+            python-version: '3.12'
+            dependencies: full
+            tests-type: unit
+            test-runner: pytest
+            venv-loc: Scripts
           - os: ubuntu-20.04
-            python-version: '3.9.2'
+            python-version: '3.10.3'
             dependencies: minimal
             tests-type: unit
             test-runner: pytest
+            venv-loc: bin
           - os: ubuntu-latest
             # this job is necessary for non-answer, 'yield' based tests
-            # because pytest doesn't support such tests, and nose is not
-            # compatible with Python 3.10
-            python-version: '3.9'
+            # because pytest doesn't support such tests
+            python-version: '3.10'
             dependencies: full
             tests-type: unit
             test-runner: nose
+            venv-loc: bin
           - os: ubuntu-latest
             # answer tests use 'yield', so they require nose
             # they are also attached to a specific, occasionally updated, Python version
             # but it does *not* have to match the current minimal supported version
-            python-version: '3.9'
+            python-version: '3.10'
             dependencies: full
             tests-type: answer
             test-runner: nose
+            venv-loc: bin
           - os: ubuntu-latest
             # minimal tests with latest Python and no optional dependencies
             python-version: '3.x'
             dependencies: ''
             tests-type: unit
             test-runner: pytest
+            venv-loc: bin
 
     runs-on: ${{ matrix.os }}
 
@@ -84,15 +92,34 @@ jobs:
       shell: bash
       env:
         dependencies: ${{ matrix.dependencies }}
-      run: source ./tests/ci_install.sh
+      run: |
+        python -m venv .venv
+        source .venv/${{matrix.venv-loc}}/activate
+        source ./tests/ci_install.sh
 
-    - run: python -m pip list
+    - name: Install and patch nosetest
+      if: matrix.test-runner == 'nose'
+      run: |
+        source .venv/${{matrix.venv-loc}}/activate
+        python -m pip install -r nose_requirements.txt
+        find .venv/lib/python${{matrix.python-version}}/site-packages/nose -name '*.py' \
+          -exec sed -i -e s/collections.Callable/collections.abc.Callable/g '{}' ';'
+
+    - name: Show final env
+      run: |
+        source .venv/${{matrix.venv-loc}}/activate
+        python -m pip list
+
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
-      run: pytest --color=yes
+      run: |
+        source .venv/${{matrix.venv-loc}}/activate
+        pytest --color=yes
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
-      run: cat nose_ignores.txt | xargs python -m nose -c nose_unit.cfg --traverse-namespace
+      run: |
+        source .venv/${{matrix.venv-loc}}/activate
+        cat nose_ignores.txt | xargs python -m nose -c nose_unit.cfg --traverse-namespace
 
   image-tests:
     name: Image tests

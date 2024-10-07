@@ -1,7 +1,6 @@
 import fileinput
 import io
 import os
-import sys
 import warnings
 import zipfile
 from functools import partial, wraps
@@ -63,9 +62,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_root_only,
 )
 from yt.visualization.color_maps import get_colormap_lut
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class YTStreamline(YTSelectionContainer1D):

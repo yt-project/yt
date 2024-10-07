@@ -1,6 +1,5 @@
 import os
 import re
-import sys
 import weakref
 
 import numpy as np
@@ -17,9 +16,6 @@ from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 
 from .fields import AthenaFieldInfo
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def chk23(strin):

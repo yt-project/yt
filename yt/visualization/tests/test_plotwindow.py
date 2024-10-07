@@ -1,6 +1,5 @@
 import os
 import shutil
-import sys
 import tempfile
 import unittest
 from collections import OrderedDict
@@ -43,9 +42,6 @@ from yt.visualization.plot_window import (
     SlicePlot,
     plot_2d,
 )
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def setup_module():

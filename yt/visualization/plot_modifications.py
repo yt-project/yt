@@ -5,7 +5,7 @@ import warnings
 from abc import ABC, abstractmethod
 from functools import update_wrapper
 from numbers import Integral, Number
-from typing import Any, Optional, Union
+from typing import Any, TypeGuard
 
 import matplotlib
 import numpy as np
@@ -46,13 +46,6 @@ from yt.visualization.base_plot_types import CallbackWrapper
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.plot_window import PWViewerMPL
 
-if sys.version_info >= (3, 10):
-    from typing import TypeGuard
-else:
-    from typing_extensions import TypeGuard
-
-    from yt._maintenance.backports import zip
-
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:
@@ -87,7 +80,7 @@ class PlotCallback(ABC):
     # "figure" this is disregarded.  If "force" is included in the tuple, it
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
-    _supported_geometries: Optional[tuple[str, ...]] = None
+    _supported_geometries: tuple[str, ...] | None = None
     _incompatible_plot_types: tuple[str, ...] = ()
 
     def __init_subclass__(cls, *args, **kwargs):
@@ -440,7 +433,7 @@ class VelocityCallback(PlotCallback):
 
     def __init__(
         self,
-        factor: Union[tuple[int, int], int] = 16,
+        factor: tuple[int, int] | int = 16,
         *,
         scale=None,
         scale_units=None,
@@ -583,7 +576,7 @@ class MagFieldCallback(PlotCallback):
 
     def __init__(
         self,
-        factor: Union[tuple[int, int], int] = 16,
+        factor: tuple[int, int] | int = 16,
         *,
         scale=None,
         scale_units=None,
@@ -697,7 +690,7 @@ class BaseQuiverCallback(PlotCallback, ABC):
         field_y,
         field_c=None,
         *,
-        factor: Union[tuple[int, int], int] = 16,
+        factor: tuple[int, int] | int = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -836,7 +829,7 @@ class QuiverCallback(BaseQuiverCallback):
         field_y,
         field_c=None,
         *,
-        factor: Union[tuple[int, int], int] = 16,
+        factor: tuple[int, int] | int = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -940,14 +933,14 @@ class ContourCallback(PlotCallback):
         field: AnyFieldKey,
         levels: int = 5,
         *,
-        factor: Union[tuple[int, int], int] = 4,
-        clim: Optional[tuple[float, float]] = None,
+        factor: tuple[int, int] | int = 4,
+        clim: tuple[float, float] | None = None,
         label: bool = False,
-        take_log: Optional[bool] = None,
-        data_source: Optional[YTDataContainer] = None,
-        plot_args: Optional[dict[str, Any]] = None,
-        text_args: Optional[dict[str, Any]] = None,
-        ncont: Optional[int] = None,  # deprecated
+        take_log: bool | None = None,
+        data_source: YTDataContainer | None = None,
+        plot_args: dict[str, Any] | None = None,
+        text_args: dict[str, Any] | None = None,
+        ncont: int | None = None,  # deprecated
     ) -> None:
         if ncont is not None:
             issue_deprecation_warning(
@@ -1052,13 +1045,13 @@ class ContourCallback(PlotCallback):
         if take_log:
             zi = np.log10(zi)
 
-        clim: Optional[tuple[float, float]]
+        clim: tuple[float, float] | None
         if take_log and self.clim is not None:
             clim = np.log10(self.clim[0]), np.log10(self.clim[1])
         else:
             clim = self.clim
 
-        levels: Union[np.ndarray, int]
+        levels: np.ndarray | int
         if clim is not None:
             levels = np.linspace(clim[0], clim[1], self.levels)
         else:
@@ -1317,11 +1310,11 @@ class StreamlineCallback(PlotCallback):
         field_x: AnyFieldKey,
         field_y: AnyFieldKey,
         *,
-        linewidth: Union[float, AnyFieldKey] = 1.0,
+        linewidth: float | AnyFieldKey = 1.0,
         linewidth_upscaling: float = 1.0,
-        color: Optional[Union[_ColorType, FieldKey]] = None,
-        color_threshold: Union[float, unyt_quantity] = float("-inf"),
-        factor: Union[tuple[int, int], int] = 16,
+        color: _ColorType | FieldKey | None = None,
+        color_threshold: float | unyt_quantity = float("-inf"),
+        factor: tuple[int, int] | int = 16,
         field_color=None,  # deprecated
         display_threshold=None,  # deprecated
         plot_args=None,  # deprecated
@@ -1529,7 +1522,7 @@ class LinePlotCallback(PlotCallback):
         p2,
         *,
         coord_system="data",
-        plot_args: Optional[dict[str, Any]] = None,
+        plot_args: dict[str, Any] | None = None,
         **kwargs,
     ):
         self.p1 = p1
@@ -1810,7 +1803,7 @@ class ArrowCallback(PlotCallback):
         head_length=0.01,
         starting_pos=None,
         coord_system="data",
-        plot_args: Optional[dict[str, Any]] = None,  # deprecated
+        plot_args: dict[str, Any] | None = None,  # deprecated
         **kwargs,
     ):
         self.pos = pos

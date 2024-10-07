@@ -1,7 +1,6 @@
 import warnings
 from functools import wraps
 from types import FunctionType
-from typing import Optional
 
 
 def issue_deprecation_warning(
@@ -9,7 +8,7 @@ def issue_deprecation_warning(
     *,
     stacklevel: int,
     since: str,
-    removal: Optional[str] = None,
+    removal: str | None = None,
 ):
     """
     Parameters

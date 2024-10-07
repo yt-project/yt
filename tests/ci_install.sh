@@ -5,11 +5,6 @@ cp tests/matplotlibrc .
 
 # Step 1: pre-install required packages
 if [[ ${dependencies} == "full" || ${dependencies} == "cartopy" ]]; then
-    # upgrading pip to guarantee installing extra dependencies with [full] is supported
-    # this is only necessary for some versions of Python 3.8 and 3.9
-    # see https://github.com/yt-project/yt/issues/4270
-    python -m pip install 'pip>=21.2'
-
     case ${RUNNER_OS} in
     linux|Linux)
         sudo apt-get -qqy update

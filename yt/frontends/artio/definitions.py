@@ -1,9 +1,3 @@
-import sys
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
-
-
 yt_to_art = {
     "Density": "HVAR_GAS_DENSITY",
     "TotalEnergy": "HVAR_GAS_ENERGY",

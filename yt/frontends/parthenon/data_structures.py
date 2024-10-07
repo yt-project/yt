@@ -249,7 +249,7 @@ class ParthenonDataset(Dataset):
             num_components = (num_components,)
 
         component_name_offset = 0
-        for dname, num_component in zip(dnames, num_components):
+        for dname, num_component in zip(dnames, num_components, strict=False):
             for j in range(num_component):
                 fname = self._handle["Info"].attrs["ComponentNames"][
                     j + component_name_offset

@@ -17,7 +17,7 @@ from collections.abc import Callable
 from copy import deepcopy
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from more_itertools import always_iterable, collapse, first
@@ -1086,7 +1086,7 @@ def array_like_field(data, x, field):
         return data.ds.quan(x, units)
 
 
-def _full_type_name(obj: object = None, /, *, cls: Optional[type] = None) -> str:
+def _full_type_name(obj: object = None, /, *, cls: type | None = None) -> str:
     if cls is not None and obj is not None:
         raise TypeError("_full_type_name takes an object or a class, but not both")
     if cls is None:
@@ -1224,7 +1224,7 @@ def validate_center(center):
         )
 
 
-def parse_center_array(center, ds, axis: Optional[int] = None):
+def parse_center_array(center, ds, axis: int | None = None):
     known_shortnames = {"m": "max", "c": "center", "l": "left", "r": "right"}
     valid_single_str_values = ("center", "left", "right")
     valid_field_loc_str_values = ("min", "max")

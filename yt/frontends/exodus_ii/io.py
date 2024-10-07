@@ -1,12 +1,7 @@
-import sys
-
 import numpy as np
 
 from yt.utilities.file_handler import NetCDF4FileHandler
 from yt.utilities.io_handler import BaseIOHandler
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class IOHandlerExodusII(BaseIOHandler):
