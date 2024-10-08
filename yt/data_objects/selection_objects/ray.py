@@ -224,5 +224,5 @@ class YTRay(YTSelectionContainer1D):
         # kernel from the dimensionless impact parameter b/hsml.
         # The table tabulates integrals for values of (b/hsml)**2
         itab = SPHKernelInterpolationTable(self.ds.kernel_name)
-        dl = itab.interpolate_array((b / hsml)**2) * mass / dens / hsml**2
+        dl = itab.interpolate_array((b / hsml) ** 2) * mass / dens / hsml**2
         return dl / length
