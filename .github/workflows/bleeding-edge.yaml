@@ -40,7 +40,7 @@ jobs:
         # the '-dev' suffix allows to use pre-releases if no final release is available yet
         # this version should be upgraded as often as possible, typically once a year when
         # Cython, numpy and matplotlib are known to be compatible
-        python-version: '3.12-dev'
+        python-version: '3.13-dev'
 
     - name: Install dependencies
       # PyYAML needs to be installed in isolation for now, because of a known
