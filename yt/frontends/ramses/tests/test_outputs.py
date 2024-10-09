@@ -728,9 +728,10 @@ def test_self_shielding_logic():
 
     ##################################################
     # Modify the namelist in-situ, reload and check
+    root_folder = Path(ds.root_folder)
     for section in ("physics_params", "cooling_params"):
         for val in (True, False):
-            with override_self_shielding(ds.root_folder, section, val) as tmp_output:
+            with override_self_shielding(root_folder, section, val) as tmp_output:
                 # Autodetection should work
                 ds = yt.load(tmp_output)
                 assert ds.parameters["namelist"] is not None
