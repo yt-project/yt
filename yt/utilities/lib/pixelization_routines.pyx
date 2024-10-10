@@ -566,7 +566,7 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
     cdef int i, i1, pi, pj
-    cdef np.float64_t npPI = np.pi
+    cdef np.float64_t twoPI = 2 * np.pi
 
     cdef int imin, imax
     imin = np.asarray(radius).argmin()
