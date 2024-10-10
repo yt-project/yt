@@ -78,7 +78,9 @@ answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 [project.optional-dependencies]
 # some generic, reusable constraints on optional-deps
 HDF5 = ["h5py>=3.1.0,!=3.12.0; platform_system=='Windows'"]  # see https://github.com/h5py/h5py/issues/2505
-netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
+netCDF4 = [
+    "netCDF4!=1.6.1,>=1.5.3; python_version < '3.13'" # see https://github.com/Unidata/netcdf4-python/issues/1192
+]
 Fortran = ["f90nml>=1.1"]
 
 # frontend-specific requirements
@@ -97,7 +99,10 @@ artio = []
 athena = []
 athena-pp = []
 boxlib = []
-cf-radial = ["xarray>=0.16.1", "arm-pyart!=1.12.5,>=1.11.4"]
+cf-radial = [
+   "xarray>=0.16.1",
+   "arm-pyart!=1.12.5,>=1.11.4 ; python_version < '3.13'",
+]
 chimera = ["yt[HDF5]"]
 chombo = ["yt[HDF5]"]
 cholla = ["yt[HDF5]"]
@@ -138,7 +143,7 @@ full = [
     "ipython>=7.16.2",
     "ipywidgets>=8.0.0",
     "miniballcpp>=0.2.1",
-    "mpi4py>=3.0.3",
+    "mpi4py>=3.0.3 ; python_version < '3.13'",
     "pandas>=1.1.2",
     "pooch>=0.7.0",
     "pyaml>=17.10.0",
