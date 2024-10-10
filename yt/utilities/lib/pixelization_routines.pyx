@@ -663,8 +663,8 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                             ptbounds[1] = fmax(ptbounds[1], corners[i1])
 
                         # shift to a [0, PI] interval
-                        ptbounds[0] = ptbounds[0] % (2*npPI)
-                        ptbounds[1] = ptbounds[1] % (2*npPI)
+                        ptbounds[0] = ptbounds[0] % twoPI
+                        ptbounds[1] = ptbounds[1] % twoPI
 
                         if prbounds[0] >= rmin and prbounds[1] <= rmax and \
                            ptbounds[0] >= tmin and ptbounds[1] <= tmax:
