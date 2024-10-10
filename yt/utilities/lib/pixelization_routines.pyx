@@ -81,6 +81,8 @@ cdef extern from "pixelization_constants.hpp":
     int WEDGE_NF
     np.uint8_t wedge_face_defs[MAX_NUM_FACES][2][2]
 
+cdef extern from "numpy/npy_math.h":
+    double NPY_PI
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -566,7 +568,7 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
     cdef int i, i1, pi, pj
-    cdef np.float64_t twoPI = 2 * np.pi
+    cdef np.float64_t twoPI = 2 * NPY_PI
 
     cdef int imin, imax
     imin = np.asarray(radius).argmin()
@@ -578,7 +580,6 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     imax = np.asarray(theta).argmax()
     tmin = theta[imin] - dtheta[imin]
     tmax = theta[imax] + dtheta[imax]
-
     cdef np.ndarray[np.uint8_t, ndim=2] mask_arr = np.zeros_like(buff, dtype="uint8")
     cdef np.uint8_t[:, :] mask = mask_arr
 
@@ -664,7 +665,11 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
 
                         # shift to a [0, PI] interval
                         ptbounds[0] = ptbounds[0] % twoPI
+                        if ptbounds[0] < 0:
+                            ptbounds[0] += NPY_PI
                         ptbounds[1] = ptbounds[1] % twoPI
+                        if ptbounds[1] < 0:
+                            ptbounds[1] += NPY_PI
 
                         if prbounds[0] >= rmin and prbounds[1] <= rmax and \
                            ptbounds[0] >= tmin and ptbounds[1] <= tmax:
