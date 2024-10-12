@@ -200,6 +200,26 @@ could supply:
 This can select both particles and mesh fields.  Mesh fields will be 3D arrays,
 and generated through volume-weighted overlap calculations.
 
+.. note::
+
+   You can now select easily specify that the resolution should be a multiple
+   of the domain resolution!
+
+By using negative complex integers you can specify that the size be a multiple
+of the underlying domain dimensions.  For instance, if you don't know the size
+of the dataset's base dimensions, you can specify ``-1j`` as the step in a slice
+and get back the native coordinates.
+
+.. code-block:: python
+
+   region = ds.r[::-2j, ::-1j, ::-3j]
+
+The above code would create a 3D grid that covers the entire domain with the
+resolution doubled along the x, left constant in the y, and tripled in the z
+compared to the root dimensions.  This is particularly useful for simulations
+with fixed grid sizes or situations where you want to quickly express things in
+terms of a base resolution.
+
 Selecting Slices
 ^^^^^^^^^^^^^^^^
 
@@ -242,6 +262,20 @@ domain but centered at 0.5 in code units, you can do:
 
 This ``frb`` object then can be queried like a normal fixed resolution buffer,
 and it will return arrays of shape (1024, 1024).
+
+As above, you can also specify with *negative* complex step sizes to indicate
+that you want the result as a multiple of the base dimensions.  Note that the
+ordering of axes is preserved here according to image array convention, so it
+may not produce arrays in the order you are expecting, and you should consult
+the ``ds.coordinates`` object and its attributes ``x_axis`` and ``y_axis`` to
+determine which array axis corresponds to which coordinate axis.
+
+.. code-block:: python
+
+   frb = ds.r[0.5, ::-1j, ::-1j]
+
+The above code will produce an object whose dimensions in the x and y
+coordinates are equal to the root dimensions of the dataset object.
 
 Making Rays
 ^^^^^^^^^^^
