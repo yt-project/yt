@@ -646,6 +646,12 @@
     "load_name": null,
     "url": "https://yt-project.org/data/castro_sedov_2d_cyl_in_cart_plt00150.tar.gz"
   },
+  "castro_sedov_2d_sph_in_cyl_plt00130.tar.gz": {
+    "hash": "ef4d081a2a2f8e10afe132768725c573631b82021e91f07782f1c1fbe043e2b5",
+    "load_kwargs": {},
+    "load_name": null,
+    "url": "https://yt-project.org/data/castro_sedov_2d_sph_in_cyl_plt00130.tar.gz"
+  },
   "castro_sod_x_plt00036.tar.gz": {
     "hash": "3f0a586b41e7b54fa2b3cddd50f9384feb2efe1fe1a815e7348965ae7bf88f78",
     "load_kwargs": {},
@@ -945,6 +951,12 @@
     "load_kwargs": {},
     "load_name": "DD0045/DD0045.0.h5",
     "url": "https://yt-project.org/data/tiny_fof_halos.tar.gz"
+  },
+  "xrb_spherical_smallplt00010.tar.gz": {
+    "hash": "27ede5ed03f7c89b2afac03a368beb56d5f25f0c7c95b81f14f071a54a795783",
+    "load_kwargs": {},
+    "load_name": null,
+    "url": "https://yt-project.org/data/xrb_spherical_smallplt00010.tar.gz"
   },
   "ytdata_test.tar.gz": {
     "hash": "cafb2b06ab3190ba17909585b58a4724e25f27ac72f11d6dff1a482146eb8958",
