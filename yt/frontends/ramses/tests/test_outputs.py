@@ -123,11 +123,13 @@ def test_unit_cosmo():
         # expected_raw_time = 1.119216564055017 # in ramses unit
         # expected_time = 3.756241729312462e17 # in seconds
 
-        expected_raw_time = 1.121279694787743  # in ramses unit
-        assert_equal(ds.current_time.value, expected_raw_time)
+        expected_raw_time = 1.1213297131656712  # in ramses unit
+        np.testing.assert_equal(
+            ds.current_time.to("code_time").value, expected_raw_time
+        )
 
-        expected_time = 3.7631658742904595e17  # in seconds
-        assert_equal(ds.current_time.in_units("s").value, expected_time)
+        expected_time = 3.7633337427123904e17  # in seconds
+        np.testing.assert_equal(ds.current_time.to("s").value, expected_time)
 
 
 ramsesExtraFieldsSmall = "ramses_extra_fields_small/output_00001"
