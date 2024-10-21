@@ -663,13 +663,13 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                             ptbounds[0] = fmin(ptbounds[0], corners[i1])
                             ptbounds[1] = fmax(ptbounds[1], corners[i1])
 
-                        # shift to a [0, PI] interval
-                        ptbounds[0] = ptbounds[0] % twoPI
-                        if ptbounds[0] < 0:
-                            ptbounds[0] += NPY_PI
-                        ptbounds[1] = ptbounds[1] % twoPI
-                        if ptbounds[1] < 0:
-                            ptbounds[1] += NPY_PI
+                        # shift to a [0, 2*PI] interval
+                        # note: in cython, % is an alias to fmod and the sign
+                        # of the returned value matches the sign of the first
+                        # argument, so need to offset by 2pi to ensure we
+                        # always get a positive result in [0,2pi]
+                        ptbounds[0] = math.fmod(ptbounds[0]+twoPI, twoPI)
+                        ptbounds[1] = math.fmod(ptbounds[1]+twoPI, twoPI)
 
                         if prbounds[0] >= rmin and prbounds[1] <= rmax and \
                            ptbounds[0] >= tmin and ptbounds[1] <= tmax:
