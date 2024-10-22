@@ -664,8 +664,8 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                             ptbounds[1] = fmax(ptbounds[1], corners[i1])
 
                         # shift to a [0, 2*PI] interval
-                        # note: with fmod, the sign of the returned value 
-                        # matches the sign of the first argument, so need 
+                        # note: with fmod, the sign of the returned value
+                        # matches the sign of the first argument, so need
                         # to offset by 2pi to ensure a positive result in [0, 2pi]
                         ptbounds[0] = math.fmod(ptbounds[0]+twoPI, twoPI)
                         ptbounds[1] = math.fmod(ptbounds[1]+twoPI, twoPI)
