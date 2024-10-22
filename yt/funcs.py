@@ -618,14 +618,15 @@ def fancy_download_file(url, filename, requests=None):
 
 def simple_download_file(url, filename):
     import urllib.request
+    import urllib.error
 
-    class MyURLopener(urllib.request.FancyURLopener):
-        def http_error_default(self, url, fp, errcode, errmsg, headers):
-            raise RuntimeError(
-                f"Attempt to download file from {url} failed with error {errcode}: {errmsg}."
-            )
+    try:
+        fn, h = urllib.request.urlretrieve(url, filename)
+    except urllib.error.HTTPError as err:
+        raise RuntimeError(
+            f"Attempt to download file from {url} failed with error {err.code}: {err.msg}."
+        ) from None
 
-    fn, h = MyURLopener().retrieve(url, filename)
     return fn
 
 
