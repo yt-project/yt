@@ -617,8 +617,8 @@ def fancy_download_file(url, filename, requests=None):
 
 
 def simple_download_file(url, filename):
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     try:
         fn, h = urllib.request.urlretrieve(url, filename)
