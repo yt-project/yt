@@ -1,5 +1,5 @@
-from os import unlink
-from os.path import exists
+import os
+
 from nose.tools import assert_raises
 from numpy.testing import assert_equal
 
@@ -104,11 +104,11 @@ def test_simple_download_file():
     fn = simple_download_file("http://yt-project.org", "simple-download-file")
     try:
         assert fn == "simple-download-file"
-        assert exists("simple-download-file")
+        assert os.path.exists("simple-download-file")
     finally:
         # Clean up after ourselves.
         try:
-            unlink("simple-download-file")
+            os.unlink("simple-download-file")
         except FileNotFoundError:
             pass
 
@@ -118,4 +118,4 @@ def test_simple_download_file():
     desired = "Attempt to download file from http://yt-project.org/404 failed with error 404: Not Found."
     actual = str(ex.exception)
     assert actual == desired
-    assert not exists("simple-download-file")
+    assert not os.path.exists("simple-download-file")
