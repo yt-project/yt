@@ -431,7 +431,14 @@ _fake_amr_ds_default_units = ("g/cm**3",)
 
 
 def fake_amr_ds(
-    fields=None, units=None, geometry="cartesian", particles=0, length_unit=None
+    fields=None,
+    units=None,
+    geometry="cartesian",
+    particles=0,
+    length_unit=None,
+    *,
+    domain_left_edge=None,
+    domain_right_edge=None,
 ):
     from yt.loaders import load_amr_grids
 
@@ -447,9 +454,10 @@ def fake_amr_ds(
     )
 
     prng = RandomState(0x4D3D3D3)
-    LE, RE = _geom_transforms[geometry]
-    LE = np.array(LE)
-    RE = np.array(RE)
+    default_LE, default_RE = _geom_transforms[geometry]
+
+    LE = np.array(domain_left_edge or default_LE, dtype="float64")
+    RE = np.array(domain_right_edge or default_RE, dtype="float64")
     data = []
     for gspec in _amr_grid_index:
         level, left_edge, right_edge, dims = gspec

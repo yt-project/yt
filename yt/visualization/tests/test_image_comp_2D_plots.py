@@ -433,6 +433,34 @@ class TestCylindricalZSlicePlot:
         self.plot.set_log("noise0", False)
         return self.plot.plots[field].figure
 
+    @pytest.mark.parametrize(
+        "theta_min, theta_max",
+        [
+            pytest.param(0, 2 * np.pi, id="full_azimuthal_domain"),
+            pytest.param(3 / 4 * np.pi, 5 / 4 * np.pi, id="restricted_sector"),
+        ],
+    )
+    @pytest.mark.mpl_image_compare
+    def test_exclude_pixels_with_partial_bbox_intersection(self, theta_min, theta_max):
+        rmin = 1.0
+        rmax = 2.0
+        ds = fake_amr_ds(
+            geometry="cylindrical",
+            domain_left_edge=[rmin, 0, theta_min],
+            domain_right_edge=[rmax, 1, theta_max],
+        )
+        add_noise_fields(ds)
+        plot = SlicePlot(ds, "z", ("gas", "noise0"))
+        for radius in [rmin - 0.01, rmax]:
+            plot.annotate_sphere(
+                center=[0, 0, 0],
+                radius=radius,
+                circle_args={"color": "red", "alpha": 0.4, "linewidth": 3},
+            )
+        plot.annotate_title("all pixels beyond (or on) red lines should be white")
+        plot.render()
+        return plot.plots["gas", "noise0"].figure
+
 
 class TestSphericalPhiSlicePlot:
     @classmethod
