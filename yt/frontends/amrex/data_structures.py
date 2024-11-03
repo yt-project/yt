@@ -1,3 +1,4 @@
+import yaml
 import glob
 import os
 import re
@@ -1327,10 +1328,168 @@ class NyxDataset(BoxlibDataset):
         setdefaultattr(self, "velocity_unit", self.length_unit / self.time_unit)
 
 
+class QuokkaHierarchy(BoxlibHierarchy):
+    def __init__(self, ds, dataset_type="quokka_native"):
+        super().__init__(ds, dataset_type)
+
+        if "particles" in self.ds.parameters:
+            # extra beyond the base real fields that all Boxlib
+            # particles have, i.e. the xyz positions
+            quokka_extra_real_fields = [
+                "particle_velocity_x",
+                "particle_velocity_y",
+                "particle_velocity_z",
+            ]
+
+            is_checkpoint = True
+
+            self._read_particles(
+                "What", # RJ: Quokka uses What for particles, Tracer for Castro, DM for Nyx
+                is_checkpoint,
+                quokka_extra_real_fields[0 : self.ds.dimensionality],
+            )
+
+
 class QuokkaDataset(AMReXDataset):
     # match any plotfiles that have a metadata.yaml file in the root
     _subtype_keyword = ""
     _default_cparam_filename = "metadata.yaml"
+
+    def __init__(
+        self,
+        output_dir,
+        cparam_filename=None,
+        fparam_filename=None,
+        dataset_type="boxlib_native",
+        storage_filename=None,
+        units_override=None,
+        unit_system="cgs",
+        default_species_fields=None,
+    ):
+        # Initialize cparam_filename to the default if not provided
+        if cparam_filename is None:
+            cparam_filename = self._default_cparam_filename
+
+        super().__init__(
+            output_dir,
+            cparam_filename,
+            fparam_filename,
+            dataset_type,
+            storage_filename,
+            units_override,
+            unit_system,
+            default_species_fields=default_species_fields,
+        )
+
+        # Parse the metadata from metadata.yaml after initialization
+        self._parse_metadata_file()
+
+    def _parse_parameter_file(self):
+        # Call parent method to initialize core setup by yt
+        super()._parse_parameter_file()
+
+        # Define the path to the Header file
+        header_filename = os.path.join(self.output_dir, "Header")
+        if not os.path.exists(header_filename):
+            raise FileNotFoundError(f"Header file not found: {header_filename}")
+
+        with open(header_filename, 'r') as f:
+            # Parse header version
+            self.parameters['header_version'] = f.readline().strip()
+
+            # Number of fields
+            num_fields = int(f.readline().strip())
+            self.parameters['fields'] = [f.readline().strip() for _ in range(num_fields)]
+
+            # Dimensionality
+            self.parameters['dimensionality'] = int(f.readline().strip())
+
+            # Simulation time
+            self.parameters['current_time'] = float(f.readline().strip())
+
+            # Refinement levels
+            self.parameters['refinement_level'] = int(f.readline().strip())
+
+            # Domain edges
+            self.parameters['domain_left_edge'] = list(map(float, f.readline().strip().split()))
+            self.parameters['domain_right_edge'] = list(map(float, f.readline().strip().split()))
+
+            # skip empty line
+            f.readline()
+
+            # Grid info
+            self.parameters['grid_info'] = f.readline().strip()
+
+            # Timestamp
+            self.parameters['timestamp'] = int(f.readline().strip())
+
+            # Grid size per axis (e.g., 2.3578125e+19)
+            self.parameters['grid_size'] = list(map(float, f.readline().strip().split()))
+
+            # RJ: Additional header fields and data, like boundaries in Z?
+            while line := f.readline().strip():
+                if line.startswith("Level_"):
+                    # Stop parsing at Level sections, or handle specific layout as needed
+                    break
+
+        # hydro method is set by the base class -- override it here
+        self.parameters["HydroMethod"] = "Quokka"
+
+        # Print parsed information for verification
+        print("Parsed header parameters:", self.parameters)
+
+    # def _parse_parameter_file(self): 
+    #     super()._parse_parameter_file()
+    #     # Temporary storage for parsed header data
+    #     header_info = {}
+
+    #     # Read the Header file, but do not directly modify self.parameters
+    #     header_filename = os.path.join(self.output_dir, "Header")
+    #     if not os.path.exists(header_filename):
+    #         raise FileNotFoundError(f"Header file not found: {header_filename}")
+
+    #     with open(header_filename) as f:
+    #         header_data = f.readlines()
+
+    #     # Populate temporary dictionary with header data
+    #     header_info['header_version'] = header_data[0].strip()
+    #     num_fields = int(header_data[1].strip())
+    #     header_info['fields'] = [header_data[i+2].strip() for i in range(num_fields)]
+    #     header_info['dimensionality'] = int(header_data[num_fields + 2].strip())
+    #     header_info['current_time'] = float(header_data[num_fields + 3].strip())
+    #     header_info['domain_left_edge'] = list(map(float, header_data[num_fields + 4].strip().split()))
+    #     header_info['domain_right_edge'] = list(map(float, header_data[num_fields + 5].strip().split()))
+
+    #     # Add non-essential information as additional metadata
+    #     header_info['domain_additional_info'] = {
+    #         'left_edge_info': list(map(float, header_data[num_fields + 4].strip().split())),
+    #         'right_edge_info': list(map(float, header_data[num_fields + 5].strip().split()))
+    #     }
+
+    #     # Only update self.parameters after yt's setup is complete
+    #     self.parameters.update(header_info)
+
+    #     # Optional debugging output to confirm parsing without attribute assignment
+    #     print("Header parsed for additional parameters:", self.parameters)
+
+
+    def _parse_metadata_file(self):
+        # Construct the full path to the metadata file
+        metadata_filename = os.path.join(self.output_dir, self.cparam_filename)
+        try:
+            with open(metadata_filename, 'r') as f:
+                # Load metadata using yaml
+                metadata = yaml.safe_load(f)
+                # Update dataset parameters with metadata if it exists
+                if metadata:
+                    self.parameters.update(metadata)
+                    print("Metadata loaded successfully:", metadata)
+                else:
+                    print("Warning: Metadata file is empty.")
+        except FileNotFoundError:
+            print(f"Error: Metadata file '{metadata_filename}' not found.")
+        except yaml.YAMLError as e:
+            print(f"Error parsing metadata file: {e}")
 
 
 def _guess_pcast(vals):
