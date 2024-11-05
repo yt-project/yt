@@ -278,10 +278,10 @@ class CFRadialDataset(Dataset):
             self.domain_left_edge = np.array([x.min(), y.min(), z.min()])
             self.domain_right_edge = np.array([x.max(), y.max(), z.max()])
             self.dimensionality = 3
-            dims = [xr_ds_handle.dims[d] for d in "xyz"]
+            dims = [xr_ds_handle.sizes[d] for d in "xyz"]
             self.domain_dimensions = np.array(dims, dtype="int64")
             self._periodicity = (False, False, False)
-            self.current_time = float(xr_ds_handle.time.values)
+            self.current_time = float(xr_ds_handle.time.values[0])
 
         # Cosmological information set to zero (not in space).
         self.cosmological_simulation = 0

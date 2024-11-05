@@ -184,6 +184,14 @@ def pytest_configure(config):
                 ":DeprecationWarning",
             )
 
+    if find_spec("datatree"):
+        # safe to remove after https://github.com/yt-project/yt/issues/5044
+        # https://github.com/yt-project/yt/pull/5042#issuecomment-2457797694
+        config.addinivalue_line(
+            "filterwarnings",
+            "ignore:" r"Engine.*loading failed.*" ":RuntimeWarning",
+        )
+
 
 def pytest_collection_modifyitems(config, items):
     r"""
