@@ -7,7 +7,7 @@ __all__ = [
     "version_info",
 ]
 
-__version__ = "4.4.dev0"  # keep in sync with pyproject.toml
+__version__ = "4.5.dev0"  # keep in sync with pyproject.toml
 
 
 class VersionTuple(NamedTuple):
