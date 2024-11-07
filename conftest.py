@@ -185,7 +185,9 @@ def pytest_configure(config):
             )
 
     if find_spec("datatree"):
-        # safe to remove after https://github.com/yt-project/yt/issues/5044
+        # the cf_radial dependency arm-pyart<=1.9.2 installs the now deprecated
+        # xarray-datatree package (which imports as datatree), which triggers
+        # a bunch of runtimewarnings when importing xarray.
         # https://github.com/yt-project/yt/pull/5042#issuecomment-2457797694
         config.addinivalue_line(
             "filterwarnings",

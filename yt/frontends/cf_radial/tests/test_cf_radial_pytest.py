@@ -3,12 +3,12 @@ from pathlib import Path
 import numpy as np
 
 import yt
-from yt.frontends.cf_radial.data_structures import CFRadialDataset
-from yt.testing import requires_module
+from yt.frontends.cf_radial.api import CFRadialDataset
+from yt.testing import requires_module_pytest as requires_module
 
 
 def create_cf_radial_mock_gridded_ds(savedir: Path) -> Path:
-    # a minimal xarray dataset that should be identified as valid
+    # a minimal dataset that yt should pick up as a CfRadial dataset
     import xarray as xr
 
     file_to_save = savedir / "mock_gridded_cfradial.nc"
@@ -23,19 +23,17 @@ def create_cf_radial_mock_gridded_ds(savedir: Path) -> Path:
     ds_xr.z.attrs["units"] = "m"
     ds_xr.reflectivity.attrs["units"] = ""
 
-    t = np.array([0.0, 1.0])
-    ds_xr = ds_xr.assign_coords({"time": t})
-    ds_xr["origin_latitude"] = xr.DataArray(np.zeros(t.shape), dims=("time"))
-    ds_xr["origin_longitude"] = xr.DataArray(np.zeros(t.shape), dims=("time"))
+    times = np.array(["2017-05-19T01", "2017-05-19T01:01"], dtype="datetime64[ns]")
+    ds_xr = ds_xr.assign_coords({"time": times})
+    ds_xr["origin_latitude"] = xr.DataArray(np.zeros_like(times), dims=("time",))
+    ds_xr["origin_longitude"] = xr.DataArray(np.zeros_like(times), dims=("time",))
 
-    ds_xr.to_netcdf(file_to_save)
+    ds_xr.to_netcdf(file_to_save, engine="netcdf4")
 
     return file_to_save
 
 
-@requires_module("xarray")
-@requires_module("netCDF4")
-@requires_module("pyart")
+@requires_module("xarray", "netCDF4", "pyart")
 def test_load_mock_gridded_cf_radial(tmp_path):
     import xarray as xr
 
@@ -45,6 +43,8 @@ def test_load_mock_gridded_cf_radial(tmp_path):
     # make sure that the mock dataset is valid and can be re-loaded with xarray
     with xr.open_dataset(test_file) as ds_xr:
         assert "CF/Radial" in ds_xr.conventions
+
+    test_file = create_cf_radial_mock_gridded_ds(tmp_path)
 
     ds_yt = yt.load(test_file)
     assert isinstance(ds_yt, CFRadialDataset)
