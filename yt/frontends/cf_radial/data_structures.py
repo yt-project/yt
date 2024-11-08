@@ -272,16 +272,20 @@ class CFRadialDataset(Dataset):
         with self._handle() as xr_ds_handle:
             x, y, z = (xr_ds_handle.coords[d] for d in "xyz")
 
-            self.origin_latitude = xr_ds_handle.origin_latitude[0]
-            self.origin_longitude = xr_ds_handle.origin_longitude[0]
-
             self.domain_left_edge = np.array([x.min(), y.min(), z.min()])
             self.domain_right_edge = np.array([x.max(), y.max(), z.max()])
             self.dimensionality = 3
-            dims = [xr_ds_handle.dims[d] for d in "xyz"]
+            dims = [xr_ds_handle.sizes[d] for d in "xyz"]
             self.domain_dimensions = np.array(dims, dtype="int64")
             self._periodicity = (False, False, False)
-            self.current_time = float(xr_ds_handle.time.values)
+
+            # note: origin_latitude and origin_longitude arrays will have time
+            # as a dimension and the initial implementation here only handles
+            # the first index. Also, the time array may have a datetime dtype,
+            # so cast to float.
+            self.origin_latitude = xr_ds_handle.origin_latitude[0]
+            self.origin_longitude = xr_ds_handle.origin_longitude[0]
+            self.current_time = float(xr_ds_handle.time.values[0])
 
         # Cosmological information set to zero (not in space).
         self.cosmological_simulation = 0
