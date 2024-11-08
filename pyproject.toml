@@ -97,7 +97,7 @@ artio = []
 athena = []
 athena-pp = []
 boxlib = []
-cf-radial = ["xarray>=0.16.1", "arm-pyart!=1.12.5,>=1.11.4"]
+cf-radial = ["xarray>=0.16.1", "arm-pyart>=1.19.2",]
 chimera = ["yt[HDF5]"]
 chombo = ["yt[HDF5]"]
 cholla = ["yt[HDF5]"]
@@ -200,7 +200,6 @@ test = [
     "pytest-mpl>=0.16.1",
     "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
     "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
-    "xradar<0.8.0",  # see https://github.com/yt-project/yt/issues/5041
 ]
 
 [project.scripts]
