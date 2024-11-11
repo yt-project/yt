@@ -163,7 +163,7 @@ class ParthenonDataset(Dataset):
 
         self.geometry = _geom_map[self._handle["Info"].attrs["Coordinates"]]
 
-        if self.geometry == "cylindrical":
+        if self.geometry is Geometry.CYLINDRICAL:
             axis_order = ("r", "theta", "z")
         else:
             axis_order = None

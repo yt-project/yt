@@ -232,19 +232,20 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         self._set_window(bounds)  # this automatically updates the data and plot
 
         if origin != "native":
-            if geometry is Geometry.CARTESIAN or geometry is Geometry.SPECTRAL_CUBE:
-                pass
-            elif (
-                geometry is Geometry.CYLINDRICAL
-                or geometry is Geometry.POLAR
-                or geometry is Geometry.SPHERICAL
-                or geometry is Geometry.GEOGRAPHIC
-                or geometry is Geometry.INTERNAL_GEOGRAPHIC
-            ):
-                mylog.info("Setting origin='native' for %s geometry.", geometry)
-                origin = "native"
-            else:
-                assert_never(geometry)
+            match geometry:
+                case Geometry.CARTESIAN | Geometry.SPECTRAL_CUBE:
+                    pass
+                case (
+                    Geometry.CYLINDRICAL
+                    | Geometry.POLAR
+                    | Geometry.SPHERICAL
+                    | Geometry.GEOGRAPHIC
+                    | Geometry.INTERNAL_GEOGRAPHIC
+                ):
+                    mylog.info("Setting origin='native' for %s geometry.", geometry)
+                    origin = "native"
+                case _:
+                    assert_never(geometry)
 
         self.origin = origin
         if self.data_source.center is not None and not oblique:
@@ -2724,25 +2725,20 @@ def plot_2d(
     """
     if ds.dimensionality != 2:
         raise RuntimeError("plot_2d only plots 2D datasets!")
-    if (
-        ds.geometry is Geometry.CARTESIAN
-        or ds.geometry is Geometry.POLAR
-        or ds.geometry is Geometry.SPECTRAL_CUBE
-    ):
-        axis = "z"
-    elif ds.geometry is Geometry.CYLINDRICAL:
-        axis = "theta"
-    elif ds.geometry is Geometry.SPHERICAL:
-        axis = "phi"
-    elif (
-        ds.geometry is Geometry.GEOGRAPHIC
-        or ds.geometry is Geometry.INTERNAL_GEOGRAPHIC
-    ):
-        raise NotImplementedError(
-            f"plot_2d does not yet support datasets with {ds.geometry} geometries"
-        )
-    else:
-        assert_never(ds.geometry)
+    match ds.geometry:
+        case Geometry.CARTESIAN | Geometry.POLAR | Geometry.SPECTRAL_CUBE:
+            axis = "z"
+        case Geometry.CYLINDRICAL:
+            axis = "theta"
+        case Geometry.SPHERICAL:
+            axis = "phi"
+        case Geometry.GEOGRAPHIC | Geometry.INTERNAL_GEOGRAPHIC:
+            raise NotImplementedError(
+                f"plot_2d does not yet support datasets with {ds.geometry} geometries"
+            )
+        case _:
+            assert_never(ds.geometry)
+
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
     if not isinstance(center, str) and obj_length(center) == 2:
