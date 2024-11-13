@@ -60,7 +60,10 @@ def test_variable_dx():
 def data_cell_widths_N16():
     np.random.seed(0x4D3D3D3)
     N = 16
-    data = {"density": np.random.random((N, N, N))}
+    data = {
+        "density": np.random.random((N, N, N)),
+        "temperature": np.random.random((N, N, N)),
+    }
 
     cell_widths = []
     for _ in range(3):
