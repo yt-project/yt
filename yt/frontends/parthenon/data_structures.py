@@ -129,6 +129,7 @@ class ParthenonHierarchy(GridIndex):
 
 
 class ParthenonDataset(Dataset):
+    _load_requirements = ["h5py"]
     _field_info_class = ParthenonFieldInfo
     _dataset_type = "parthenon"
     _index_class = ParthenonHierarchy
@@ -312,6 +313,8 @@ class ParthenonDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
         return filename.endswith((".phdf", ".rhdf"))
 
     @property
