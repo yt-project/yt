@@ -463,21 +463,22 @@ class VelocityCallback(PlotCallback):
         # Instantiation of these is cheap
         geometry: Geometry = plot.data.ds.geometry
         if plot._type_name == "CuttingPlane":
-            if geometry is Geometry.CARTESIAN:
-                pass
-            elif (
-                geometry is Geometry.POLAR
-                or geometry is Geometry.CYLINDRICAL
-                or geometry is Geometry.SPHERICAL
-                or geometry is Geometry.GEOGRAPHIC
-                or geometry is Geometry.INTERNAL_GEOGRAPHIC
-                or geometry is Geometry.SPECTRAL_CUBE
-            ):
-                raise NotImplementedError(
-                    f"annotate_velocity is not supported for cutting plane for {geometry=}"
-                )
-            else:
-                assert_never(geometry)
+            match geometry:
+                case Geometry.CARTESIAN:
+                    pass
+                case (
+                    Geometry.POLAR
+                    | Geometry.CYLINDRICAL
+                    | Geometry.SPHERICAL
+                    | Geometry.GEOGRAPHIC
+                    | Geometry.INTERNAL_GEOGRAPHIC
+                    | Geometry.SPECTRAL_CUBE
+                ):
+                    raise NotImplementedError(
+                        f"annotate_velocity is not supported for cutting plane for {geometry=}"
+                    )
+                case _:
+                    assert_never(geometry)
         qcb: BaseQuiverCallback
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback(
@@ -501,39 +502,40 @@ class VelocityCallback(PlotCallback):
             else:
                 bv_x = bv_y = 0
 
-            if geometry is Geometry.POLAR or geometry is Geometry.CYLINDRICAL:
-                if axis_names[plot.data.axis] == "z":
-                    # polar_z and cyl_z is aligned with cartesian_z
-                    # should convert r-theta plane to x-y plane
-                    xv = (ftype, "velocity_cartesian_x")
-                    yv = (ftype, "velocity_cartesian_y")
-                else:
+            match geometry:
+                case Geometry.POLAR | Geometry.CYLINDRICAL:
+                    if axis_names[plot.data.axis] == "z":
+                        # polar_z and cyl_z is aligned with cartesian_z
+                        # should convert r-theta plane to x-y plane
+                        xv = (ftype, "velocity_cartesian_x")
+                        yv = (ftype, "velocity_cartesian_y")
+                    else:
+                        xv = (ftype, f"velocity_{axis_names[xax]}")
+                        yv = (ftype, f"velocity_{axis_names[yax]}")
+                case Geometry.SPHERICAL:
+                    if axis_names[plot.data.axis] == "phi":
+                        xv = (ftype, "velocity_cylindrical_radius")
+                        yv = (ftype, "velocity_cylindrical_z")
+                    elif axis_names[plot.data.axis] == "theta":
+                        xv = (ftype, "velocity_conic_x")
+                        yv = (ftype, "velocity_conic_y")
+                    else:
+                        raise NotImplementedError(
+                            f"annotate_velocity is missing support for normal={axis_names[plot.data.axis]!r}"
+                        )
+                case Geometry.CARTESIAN:
                     xv = (ftype, f"velocity_{axis_names[xax]}")
                     yv = (ftype, f"velocity_{axis_names[yax]}")
-            elif geometry is Geometry.SPHERICAL:
-                if axis_names[plot.data.axis] == "phi":
-                    xv = (ftype, "velocity_cylindrical_radius")
-                    yv = (ftype, "velocity_cylindrical_z")
-                elif axis_names[plot.data.axis] == "theta":
-                    xv = (ftype, "velocity_conic_x")
-                    yv = (ftype, "velocity_conic_y")
-                else:
+                case (
+                    Geometry.GEOGRAPHIC
+                    | Geometry.INTERNAL_GEOGRAPHIC
+                    | Geometry.SPECTRAL_CUBE
+                ):
                     raise NotImplementedError(
-                        f"annotate_velocity is missing support for normal={axis_names[plot.data.axis]!r}"
+                        f"annotate_velocity is not supported for {geometry=}"
                     )
-            elif geometry is Geometry.CARTESIAN:
-                xv = (ftype, f"velocity_{axis_names[xax]}")
-                yv = (ftype, f"velocity_{axis_names[yax]}")
-            elif (
-                geometry is Geometry.GEOGRAPHIC
-                or geometry is Geometry.INTERNAL_GEOGRAPHIC
-                or geometry is Geometry.SPECTRAL_CUBE
-            ):
-                raise NotImplementedError(
-                    f"annotate_velocity is not supported for {geometry=}"
-                )
-            else:
-                assert_never(geometry)
+                case _:
+                    assert_never(geometry)
 
             # determine the full fields including field type
             xv = plot.data._determine_fields(xv)[0]
@@ -606,21 +608,22 @@ class MagFieldCallback(PlotCallback):
         geometry: Geometry = plot.data.ds.geometry
         qcb: BaseQuiverCallback
         if plot._type_name == "CuttingPlane":
-            if geometry is Geometry.CARTESIAN:
-                pass
-            elif (
-                geometry is Geometry.POLAR
-                or geometry is Geometry.CYLINDRICAL
-                or geometry is Geometry.SPHERICAL
-                or geometry is Geometry.GEOGRAPHIC
-                or geometry is Geometry.INTERNAL_GEOGRAPHIC
-                or geometry is Geometry.SPECTRAL_CUBE
-            ):
-                raise NotImplementedError(
-                    f"annotate_magnetic_field is not supported for cutting plane for {geometry=}"
-                )
-            else:
-                assert_never(geometry)
+            match geometry:
+                case Geometry.CARTESIAN:
+                    pass
+                case (
+                    Geometry.POLAR
+                    | Geometry.CYLINDRICAL
+                    | Geometry.SPHERICAL
+                    | Geometry.GEOGRAPHIC
+                    | Geometry.INTERNAL_GEOGRAPHIC
+                    | Geometry.SPECTRAL_CUBE
+                ):
+                    raise NotImplementedError(
+                        f"annotate_magnetic_field is not supported for cutting plane for {geometry=}"
+                    )
+                case _:
+                    assert_never(geometry)
             qcb = CuttingQuiverCallback(
                 (ftype, "cutting_plane_magnetic_field_x"),
                 (ftype, "cutting_plane_magnetic_field_y"),
@@ -635,39 +638,40 @@ class MagFieldCallback(PlotCallback):
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
             axis_names = plot.data.ds.coordinates.axis_name
 
-            if geometry is Geometry.POLAR or geometry is Geometry.CYLINDRICAL:
-                if axis_names[plot.data.axis] == "z":
-                    # polar_z and cyl_z is aligned with cartesian_z
-                    # should convert r-theta plane to x-y plane
-                    xv = (ftype, "magnetic_field_cartesian_x")
-                    yv = (ftype, "magnetic_field_cartesian_y")
-                else:
+            match geometry:
+                case Geometry.POLAR | Geometry.CYLINDRICAL:
+                    if axis_names[plot.data.axis] == "z":
+                        # polar_z and cyl_z is aligned with cartesian_z
+                        # should convert r-theta plane to x-y plane
+                        xv = (ftype, "magnetic_field_cartesian_x")
+                        yv = (ftype, "magnetic_field_cartesian_y")
+                    else:
+                        xv = (ftype, f"magnetic_field_{axis_names[xax]}")
+                        yv = (ftype, f"magnetic_field_{axis_names[yax]}")
+                case Geometry.SPHERICAL:
+                    if axis_names[plot.data.axis] == "phi":
+                        xv = (ftype, "magnetic_field_cylindrical_radius")
+                        yv = (ftype, "magnetic_field_cylindrical_z")
+                    elif axis_names[plot.data.axis] == "theta":
+                        xv = (ftype, "magnetic_field_conic_x")
+                        yv = (ftype, "magnetic_field_conic_y")
+                    else:
+                        raise NotImplementedError(
+                            f"annotate_magnetic_field is missing support for normal={axis_names[plot.data.axis]!r}"
+                        )
+                case Geometry.CARTESIAN:
                     xv = (ftype, f"magnetic_field_{axis_names[xax]}")
                     yv = (ftype, f"magnetic_field_{axis_names[yax]}")
-            elif geometry is Geometry.SPHERICAL:
-                if axis_names[plot.data.axis] == "phi":
-                    xv = (ftype, "magnetic_field_cylindrical_radius")
-                    yv = (ftype, "magnetic_field_cylindrical_z")
-                elif axis_names[plot.data.axis] == "theta":
-                    xv = (ftype, "magnetic_field_conic_x")
-                    yv = (ftype, "magnetic_field_conic_y")
-                else:
+                case (
+                    Geometry.GEOGRAPHIC
+                    | Geometry.INTERNAL_GEOGRAPHIC
+                    | Geometry.SPECTRAL_CUBE
+                ):
                     raise NotImplementedError(
-                        f"annotate_magnetic_field is missing support for normal={axis_names[plot.data.axis]!r}"
+                        f"annotate_magnetic_field is not supported for {geometry=}"
                     )
-            elif geometry is Geometry.CARTESIAN:
-                xv = (ftype, f"magnetic_field_{axis_names[xax]}")
-                yv = (ftype, f"magnetic_field_{axis_names[yax]}")
-            elif (
-                geometry is Geometry.GEOGRAPHIC
-                or geometry is Geometry.INTERNAL_GEOGRAPHIC
-                or geometry is Geometry.SPECTRAL_CUBE
-            ):
-                raise NotImplementedError(
-                    f"annotate_magnetic_field is not supported for {geometry=}"
-                )
-            else:
-                assert_never(geometry)
+                case _:
+                    assert_never(geometry)
 
             qcb = QuiverCallback(
                 xv,

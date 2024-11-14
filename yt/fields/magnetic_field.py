@@ -98,66 +98,66 @@ def setup_magnetic_field_fields(
     _magnetic_field_toroidal_magnitude = None
 
     geometry: Geometry = registry.ds.geometry
+    match geometry:
+        case Geometry.CARTESIAN:
 
-    if geometry is Geometry.CARTESIAN:
+            def _magnetic_field_poloidal_magnitude(field, data):
+                B2 = (
+                    data[ftype, "relative_magnetic_field_x"]
+                    * data[ftype, "relative_magnetic_field_x"]
+                    + data[ftype, "relative_magnetic_field_y"]
+                    * data[ftype, "relative_magnetic_field_y"]
+                    + data[ftype, "relative_magnetic_field_z"]
+                    * data[ftype, "relative_magnetic_field_z"]
+                )
+                Bt2 = (
+                    data[ftype, "magnetic_field_spherical_phi"]
+                    * data[ftype, "magnetic_field_spherical_phi"]
+                )
+                return np.sqrt(B2 - Bt2)
 
-        def _magnetic_field_poloidal_magnitude(field, data):
-            B2 = (
-                data[ftype, "relative_magnetic_field_x"]
-                * data[ftype, "relative_magnetic_field_x"]
-                + data[ftype, "relative_magnetic_field_y"]
-                * data[ftype, "relative_magnetic_field_y"]
-                + data[ftype, "relative_magnetic_field_z"]
-                * data[ftype, "relative_magnetic_field_z"]
-            )
-            Bt2 = (
-                data[ftype, "magnetic_field_spherical_phi"]
-                * data[ftype, "magnetic_field_spherical_phi"]
-            )
-            return np.sqrt(B2 - Bt2)
+        case Geometry.CYLINDRICAL | Geometry.POLAR:
 
-    elif geometry is Geometry.CYLINDRICAL or geometry is Geometry.POLAR:
+            def _magnetic_field_poloidal_magnitude(field, data):
+                bm = data.get_field_parameter("bulk_magnetic_field")
+                rax = axis_names.index("r")
+                zax = axis_names.index("z")
 
-        def _magnetic_field_poloidal_magnitude(field, data):
-            bm = data.get_field_parameter("bulk_magnetic_field")
-            rax = axis_names.index("r")
-            zax = axis_names.index("z")
+                return np.sqrt(
+                    (data[ftype, "magnetic_field_r"] - bm[rax]) ** 2
+                    + (data[ftype, "magnetic_field_z"] - bm[zax]) ** 2
+                )
 
-            return np.sqrt(
-                (data[ftype, "magnetic_field_r"] - bm[rax]) ** 2
-                + (data[ftype, "magnetic_field_z"] - bm[zax]) ** 2
-            )
+            def _magnetic_field_toroidal_magnitude(field, data):
+                ax = axis_names.find("theta")
+                bm = data.get_field_parameter("bulk_magnetic_field")
+                return data[ftype, "magnetic_field_theta"] - bm[ax]
 
-        def _magnetic_field_toroidal_magnitude(field, data):
-            ax = axis_names.find("theta")
-            bm = data.get_field_parameter("bulk_magnetic_field")
-            return data[ftype, "magnetic_field_theta"] - bm[ax]
+        case Geometry.SPHERICAL:
 
-    elif geometry is Geometry.SPHERICAL:
+            def _magnetic_field_poloidal_magnitude(field, data):
+                bm = data.get_field_parameter("bulk_magnetic_field")
+                rax = axis_names.index("r")
+                tax = axis_names.index("theta")
 
-        def _magnetic_field_poloidal_magnitude(field, data):
-            bm = data.get_field_parameter("bulk_magnetic_field")
-            rax = axis_names.index("r")
-            tax = axis_names.index("theta")
+                return np.sqrt(
+                    (data[ftype, "magnetic_field_r"] - bm[rax]) ** 2
+                    + (data[ftype, "magnetic_field_theta"] - bm[tax]) ** 2
+                )
 
-            return np.sqrt(
-                (data[ftype, "magnetic_field_r"] - bm[rax]) ** 2
-                + (data[ftype, "magnetic_field_theta"] - bm[tax]) ** 2
-            )
+            def _magnetic_field_toroidal_magnitude(field, data):
+                ax = axis_names.find("phi")
+                bm = data.get_field_parameter("bulk_magnetic_field")
+                return data[ftype, "magnetic_field_phi"] - bm[ax]
 
-        def _magnetic_field_toroidal_magnitude(field, data):
-            ax = axis_names.find("phi")
-            bm = data.get_field_parameter("bulk_magnetic_field")
-            return data[ftype, "magnetic_field_phi"] - bm[ax]
-
-    elif geometry is Geometry.GEOGRAPHIC or geometry is Geometry.INTERNAL_GEOGRAPHIC:
-        # not implemented
-        pass
-    elif geometry is Geometry.SPECTRAL_CUBE:
-        # nothing to be done
-        pass
-    else:
-        assert_never(geometry)
+        case Geometry.GEOGRAPHIC | Geometry.INTERNAL_GEOGRAPHIC:
+            # not implemented
+            pass
+        case Geometry.SPECTRAL_CUBE:
+            # nothing to be done
+            pass
+        case _:
+            assert_never(geometry)
 
     if _magnetic_field_poloidal_magnitude is not None:
         registry.add_field(
@@ -183,40 +183,37 @@ def setup_magnetic_field_fields(
             ],
         )
 
-    if geometry is Geometry.CARTESIAN:
-        registry.alias(
-            (ftype, "magnetic_field_toroidal_magnitude"),
-            (ftype, "magnetic_field_spherical_phi"),
-            units=u,
-        )
-        registry.alias(
-            (ftype, "magnetic_field_toroidal"),
-            (ftype, "magnetic_field_spherical_phi"),
-            units=u,
-            deprecate=("4.1.0", None),
-        )
-        registry.alias(
-            (ftype, "magnetic_field_poloidal"),
-            (ftype, "magnetic_field_spherical_theta"),
-            units=u,
-            deprecate=("4.1.0", None),
-        )
-    elif (
-        geometry is Geometry.CYLINDRICAL
-        or geometry is Geometry.POLAR
-        or geometry is Geometry.SPHERICAL
-    ):
-        # These cases should be covered already, just check that they are
-        assert (ftype, "magnetic_field_toroidal_magnitude") in registry
-        assert (ftype, "magnetic_field_poloidal_magnitude") in registry
-    elif geometry is Geometry.GEOGRAPHIC or geometry is Geometry.INTERNAL_GEOGRAPHIC:
-        # not implemented
-        pass
-    elif geometry is Geometry.SPECTRAL_CUBE:
-        # nothing to be done
-        pass
-    else:
-        assert_never(Geometry)
+    match geometry:
+        case Geometry.CARTESIAN:
+            registry.alias(
+                (ftype, "magnetic_field_toroidal_magnitude"),
+                (ftype, "magnetic_field_spherical_phi"),
+                units=u,
+            )
+            registry.alias(
+                (ftype, "magnetic_field_toroidal"),
+                (ftype, "magnetic_field_spherical_phi"),
+                units=u,
+                deprecate=("4.1.0", None),
+            )
+            registry.alias(
+                (ftype, "magnetic_field_poloidal"),
+                (ftype, "magnetic_field_spherical_theta"),
+                units=u,
+                deprecate=("4.1.0", None),
+            )
+        case Geometry.CYLINDRICAL | Geometry.POLAR | Geometry.SPHERICAL:
+            # These cases should be covered already, just check that they are
+            assert (ftype, "magnetic_field_toroidal_magnitude") in registry
+            assert (ftype, "magnetic_field_poloidal_magnitude") in registry
+        case Geometry.GEOGRAPHIC | Geometry.INTERNAL_GEOGRAPHIC:
+            # not implemented
+            pass
+        case Geometry.SPECTRAL_CUBE:
+            # nothing to be done
+            pass
+        case _:
+            assert_never(Geometry)
 
     def _alfven_speed(field, data):
         B = data[ftype, "magnetic_field_strength"]
