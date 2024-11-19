@@ -109,3 +109,6 @@ doc/source/quickstart/.ipynb_checkpoints/
 dist
 .python-version
 answer_nosetests.xml
+yt/utilities/lib/cosmology_time.cpp
+yt-dev-environment.yml
+plt00854.png

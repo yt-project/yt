@@ -1421,57 +1421,63 @@ class QuokkaDataset(AMReXDataset):
             self.parameters['grid_info'] = f.readline().strip()
 
             # Timestamp
-            self.parameters['timestamp'] = int(f.readline().strip())
+            self.parameters['timestamp'] = list(map(int, f.readline().strip().split()))
 
-            # Grid size per axis (e.g., 2.3578125e+19)
-            self.parameters['grid_size'] = list(map(float, f.readline().strip().split()))
+            # # Grid size per axis (e.g., 2.3578125e+19)
+            # self.parameters['grid_size'] = list(map(float, f.readline().strip().split()))
 
-            # RJ: Additional header fields and data, like boundaries in Z?
-            while line := f.readline().strip():
-                if line.startswith("Level_"):
-                    # Stop parsing at Level sections, or handle specific layout as needed
-                    break
+            # # RJ: Additional header fields and data, like boundaries in Z?
+            # while line := f.readline().strip():
+            #     if line.startswith("Level_"):
+            #         # Stop parsing at Level sections, or handle specific layout as needed
+            #         break
+            # Grid sizes for all refinement levels
+            self.parameters['grid_sizes'] = []
+            for _ in range(self.parameters['refinement_level'] + 1):
+                self.parameters['grid_sizes'].append(list(map(float, f.readline().strip().split())))
+
+            # Skip placeholders
+            f.readline()  # Placeholder line 1
+            f.readline()  # Placeholder line 2
+
+            # Parse data for all refinement levels
+            self.parameters['refinement_levels'] = []
+
+            for level in range(self.parameters['refinement_level'] + 1):
+                level_data = {}
+
+                # Parse metadata line
+                metadata = f.readline().strip().split()
+                level_data["level"] = int(metadata[0])
+                level_data["num_groups"] = int(metadata[1])
+                level_data["current_time"] = float(metadata[2])
+
+                # Parse timestamp
+                level_data["timestamp"] = int(f.readline().strip())
+
+                # Parse group information
+                level_data["groups"] = []
+                for _ in range(level_data["num_groups"]):
+                    group = {}
+                    for axis in range(self.parameters['dimensionality']):
+                        left_edge, right_edge = map(float, f.readline().strip().split())
+                        group[f"axis_{axis}"] = {"left_edge": left_edge, "right_edge": right_edge}
+                    level_data["groups"].append(group)
+
+                # Append level data to refinement levels
+                self.parameters['refinement_levels'].append(level_data)
+
+                # Skip level marker (e.g., Level_0/Cell)
+                marker = f.readline().strip()
+                if not marker.startswith(f"Level_{level}/Cell"):
+                    raise ValueError(f"Unexpected marker '{marker}' for level {level}")
+
 
         # hydro method is set by the base class -- override it here
         self.parameters["HydroMethod"] = "Quokka"
 
         # Print parsed information for verification
         print("Parsed header parameters:", self.parameters)
-
-    # def _parse_parameter_file(self): 
-    #     super()._parse_parameter_file()
-    #     # Temporary storage for parsed header data
-    #     header_info = {}
-
-    #     # Read the Header file, but do not directly modify self.parameters
-    #     header_filename = os.path.join(self.output_dir, "Header")
-    #     if not os.path.exists(header_filename):
-    #         raise FileNotFoundError(f"Header file not found: {header_filename}")
-
-    #     with open(header_filename) as f:
-    #         header_data = f.readlines()
-
-    #     # Populate temporary dictionary with header data
-    #     header_info['header_version'] = header_data[0].strip()
-    #     num_fields = int(header_data[1].strip())
-    #     header_info['fields'] = [header_data[i+2].strip() for i in range(num_fields)]
-    #     header_info['dimensionality'] = int(header_data[num_fields + 2].strip())
-    #     header_info['current_time'] = float(header_data[num_fields + 3].strip())
-    #     header_info['domain_left_edge'] = list(map(float, header_data[num_fields + 4].strip().split()))
-    #     header_info['domain_right_edge'] = list(map(float, header_data[num_fields + 5].strip().split()))
-
-    #     # Add non-essential information as additional metadata
-    #     header_info['domain_additional_info'] = {
-    #         'left_edge_info': list(map(float, header_data[num_fields + 4].strip().split())),
-    #         'right_edge_info': list(map(float, header_data[num_fields + 5].strip().split()))
-    #     }
-
-    #     # Only update self.parameters after yt's setup is complete
-    #     self.parameters.update(header_info)
-
-    #     # Optional debugging output to confirm parsing without attribute assignment
-    #     print("Header parsed for additional parameters:", self.parameters)
-
 
     def _parse_metadata_file(self):
         # Construct the full path to the metadata file
