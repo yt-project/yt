@@ -202,7 +202,6 @@ class RAMSESDomainFile:
         for t in ["grav", "amr"]:
             setattr(self, f"{t}_fn", basename % t)
         self._part_file_descriptor = part_file_descriptor
-        self.max_level = self.ds.parameters["levelmax"] - self.ds.parameters["levelmin"]
 
         # Autodetect field files
         field_handlers = [FH(self) for FH in get_field_handlers() if FH.any_exist(ds)]
@@ -276,15 +275,6 @@ class RAMSESDomainFile:
         self._amr_header = hvals
         self._amr_offset = position
 
-        # The maximum effective level is the deepest level
-        # that has a non-zero number of octs
-        nocts_to_this_level = hvals["numbl"].sum(axis=1).cumsum()
-        self._max_level = (
-            np.argwhere(nocts_to_this_level == nocts_to_this_level[-1])[0][0]
-            - self.ds.parameters["levelmin"]
-            + 1
-        )
-
         # update levelmax
         force_max_level, convention = self.ds._force_max_level
         if convention == "yt":
@@ -312,12 +302,7 @@ class RAMSESDomainFile:
 
     @property
     def max_level(self):
-        self._read_amr_header()
-        return self._max_level
-
-    @max_level.setter
-    def max_level(self, value):
-        self._max_level = value
+        return self.ds.max_level
 
     @property
     def total_oct_count(self):
@@ -373,7 +358,7 @@ class RAMSESDomainFile:
                 f"The maximum level detected in the AMR file ({new_max_level}) "
                 f" does not match the expected number {self.max_level}."
             )
-        self.max_level = new_max_level
+
         self._oct_handler_initialized = True
 
         return oct_handler
@@ -617,12 +602,9 @@ class RAMSESIndex(OctreeIndex):
 
         self.domains = [RAMSESDomainFile(self.dataset, i + 1) for i in cpu_list]
 
-    @cached_property
+    @property
     def max_level(self):
-        force_max_level, convention = self.ds._force_max_level
-        if convention == "yt":
-            force_max_level += self.ds.min_level + 1
-        return min(force_max_level, max(dom.max_level for dom in self.domains))
+        return self.ds.max_level
 
     @cached_property
     def num_grids(self):
