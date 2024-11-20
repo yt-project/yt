@@ -1423,14 +1423,6 @@ class QuokkaDataset(AMReXDataset):
             # Timestamp
             self.parameters['timestamp'] = list(map(int, f.readline().strip().split()))
 
-            # # Grid size per axis (e.g., 2.3578125e+19)
-            # self.parameters['grid_size'] = list(map(float, f.readline().strip().split()))
-
-            # # RJ: Additional header fields and data, like boundaries in Z?
-            # while line := f.readline().strip():
-            #     if line.startswith("Level_"):
-            #         # Stop parsing at Level sections, or handle specific layout as needed
-            #         break
             # Grid sizes for all refinement levels
             self.parameters['grid_sizes'] = []
             for _ in range(self.parameters['refinement_level'] + 1):
