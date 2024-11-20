@@ -222,29 +222,26 @@ class FieldInfoContainer(UserDict):
         if self.ds is None:
             return aliases_gallery
 
-        geometry: Geometry = self.ds.geometry
-        if (
-            geometry is Geometry.POLAR
-            or geometry is Geometry.CYLINDRICAL
-            or geometry is Geometry.SPHERICAL
-        ):
-            aliases: list[FieldName]
-            for field in sorted(self.field_list):
-                if field[0] in self.ds.particle_types:
-                    continue
-                args = known_other_fields.get(field[1], ("", [], None))
-                units, aliases, display_name = args
-                aliases_gallery.extend(aliases)
-        elif (
-            geometry is Geometry.CARTESIAN
-            or geometry is Geometry.GEOGRAPHIC
-            or geometry is Geometry.INTERNAL_GEOGRAPHIC
-            or geometry is Geometry.SPECTRAL_CUBE
-        ):
-            # nothing to do
-            pass
-        else:
-            assert_never(geometry)
+        match self.ds.geometry:
+            case Geometry.POLAR | Geometry.CYLINDRICAL | Geometry.SPHERICAL:
+                aliases: list[FieldName]
+                for field in sorted(self.field_list):
+                    if field[0] in self.ds.particle_types:
+                        continue
+                    args = known_other_fields.get(field[1], ("", [], None))
+                    units, aliases, display_name = args
+                    aliases_gallery.extend(aliases)
+            case (
+                Geometry.CARTESIAN
+                | Geometry.GEOGRAPHIC
+                | Geometry.INTERNAL_GEOGRAPHIC
+                | Geometry.SPECTRAL_CUBE
+            ):
+                # nothing to do
+                pass
+            case _:
+                assert_never(self.ds.geometry)
+
         return aliases_gallery
 
     def setup_fluid_aliases(self, ftype: FieldType = "gas") -> None:
@@ -280,38 +277,34 @@ class FieldInfoContainer(UserDict):
                 field, sampling_type="cell", units=units, display_name=display_name
             )
             axis_names = self.ds.coordinates.axis_order
-            geometry: Geometry = self.ds.geometry
             for alias in aliases:
-                if (
-                    geometry is Geometry.POLAR
-                    or geometry is Geometry.CYLINDRICAL
-                    or geometry is Geometry.SPHERICAL
-                ):
-                    if alias[-2:] not in ["_x", "_y", "_z"]:
-                        to_convert = False
-                    else:
-                        for suffix in ["x", "y", "z"]:
-                            if f"{alias[:-2]}_{suffix}" not in aliases_gallery:
-                                to_convert = False
-                                break
-                        to_convert = True
-                    if to_convert:
-                        if alias[-2:] == "_x":
-                            alias = f"{alias[:-2]}_{axis_names[0]}"
-                        elif alias[-2:] == "_y":
-                            alias = f"{alias[:-2]}_{axis_names[1]}"
-                        elif alias[-2:] == "_z":
-                            alias = f"{alias[:-2]}_{axis_names[2]}"
-                elif (
-                    geometry is Geometry.CARTESIAN
-                    or geometry is Geometry.GEOGRAPHIC
-                    or geometry is Geometry.INTERNAL_GEOGRAPHIC
-                    or geometry is Geometry.SPECTRAL_CUBE
-                ):
-                    # nothing to do
-                    pass
-                else:
-                    assert_never(geometry)
+                match self.ds.geometry:
+                    case Geometry.POLAR | Geometry.CYLINDRICAL | Geometry.SPHERICAL:
+                        if alias[-2:] not in ["_x", "_y", "_z"]:
+                            to_convert = False
+                        else:
+                            for suffix in ["x", "y", "z"]:
+                                if f"{alias[:-2]}_{suffix}" not in aliases_gallery:
+                                    to_convert = False
+                                    break
+                            to_convert = True
+                        if to_convert:
+                            if alias[-2:] == "_x":
+                                alias = f"{alias[:-2]}_{axis_names[0]}"
+                            elif alias[-2:] == "_y":
+                                alias = f"{alias[:-2]}_{axis_names[1]}"
+                            elif alias[-2:] == "_z":
+                                alias = f"{alias[:-2]}_{axis_names[2]}"
+                    case (
+                        Geometry.CARTESIAN
+                        | Geometry.GEOGRAPHIC
+                        | Geometry.INTERNAL_GEOGRAPHIC
+                        | Geometry.SPECTRAL_CUBE
+                    ):
+                        # nothing to do
+                        pass
+                    case _:
+                        assert_never(self.ds.geometry)
                 self.alias((ftype, alias), field)
 
     @staticmethod

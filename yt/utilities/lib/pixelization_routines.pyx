@@ -81,6 +81,8 @@ cdef extern from "pixelization_constants.hpp":
     int WEDGE_NF
     np.uint8_t wedge_face_defs[MAX_NUM_FACES][2][2]
 
+cdef extern from "numpy/npy_math.h":
+    double NPY_PI
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -566,6 +568,7 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
     cdef int i, i1, pi, pj
+    cdef np.float64_t twoPI = 2 * NPY_PI
 
     cdef int imin, imax
     imin = np.asarray(radius).argmin()
@@ -577,7 +580,6 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     imax = np.asarray(theta).argmax()
     tmin = theta[imin] - dtheta[imin]
     tmax = theta[imax] + dtheta[imax]
-
     cdef np.ndarray[np.uint8_t, ndim=2] mask_arr = np.zeros_like(buff, dtype="uint8")
     cdef np.uint8_t[:, :] mask = mask_arr
 
@@ -611,65 +613,69 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
         rbounds[0] = 0.0
     r_inc = 0.5 * fmin(dx, dy)
 
-    for i in range(radius.shape[0]):
-        r0 = radius[i]
-        theta0 = theta[i]
-        dr_i = dradius[i]
-        dtheta_i = dtheta[i]
-        # Skip out early if we're offsides, for zoomed in plots
-        if r0 + dr_i < rbounds[0] or r0 - dr_i > rbounds[1]:
-            continue
-        theta_i = theta0 - dtheta_i
-        theta_inc = r_inc / (r0 + dr_i)
+    with nogil:
+        for i in range(radius.shape[0]):
+            r0 = radius[i]
+            theta0 = theta[i]
+            dr_i = dradius[i]
+            dtheta_i = dtheta[i]
+            # Skip out early if we're offsides, for zoomed in plots
+            if r0 + dr_i < rbounds[0] or r0 - dr_i > rbounds[1]:
+                continue
+            theta_i = theta0 - dtheta_i
+            theta_inc = r_inc / (r0 + dr_i)
 
-        while theta_i < theta0 + dtheta_i:
-            r_i = r0 - dr_i
-            costheta = math.cos(theta_i)
-            sintheta = math.sin(theta_i)
-            while r_i < r0 + dr_i:
-                if rmax <= r_i:
+            while theta_i < theta0 + dtheta_i:
+                r_i = r0 - dr_i
+                costheta = math.cos(theta_i)
+                sintheta = math.sin(theta_i)
+                while r_i < r0 + dr_i:
+                    if rmax <= r_i:
+                        r_i += r_inc
+                        continue
+                    y = r_i * costheta
+                    x = r_i * sintheta
+                    pi = <int>((x - x0)/dx)
+                    pj = <int>((y - y0)/dy)
+                    if pi >= 0 and pi < buff.shape[0] and \
+                       pj >= 0 and pj < buff.shape[1]:
+                        # we got a pixel that intersects the grid cell
+                        # now check that this pixel doesn't go beyond the data domain
+                        xp = x0 + pi*dx
+                        yp = y0 + pj*dy
+                        corners[0] = xp*xp + yp*yp
+                        corners[1] = xp*xp + (yp+dy)**2
+                        corners[2] = (xp+dx)**2 + yp*yp
+                        corners[3] = (xp+dx)**2 + (yp+dy)**2
+                        prbounds[0] = prbounds[1] = corners[3]
+                        for i1 in range(3):
+                            prbounds[0] = fmin(prbounds[0], corners[i1])
+                            prbounds[1] = fmax(prbounds[1], corners[i1])
+                        prbounds[0] = math.sqrt(prbounds[0])
+                        prbounds[1] = math.sqrt(prbounds[1])
+
+                        corners[0] = math.atan2(xp, yp)
+                        corners[1] = math.atan2(xp, yp+dy)
+                        corners[2] = math.atan2(xp+dx, yp)
+                        corners[3] = math.atan2(xp+dx, yp+dy)
+                        ptbounds[0] = ptbounds[1] = corners[3]
+                        for i1 in range(3):
+                            ptbounds[0] = fmin(ptbounds[0], corners[i1])
+                            ptbounds[1] = fmax(ptbounds[1], corners[i1])
+
+                        # shift to a [0, 2*PI] interval
+                        # note: with fmod, the sign of the returned value
+                        # matches the sign of the first argument, so need
+                        # to offset by 2pi to ensure a positive result in [0, 2pi]
+                        ptbounds[0] = math.fmod(ptbounds[0]+twoPI, twoPI)
+                        ptbounds[1] = math.fmod(ptbounds[1]+twoPI, twoPI)
+
+                        if prbounds[0] >= rmin and prbounds[1] <= rmax and \
+                           ptbounds[0] >= tmin and ptbounds[1] <= tmax:
+                            buff[pi, pj] = field[i]
+                            mask[pi, pj] = 1
                     r_i += r_inc
-                    continue
-                y = r_i * costheta
-                x = r_i * sintheta
-                pi = <int>((x - x0)/dx)
-                pj = <int>((y - y0)/dy)
-                if pi >= 0 and pi < buff.shape[0] and \
-                   pj >= 0 and pj < buff.shape[1]:
-                    # we got a pixel that intersects the grid cell
-                    # now check that this pixel doesn't go beyond the data domain
-                    xp = x0 + pi*dx
-                    yp = y0 + pj*dy
-                    corners[0] = xp*xp + yp*yp
-                    corners[1] = xp*xp + (yp+dy)**2
-                    corners[2] = (xp+dx)**2 + yp*yp
-                    corners[3] = (xp+dx)**2 + (yp+dy)**2
-                    prbounds[0] = prbounds[1] = corners[3]
-                    for i1 in range(3):
-                        prbounds[0] = fmin(prbounds[0], corners[i1])
-                        prbounds[1] = fmax(prbounds[1], corners[i1])
-                    prbounds[0] = math.sqrt(prbounds[0])
-                    prbounds[1] = math.sqrt(prbounds[1])
-
-                    corners[0] = math.atan2(xp, yp)
-                    corners[1] = math.atan2(xp, yp+dy)
-                    corners[2] = math.atan2(xp+dx, yp)
-                    corners[3] = math.atan2(xp+dx, yp+dy)
-                    ptbounds[0] = ptbounds[1] = corners[3]
-                    for i1 in range(3):
-                        ptbounds[0] = fmin(ptbounds[0], corners[i1])
-                        ptbounds[1] = fmax(ptbounds[1], corners[i1])
-
-                    # shift to a [0, PI] interval
-                    ptbounds[0] = ptbounds[0] % (2*np.pi)
-                    ptbounds[1] = ptbounds[1] % (2*np.pi)
-
-                    if prbounds[0] >= rmin and prbounds[1] <= rmax and \
-                       ptbounds[0] >= tmin and ptbounds[1] <= tmax:
-                        buff[pi, pj] = field[i]
-                        mask[pi, pj] = 1
-                r_i += r_inc
-            theta_i += theta_inc
+                theta_i += theta_inc
 
     if return_mask:
         return mask_arr.astype("bool")

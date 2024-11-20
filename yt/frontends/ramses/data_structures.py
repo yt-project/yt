@@ -16,10 +16,9 @@ from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.oct_container import RAMSESOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.cython_fortran_utils import FortranFile as fpu
-from yt.utilities.lib.cosmology_time import friedman
+from yt.utilities.lib.cosmology_time import t_frw, tau_frw
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.utilities.physical_constants import kb, mp
-from yt.utilities.physical_ratios import cm_per_mpc
 
 from .definitions import (
     OUTPUT_DIR_EXP,
@@ -640,10 +639,6 @@ class RAMSESIndex(OctreeIndex):
             dsl.update(set(ph.field_offsets.keys()))
 
         self.particle_field_list = list(dsl)
-        cosmo = self.ds.cosmological_simulation
-        for f in self.particle_field_list[:]:
-            if f[1] == "particle_birth_time" and cosmo:
-                self.particle_field_list.append((f[0], "conformal_birth_time"))
 
         # Get the detected fields
         dsl = set()
@@ -795,6 +790,12 @@ class RAMSESDataset(Dataset):
     _field_info_class = RAMSESFieldInfo
     gamma = 1.4  # This will get replaced on hydro_fn open
 
+    # RAMSES-specific parameters
+    force_cosmological: bool | None
+    _force_max_level: tuple[int, str]
+    _bbox: list[list[float]] | None
+    _self_shielding: bool | None = None
+
     def __init__(
         self,
         filename,
@@ -809,6 +810,8 @@ class RAMSESDataset(Dataset):
         max_level=None,
         max_level_convention=None,
         default_species_fields=None,
+        self_shielding=None,
+        use_conformal_time=None,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -825,6 +828,10 @@ class RAMSESDataset(Dataset):
         cosmological:
         If set to None, automatically detect cosmological simulation.
         If a boolean, force its value.
+
+        self_shielding:
+        If set to True, assume gas is self-shielded above 0.01 mp/cm^3.
+        This affects the fields related to cooling and the mean molecular weight.
         """
 
         self._fields_in_file = fields
@@ -879,7 +886,48 @@ class RAMSESDataset(Dataset):
             if FH.any_exist(self):
                 self.fluid_types += (FH.ftype,)
 
+        if use_conformal_time is not None:
+            self.use_conformal_time = use_conformal_time
+        elif self.cosmological_simulation:
+            if "rt" in self.fluid_types:
+                self.use_conformal_time = False
+            else:
+                self.use_conformal_time = True
+        else:
+            self.use_conformal_time = False
+
         self.storage_filename = storage_filename
+
+        self.self_shielding = self_shielding
+
+    @property
+    def self_shielding(self) -> bool:
+        if self._self_shielding is not None:
+            return self._self_shielding
+
+        # Read namelist.txt file (if any)
+        has_namelist = self.read_namelist()
+
+        if not has_namelist:
+            self._self_shielding = False
+            return self._self_shielding
+
+        nml = self.parameters["namelist"]
+
+        # "self_shielding" is stored in physics_params in older versions of the code
+        physics_params = nml.get("physics_params", default={})
+        # and in "cooling_params" in more recent ones
+        cooling_params = nml.get("cooling_params", default={})
+
+        self_shielding = physics_params.get("self_shielding", False)
+        self_shielding |= cooling_params.get("self_shielding", False)
+
+        self._self_shielding = self_shielding
+        return self_shielding
+
+    @self_shielding.setter
+    def self_shielding(self, value):
+        self._self_shielding = value
 
     @staticmethod
     def _sanitize_max_level(max_level, max_level_convention):
@@ -1055,15 +1103,14 @@ class RAMSESDataset(Dataset):
             is_cosmological = not (
                 rheader["time"] >= 0 and rheader["H0"] == 1 and rheader["aexp"] == 1
             )
-
         if not is_cosmological:
-            self.cosmological_simulation = 0
+            self.cosmological_simulation = False
             self.current_redshift = 0
             self.hubble_constant = 0
             self.omega_matter = 0
             self.omega_lambda = 0
         else:
-            self.cosmological_simulation = 1
+            self.cosmological_simulation = True
             self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
             self.omega_lambda = rheader["omega_l"]
             self.omega_matter = rheader["omega_m"]
@@ -1074,64 +1121,46 @@ class RAMSESDataset(Dataset):
             force_max_level += self.min_level + 1
         self.max_level = min(force_max_level, rheader["levelmax"]) - self.min_level - 1
 
-        if self.cosmological_simulation == 0:
+        if not self.cosmological_simulation:
             self.current_time = self.parameters["time"]
         else:
-            self.tau_frw, self.t_frw, self.dtau, self.n_frw, self.time_tot = friedman(
-                self.omega_matter,
-                self.omega_lambda,
-                1.0 - self.omega_matter - self.omega_lambda,
-            )
-
-            age = self.parameters["time"]
-            iage = 1 + int(10.0 * age / self.dtau)
-            iage = np.min([iage, self.n_frw // 2 + (iage - self.n_frw // 2) // 10])
-
-            try:
-                self.time_simu = self.t_frw[iage] * (age - self.tau_frw[iage - 1]) / (
-                    self.tau_frw[iage] - self.tau_frw[iage - 1]
-                ) + self.t_frw[iage - 1] * (age - self.tau_frw[iage]) / (
-                    self.tau_frw[iage - 1] - self.tau_frw[iage]
-                )
-
-                self.current_time = (
-                    (self.time_tot + self.time_simu)
-                    / (self.hubble_constant * 1e7 / cm_per_mpc)
-                    / self.parameters["unit_t"]
-                )
-            except IndexError:
-                mylog.warning(
-                    "Yt could not convert conformal time to physical time. "
-                    "Yt will assume the simulation is *not* cosmological."
-                )
-                self.cosmological_simulation = 0
-                self.current_time = self.parameters["time"]
+            aexp_grid = np.geomspace(1e-3, 1, 2_000, endpoint=False)
+            z_grid = 1 / aexp_grid - 1
+            self.tau_frw = tau_frw(self, z_grid)
+            self.t_frw = t_frw(self, z_grid)
+            self.current_time = t_frw(self, self.current_redshift).to("Gyr")
 
         if self.num_groups > 0:
             self.group_size = rheader["ncpu"] // self.num_groups
 
-        # Read namelist.txt file (if any)
         self.read_namelist()
 
-    def read_namelist(self):
+    def read_namelist(self) -> bool:
         """Read the namelist.txt file in the output folder, if present"""
         namelist_file = os.path.join(self.root_folder, "namelist.txt")
-        if os.path.exists(namelist_file):
-            try:
-                with open(namelist_file) as f:
-                    nml = f90nml.read(f)
-            except ImportError as e:
-                nml = f"An error occurred when reading the namelist: {str(e)}"
-            except (ValueError, StopIteration, AssertionError) as err:
-                # Note: f90nml may raise a StopIteration, a ValueError or an AssertionError if
-                # the namelist is not valid.
-                mylog.warning(
-                    "Could not parse `namelist.txt` file as it was malformed:",
-                    exc_info=err,
-                )
-                return
+        if not os.path.exists(namelist_file):
+            return False
 
-            self.parameters["namelist"] = nml
+        try:
+            with open(namelist_file) as f:
+                nml = f90nml.read(f)
+        except ImportError as err:
+            mylog.warning(
+                "`namelist.txt` file found but missing package f90nml to read it:",
+                exc_info=err,
+            )
+            return False
+        except (ValueError, StopIteration, AssertionError) as err:
+            # Note: f90nml may raise a StopIteration, a ValueError or an AssertionError if
+            # the namelist is not valid.
+            mylog.warning(
+                "Could not parse `namelist.txt` file as it was malformed:",
+                exc_info=err,
+            )
+            return False
+
+        self.parameters["namelist"] = nml
+        return True
 
     @classmethod
     def _is_valid(cls, filename: str, *args, **kwargs) -> bool:

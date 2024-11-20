@@ -428,18 +428,22 @@ class FLASHDataset(Dataset):
                         d,
                     )
                     dre[d] = dle[d] + 1.0
-        if self.dimensionality < 3 and self.geometry == "cylindrical":
-            mylog.warning("Extending theta dimension to 2PI + left edge.")
-            dre[2] = dle[2] + 2 * np.pi
-        elif self.dimensionality < 3 and self.geometry == "polar":
-            mylog.warning("Extending theta dimension to 2PI + left edge.")
-            dre[1] = dle[1] + 2 * np.pi
-        elif self.dimensionality < 3 and self.geometry == "spherical":
-            mylog.warning("Extending phi dimension to 2PI + left edge.")
-            dre[2] = dle[2] + 2 * np.pi
-        if self.dimensionality == 1 and self.geometry == "spherical":
-            mylog.warning("Extending theta dimension to PI + left edge.")
-            dre[1] = dle[1] + np.pi
+
+        if self.dimensionality < 3:
+            match self.geometry:
+                case Geometry.CYLINDRICAL:
+                    mylog.warning("Extending theta dimension to 2PI + left edge.")
+                    dre[2] = dle[2] + 2 * np.pi
+                case Geometry.POLAR:
+                    mylog.warning("Extending theta dimension to 2PI + left edge.")
+                    dre[1] = dle[1] + 2 * np.pi
+                case Geometry.SPHERICAL:
+                    mylog.warning("Extending phi dimension to 2PI + left edge.")
+                    dre[2] = dle[2] + 2 * np.pi
+                    if self.dimensionality == 1:
+                        mylog.warning("Extending theta dimension to PI + left edge.")
+                        dre[1] = dle[1] + np.pi
+
         self.domain_left_edge = dle
         self.domain_right_edge = dre
         self.domain_dimensions = np.array([nblockx * nxb, nblocky * nyb, nblockz * nzb])

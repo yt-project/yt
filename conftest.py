@@ -184,6 +184,16 @@ def pytest_configure(config):
                 ":DeprecationWarning",
             )
 
+    if find_spec("datatree"):
+        # the cf_radial dependency arm-pyart<=1.9.2 installs the now deprecated
+        # xarray-datatree package (which imports as datatree), which triggers
+        # a bunch of runtimewarnings when importing xarray.
+        # https://github.com/yt-project/yt/pull/5042#issuecomment-2457797694
+        config.addinivalue_line(
+            "filterwarnings",
+            "ignore:" r"Engine.*loading failed.*" ":RuntimeWarning",
+        )
+
 
 def pytest_collection_modifyitems(config, items):
     r"""
