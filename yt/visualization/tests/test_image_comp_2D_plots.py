@@ -450,7 +450,7 @@ class TestCylindricalZSlicePlot:
     def setup_class(cls):
         cls.ds = fake_amr_ds(geometry="cylindrical")
         add_noise_fields(cls.ds)
-        fields = ["noise%d" % i for i in range(4)]
+        fields = [f"noise{i}" for i in range(4)]
         cls.plot = SlicePlot(cls.ds, "z", fields)
 
     @pytest.mark.parametrize("field", ["noise0", "noise1", "noise2", "noise3"])
@@ -498,7 +498,7 @@ class TestSphericalPhiSlicePlot:
     def setup_class(cls):
         cls.ds = fake_amr_ds(geometry="spherical")
         add_noise_fields(cls.ds)
-        fields = ["noise%d" % i for i in range(4)]
+        fields = [f"noise{i}" for i in range(4)]
         cls.plot = SlicePlot(cls.ds, "phi", fields)
 
     @pytest.mark.parametrize("field", ["noise0", "noise1", "noise2", "noise3"])
@@ -512,7 +512,7 @@ class TestSphericalThetaSlicePlot:
     def setup_class(cls):
         cls.ds = fake_amr_ds(geometry="spherical")
         add_noise_fields(cls.ds)
-        fields = ["noise%d" % i for i in range(4)]
+        fields = [f"noise{i}" for i in range(4)]
         cls.plot = SlicePlot(cls.ds, "theta", fields)
 
     @pytest.mark.parametrize("field", ["noise0", "noise1", "noise2", "noise3"])

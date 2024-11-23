@@ -253,7 +253,7 @@ class Clump(TreeContainer):
         """
 
         ds = self.data.ds
-        keyword = "%s_clump_%d" % (str(ds), self.clump_id)
+        keyword = f"{ds}_clump_{self.clump_id}"
         filename = get_output_filename(filename, keyword, ".h5")
 
         # collect clump info fields

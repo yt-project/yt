@@ -294,7 +294,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         super().__init__(parent_ds, {})
 
     def __repr__(self):
-        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+        return f"{self.ds}_{self.ptype}_{self.particle_identifier:09}"
 
     def __getitem__(self, key):
         return self.region[key]

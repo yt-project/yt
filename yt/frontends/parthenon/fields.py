@@ -161,11 +161,11 @@ class ParthenonFieldInfo(FieldInfoContainer):
 
         # We can simply all all variants as only fields present will be added
         setup_magnetic_field_aliases(
-            self, "parthenon", ["MagneticField%d" % ax for ax in (1, 2, 3)]
+            self, "parthenon", [f"MagneticField{ax}" for ax in (1, 2, 3)]
         )
         setup_magnetic_field_aliases(
-            self, "parthenon", ["prim_magnetic_field_%d" % ax for ax in (1, 2, 3)]
+            self, "parthenon", [f"prim_magnetic_field_{ax}" for ax in (1, 2, 3)]
         )
         setup_magnetic_field_aliases(
-            self, "parthenon", ["cons_magnetic_field_%d" % ax for ax in (1, 2, 3)]
+            self, "parthenon", [f"cons_magnetic_field_{ax}" for ax in (1, 2, 3)]
         )

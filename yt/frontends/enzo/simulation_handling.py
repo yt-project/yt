@@ -424,8 +424,8 @@ class EnzoSimulation(SimulationTimeSeries):
         for output in redshift_outputs:
             output["filename"] = os.path.join(
                 self.parameters["GlobalDir"],
-                "%s%04d" % (self.parameters["RedshiftDumpDir"], output["index"]),
-                "%s%04d" % (self.parameters["RedshiftDumpName"], output["index"]),
+                f"{self.parameters['RedshiftDumpDir']}{output['index']:04}",
+                f"{self.parameters['RedshiftDumpName']}{output['index']:04}",
             )
             del output["index"]
         self.all_redshift_outputs = redshift_outputs
@@ -449,8 +449,8 @@ class EnzoSimulation(SimulationTimeSeries):
         while current_time <= self.final_time + dt_datadump:
             filename = os.path.join(
                 self.parameters["GlobalDir"],
-                "%s%04d" % (self.parameters["DataDumpDir"], index),
-                "%s%04d" % (self.parameters["DataDumpName"], index),
+                f"{self.parameters['DataDumpDir']}{index:04}",
+                f"{self.parameters['DataDumpName']}{index:04}",
             )
 
             output = {"index": index, "filename": filename, "time": current_time.copy()}
@@ -485,8 +485,8 @@ class EnzoSimulation(SimulationTimeSeries):
         ):
             filename = os.path.join(
                 self.parameters["GlobalDir"],
-                "%s%04d" % (self.parameters["DataDumpDir"], index),
-                "%s%04d" % (self.parameters["DataDumpName"], index),
+                f"{self.parameters['DataDumpDir']}{index:04}",
+                f"{self.parameters['DataDumpName']}{index:04}",
             )
 
             output = {"index": index, "filename": filename, "cycle": cycle}

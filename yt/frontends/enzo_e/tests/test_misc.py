@@ -61,10 +61,10 @@ def flip_random_block_bit(block, rs):
 
     # flip a bit in modify_part, and return the new block name with this change
     flip_index = rs.randint(0, high=len(modify_part))
-    parts[part_index] = "%s%d%s" % (
-        modify_part[:flip_index],
-        (int(modify_part[flip_index]) + 1) % 2,
-        modify_part[flip_index + 1 :],
+    parts[part_index] = (
+        f"{modify_part[:flip_index]}"
+        f"{(int(modify_part[flip_index]) + 1) % 2}"
+        f"{modify_part[flip_index + 1 :]}"
     )
     descriptors[descr_index] = ":".join(parts)
     return "B" + "_".join(descriptors)
