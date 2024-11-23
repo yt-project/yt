@@ -100,7 +100,7 @@ class FITSHierarchy(GridIndex):
         ds = self.dataset
         conditions = [hdu.header["naxis"] != ds.primary_header["naxis"]]
         for i in range(ds.naxis):
-            nax = "naxis%d" % (i + 1)
+            nax = f"naxis{i+1}"
             conditions.append(hdu.header[nax] != ds.primary_header[nax])
         if np.any(conditions):
             return False
@@ -143,9 +143,9 @@ class FITSHierarchy(GridIndex):
                         fname = self._guess_name_from_units(units)
                         # When all else fails
                         if fname is None:
-                            fname = "image_%d" % (j)
+                            fname = f"image_{j}"
                     if self.ds.num_files > 1 and fname.startswith("image"):
-                        fname += "_file_%d" % (i)
+                        fname += f"_file_{i}"
                     if ("fits", fname) in self.field_list:
                         if fname in dup_field_index:
                             dup_field_index[fname] += 1
@@ -159,10 +159,10 @@ class FITSHierarchy(GridIndex):
                             fname,
                             dup_field_index[fname],
                         )
-                        fname += "_%d" % (dup_field_index[fname])
+                        fname += f"_{dup_field_index[fname]}"
                     for k in range(naxis4):
                         if naxis4 > 1:
-                            fname += "_%s_%d" % (hdu.header["CTYPE4"], k + 1)
+                            fname += f"_{hdu.header['CTYPE4']}_{k+1}"
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -300,7 +300,7 @@ def check_sky_coords(filename, ndim):
                 if header["naxis"] < ndim:
                     return False
                 axis_names = [
-                    header.get("ctype%d" % (i + 1), "") for i in range(header["naxis"])
+                    header.get(f"ctype{i+1}", "") for i in range(header["naxis"])
                 ]
                 if len(axis_names) == 3 and axis_names.count("LINEAR") == 2:
                     return any(a[0] in spec_prefixes for a in axis_names)
@@ -500,12 +500,9 @@ class FITSDataset(Dataset):
         self.primary_header, self.first_image = find_primary_header(self._handle)
         self.naxis = self.primary_header["naxis"]
         self.axis_names = [
-            self.primary_header.get("ctype%d" % (i + 1), "LINEAR")
-            for i in range(self.naxis)
+            self.primary_header.get(f"ctype{i+1}", "LINEAR") for i in range(self.naxis)
         ]
-        self.dims = [
-            self.primary_header["naxis%d" % (i + 1)] for i in range(self.naxis)
-        ]
+        self.dims = [self.primary_header[f"naxis{i+1}"] for i in range(self.naxis)]
 
     def _determine_wcs(self):
         wcs = _astropy.pywcs.WCS(header=self.primary_header)
@@ -673,7 +670,7 @@ class SkyDataFITSDataset(FITSDataset):
         super()._determine_wcs()
         end = min(self.dimensionality + 1, 4)
         self.ctypes = np.array(
-            [self.primary_header["CTYPE%d" % (i)] for i in range(1, end)]
+            [self.primary_header[f"CTYPE{i}"] for i in range(1, end)]
         )
         self.wcs_2d = self.wcs
 

@@ -179,7 +179,7 @@ def subfind_field_list(fh, ptype, pcount):
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1 :]
                 if my_div > 1:
                     for i in range(int(my_div)):
-                        fields.append((ptype, "%s_%d" % (fname, i)))
+                        fields.append((ptype, f"{fname}_{i}"))
                 else:
                     fields.append((ptype, fname))
             elif (
@@ -193,7 +193,7 @@ def subfind_field_list(fh, ptype, pcount):
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1 :]
                 if my_div > 1:
                     for i in range(int(my_div)):
-                        fields.append(("FOF", "%s_%d" % (fname, i)))
+                        fields.append(("FOF", f"{fname}_{i}"))
                 else:
                     fields.append(("FOF", fname))
                 offset_fields.append(fname)

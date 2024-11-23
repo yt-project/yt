@@ -292,10 +292,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     # Vector of metallicity or passive scalar
                     for i in range(g[k].shape[1]):
                         key = "MetalMasses" if k == "Mass of Metals" else k
-                        fields.append((ptype, "%s_%02i" % (key, i)))
+                        fields.append((ptype, f"{key}_{i:02}"))
                 elif k == "ChemistryAbundances" and len(g[k].shape) > 1:
                     for i in range(g[k].shape[1]):
-                        fields.append((ptype, "Chemistry_%03i" % i))
+                        fields.append((ptype, f"Chemistry_{i:03}"))
                 else:
                     kk = k
                     if not hasattr(g[kk], "shape"):

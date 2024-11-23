@@ -184,21 +184,15 @@ class RAMSESDomainFile:
         self.ds = ds
         self.domain_id = domain_id
 
-        num = os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1]
-        rootdir = ds.root_folder
-        basedir = os.path.abspath(os.path.dirname(ds.parameter_filename))
-        basename = "%s/%%s_%s.out%05i" % (basedir, num, domain_id)
-        part_file_descriptor = f"{basedir}/part_file_descriptor.txt"
+        num = ds.basename.split(".")[0].split("_")[1]
+        basename = os.path.join(ds.directory, f"%s_{num}.out{domain_id:05}")
+        part_file_descriptor = os.path.join(ds.directory, "part_file_descriptor.txt")
         if ds.num_groups > 0:
             igroup = ((domain_id - 1) // ds.group_size) + 1
-            basename = "%s/group_%05i/%%s_%s.out%05i" % (
-                rootdir,
-                igroup,
-                num,
-                domain_id,
+            basename = os.path.join(
+                ds.root_folder, f"group_{igroup:05}", os.path.basename(basename)
             )
-        else:
-            basename = "%s/%%s_%s.out%05i" % (basedir, num, domain_id)
+
         for t in ["grav", "amr"]:
             setattr(self, f"{t}_fn", basename % t)
         self._part_file_descriptor = part_file_descriptor
@@ -219,7 +213,7 @@ class RAMSESDomainFile:
         self.particle_handlers = particle_handlers
 
     def __repr__(self):
-        return "RAMSESDomainFile: %i" % self.domain_id
+        return f"RAMSESDomainFile: {self.domain_id}"
 
     @property
     def level_count(self):
@@ -756,16 +750,10 @@ class RAMSESIndex(OctreeIndex):
         print(header)
         print(f"{len(header.expandtabs()) * '-'}")
         for level in range(self.dataset.min_level + self.dataset.max_level + 2):
-            print(
-                "% 3i\t% 14i\t% 14i"
-                % (
-                    level,
-                    self.level_stats["numcells"][level],
-                    np.ceil(self.level_stats["numcells"][level] ** (1.0 / 3)),
-                )
-            )
+            ncells = self.level_stats["numcells"][level]
+            print(f"{level:>3}\t{ncells:>14}\t{np.ceil(ncells ** (1.0 / 3)):>14}")
         print("-" * 46)
-        print("   \t% 14i" % (self.level_stats["numcells"].sum()))
+        print(f"   \t{self.level_stats['numcells'].sum():>14}")
         print("\n")
 
         dx = self.get_smallest_dx()

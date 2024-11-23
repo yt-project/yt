@@ -70,24 +70,13 @@ class PerformanceCounters:
             if i[2] == 0:
                 shift -= 1
                 endtimes[i[1]] = self.counters[i[1]]
-        line = ""
+        line_fragments: list[str] = []
         for i in order:
-            if self.counting[i]:
-                line = "%s%s%i : %s : still running\n" % (
-                    line,
-                    " " * shifts[i] * multi,
-                    shifts[i],
-                    i,
-                )
-            else:
-                line = "%s%s%i : %s : %0.3e\n" % (
-                    line,
-                    " " * shifts[i] * multi,
-                    shifts[i],
-                    i,
-                    self.counters[i],
-                )
-        mylog.info("\n%s", line)
+            line_fragments.append(
+                f"{' ' * shifts[i] * multi}{shifts[i]} : {i} : "
+                f"{'still running' if self.counting[i] else f'{self.counters[i]:0.3e}'}\n"
+            )
+        mylog.info("\n%s", "".join(line_fragments))
 
     def exit(self):
         if self._on:
@@ -122,14 +111,12 @@ class ProfilingController:
         return wrapper
 
     def write_out(self, filename_prefix):
+        pfn = str(filename_prefix)
         if ytcfg.get("yt", "internals", "parallel"):
-            pfn = "%s_%03i_%03i" % (
-                filename_prefix,
-                ytcfg.get("yt", "internals", "global_parallel_rank"),
-                ytcfg.get("yt", "internals", "global_parallel_size"),
-            )
-        else:
-            pfn = f"{filename_prefix}"
+            global_parallel_rank = ytcfg.get("yt", "internals", "global_parallel_rank")
+            global_parallel_size = ytcfg.get("yt", "internals", "global_parallel_size")
+            pfn += f"_{global_parallel_rank:03}_{global_parallel_size:03}"
+
         for n, p in sorted(self.profilers.items()):
             fn = f"{pfn}_{n}.cprof"
             mylog.info("Dumping %s into %s", n, fn)

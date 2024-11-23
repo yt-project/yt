@@ -202,8 +202,8 @@ def test_bitmap_no_collisions():
     mask = reg.masks.sum(axis=1).astype("uint8")
     ncoll = np.sum(mask > 1)
     nc, nm = reg.find_collisions_coarse()
-    assert_equal(nc, 0, "%d coarse collisions" % nc)
-    assert_equal(ncoll, nc, "%d in mask, %d in bitmap" % (ncoll, nc))
+    assert_equal(nc, 0, f"{nc} coarse collisions")
+    assert_equal(ncoll, nc, f"{ncoll} in mask, {nc} in bitmap")
     # Refined index
     sub_mi1 = np.zeros(max_npart, "uint64")
     sub_mi2 = np.zeros(max_npart, "uint64")
@@ -225,7 +225,7 @@ def test_bitmap_no_collisions():
         reg.bitmasks.append(i, coll)
         assert_equal(reg.count_refined(i), 0)
     nr, nm = reg.find_collisions_refined()
-    assert_equal(nr, 0, "%d collisions" % nr)
+    assert_equal(nr, 0, f"{nr} collisions")
 
 
 def test_bitmap_collisions():
@@ -253,8 +253,8 @@ def test_bitmap_collisions():
     mask = reg.masks.sum(axis=1).astype("uint8")
     ncoll = np.sum(mask > 1)
     nc, nm = reg.find_collisions_coarse()
-    assert_equal(ncoll, nc, "%d in mask, %d in bitmap" % (ncoll, nc))
-    assert_equal(nc, 2 ** (3 * order1), "%d coarse collisions" % nc)
+    assert_equal(ncoll, nc, f"{ncoll} in mask, {nc} in bitmap")
+    assert_equal(nc, 2 ** (3 * order1), f"{nc} coarse collisions")
     # Refined index
     sub_mi1 = np.zeros(max_npart, "uint64")
     sub_mi2 = np.zeros(max_npart, "uint64")
@@ -274,7 +274,7 @@ def test_bitmap_collisions():
         reg.bitmasks.append(i, coll)
         assert_equal(reg.count_refined(i), ncoll)
     nr, nm = reg.find_collisions_refined()
-    assert_equal(nr, 2 ** (3 * (order1 + order2)), "%d collisions" % nr)
+    assert_equal(nr, 2 ** (3 * (order1 + order2)), f"{nr} collisions")
 
 
 @requires_module("h5py")

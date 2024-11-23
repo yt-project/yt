@@ -632,9 +632,8 @@ class YTGDFUnknownGeometry(YTException):
 
     def __str__(self):
         return (
-            """Unknown geometry %i. Please refer to GDF standard
-                  for more information"""
-            % self.geometry
+            f"Unknown geometry {self.geometry} . "
+            "Please refer to GDF standard for more information"
         )
 
 

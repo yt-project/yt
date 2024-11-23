@@ -403,7 +403,7 @@ class GadgetSimulation(SimulationTimeSeries):
         if index is None:
             count = "*"
         else:
-            count = "%03d" % index
+            count = f"{index:03}"
         filename = f"{self.parameters['SnapshotFileBase']}_{count}{suffix}"
         return os.path.join(self.data_dir, filename)
 

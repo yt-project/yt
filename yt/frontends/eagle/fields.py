@@ -137,7 +137,7 @@ class EagleNetworkFieldInfo(OWLSFieldInfo):
             index = eaglenetwork_ion_lookup[ion]
 
             # Ion to hydrogen number density ratio
-            ion_chem = data[ftype, "Chemistry_%03i" % index]
+            ion_chem = data[ftype, f"Chemistry_{index:03}"]
 
             # Mass of a single ion
             if ion[0:2].isalpha():

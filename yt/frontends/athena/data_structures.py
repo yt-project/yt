@@ -297,7 +297,8 @@ class AthenaHierarchy(GridIndex):
                 gridread["dimensions"][gridread["dimensions"] == 0] = 1
             if np.prod(gridread["dimensions"]) != gridread["ncells"]:
                 mylog.error(
-                    "product of dimensions %i not equal to number of cells %i",
+                    f"product of dimensions {np.prod(grid['dimensions'])} "
+                    f"not equal to number of cells {grid['ncells']}",
                     np.prod(gridread["dimensions"]),
                     gridread["ncells"],
                 )

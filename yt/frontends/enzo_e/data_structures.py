@@ -45,7 +45,7 @@ class EnzoEGrid(AMRGridPatch):
         self.Level = -1
 
     def __repr__(self):
-        return "EnzoEGrid_%04d" % self.id
+        return f"EnzoEGrid_{self.id:04}"
 
     def _prepare_grid(self):
         """Copies all the appropriate attributes from the index."""

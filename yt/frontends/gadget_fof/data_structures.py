@@ -540,8 +540,8 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
 
         if self.particle_identifier >= self.index.particle_count[ptype]:
             raise RuntimeError(
-                "%s %d requested, but only %d %s objects exist."
-                % (ptype, particle_identifier, self.index.particle_count[ptype], ptype)
+                f"{ptype} {particle_identifier} requested, "
+                f"but only {self.index.particle_count[ptype]} {ptype} objects exist."
             )
 
         # Find the file that has the scalar values for this halo.
@@ -651,4 +651,4 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
             setattr(self, attr, self[self.ptype, f"particle_{attr}"][0])
 
     def __repr__(self):
-        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+        return f"{self.ds}_{self.ptype}_{self.particle_identifier:09}"
