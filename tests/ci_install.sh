@@ -17,6 +17,11 @@ if [[ ${dependencies} == "full" || ${dependencies} == "cartopy" ]]; then
     osx|macOS)
         sudo mkdir -p /usr/local/man
         sudo chown -R "${USER}:admin" /usr/local/man
+        # uninstalling pkg-config to workaround a bug in macOS image
+        # https://github.com/Homebrew/homebrew-core/pull/198691#issuecomment-2495500991
+        # this can be cleaned-up once the following patch is released:
+        # https://github.com/actions/runner-images/pull/11015
+        HOMEBREW_NO_AUTO_UPDATE=1 brew uninstall pkg-config@0.29.2 || true
         HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 open-mpi netcdf ccache macfuse
         ;;
     esac
