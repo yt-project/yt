@@ -2084,6 +2084,12 @@ class SphereCallback(PlotCallback):
                 units = "code_length"
             self.radius = self.radius.to(units)
 
+        if not hasattr(self.radius, "units"):
+            self.radius = plot.data.ds.quan(self.radius, "code_length")
+
+        if not hasattr(self.center, "units"):
+            self.center = plot.data.ds.arr(self.center, "code_length")
+
         # This assures the radius has the appropriate size in
         # the different coordinate systems, since one cannot simply
         # apply a different transform for a length in the same way
