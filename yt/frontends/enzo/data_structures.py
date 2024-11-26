@@ -574,7 +574,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.grids = np.empty(len(grids), dtype="object")
         for i, grid in enumerate(grids):
             if (i % 1e4) == 0:
-                mylog.debug(f"Prepared {i:>7} / {self.num_grids:>7} grids")
+                mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = f"Inline_processor_{self.grid_procs[i, 0]:07}"
             grid._prepare_grid()
             grid._setup_dx()
