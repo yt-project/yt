@@ -211,7 +211,7 @@ class GridIndex(Index, abc.ABC):
                 f"{level:>3}\t"
                 f"{self.level_stats['numgrids'][level]:>6}\t"
                 f"{self.level_stats['numcells'][level]:>14}\t"
-                f"{np.ceil(self.level_stats['numcells'][level] ** (1.0 / 3)):>14}"
+                f"{int(np.ceil(self.level_stats['numcells'][level] ** (1.0 / 3))):>14}"
             )
             dx = self.select_grids(level)[0].dds[0]
         print("-" * 46)
