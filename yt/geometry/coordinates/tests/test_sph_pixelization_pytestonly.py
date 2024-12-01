@@ -113,7 +113,7 @@ def test_sph_proj_general_alongaxes(
         center=center,
         data_source=source,
     )
-    img = prj.frb.data[("gas", "density")]
+    img = prj.frb.data["gas", "density"]
     if weighted:
         expected_out = np.zeros(
             (
@@ -240,7 +240,7 @@ def test_sph_slice_general_alongaxes(
         buff_size=(outgridsize,) * 2,
         center=(_center, "cm"),
     )
-    img = slc.frb.data[("gas", "density")]
+    img = slc.frb.data["gas", "density"]
 
     # center is same in non-projection coords
     if axis == 0:
@@ -272,9 +272,9 @@ def test_sph_slice_general_alongaxes(
     ad = ds.all_data()
     sphcoords = np.array(
         [
-            (ad[("gas", "x")]).to("cm"),
-            (ad[("gas", "y")]).to("cm"),
-            (ad[("gas", "z")]).to("cm"),
+            (ad["gas", "x"]).to("cm"),
+            (ad["gas", "y"]).to("cm"),
+            (ad["gas", "z"]).to("cm"),
         ]
     ).T
     # print("sphcoords:")
@@ -289,15 +289,12 @@ def test_sph_slice_general_alongaxes(
     )
     # print("dists <= 1:")
     # print(dists <= 1)
-    sml = (ad[("gas", "smoothing_length")]).to("cm")
+    sml = (ad["gas", "smoothing_length"]).to("cm")
     normkern = cubicspline_python(dists / sml.v[np.newaxis, :])
-    sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad[("gas", "mass")]
+    sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad["gas", "mass"]
     contsum = np.sum(sphcontr, axis=1)
     sphweights = (
-        normkern
-        / sml[np.newaxis, :] ** 3
-        * ad[("gas", "mass")]
-        / ad[("gas", "density")]
+        normkern / sml[np.newaxis, :] ** 3 * ad["gas", "mass"] / ad["gas", "density"]
     )
     weights = np.sum(sphweights, axis=1)
     nzeromask = np.logical_not(weights == 0)
@@ -406,7 +403,7 @@ def test_sph_slice_general_offaxis(
         center=(_center, "cm"),
         north_vector=e2dir,
     )
-    img = slc.frb.data[("gas", "density")]
+    img = slc.frb.data["gas", "density"]
 
     # center is same in x/y (e3dir/e2dir)
     gridcenx = (
@@ -434,9 +431,9 @@ def test_sph_slice_general_offaxis(
     ad = ds.all_data()
     sphcoords = np.array(
         [
-            (ad[("gas", "x")]).to("cm"),
-            (ad[("gas", "y")]).to("cm"),
-            (ad[("gas", "z")]).to("cm"),
+            (ad["gas", "x"]).to("cm"),
+            (ad["gas", "y"]).to("cm"),
+            (ad["gas", "z"]).to("cm"),
         ]
     ).T
     dists = distancematrix(
@@ -445,15 +442,12 @@ def test_sph_slice_general_offaxis(
         periodic=(periodic,) * 3,
         periods=np.array([3.0, 3.0, 3.0]),
     )
-    sml = (ad[("gas", "smoothing_length")]).to("cm")
+    sml = (ad["gas", "smoothing_length"]).to("cm")
     normkern = cubicspline_python(dists / sml.v[np.newaxis, :])
-    sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad[("gas", "mass")]
+    sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad["gas", "mass"]
     contsum = np.sum(sphcontr, axis=1)
     sphweights = (
-        normkern
-        / sml[np.newaxis, :] ** 3
-        * ad[("gas", "mass")]
-        / ad[("gas", "density")]
+        normkern / sml[np.newaxis, :] ** 3 * ad["gas", "mass"] / ad["gas", "density"]
     )
     weights = np.sum(sphweights, axis=1)
     nzeromask = np.logical_not(weights == 0)
@@ -509,9 +503,9 @@ def test_sph_grid(
     ad = ds.all_data()
     sphcoords = np.array(
         [
-            (ad[("gas", "x")]).to("cm"),
-            (ad[("gas", "y")]).to("cm"),
-            (ad[("gas", "z")]).to("cm"),
+            (ad["gas", "x"]).to("cm"),
+            (ad["gas", "y"]).to("cm"),
+            (ad["gas", "z"]).to("cm"),
         ]
     ).T
     gridx, gridy, gridz = np.meshgrid(xcens, ycens, zcens, indexing="ij")
@@ -522,15 +516,12 @@ def test_sph_grid(
     gridcoords = np.array([gridx, gridy, gridz]).T
     periods = bbox[:, 1] - bbox[:, 0]
     dists = distancematrix(gridcoords, sphcoords, periodic=periodic, periods=periods)
-    sml = (ad[("gas", "smoothing_length")]).to("cm")
+    sml = (ad["gas", "smoothing_length"]).to("cm")
     normkern = cubicspline_python(dists / sml.v[np.newaxis, :])
-    sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad[("gas", "mass")]
+    sphcontr = normkern / sml[np.newaxis, :] ** 3 * ad["gas", "mass"]
     contsum = np.sum(sphcontr, axis=1)
     sphweights = (
-        normkern
-        / sml[np.newaxis, :] ** 3
-        * ad[("gas", "mass")]
-        / ad[("gas", "density")]
+        normkern / sml[np.newaxis, :] ** 3 * ad["gas", "mass"] / ad["gas", "density"]
     )
     weights = np.sum(sphweights, axis=1)
     nzeromask = np.logical_not(weights == 0)

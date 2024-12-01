@@ -110,9 +110,9 @@ def test_ray_particle2():
     # restricts you to 4 -- 5 digits precision
     assert_equal(ray0["t"].shape, (1,))
     assert_rel_equal(ray0["t"], np.array([0.5]), 5)
-    assert_rel_equal(ray0[("gas", "position")].v, np.array([[0.5, 0.5, 0.5]]), 5)
+    assert_rel_equal(ray0["gas", "position"].v, np.array([[0.5, 0.5, 0.5]]), 5)
     dl0 = integrate_kernel(kernelfunc, b0, hsml0)
-    dl0 *= ray0[("gas", "mass")].v / ray0[("gas", "density")].v
+    dl0 *= ray0["gas", "mass"].v / ray0["gas", "density"].v
     assert_rel_equal(ray0[("dts")].v, dl0 / len0, 4)
 
     ## Ray in the middle of the box:
@@ -133,10 +133,10 @@ def test_ray_particle2():
     assert_equal(ray1["t"].shape, (2,))
     assert_rel_equal(ray1["t"], np.array([0.25, 0.75]), 5)
     assert_rel_equal(
-        ray1[("gas", "position")].v, np.array([[1.5, 0.5, 1.5], [1.5, 0.5, 2.5]]), 5
+        ray1["gas", "position"].v, np.array([[1.5, 0.5, 1.5], [1.5, 0.5, 2.5]]), 5
     )
     dl1 = integrate_kernel(kernelfunc, b1, hsml1)
-    dl1 *= ray1[("gas", "mass")].v / ray1[("gas", "density")].v
+    dl1 *= ray1["gas", "mass"].v / ray1["gas", "density"].v
     assert_rel_equal(ray1[("dts")].v, dl1 / len1, 4)
 
     ## Ray missing all particles:
@@ -150,4 +150,4 @@ def test_ray_particle2():
     ray2.field_data["dts"] = ray2.ds.arr(ray2._generate_container_field_sph("dts"))
     assert_equal(ray2["t"].shape, (0,))
     assert_equal(ray2["dts"].shape, (0,))
-    assert_equal(ray2[("gas", "position")].v.shape, (0, 3))
+    assert_equal(ray2["gas", "position"].v.shape, (0, 3))

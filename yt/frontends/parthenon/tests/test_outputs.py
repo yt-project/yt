@@ -50,8 +50,8 @@ def test_loading_data():
     # reading data of two fields and compare against each other (data is squared in output)
     ad = ds.all_data()
     assert_allclose(
-        ad[("parthenon", "one_minus_advected")] ** 2.0,
-        ad[("parthenon", "one_minus_advected_sq")],
+        ad["parthenon", "one_minus_advected"] ** 2.0,
+        ad["parthenon", "one_minus_advected_sq"],
     )
 
     # check if the peak is in the domain center (and at the highest refinement level)

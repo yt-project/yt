@@ -68,7 +68,7 @@ def test_average():
                 ("gas", "density"), ("gas", "cell_mass")
             )
             a_mean = (ad["gas", "density"] * ad["gas", "cell_mass"]).sum() / ad[
-                ("gas", "cell_mass")
+                "gas", "cell_mass"
             ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
 
@@ -87,7 +87,7 @@ def test_standard_deviation():
                 ("gas", "density"), ("gas", "cell_mass")
             )
             a_mean = (ad["gas", "density"] * ad["gas", "cell_mass"]).sum() / ad[
-                ("gas", "cell_mass")
+                "gas", "cell_mass"
             ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
             a_std = np.sqrt(
