@@ -125,7 +125,7 @@ def test_sph_proj_general_offaxis(
         north_vector=northvector,
         depth=depth,
     )
-    img = prj.frb.data[("gas", "density")]
+    img = prj.frb.data["gas", "density"]
     if weighted:
         # periodic shifts will modify the (relative) dl values a bit
         expected_out = np.zeros(

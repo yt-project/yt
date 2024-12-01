@@ -160,7 +160,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
-            lonvals = data[("index", "longitude")]
+            lonvals = data["index", "longitude"]
             neglons = lonvals < 0.0
             if np.any(neglons):
                 lonvals[neglons] = lonvals[neglons] + 360.0

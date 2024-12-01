@@ -161,7 +161,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
                 pos = np.column_stack(
                     [
                         self.fields[data_file.filename][
-                            (ptype, f"particle_position_{ax}")
+                            ptype, f"particle_position_{ax}"
                         ]
                         for ax in "xyz"
                     ]
