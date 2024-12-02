@@ -444,21 +444,23 @@ def off_axis_projection(
         # We need the width of the plot window in projected coordinates,
         # i.e. we ignore the z-component
         wmax = width[:2].max()
-
-        # Normalize the positions & dx so that they are in the range [-0.5, 0.5]
-        xyz = np.stack(
-            [
-                ((data_source["index", k] - center[i]) / wmax).to("1").d
-                for i, k in enumerate("xyz")
-            ],
-            axis=-1,
+        xyz = data_source.ds.arr(
+            np.zeros((len(data_source[vol.field]), 3)), "code_length"
         )
 
         for idim, periodic in enumerate(data_source.ds.periodicity):
+            axis = data_source.ds.coordinates.axis_order[idim]
+            # Recenter positions w.r.t. center of the plot window
+            xyz[..., idim] = data_source["index", axis] - center[idim]
             if not periodic:
                 continue
-            # Wrap into [-0.5, +0.5]
-            xyz[..., idim] = (xyz[..., idim] + 0.5) % 1 - 0.5
+            # If we have periodic boundaries, we need to wrap the corresponding
+            # coordinates into [-w/2, +w/2]
+            w = data_source.ds.domain_width[idim]
+            xyz[..., idim] = (xyz[..., idim] + w / 2) % w - w / 2
+
+        # Rescale to [-0.5, +0.5]
+        xyz = (xyz / wmax).to("1").d
 
         dx = (data_source["index", "dx"] / wmax).to("1").d
 
