@@ -16,6 +16,7 @@ from yt.testing import (
 from yt.visualization.api import (
     OffAxisProjectionPlot,
     OffAxisSlicePlot,
+    ProjectionPlot,
 )
 from yt.visualization.image_writer import write_projection
 from yt.visualization.volume_rendering.api import off_axis_projection
@@ -208,6 +209,35 @@ def test_field_cut_off_axis_octree():
     assert_equal((p3.frb["gas", "density"] == p4.frb["gas", "density"]).all(), False)
     p4rho = p4.frb["gas", "density"]
     assert_equal(np.nanmin(p4rho[p4rho > 0.0]) >= 0.5, True)
+
+
+def test_off_axis_octree():
+    ds = fake_octree_ds()
+    p1 = ProjectionPlot(
+        ds,
+        "x",
+        ("gas", "density"),
+        center=[0.6] * 3,
+        width=0.8,
+        weight_field=("gas", "density"),
+    )
+    p2 = OffAxisProjectionPlot(
+        ds,
+        [1, 0, 0],
+        ("gas", "density"),
+        center=[0.6] * 3,
+        width=0.8,
+        weight_field=("gas", "density"),
+    )
+
+    # Note: due to our implementation, the off-axis projection will have a
+    # slightly blurred cell edges so we can't do an exact comparison
+    v1, v2 = p1.frb["gas", "density"], p2.frb["gas", "density"]
+    diff = (v1 - v2) / (v1 + v2) * 2
+
+    # Make sure the difference is zero-centered with a small standard deviation
+    assert np.mean(diff).max() < 1e-3  # 0.1%: very little bias
+    assert np.std(diff) < 0.05  # <2% error on average
 
 
 def test_offaxis_moment():
