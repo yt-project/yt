@@ -23,6 +23,7 @@ from .fields import (
     CastroFieldInfo,
     MaestroFieldInfo,
     NyxFieldInfo,
+    QuokkaFieldInfo,
     WarpXFieldInfo,
 )
 
@@ -1344,7 +1345,7 @@ class QuokkaHierarchy(BoxlibHierarchy):
             is_checkpoint = True
 
             self._read_particles(
-                "What", # RJ: Quokka uses What for particles, Tracer for Castro, DM for Nyx
+                "What", # RJ: Quokka uses What? for particles, just a placeholder here
                 is_checkpoint,
                 quokka_extra_real_fields[0 : self.ds.dimensionality],
             )
@@ -1352,6 +1353,8 @@ class QuokkaHierarchy(BoxlibHierarchy):
 
 class QuokkaDataset(AMReXDataset):
     # match any plotfiles that have a metadata.yaml file in the root
+    _index_class = QuokkaHierarchy
+    _field_info_class = QuokkaFieldInfo
     _subtype_keyword = ""
     _default_cparam_filename = "metadata.yaml"
 
@@ -1384,6 +1387,10 @@ class QuokkaDataset(AMReXDataset):
         # Parse the metadata from metadata.yaml after initialization
         self._parse_metadata_file()
 
+        # Add raditaion fields in fluid_types only if detected
+        if self.parameters['radiation_field_groups'] > 0: 
+            self.fluid_types += ("rad",)
+
     def _parse_parameter_file(self):
         # Call parent method to initialize core setup by yt
         super()._parse_parameter_file()
@@ -1399,22 +1406,88 @@ class QuokkaDataset(AMReXDataset):
 
             # Number of fields
             num_fields = int(f.readline().strip())
-            self.parameters['fields'] = [f.readline().strip() for _ in range(num_fields)]
+            self.parameters['fields'] = []
 
-            # Dimensionality
-            self.parameters['dimensionality'] = int(f.readline().strip())
+            # Parse fixed gas fields (6 mandatory fields)
+            gas_fields = [
+                "gasDensity",
+                "x-GasMomentum",
+                "y-GasMomentum",
+                "z-GasMomentum",
+                "gasEnergy",
+                "gasInternalEnergy",
+            ]
+            for field in gas_fields:
+                self.parameters['fields'].append(f.readline().strip())
 
-            # Simulation time
-            self.parameters['current_time'] = float(f.readline().strip())
+            # Metadata flags
+            temperature_present = False
+            velocity_present = False
+            bfield_present = False
+            scalar_count = 0
+            rad_group_count = 0
 
-            # Refinement levels
-            self.parameters['refinement_level'] = int(f.readline().strip())
+            # Check for optional temperature field
+            next_field = f.readline().strip()
+            if next_field == "gasTemperature":
+                self.parameters['fields'].append(next_field)
+                temperature_present = True
+            else:
+                # Rewind the file pointer if temperature is absent
+                f.seek(f.tell() - len(next_field) - 1)
+
+            # Dynamically parse all remaining fields
+            remaining_fields = num_fields - len(self.parameters['fields'])
+
+            while remaining_fields > 0:
+                current_field = f.readline().strip()
+                remaining_fields -= 1
+
+                if current_field.startswith("scalar_"):
+                    self.parameters['fields'].append(current_field)
+                    scalar_count += 1
+                elif current_field.startswith("radEnergy-Group"):
+                    # Parse radEnergy and corresponding flux fields for a group
+                    self.parameters['fields'].append(current_field)  # radEnergy
+                    self.parameters['fields'].append(f.readline().strip())  # x-RadFlux
+                    self.parameters['fields'].append(f.readline().strip())  # y-RadFlux
+                    self.parameters['fields'].append(f.readline().strip())  # z-RadFlux
+                    remaining_fields -= 3  # Account for the flux fields
+                    rad_group_count += 1
+                elif current_field == "x-velocity":
+                    # Parse velocity fields (x, y, z)
+                    self.parameters['fields'].append(current_field)
+                    self.parameters['fields'].append(f.readline().strip())
+                    self.parameters['fields'].append(f.readline().strip())
+                    remaining_fields -= 2
+                    velocity_present = True
+                elif current_field == "x-BField":
+                    # Parse BField fields (x, y, z)
+                    self.parameters['fields'].append(current_field)
+                    self.parameters['fields'].append(f.readline().strip())
+                    self.parameters['fields'].append(f.readline().strip())
+                    remaining_fields -= 2
+                    bfield_present = True
+                else:
+                    raise ValueError(f"Unexpected field: {current_field}")
+
+            # Add metadata for radiation groups, scalars, and field existence flags
+            self.parameters['radiation_field_groups'] = rad_group_count
+            self.parameters['scalar_field_count'] = scalar_count
+            self.parameters['temperature_field'] = temperature_present
+            self.parameters['velocity_fields'] = velocity_present
+            self.parameters['bfield_fields'] = bfield_present
+
+            # Parse remaining metadata
+            self.parameters['dimensionality'] = int(f.readline().strip())  # Dimensionality
+            self.parameters['current_time'] = float(f.readline().strip())  # Simulation time
+            self.parameters['refinement_level'] = int(f.readline().strip())  # Refinement levels
 
             # Domain edges
             self.parameters['domain_left_edge'] = list(map(float, f.readline().strip().split()))
             self.parameters['domain_right_edge'] = list(map(float, f.readline().strip().split()))
 
-            # skip empty line
+            # Skip empty line
             f.readline()
 
             # Grid info
@@ -1433,7 +1506,8 @@ class QuokkaDataset(AMReXDataset):
             f.readline()  # Placeholder line 2
 
             # Parse data for all refinement levels
-            self.parameters['refinement_levels'] = []
+            self.parameters['refinement_details'] = []
+            max_refinement_level = -1
 
             for level in range(self.parameters['refinement_level'] + 1):
                 level_data = {}
@@ -1441,34 +1515,40 @@ class QuokkaDataset(AMReXDataset):
                 # Parse metadata line
                 metadata = f.readline().strip().split()
                 level_data["level"] = int(metadata[0])
-                level_data["num_groups"] = int(metadata[1])
+                level_data["num_boxes"] = int(metadata[1])  # Number of boxes in current level
                 level_data["current_time"] = float(metadata[2])
+
+                # Update max refinement level
+                max_refinement_level = max(max_refinement_level, level_data["level"])
 
                 # Parse timestamp
                 level_data["timestamp"] = int(f.readline().strip())
 
-                # Parse group information
-                level_data["groups"] = []
-                for _ in range(level_data["num_groups"]):
-                    group = {}
+                # Parse box information
+                level_data["boxes"] = []
+                for _ in range(level_data["num_boxes"]):
+                    box = {}
                     for axis in range(self.parameters['dimensionality']):
                         left_edge, right_edge = map(float, f.readline().strip().split())
-                        group[f"axis_{axis}"] = {"left_edge": left_edge, "right_edge": right_edge}
-                    level_data["groups"].append(group)
+                        box[f"axis_{axis}"] = {"left_edge": left_edge, "right_edge": right_edge}
+                    level_data["boxes"].append(box)
 
                 # Append level data to refinement levels
-                self.parameters['refinement_levels'].append(level_data)
+                self.parameters['refinement_details'].append(level_data)
 
                 # Skip level marker (e.g., Level_0/Cell)
                 marker = f.readline().strip()
                 if not marker.startswith(f"Level_{level}/Cell"):
                     raise ValueError(f"Unexpected marker '{marker}' for level {level}")
 
+            # Update parameters for refinement
+            self.parameters["max_refinement_level"] = max_refinement_level
+            self.parameters["refinement"] = max_refinement_level > 0
 
-        # hydro method is set by the base class -- override it here
+        # Set hydro method explicitly
         self.parameters["HydroMethod"] = "Quokka"
 
-        # Print parsed information for verification
+        # Debug output for verification
         print("Parsed header parameters:", self.parameters)
 
     def _parse_metadata_file(self):
