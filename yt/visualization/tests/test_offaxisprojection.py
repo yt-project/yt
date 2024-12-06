@@ -212,32 +212,40 @@ def test_field_cut_off_axis_octree():
 
 
 def test_off_axis_octree():
+    np.random.seed(12345)
     ds = fake_octree_ds()
-    p1 = ProjectionPlot(
-        ds,
-        "x",
-        ("gas", "density"),
-        center=[0.6] * 3,
-        width=0.8,
-        weight_field=("gas", "density"),
-    )
-    p2 = OffAxisProjectionPlot(
-        ds,
-        [1, 0, 0],
-        ("gas", "density"),
-        center=[0.6] * 3,
-        width=0.8,
-        weight_field=("gas", "density"),
-    )
+    center = [0.4, 0.4, 0.4]
 
-    # Note: due to our implementation, the off-axis projection will have a
-    # slightly blurred cell edges so we can't do an exact comparison
-    v1, v2 = p1.frb["gas", "density"], p2.frb["gas", "density"]
-    diff = (v1 - v2) / (v1 + v2) * 2
+    for weight in [("gas", "cell_mass"), None, ("index", "dx")]:
+        p1 = ProjectionPlot(
+            ds,
+            "x",
+            ("gas", "density"),
+            center=center,
+            width=0.8,
+            weight_field=weight,
+        )
+        p2 = OffAxisProjectionPlot(
+            ds,
+            [1, 0, 0],
+            ("gas", "density"),
+            center=center,
+            width=0.8,
+            weight_field=weight,
+        )
 
-    # Make sure the difference is zero-centered with a small standard deviation
-    assert np.mean(diff).max() < 1e-3  # 0.1%: very little bias
-    assert np.std(diff) < 0.05  # <2% error on average
+        # Note: due to our implementation, the off-axis projection will have a
+        # slightly blurred cell edges so we can't do an exact comparison
+        v1, v2 = p1.frb["gas", "density"], p2.frb["gas", "density"]
+        diff = (v1 - v2) / (v1 + v2) * 2
+
+        # Make sure the difference has a small bias
+        assert np.mean(diff).max() < 1e-3  # 0.1%
+
+        # Compute 10-90% percentile
+        q10, q90 = np.percentile(diff, q=(10, 90))
+        assert q10 > -0.02  # 2%: little up/down deviations
+        assert q90 < +0.02  # 2%: little up/down deviations
 
 
 def test_offaxis_moment():
