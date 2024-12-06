@@ -498,6 +498,7 @@ def off_axis_projection(
             registry=data_source.ds.unit_registry,
             info={"imtype": "rendering"},
         )
+
     else:
         for grid, mask in data_source.blocks:
             data = []
@@ -520,12 +521,14 @@ def off_axis_projection(
             vol.sampler(pg, num_threads=num_threads)
 
         image = vol.finalize_image(camera, vol.sampler.aimage)
+
         image = ImageArray(
             image, funits, registry=data_source.ds.unit_registry, info=image.info
         )
 
-        if weight is not None:
-            data_source.ds.field_info.pop(("index", "temp_weightfield"))
+    # Remove the temporary weight field
+    if weight is not None:
+        data_source.ds.field_info.pop(("index", "temp_weightfield"))
 
     if method == "integrate":
         if weight is None:
