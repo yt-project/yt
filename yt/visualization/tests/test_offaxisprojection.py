@@ -239,7 +239,7 @@ def test_off_axis_octree():
         v1, v2 = p1.frb["gas", "density"], p2.frb["gas", "density"]
         diff = (v1 - v2) / (v1 + v2) * 2
 
-        # Make sure the difference has a small bis
+        # Make sure the difference has a small bias
         assert np.mean(diff).max() < 1e-3  # 0.1%
 
         # Compute 10-90% percentile
