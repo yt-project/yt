@@ -66,8 +66,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
             if data_source._dimensionality < self._dimensionality:
                 raise RuntimeError(
                     "Attempted to construct a DataContainer with a data_source "
-                    "of lower dimensionality (%u vs %u)"
-                    % (data_source._dimensionality, self._dimensionality)
+                    "of lower dimensionality "
+                    f"({data_source._dimensionality} vs {self._dimensionality})"
                 )
             self.field_parameters.update(data_source.field_parameters)
         self.quantities = DerivedQuantityCollection(self)

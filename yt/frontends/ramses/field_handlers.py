@@ -307,10 +307,9 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         num = os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1]
         testdomain = 1  # Just pick the first domain file to read
-        basepath = os.path.abspath(os.path.dirname(ds.parameter_filename))
-        basename = "%s/%%s_%s.out%05i" % (basepath, num, testdomain)
+        basename = os.path.join(ds.directory, f"%s_{num}.out{testdomain:05}")
         fname = basename % "hydro"
-        fname_desc = os.path.join(basepath, cls.file_descriptor)
+        fname_desc = os.path.join(ds.directory, cls.file_descriptor)
 
         attrs = cls.attrs
         with FortranFile(fname) as fd:

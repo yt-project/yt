@@ -62,7 +62,7 @@ def z_from_t_analytic(my_time, hubble_constant=0.7, omega_matter=0.3, omega_lamb
             if not mask.any():
                 break
             if i == max_iter - 1:
-                raise RuntimeError("No convergence after %d iterations." % i)
+                raise RuntimeError(f"No convergence after {i} iterations.")
 
         # Now use eta to compute the expansion factor (eq. 13-10, part 2).
 
