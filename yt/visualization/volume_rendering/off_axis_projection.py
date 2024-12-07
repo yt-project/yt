@@ -443,7 +443,7 @@ def off_axis_projection(
         data_source.get_data(fields)
         # We need the width of the plot window in projected coordinates,
         # i.e. we ignore the z-component
-        wmax = width[:2].max()
+        wmax = width[:2].max().to("code_length")
         xyz = data_source.ds.arr(
             np.zeros((len(data_source[vol.field]), 3)), "code_length"
         )
@@ -451,12 +451,14 @@ def off_axis_projection(
         for idim, periodic in enumerate(data_source.ds.periodicity):
             axis = data_source.ds.coordinates.axis_order[idim]
             # Recenter positions w.r.t. center of the plot window
-            xyz[..., idim] = data_source["index", axis] - center[idim]
+            xyz[..., idim] = (data_source["index", axis] - center[idim]).to(
+                "code_length"
+            )
             if not periodic:
                 continue
             # If we have periodic boundaries, we need to wrap the corresponding
             # coordinates into [-w/2, +w/2]
-            w = data_source.ds.domain_width[idim]
+            w = data_source.ds.domain_width[idim].to("code_length")
             xyz[..., idim] = (xyz[..., idim] + w / 2) % w - w / 2
 
         # Rescale to [-0.5, +0.5]
@@ -483,6 +485,10 @@ def off_axis_projection(
             Nx=resolution[0],
             Ny=resolution[1],
         )
+        # Note: since dx was divided by wmax, we need to rescale by it
+        projected_weighted_qty *= wmax.d / np.sqrt(3)
+        projected_weight *= wmax.d / np.sqrt(3)
+
         image = ImageArray(
             data_source.ds.arr(
                 np.stack([projected_weighted_qty, projected_weight], axis=-1),
@@ -492,6 +498,7 @@ def off_axis_projection(
             registry=data_source.ds.unit_registry,
             info={"imtype": "rendering"},
         )
+
     else:
         for grid, mask in data_source.blocks:
             data = []
@@ -514,12 +521,14 @@ def off_axis_projection(
             vol.sampler(pg, num_threads=num_threads)
 
         image = vol.finalize_image(camera, vol.sampler.aimage)
+
         image = ImageArray(
             image, funits, registry=data_source.ds.unit_registry, info=image.info
         )
 
-        if weight is not None:
-            data_source.ds.field_info.pop(("index", "temp_weightfield"))
+    # Remove the temporary weight field
+    if weight is not None:
+        data_source.ds.field_info.pop(("index", "temp_weightfield"))
 
     if method == "integrate":
         if weight is None:
