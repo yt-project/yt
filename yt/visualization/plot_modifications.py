@@ -999,8 +999,8 @@ class ContourCallback(PlotCallback):
 
         if plot._type_name in ["CuttingPlane", "Projection", "Slice"]:
             if plot._type_name == "CuttingPlane":
-                x = data["px"] * dx
-                y = data["py"] * dy
+                x = (data["px"] * dx).to("1")
+                y = (data["py"] * dy).to("1")
                 z = data[self.field]
             elif plot._type_name in ["Projection", "Slice"]:
                 # Makes a copy of the position fields "px" and "py" and adds the
@@ -1028,8 +1028,10 @@ class ContourCallback(PlotCallback):
                 wI = AllX & AllY
 
                 # This converts XShifted and YShifted into plot coordinates
-                x = ((XShifted[wI] - x0) * dx).ndarray_view() + xx0
-                y = ((YShifted[wI] - y0) * dy).ndarray_view() + yy0
+                # Note: we force conversion into "1" to prevent issues in case
+                # one of the length has some dimensionless factor (Mpc/h)
+                x = ((XShifted[wI] - x0) * dx).to("1").ndarray_view() + xx0
+                y = ((YShifted[wI] - y0) * dy).to("1").ndarray_view() + yy0
                 z = data[self.field][wI]
 
             # Both the input and output from the triangulator are in plot
@@ -1134,8 +1136,8 @@ class GridBoundaryCallback(PlotCallback):
 
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        (dx, dy) = self._pixel_scale(plot)
-        (ypix, xpix) = plot.raw_image_shape
+        dx, dy = self._pixel_scale(plot)
+        ypix, xpix = plot.raw_image_shape
         ax = plot.data.axis
         px_index = plot.data.ds.coordinates.x_axis[ax]
         py_index = plot.data.ds.coordinates.y_axis[ax]
@@ -1169,10 +1171,17 @@ class GridBoundaryCallback(PlotCallback):
         for px_off, py_off in zip(pxs.ravel(), pys.ravel(), strict=True):
             pxo = px_off * DW[px_index]
             pyo = py_off * DW[py_index]
-            left_edge_x = np.array((GLE[:, px_index] + pxo - x0) * dx) + xx0
-            left_edge_y = np.array((GLE[:, py_index] + pyo - y0) * dy) + yy0
-            right_edge_x = np.array((GRE[:, px_index] + pxo - x0) * dx) + xx0
-            right_edge_y = np.array((GRE[:, py_index] + pyo - y0) * dy) + yy0
+            # Note: [dx] = 1/length, [GLE] = length
+            # we force conversion into "1" to prevent issues if e.g. GLE is in Mpc/h
+            # where dx * GLE would have units 1/h rather than being truly dimensionless
+            left_edge_x = np.array((((GLE[:, px_index] + pxo - x0) * dx) + xx0).to("1"))
+            left_edge_y = np.array((((GLE[:, py_index] + pyo - y0) * dy) + yy0).to("1"))
+            right_edge_x = np.array(
+                (((GRE[:, px_index] + pxo - x0) * dx) + xx0).to("1")
+            )
+            right_edge_y = np.array(
+                (((GRE[:, py_index] + pyo - y0) * dy) + yy0).to("1")
+            )
             xwidth = xpix * (right_edge_x - left_edge_x) / (xx1 - xx0)
             ywidth = ypix * (right_edge_y - left_edge_y) / (yy1 - yy0)
             visible = np.logical_and(
@@ -2075,12 +2084,20 @@ class SphereCallback(PlotCallback):
                 units = "code_length"
             self.radius = self.radius.to(units)
 
+        if not hasattr(self.radius, "units"):
+            self.radius = plot.data.ds.quan(self.radius, "code_length")
+
+        if not hasattr(self.center, "units"):
+            self.center = plot.data.ds.arr(self.center, "code_length")
+
         # This assures the radius has the appropriate size in
         # the different coordinate systems, since one cannot simply
         # apply a different transform for a length in the same way
         # you can for a coordinate.
         if self.coord_system == "data" or self.coord_system == "plot":
-            scaled_radius = self.radius * self._pixel_scale(plot)[0]
+            # Note: we force conversion into "1" to prevent issues in case
+            # one of the length has some dimensionless factor (Mpc/h)
+            scaled_radius = (self.radius * self._pixel_scale(plot)[0]).to("1")
         else:
             scaled_radius = self.radius / (plot.xlim[1] - plot.xlim[0])
 
