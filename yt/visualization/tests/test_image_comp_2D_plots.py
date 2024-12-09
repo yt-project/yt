@@ -41,6 +41,37 @@ def test_sliceplot_set_unit_and_zlim_order():
     npt.assert_allclose(im0, im1)
 
 
+def test_annotation_parse_h():
+    ds = fake_random_ds(16)
+
+    # Make sure `h` (reduced Hubble constant) is not equal to 1
+    ds.unit_registry.modify("h", 0.7)
+
+    rad = ds.quan(0.1, "cm/h")
+    center = ds.arr([0.5] * 3, "code_length")
+
+    # Twice the same slice plot
+    p1 = SlicePlot(ds, "x", "density")
+    p2 = SlicePlot(ds, "x", "density")
+
+    # But the *same* center is given in different units
+    p1.annotate_sphere(center.to("cm"), rad, circle_args={"color": "black"})
+    p2.annotate_sphere(center.to("cm/h"), rad, circle_args={"color": "black"})
+
+    # Render annotations, and extract matplotlib image
+    # as an RGB array
+    p1.render()
+    p1.plots["gas", "density"].figure.canvas.draw()
+    img1 = p1.plots["gas", "density"].figure.canvas.renderer.buffer_rgba()
+
+    p2.render()
+    p2.plots["gas", "density"].figure.canvas.draw()
+    img2 = p2.plots["gas", "density"].figure.canvas.renderer.buffer_rgba()
+
+    # This should be the same image
+    npt.assert_allclose(img1, img2)
+
+
 @pytest.mark.mpl_image_compare
 def test_inf_and_finite_values_set_zlim():
     # see https://github.com/yt-project/yt/issues/3901
