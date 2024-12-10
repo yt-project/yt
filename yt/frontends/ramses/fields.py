@@ -422,11 +422,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
     def create_cooling_fields(self) -> bool:
         "Create cooling fields from the cooling files. Return True if successful."
-        num = os.path.basename(self.ds.parameter_filename).split(".")[0].split("_")[1]
-        filename = "%s/cooling_%05i.out" % (
-            os.path.dirname(self.ds.parameter_filename),
-            int(num),
-        )
+        num = int(self.ds.basename.split(".")[0].split("_")[1])
+        filename = os.path.join(self.ds.directory, f"cooling_{num:05}.out")
 
         if not os.path.exists(filename):
             mylog.warning("This output has no cooling fields")

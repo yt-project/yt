@@ -1280,8 +1280,8 @@ def multiplot(
     if images is not None:
         if len(images) != npanels:
             raise RuntimeError(
-                "Number of images (%d) doesn't match nrow(%d)"
-                " x ncol(%d)." % (len(images), nrow, ncol)
+                f"Number of images ({len(images)}) doesn't match "
+                f"nrow({nrow}) x ncol({ncol})."
             )
     if yt_plots is None and images is None:
         raise RuntimeError("Must supply either yt_plots or image filenames.")

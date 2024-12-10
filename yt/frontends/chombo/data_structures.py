@@ -330,9 +330,7 @@ class ChomboDataset(Dataset):
         is_periodic = np.array([True, True, True])
         for dir in range(self.dimensionality):
             try:
-                is_periodic[dir] = self._handle["/level_0"].attrs[
-                    "is_periodic_%d" % dir
-                ]
+                is_periodic[dir] = self._handle["/level_0"].attrs[f"is_periodic_{dir}"]
             except KeyError:
                 is_periodic[dir] = True
         self._periodicity = tuple(is_periodic)

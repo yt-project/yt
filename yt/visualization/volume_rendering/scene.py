@@ -127,7 +127,7 @@ class Scene:
             dictionary.
         """
         if keyname is None:
-            keyname = "source_%02i" % len(self.sources)
+            keyname = f"source_{len(self.sources):02}"
 
         data_sources = (VolumeSource, MeshSource, GridSource)
 

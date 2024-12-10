@@ -208,19 +208,17 @@ class GridIndex(Index, abc.ABC):
             if (self.level_stats["numgrids"][level]) == 0:
                 continue
             print(
-                "% 3i\t% 6i\t% 14i\t% 14i"
-                % (
-                    level,
-                    self.level_stats["numgrids"][level],
-                    self.level_stats["numcells"][level],
-                    np.ceil(self.level_stats["numcells"][level] ** (1.0 / 3)),
-                )
+                f"{level:>3}\t"
+                f"{self.level_stats['numgrids'][level]:>6}\t"
+                f"{self.level_stats['numcells'][level]:>14}\t"
+                f"{int(np.ceil(self.level_stats['numcells'][level] ** (1.0 / 3))):>14}"
             )
             dx = self.select_grids(level)[0].dds[0]
         print("-" * 46)
         print(
-            "   \t% 6i\t% 14i"
-            % (self.level_stats["numgrids"].sum(), self.level_stats["numcells"].sum())
+            "   \t"
+            f"{self.level_stats['numgrids'].sum():>6}\t"
+            f"{self.level_stats['numcells'].sum():>14}"
         )
         print("\n")
         try:
