@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal
 
+import yt
 import yt.utilities.initial_conditions as ic
 from yt.loaders import load_amr_grids, load_particles, load_uniform_grid
 from yt.testing import fake_particle_ds, fake_sph_orientation_ds
@@ -404,3 +405,101 @@ def test_stream_non_cartesian_particles_amr():
     assert_equal(dd["all", "particle_position_r"].v, particle_position_r)
     assert_equal(dd["all", "particle_position_phi"].v, particle_position_phi)
     assert_equal(dd["all", "particle_position_theta"].v, particle_position_theta)
+
+
+@pytest.fixture
+def sph_dataset_with_integer_index():
+    num_particles = 100
+
+    data = {
+        ("gas", "particle_position_x"): np.linspace(0.0, 1.0, num_particles),
+        ("gas", "particle_position_y"): np.linspace(0.0, 1.0, num_particles),
+        ("gas", "particle_position_z"): np.linspace(0.0, 1.0, num_particles),
+        ("gas", "particle_mass"): np.ones(num_particles),
+        ("gas", "density"): np.ones(num_particles),
+        ("gas", "smoothing_length"): np.ones(num_particles) * 0.1,
+        ("gas", "particle_index"): np.arange(0, num_particles),
+    }
+
+    ds = load_particles(data)
+    return ds
+
+
+def test_particle_dtypes_selection(sph_dataset_with_integer_index):
+    # these operations will preserve data type
+    ds = sph_dataset_with_integer_index
+    ad = ds.all_data()
+    assert ad["gas", "particle_index"].dtype == np.int64
+
+    min_max = ad.quantities.extrema(("gas", "particle_index"))
+    assert min_max.dtype == np.int64
+
+    # check that subselections preserve type
+    le = ds.domain_center - ds.domain_width / 10.0
+    re = ds.domain_center + ds.domain_width / 10.0
+    reg = ds.region(ds.domain_center, le, re)
+    assert reg["gas", "particle_index"].dtype == np.int64
+
+    vals = ds.slice(0, ds.domain_center[0])["gas", "particle_index"]
+    assert vals.max() > 0
+    assert vals.dtype == np.int64
+
+
+def test_particle_dtypes_operations(sph_dataset_with_integer_index):
+    # these operations will not preserve dtype (will be cast to float64).
+    # note that the numerical outputs of these operations are not
+    # physical (projecting the particle index does not make any physical
+    # sense), but they do make sure the methods run in case any frontends
+    # start setting physical fields with different data types.
+
+    ds = sph_dataset_with_integer_index
+
+    field = ("gas", "particle_index")
+    frb = ds.proj(field, 2).to_frb(ds.domain_width[0], (64, 64))
+    image = frb["gas", "particle_index"]
+    assert image.max() > 0
+
+    off_axis_prj = yt.off_axis_projection(
+        ds,
+        ds.domain_center,
+        [0.5, 0.5, 0.5],
+        ds.domain_width,
+        (64, 64),
+        ("gas", "particle_index"),
+        weight=None,
+    )
+    assert off_axis_prj.max() > 0
+
+    source = ds.all_data()
+    custom_bins = np.linspace(-0.5, 99.5, 101)
+    profile = source.profile(
+        [("gas", "particle_index")],
+        [
+            ("gas", "mass"),
+            ("gas", "particle_index"),
+        ],
+        weight_field=None,
+        override_bins={("gas", "particle_index"): custom_bins},
+        logs={("gas", "particle_index"): False},
+    )
+    assert profile.x.min() == 0.0
+    assert profile.x.max() == 99.0
+    assert np.all(profile["gas", "mass"] == 1.0)
+    assert np.all(profile["gas", "particle_index"] == profile.x)
+
+    # check a particle filter on the index
+    p_index_min = 50
+
+    def index_filter(pfilter, data):
+        filter = data[(pfilter.filtered_type, "particle_index")] >= p_index_min
+        return filter
+
+    yt.add_particle_filter(
+        "index_filter",
+        function=index_filter,
+        filtered_type="all",
+        requires=["particle_index"],
+    )
+
+    ds.add_particle_filter("index_filter")
+    assert ds.all_data()["index_filter", "particle_index"].min() == p_index_min
