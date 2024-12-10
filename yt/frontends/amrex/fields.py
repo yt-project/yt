@@ -503,6 +503,114 @@ class MaestroFieldInfo(FieldInfoContainer):
                     units=unit_system["frequency"],
                 )
 
+class QuokkaFieldInfo(FieldInfoContainer):
+    known_other_fields: KnownFieldsT = (
+        ("gasDensity", ("code_mass / code_length**3", ["density"], r"\rho")),
+        ("gasEnergy", ("code_mass / (code_length * code_time**2)", ["total_energy_density"], r"\rho E")),
+        ("gasInternalEnergy", ("code_mass / (code_length * code_time**2)", ["internal_energy_density"], r"\rho e")),
+        ("x-GasMomentum", ("code_mass / (code_length**2 * code_time)", ["momentum_density_x"], r"\rho u")),
+        ("y-GasMomentum", ("code_mass / (code_length**2 * code_time)", ["momentum_density_y"], r"\rho v")),
+        ("z-GasMomentum", ("code_mass / (code_length**2 * code_time)", ["momentum_density_z"], r"\rho w")),
+        ("scalar_0", ("", ["scalar_0"], "Scalar 0")),
+        ("scalar_1", ("", ["scalar_1"], "Scalar 1")),
+        ("scalar_2", ("", ["scalar_2"], "Scalar 2")),
+    )
+
+    known_particle_fields: KnownFieldsT = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+        ("particle_momentum_x", ("code_mass*code_length/code_time", [], None)),
+        ("particle_momentum_y", ("code_mass*code_length/code_time", [], None)),
+        ("particle_momentum_z", ("code_mass*code_length/code_time", [], None)),
+        # Note that these are *internal* agmomen
+        ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
+        ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
+        ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
+        ("particle_id", ("", ["particle_index"], None)),
+        ("particle_mdot", ("code_mass/code_time", [], None)),
+    )
+
+    def setup_fluid_fields(self):
+        # Define momentum-to-velocity conversion
+        def _get_cell_velocity(axis):
+            def velocity(field, data):
+                # Divide momentum by density for cell-centered velocity
+                return data["boxlib", f"{axis}-GasMomentum"] / data["boxlib", "gasDensity"]
+
+            return velocity
+
+        # Add cell-centered velocity fields dynamically for each axis
+        for axis in "xyz":
+            field_name = f"velocity_{axis}"
+            momentum_name = f"{axis}-GasMomentum"
+
+            if ("boxlib", momentum_name) in self.field_list:
+                self.add_field(
+                    ("gas", field_name),
+                    sampling_type="cell",
+                    function=_get_cell_velocity(axis),
+                    units=self.ds.unit_system["length"] / self.ds.unit_system["time"],
+                    display_name=f"v_{axis} (cell-centered)",
+                )
+
+        # Add face-centered velocities dynamically for each axis
+        for axis in "xyz":
+            face_velocity_name = f"velocity_face_{axis}"
+
+            if ("boxlib", f"{axis}-velocity") in self.field_list:
+                self.add_field(
+                    ("gas", face_velocity_name),
+                    sampling_type="cell",
+                    function=lambda field, data, axis=axis: data["boxlib", f"{axis}-velocity"] * self.ds.unit_system["length"] / self.ds.unit_system["time"],
+                    units=self.ds.unit_system["length"] / self.ds.unit_system["time"],
+                    display_name=f"v_{axis} (face-centered)",
+                )
+
+        # Add magnetic fields dynamically for each axis (Placeholder for now)
+        for axis in "xyz":
+            bfield_name = f"BField_{axis}"
+            boxlib_bfield = f"{axis}-BField"
+
+            if ("boxlib", boxlib_bfield) in self.field_list:
+                self.add_field(
+                    ("gas", bfield_name),
+                    sampling_type="cell",
+                    function=lambda field, data, axis=axis: data["boxlib", boxlib_bfield],
+                    units="",  # Leave units empty for now
+                    display_name=f"B_{axis} (magnetic field)",
+                )
+
+        # Call the new radiation fields setup
+        self.setup_radiation_fields()
+
+    def setup_radiation_fields(self):
+        # Dynamically add radiation fields
+        num_groups = self.ds.parameters.get("radiation_field_groups", 0)
+        for group in range(num_groups):
+            # Add energy density
+            energy_field = f"radEnergy-Group{group}"
+            if ("boxlib", energy_field) in self.field_list:
+                self.add_field(
+                    ("rad", f"energy_density_{group}"),
+                    sampling_type="cell",
+                    function=lambda field, data: data["boxlib", energy_field] * self.ds.unit_system["energy"] / self.ds.unit_system["length"]**3,
+                    units=self.ds.unit_system["energy"] / self.ds.unit_system["length"]**3,
+                    display_name=f"Radiation Energy Density Group {group}",
+                )
+
+            # Add flux density for each axis
+            for axis in "xyz":
+                flux_field = f"{axis}-RadFlux-Group{group}"
+                if ("boxlib", flux_field) in self.field_list:
+                    self.add_field(
+                        ("rad", f"flux_density_{axis}_{group}"),
+                        sampling_type="cell",
+                        function=lambda field, data, flux_field=flux_field: data["boxlib", flux_field] * self.ds.unit_system["energy"] / self.ds.unit_system["length"]**2 / self.ds.unit_system["time"],
+                        units=self.ds.unit_system["energy"] / self.ds.unit_system["length"]**2 / self.ds.unit_system["time"],
+                        display_name=f"Radiation Flux Density {axis.upper()} Group {group}",
+                    )
 
 substance_expr_re = re.compile(r"\(([a-zA-Z][a-zA-Z0-9]*)\)")
 substance_elements_re = re.compile(r"(?P<element>[a-zA-Z]+)(?P<digits>\d*)")
