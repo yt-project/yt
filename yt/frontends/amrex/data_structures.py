@@ -1333,17 +1333,17 @@ class QuokkaHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type="quokka_native"):
         super().__init__(ds, dataset_type)
 
-        possible_particle_types = ["Rad_particles", "CIC_particles", "tracer_particles"]
-        found_particle_type = None
+        # Dynamically detect particle types by searching for "*_particles" directories
+        particle_dirs = glob.glob(os.path.join(self.ds.output_dir, "*_particles"))
+        detected_particle_types = []
 
-        # Iterate through possible particle types and check if they exist
-        for particle_type in possible_particle_types:
-            if particle_type in self.ds.parameters.get("particles", []):
-                found_particle_type = particle_type
-                break
+        for pdir in particle_dirs:
+            ptype = os.path.basename(pdir)
+            header_file = os.path.join(pdir, "Header")
+            if os.path.exists(header_file):
+                detected_particle_types.append(ptype)
 
-        if found_particle_type:
-            # Extra fields beyond base real fields (e.g., xyz positions)
+        if detected_particle_types:
             quokka_extra_real_fields = [
                 "particle_velocity_x",
                 "particle_velocity_y",
@@ -1352,16 +1352,23 @@ class QuokkaHierarchy(BoxlibHierarchy):
 
             is_checkpoint = True
 
-            self._read_particles(
-                found_particle_type,  # Use the detected particle type
-                is_checkpoint,
-                quokka_extra_real_fields[0 : self.ds.dimensionality],
-            )
+            for ptype in detected_particle_types:
+                self._read_particles(
+                    ptype,  # Use the detected particle type
+                    is_checkpoint,
+                    quokka_extra_real_fields[0 : self.ds.dimensionality],
+                )
+
+            # Update the dataset's particle types
+            self.ds.parameters["particles"] = len(detected_particle_types)
+            self.ds.particle_types = tuple(detected_particle_types)
+            self.ds.particle_types_raw = self.ds.particle_types
         else:
-            mylog.warning(
-                "No recognized particle types found in the dataset. Checked for: %s",
-                ", ".join(possible_particle_types),
-            )
+            # No particle types detected
+            self.ds.parameters["particles"] = 0
+            self.ds.particle_types = ()
+            self.ds.particle_types_raw = ()
+            mylog.debug("No recognized particle types found in the dataset.")
 
 
 class QuokkaDataset(AMReXDataset):
