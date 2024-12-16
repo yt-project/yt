@@ -326,6 +326,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             aspect=aspect,
             cmap=self.colorbar_handler.cmap,
             interpolation="nearest",
+            interpolation_stage="data",
             transform=transform,
             alpha=alpha,
         )
