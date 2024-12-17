@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yt"
-version = "4.4.dev0"
+version = "4.5.dev0"
 description = "An analysis and visualization toolkit for volumetric data"
 authors = [
     { name = "The yt project", email = "yt-dev@python.org" },
@@ -97,7 +97,7 @@ artio = []
 athena = []
 athena-pp = []
 boxlib = []
-cf-radial = ["xarray>=0.16.1", "arm-pyart!=1.12.5,>=1.11.4"]
+cf-radial = ["xarray>=0.16.1", "arm-pyart>=1.19.2",]
 chimera = ["yt[HDF5]"]
 chombo = ["yt[HDF5]"]
 cholla = ["yt[HDF5]"]

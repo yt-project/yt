@@ -25,14 +25,14 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
-        python-version: ['3.12']
+        python-version: ['3.13']
         dependencies: [full]
         tests-type: [unit]
         test-runner: [pytest]
         venv-loc: [bin]
         include:
           - os: windows-latest
-            python-version: '3.12'
+            python-version: '3.13'
             dependencies: full
             tests-type: unit
             test-runner: pytest

@@ -257,7 +257,7 @@ Overplot Contours
    Add contours in ``field`` to the plot.  ``levels`` governs the number of
    contours generated, ``factor`` governs the number of points used in the
    interpolation, ``take_log`` governs how it is contoured and ``clim`` gives
-   the (upper, lower) limits for contouring.
+   the (lower, upper) limits for contouring.
 
 .. python-script::
 

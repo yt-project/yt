@@ -369,9 +369,9 @@ def load_uniform_grid(
                 bbox,
                 cell_widths=cell_widths,
             )
-            cell_widths = grid_cell_widths
             grid_dimensions = np.array(list(shapes), dtype="int32")
             temp[key] = [data[key][slice] for slice in slices]
+        cell_widths = grid_cell_widths
 
         for gid in range(nprocs):
             new_data[gid] = {}

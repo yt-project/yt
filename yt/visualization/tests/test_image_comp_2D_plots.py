@@ -41,6 +41,37 @@ def test_sliceplot_set_unit_and_zlim_order():
     npt.assert_allclose(im0, im1)
 
 
+def test_annotation_parse_h():
+    ds = fake_random_ds(16)
+
+    # Make sure `h` (reduced Hubble constant) is not equal to 1
+    ds.unit_registry.modify("h", 0.7)
+
+    rad = ds.quan(0.1, "cm/h")
+    center = ds.arr([0.5] * 3, "code_length")
+
+    # Twice the same slice plot
+    p1 = SlicePlot(ds, "x", "density")
+    p2 = SlicePlot(ds, "x", "density")
+
+    # But the *same* center is given in different units
+    p1.annotate_sphere(center.to("cm"), rad, circle_args={"color": "black"})
+    p2.annotate_sphere(center.to("cm/h"), rad, circle_args={"color": "black"})
+
+    # Render annotations, and extract matplotlib image
+    # as an RGB array
+    p1.render()
+    p1.plots["gas", "density"].figure.canvas.draw()
+    img1 = p1.plots["gas", "density"].figure.canvas.renderer.buffer_rgba()
+
+    p2.render()
+    p2.plots["gas", "density"].figure.canvas.draw()
+    img2 = p2.plots["gas", "density"].figure.canvas.renderer.buffer_rgba()
+
+    # This should be the same image
+    npt.assert_allclose(img1, img2)
+
+
 @pytest.mark.mpl_image_compare
 def test_inf_and_finite_values_set_zlim():
     # see https://github.com/yt-project/yt/issues/3901
@@ -432,6 +463,34 @@ class TestCylindricalZSlicePlot:
     def test_cylindrical_z_linear(self, field):
         self.plot.set_log("noise0", False)
         return self.plot.plots[field].figure
+
+    @pytest.mark.parametrize(
+        "theta_min, theta_max",
+        [
+            pytest.param(0, 2 * np.pi, id="full_azimuthal_domain"),
+            pytest.param(3 / 4 * np.pi, 5 / 4 * np.pi, id="restricted_sector"),
+        ],
+    )
+    @pytest.mark.mpl_image_compare
+    def test_exclude_pixels_with_partial_bbox_intersection(self, theta_min, theta_max):
+        rmin = 1.0
+        rmax = 2.0
+        ds = fake_amr_ds(
+            geometry="cylindrical",
+            domain_left_edge=[rmin, 0, theta_min],
+            domain_right_edge=[rmax, 1, theta_max],
+        )
+        add_noise_fields(ds)
+        plot = SlicePlot(ds, "z", ("gas", "noise0"))
+        for radius in [rmin - 0.01, rmax]:
+            plot.annotate_sphere(
+                center=[0, 0, 0],
+                radius=radius,
+                circle_args={"color": "red", "alpha": 0.4, "linewidth": 3},
+            )
+        plot.annotate_title("all pixels beyond (or on) red lines should be white")
+        plot.render()
+        return plot.plots["gas", "noise0"].figure
 
 
 class TestSphericalPhiSlicePlot:

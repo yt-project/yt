@@ -798,28 +798,29 @@ class Dataset(abc.ABC):
                 f"Got {self.geometry=} with type {type(self.geometry)}"
             )
 
-        if self.geometry is Geometry.CARTESIAN:
-            cls = CartesianCoordinateHandler
-        elif self.geometry is Geometry.CYLINDRICAL:
-            cls = CylindricalCoordinateHandler
-        elif self.geometry is Geometry.POLAR:
-            cls = PolarCoordinateHandler
-        elif self.geometry is Geometry.SPHERICAL:
-            cls = SphericalCoordinateHandler
-            # It shouldn't be required to reset self.no_cgs_equiv_length
-            # to the default value (False) here, but it's still necessary
-            # see https://github.com/yt-project/yt/pull/3618
-            self.no_cgs_equiv_length = False
-        elif self.geometry is Geometry.GEOGRAPHIC:
-            cls = GeographicCoordinateHandler
-            self.no_cgs_equiv_length = True
-        elif self.geometry is Geometry.INTERNAL_GEOGRAPHIC:
-            cls = InternalGeographicCoordinateHandler
-            self.no_cgs_equiv_length = True
-        elif self.geometry is Geometry.SPECTRAL_CUBE:
-            cls = SpectralCubeCoordinateHandler
-        else:
-            assert_never(self.geometry)
+        match self.geometry:
+            case Geometry.CARTESIAN:
+                cls = CartesianCoordinateHandler
+            case Geometry.CYLINDRICAL:
+                cls = CylindricalCoordinateHandler
+            case Geometry.POLAR:
+                cls = PolarCoordinateHandler
+            case Geometry.SPHERICAL:
+                cls = SphericalCoordinateHandler
+                # It shouldn't be required to reset self.no_cgs_equiv_length
+                # to the default value (False) here, but it's still necessary
+                # see https://github.com/yt-project/yt/pull/3618
+                self.no_cgs_equiv_length = False
+            case Geometry.GEOGRAPHIC:
+                cls = GeographicCoordinateHandler
+                self.no_cgs_equiv_length = True
+            case Geometry.INTERNAL_GEOGRAPHIC:
+                cls = InternalGeographicCoordinateHandler
+                self.no_cgs_equiv_length = True
+            case Geometry.SPECTRAL_CUBE:
+                cls = SpectralCubeCoordinateHandler
+            case _:
+                assert_never(self.geometry)
 
         self.coordinates = cls(self, ordering=axis_order)
 
@@ -1948,9 +1949,9 @@ class Dataset(abc.ABC):
         ...     ("gas", "density_gradient_magnitude"),
         ... ]
 
-        Note that the above example assumes ds.geometry == 'cartesian'. In general,
-        the function will create gradient components along the axes of the dataset
-        coordinate system.
+        Note that the above example assumes ds.geometry is Geometry.CARTESIAN.
+        In general, the function will create gradient components along the axes
+        of the dataset coordinate system.
         For instance, with cylindrical data, one gets 'density_gradient_<r,theta,z>'
 
         """

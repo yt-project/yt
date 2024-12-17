@@ -372,23 +372,24 @@ class BoxlibHierarchy(GridIndex):
                 dx[i].append(DRE[2] - DLE[2])
         self.level_dds = np.array(dx, dtype="float64")
         next(header_file)
-        if self.ds.geometry == "cartesian":
-            default_ybounds = (0.0, 1.0)
-            default_zbounds = (0.0, 1.0)
-        elif self.ds.geometry == "cylindrical":
-            self.level_dds[:, 2] = 2 * np.pi
-            default_ybounds = (0.0, 1.0)
-            default_zbounds = (0.0, 2 * np.pi)
-        elif self.ds.geometry == "spherical":
-            # BoxLib only supports 1D spherical, so ensure
-            # the other dimensions have the right extent.
-            self.level_dds[:, 1] = np.pi
-            self.level_dds[:, 2] = 2 * np.pi
-            default_ybounds = (0.0, np.pi)
-            default_zbounds = (0.0, 2 * np.pi)
-        else:
-            header_file.close()
-            raise RuntimeError("Unknown BoxLib coordinate system.")
+        match self.ds.geometry:
+            case Geometry.CARTESIAN:
+                default_ybounds = (0.0, 1.0)
+                default_zbounds = (0.0, 1.0)
+            case Geometry.CYLINDRICAL:
+                self.level_dds[:, 2] = 2 * np.pi
+                default_ybounds = (0.0, 1.0)
+                default_zbounds = (0.0, 2 * np.pi)
+            case Geometry.SPHERICAL:
+                # BoxLib only supports 1D spherical, so ensure
+                # the other dimensions have the right extent.
+                self.level_dds[:, 1] = np.pi
+                self.level_dds[:, 2] = 2 * np.pi
+                default_ybounds = (0.0, np.pi)
+                default_zbounds = (0.0, 2 * np.pi)
+            case _:
+                header_file.close()
+                raise RuntimeError("Unknown BoxLib coordinate system.")
         if int(next(header_file)) != 0:
             header_file.close()
             raise RuntimeError("INTERNAL ERROR! This should be a zero.")
@@ -906,7 +907,7 @@ class BoxlibDataset(Dataset):
         else:
             self.geometry = Geometry(geom_str)
 
-        if self.geometry == "cylindrical":
+        if self.geometry is Geometry.CYLINDRICAL:
             dre = self.domain_right_edge.copy()
             dre[2] = 2.0 * np.pi
             self.domain_right_edge = dre
