@@ -1257,7 +1257,7 @@ class GridBoundaryCallback(PlotCallback):
                             "'upper left', and 'upper right'."
                         )
                     xi, yi = self._sanitize_xy_order(plot, x[i], y[i])
-                    plot._axes.text(xi, yi, "%d" % block_ids[n], clip_on=True)
+                    plot._axes.text(xi, yi, str(block_ids[n]), clip_on=True)
 
 
 # when type-checking with MPL >= 3.8, use
@@ -3278,7 +3278,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         elif self.texture.shape != (nx, ny):
             raise ValueError(
                 "'texture' must have the same shape "
-                "with that of output image (%d, %d)" % (nx, ny)
+                f"with that of output image ({nx}, {ny})"
             )
 
         kernel = np.sin(

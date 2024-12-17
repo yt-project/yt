@@ -55,7 +55,7 @@ class OWLSSimulation(GadgetSimulation):
         if index is None:
             count = "*"
         else:
-            count = "%03d" % index
+            count = f"{index:03}"
         keyword = f"{self.parameters['SnapshotFileBase']}_{count}"
         filename = os.path.join(keyword, f"{keyword}{suffix}")
         return os.path.join(data_dir, filename)
