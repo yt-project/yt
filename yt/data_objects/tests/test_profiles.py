@@ -534,6 +534,12 @@ def test_profile_sph_data():
         [("gas", "kinetic_energy_density")],
         weight_field=None,
     )
+    yt.create_profile(
+        ds.all_data(),
+        [("gas", "density"), ("gas", "temperature")],
+        [("gas", "kinetic_energy_density")],
+        weight_field=("gas", "density"),
+    )
 
 
 def test_profile_override_limits():
