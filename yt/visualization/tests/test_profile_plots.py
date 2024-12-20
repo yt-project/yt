@@ -2,8 +2,8 @@ import os
 import shutil
 import tempfile
 import unittest
-import numpy as np
 
+import numpy as np
 import pytest
 
 import yt
@@ -66,13 +66,12 @@ class TestPhasePlotAPI:
         p.render()
         return p.plots["gas", "mass"].figure
 
+
 class TestPhasePlotParticleAPI:
     @classmethod
     def setup_class(cls):
         bbox = np.array([[-1.0, 3.0], [1.0, 5.2], [-1.0, 3.0]])
-        cls.ds = fake_random_sph_ds(
-            50, bbox
-        )
+        cls.ds = fake_random_sph_ds(50, bbox)
 
     def get_plot(self):
         return PhasePlot(
@@ -121,7 +120,6 @@ class TestPhasePlotParticleAPI:
         p.set_ylim(1e-2, 1e0)
         p.render()
         return p.plots["gas", "mass"].figure
-
 
 
 def test_set_units():
