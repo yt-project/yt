@@ -162,7 +162,7 @@ def plot2D_serial(tree, pts=None, label_boxes=False, **kwargs):
     if label_boxes:
         txt = []
         for leaf in tree.leaves:
-            txt.append((leaf.left_edge[0], leaf.left_edge[1], "%d" % leaf.id))
+            txt.append((leaf.left_edge[0], leaf.left_edge[1], str(leaf.id)))
 
     # Return axes
     return _plot2D_root(seg, pts=pts, txt=txt, **kwargs)

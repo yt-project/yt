@@ -115,7 +115,7 @@ class RegionExpression:
         dim = self.ds.dimensionality
         if dim < 2:
             raise ValueError(
-                "Can not create a slice from data with dimensionality '%d'" % dim
+                f"Can not create a slice from data with dimensionality '{dim}'"
             )
         if dim == 2:
             coord = self.ds.domain_center[2]

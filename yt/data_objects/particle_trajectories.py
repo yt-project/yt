@@ -335,7 +335,7 @@ class ParticleTrajectories:
         """
         mask = np.isin(self.indices, (index,), assume_unique=True)
         if not np.any(mask):
-            print("The particle index %d is not in the list!" % (index))
+            print(f"The particle index {index} is not in the list!")
             raise IndexError
         fields = sorted(self.field_data.keys())
         traj = {}
@@ -375,7 +375,7 @@ class ParticleTrajectories:
                         [self.times[it]] + [self[field][ix, it] for field in fields]
                     )
                 )
-            fid = open(filename_base + "_%d.dat" % self.indices[ix], "w")
+            fid = open(f"{filename_base}_{self.indices[ix]}.dat", "w")
             fid.writelines(outlines)
             fid.close()
             del fid
