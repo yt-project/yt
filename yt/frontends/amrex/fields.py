@@ -611,6 +611,82 @@ class QuokkaFieldInfo(FieldInfoContainer):
                         units=self.ds.unit_system["energy"] / self.ds.unit_system["length"]**2 / self.ds.unit_system["time"],
                         display_name=f"Radiation Flux Density {axis.upper()} Group {group}",
                     )
+        
+        # Dynamically set up custom particle fields (convert `real_comp` to physics) for all particle types
+        for ptype in self.ds.particle_types:
+            self.setup_custom_particle_fields(ptype)
+
+    def setup_custom_particle_fields(self, ptype):
+        """
+        Dynamically set up custom particle fields (real_comp) for the given particle type, 
+        interpreting dimensional expressions and applying appropriate unit conversions.
+
+        Parameters:
+        -----------
+        ptype : str
+            The particle type (e.g., 'Rad_particles', 'CIC_particles', etc.) for which fields will be dynamically added.
+        """
+        particle_info = self.ds.parameters.get("particle_info", {}).get(ptype, {})
+        field_map = particle_info.get("fields", [])
+        unit_map = particle_info.get("units", {})
+
+        def interpret_units(dim_expr):
+            """
+            Interpret a dimensional expression like 'M^a L^b T^c Θ^d' and return the corresponding unit factor.
+
+            Parameters:
+            -----------
+            dim_expr : str
+                Dimensional expression (e.g., 'M^1 L^2 T^-3' for luminosity).
+
+            Returns:
+            --------
+            conversion_factor : unyt_quantity
+                The unit conversion factor constructed from the dimensional expression.
+            """
+            if not dim_expr or dim_expr == "dimensionless":
+                return 1.0  # No conversion needed for dimensionless fields
+
+            # Parse the dimensional expression
+            dimensions = {"M": 0, "L": 0, "T": 0, "Θ": 0}  # Default to zero exponents
+            for term in dim_expr.split():
+                base, exponent = term.split("^")
+                dimensions[base] = int(exponent)
+
+            # Construct the conversion factor using the unit system. Use code_mass, code_length, code_time format for units
+            conversion_factor = (
+                f"code_mass**{dimensions['M']} * "
+                f"code_length**{dimensions['L']} * "
+                f"code_time**{dimensions['T']} * "
+                f"code_temperature**{dimensions['Θ']}"
+            )
+            # Convert the string expression to actual unit quantity
+            conversion_factor = self.ds.quan(1.0, conversion_factor)
+            return conversion_factor
+
+        for idx, field_name in enumerate(field_map):
+            # Construct the `real_comp` field name
+            real_comp_field = f"particle_real_comp{idx}"
+
+            # Check if the `real_comp` field exists in the dataset
+            if (ptype, real_comp_field) in self.field_list:
+                # Retrieve the dimensional expression for the new field
+                dim_expr = unit_map.get(field_name, "dimensionless")
+
+                # Interpret the dimensional expression to get the conversion factor
+                conversion_factor = interpret_units(dim_expr)
+
+                # Add the field with the appropriate units
+                self.add_field(
+                    (ptype, field_name),
+                    sampling_type="particle",
+                    function=lambda field, data, real_comp_field=real_comp_field, conv=conversion_factor: (
+                        data[ptype, real_comp_field] * conv
+                    ),
+                    units=conversion_factor.units if hasattr(conversion_factor, "units") else "",
+                    display_name=field_name.replace("_", " ").capitalize(),
+                )
+
 
 substance_expr_re = re.compile(r"\(([a-zA-Z][a-zA-Z0-9]*)\)")
 substance_elements_re = re.compile(r"(?P<element>[a-zA-Z]+)(?P<digits>\d*)")
