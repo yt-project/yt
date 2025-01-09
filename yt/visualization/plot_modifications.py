@@ -3394,6 +3394,12 @@ class CellEdgesCallback(PlotCallback):
         extent = self._plot_bounds(plot)
         if plot._swap_axes:
             im_buffer = im_buffer.transpose((1, 0, 2))
+            # note: when using imshow, the extent keyword argument has to be the
+            # swapped extents, so the extent is swapped here (rather than
+            # calling self._set_plot_limits).
+            # https://github.com/yt-project/yt/issues/5094
+            extent = _swap_axes_extents(extent)
+
         plot._axes.imshow(
             im_buffer,
             origin="lower",
@@ -3401,4 +3407,3 @@ class CellEdgesCallback(PlotCallback):
             extent=extent,
             alpha=self.alpha,
         )
-        self._set_plot_limits(plot, extent)
