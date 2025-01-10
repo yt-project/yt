@@ -137,7 +137,7 @@ def humanize_time(secs):
     """
     mins, secs = divmod(secs, 60)
     hours, mins = divmod(mins, 60)
-    return ":".join(f"{t:02}" for t in (hours, mins, secs))
+    return ":".join(f"{int(t):02}" for t in (hours, mins, secs))
 
 
 #

@@ -177,14 +177,14 @@ class GAMERHierarchy(GridIndex):
                         raise ValueError(
                             f"Grid {grid.id}, Child {c.id}, "
                             f"Grid->EdgeL {grid.LeftEdge[d]:14.7e}, "
-                            f"Children->EdgeL {c.LeftEdge:14.7e}"
+                            f"Children->EdgeL {c.LeftEdge[d]:14.7e}"
                         )
 
                     if not grid.RightEdge[d] >= c.RightEdge[d]:
                         raise ValueError(
                             f"Grid {grid.id}, Child {c.id}, "
                             f"Grid->EdgeR {grid.RightEdge[d]:14.7e}, "
-                            f"Children->EdgeR {c.RightEdge:14.7e}"
+                            f"Children->EdgeR {c.RightEdge[d]:14.7e}"
                         )
 
         mylog.info("Check passed")
