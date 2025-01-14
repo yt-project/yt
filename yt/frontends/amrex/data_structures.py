@@ -1420,43 +1420,21 @@ class QuokkaDataset(AMReXDataset):
             # Parse header version
             self.parameters['plot_file_type'] = f.readline().strip()
 
+            # expecting mandatory fields: gasDensity, x-GasMomentum, y-GasMomentum, z-GasMomentum, gasEnergy, gasInternalEnergy
             # Number of fields
             num_fields = int(f.readline().strip())
             self.parameters['fields'] = []
 
-            # Parse fixed gas fields (6 mandatory fields)
-            gas_fields = [
-                "gasDensity",
-                "x-GasMomentum",
-                "y-GasMomentum",
-                "z-GasMomentum",
-                "gasEnergy",
-                "gasInternalEnergy",
-            ]
-            for field in gas_fields:
-                self.parameters['fields'].append(f.readline().strip())
-
             # Metadata flags
-            temperature_present = False
-            velocity_present = False
             bfield_present = False
             rad_group_count = 0
 
-            # Dynamically parse all remaining fields
-            remaining_fields = num_fields - len(gas_fields)
-
-            for i in range(remaining_fields):
-
+            for i in range(num_fields):
                 current_field = f.readline().strip()
                 if current_field.startswith("radEnergy-Group"):
                     rad_group_count += 1
-                elif current_field == "x-velocity":
-                    velocity_present = True
                 elif current_field == "x-BField":
                     bfield_present = True
-                elif current_field == "gasTemperature":
-                    temperature_present = True
-
                 self.parameters['fields'].append(current_field)
 
             # Add metadata for radiation groups, scalars, and field existence flags
