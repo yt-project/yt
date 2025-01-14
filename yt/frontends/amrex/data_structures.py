@@ -1433,13 +1433,10 @@ class QuokkaDataset(AMReXDataset):
                 current_field = f.readline().strip()
                 if current_field.startswith("radEnergy-Group"):
                     rad_group_count += 1
-                elif current_field == "x-BField":
-                    bfield_present = True
                 self.parameters['fields'].append(current_field)
 
             # Add metadata for radiation groups, scalars, and field existence flags
             self.parameters['radiation_field_groups'] = rad_group_count
-            self.parameters['Bfields'] = bfield_present
 
             # Parse remaining metadata
             self.parameters['dimensionality'] = int(f.readline().strip())  # Dimensionality
