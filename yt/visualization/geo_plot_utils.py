@@ -1,5 +1,5 @@
 from types import FunctionType
-from typing import Any, Optional
+from typing import Any
 
 valid_transforms: dict[str, FunctionType] = {}
 
@@ -43,7 +43,7 @@ def cartopy_importer(transform_name):
     return _func
 
 
-def get_mpl_transform(mpl_proj) -> Optional[FunctionType]:
+def get_mpl_transform(mpl_proj) -> FunctionType | None:
     r"""This returns an instantiated transform function given a transform
     function name and arguments.
 
@@ -70,7 +70,7 @@ def get_mpl_transform(mpl_proj) -> Optional[FunctionType]:
 
     # check to see if mpl_proj is a string or tuple, and construct args and
     # kwargs to pass to cartopy function based on that.
-    key: Optional[str] = None
+    key: str | None = None
     args: tuple = ()
     kwargs: dict[str, Any] = {}
     if isinstance(mpl_proj, str):

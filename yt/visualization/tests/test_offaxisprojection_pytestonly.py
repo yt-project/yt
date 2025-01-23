@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 import pytest
 import unyt
@@ -19,9 +17,9 @@ from yt.visualization.api import ProjectionPlot
 @pytest.mark.parametrize("shiftcenter", [False, True])
 @pytest.mark.parametrize("northvector", [None, (1.0e-4, 1.0, 0.0)])
 def test_sph_proj_general_offaxis(
-    northvector: Union[tuple[float, float, float], None],
+    northvector: tuple[float, float, float] | None,
     shiftcenter: bool,
-    depth: Union[tuple[float, str], None],
+    depth: tuple[float, str] | None,
     periodic: bool,
     weighted: bool,
 ) -> None:
@@ -127,7 +125,7 @@ def test_sph_proj_general_offaxis(
         north_vector=northvector,
         depth=depth,
     )
-    img = prj.frb.data[("gas", "density")]
+    img = prj.frb.data["gas", "density"]
     if weighted:
         # periodic shifts will modify the (relative) dl values a bit
         expected_out = np.zeros(

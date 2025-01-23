@@ -8,8 +8,9 @@ from yt import units
 from yt._typing import KnownFieldsT
 from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.frontends.ramses.io import convert_ramses_conformal_time_to_physical_age
+from yt.frontends.ramses.io import convert_ramses_conformal_time_to_physical_time
 from yt.utilities.cython_fortran_utils import FortranFile
+from yt.utilities.lib.cosmology_time import t_frw
 from yt.utilities.linear_interpolators import BilinearFieldInterpolator
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_constants import (
@@ -179,21 +180,38 @@ class RAMSESFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         super().setup_particle_fields(ptype)
 
+        def star_age_from_conformal_cosmo(field, data):
+            conformal_age = data[ptype, "conformal_birth_time"]
+            birth_time = convert_ramses_conformal_time_to_physical_time(
+                data.ds, conformal_age
+            )
+            return data.ds.current_time - birth_time
+
+        def star_age_from_physical_cosmo(field, data):
+            H0 = float(
+                data.ds.quan(data.ds.hubble_constant * 100, "km/s/Mpc").to("1/Gyr")
+            )
+            times = data[ptype, "conformal_birth_time"].value
+            time_tot = float(t_frw(data.ds, 0) * H0)
+            birth_time = (time_tot + times) / H0
+            t_out = float(data.ds.current_time.to("Gyr"))
+            return data.apply_units(t_out - birth_time, "Gyr")
+
         def star_age(field, data):
-            if data.ds.cosmological_simulation:
-                conformal_age = data[ptype, "conformal_birth_time"]
-                physical_age = convert_ramses_conformal_time_to_physical_age(
-                    data.ds, conformal_age
-                )
-                return data.ds.arr(physical_age, "code_time")
-            else:
-                formation_time = data[ptype, "particle_birth_time"]
-                return data.ds.current_time - formation_time
+            formation_time = data[ptype, "particle_birth_time"]
+            return data.ds.current_time - formation_time
+
+        if self.ds.cosmological_simulation and self.ds.use_conformal_time:
+            fun = star_age_from_conformal_cosmo
+        elif self.ds.cosmological_simulation:
+            fun = star_age_from_physical_cosmo
+        else:
+            fun = star_age
 
         self.add_field(
             (ptype, "star_age"),
             sampling_type="particle",
-            function=star_age,
+            function=fun,
             units=self.ds.unit_system["time"],
         )
 
@@ -418,8 +436,16 @@ class RAMSESFieldInfo(FieldInfoContainer):
         def _create_field(name, interp_object, unit):
             def _func(field, data):
                 shape = data["gas", "temperature_over_mu"].shape
+                # Ramses assumes a fraction X of Hydrogen within the non-metal gas.
+                # It has to be corrected by metallicity.
+                Z = data["gas", "metallicity"]
+                nH = ((1 - _Y) * (1 - Z) * data["gas", "density"] / mh).to("cm**-3")
+                if data.ds.self_shielding:
+                    boost = np.maximum(np.exp(-nH / 0.01), 1e-20)
+                else:
+                    boost = 1
                 d = {
-                    "lognH": np.log10(_X * data["gas", "density"] / mh).ravel(),
+                    "lognH": np.log10(nH / boost).ravel(),
                     "logT": np.log10(data["gas", "temperature_over_mu"]).ravel(),
                 }
                 rv = interp_object(d).reshape(shape)

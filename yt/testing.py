@@ -6,10 +6,11 @@ import shutil
 import sys
 import tempfile
 import unittest
+from collections.abc import Callable, Mapping
 from functools import wraps
 from importlib.util import find_spec
 from shutil import which
-from typing import TYPE_CHECKING, Callable, Union
+from typing import TYPE_CHECKING
 from unittest import SkipTest
 
 import matplotlib
@@ -30,8 +31,6 @@ if TYPE_CHECKING:
 
     from yt._typing import AnyFieldKey
 
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 ANSWER_TEST_TAG = "answer_test"
 
@@ -92,7 +91,7 @@ def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
 
 # tested: volume integral is 1.
 def cubicspline_python(
-    x: Union[float, np.ndarray],
+    x: float | np.ndarray,
 ) -> np.ndarray:
     """
     cubic spline SPH kernel function for testing against more
@@ -432,7 +431,14 @@ _fake_amr_ds_default_units = ("g/cm**3",)
 
 
 def fake_amr_ds(
-    fields=None, units=None, geometry="cartesian", particles=0, length_unit=None
+    fields=None,
+    units=None,
+    geometry="cartesian",
+    particles=0,
+    length_unit=None,
+    *,
+    domain_left_edge=None,
+    domain_right_edge=None,
 ):
     from yt.loaders import load_amr_grids
 
@@ -448,9 +454,10 @@ def fake_amr_ds(
     )
 
     prng = RandomState(0x4D3D3D3)
-    LE, RE = _geom_transforms[geometry]
-    LE = np.array(LE)
-    RE = np.array(RE)
+    default_LE, default_RE = _geom_transforms[geometry]
+
+    LE = np.array(domain_left_edge or default_LE, dtype="float64")
+    RE = np.array(domain_right_edge or default_RE, dtype="float64")
     data = []
     for gspec in _amr_grid_index:
         level, left_edge, right_edge, dims = gspec
@@ -821,8 +828,8 @@ def fake_sph_flexible_grid_ds(
     offsets: np.ndarray = _floathalves,
     massgenerator: Callable[[int, int, int], float] = constantmass,
     unitrho: float = 1.0,
-    bbox: Union[np.ndarray, None] = None,
-    recenter: Union[np.ndarray, None] = None,
+    bbox: np.ndarray | None = None,
+    recenter: np.ndarray | None = None,
 ) -> StreamParticlesDataset:
     """Returns an in-memory SPH dataset useful for testing
 
@@ -947,7 +954,7 @@ def fake_sph_flexible_grid_ds(
 def fake_random_sph_ds(
     npart: int,
     bbox: np.ndarray,
-    periodic: Union[bool, tuple[bool, bool, bool]] = True,
+    periodic: bool | tuple[bool, bool, bool] = True,
     massrange: tuple[float, float] = (0.5, 2.0),
     hsmlrange: tuple[float, float] = (0.5, 2.0),
     unitrho: float = 1.0,

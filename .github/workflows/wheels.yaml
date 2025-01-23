@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build wheels for CPython
-        uses: pypa/cibuildwheel@v2.20.0
+        uses: pypa/cibuildwheel@v2.22.0
         with:
           output-dir: dist
 
@@ -52,7 +52,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
       - name: Build sdist
         run: pipx run build --sdist
@@ -82,7 +82,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.13'
     - name: install check-manifest
       run: |
         python -m pip install --upgrade pip
@@ -92,10 +92,9 @@ jobs:
 
       # keep in sync with pyproject.toml
       run: |
-        python -m pip install "Cython>=3.0.3, <3.1"
-        python -m pip install numpy>=1.25
-        python -m pip install ewah-bool-utils>=1.0.2
-        python -m pip install --upgrade wheel
+        python -m pip install Cython>=3.0.3
+        python -m pip install numpy>=2.0.0
+        python -m pip install ewah-bool-utils>=1.2.0
         python -m pip install --upgrade setuptools
     - name: build yt
       shell: bash
@@ -125,7 +124,7 @@ jobs:
           merge-multiple: true
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.10.1
+        uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}

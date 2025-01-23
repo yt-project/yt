@@ -1,7 +1,6 @@
 import glob
 import os
 import struct
-import sys
 
 import numpy as np
 
@@ -12,9 +11,6 @@ from yt.utilities.physical_constants import G
 from yt.utilities.physical_ratios import cm_per_kpc
 
 from .fields import TipsyFieldInfo
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class TipsyFile(ParticleFile):

@@ -1,7 +1,6 @@
 import glob
 import os
 import struct
-import sys
 import weakref
 
 import numpy as np
@@ -33,9 +32,6 @@ from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.oct_container import ARTOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class ARTIndex(OctreeIndex):

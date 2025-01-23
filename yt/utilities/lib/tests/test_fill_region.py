@@ -1,12 +1,7 @@
-import sys
-
 import numpy as np
 from numpy.testing import assert_equal
 
 from yt.utilities.lib.misc_utilities import fill_region
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 NDIM = 32
 

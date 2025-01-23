@@ -5,10 +5,11 @@ import os
 import weakref
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Optional
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from more_itertools import always_iterable
+from unyt import Unit, unyt_quantity
 
 from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
@@ -27,6 +28,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_objects,
     parallel_root_only,
 )
+
+if TYPE_CHECKING:
+    from yt.data_objects.static_output import Dataset
 
 
 class AnalysisTaskProxy:
@@ -144,10 +148,7 @@ class DatasetSeries:
 
     """
 
-    # this annotation should really be Optional[Type[Dataset]]
-    # but we cannot import the yt.data_objects.static_output.Dataset
-    # class here without creating a circular import for now
-    _dataset_cls: Optional[type] = None
+    _dataset_cls: type["Dataset"] | None = None
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -371,7 +372,7 @@ class DatasetSeries:
         obj = cls(filenames, parallel=parallel)
         return obj
 
-    def _load(self, output_fn, *, hint: Optional[str] = None, **kwargs):
+    def _load(self, output_fn, *, hint: str | None = None, **kwargs):
         from yt.loaders import load
 
         if self._dataset_cls is not None:
@@ -434,6 +435,173 @@ class DatasetSeries:
         """
         return ParticleTrajectories(
             self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype
+        )
+
+    def _get_by_attribute(
+        self,
+        attribute: str,
+        value: unyt_quantity | tuple[float, Unit | str],
+        tolerance: None | unyt_quantity | tuple[float, Unit | str] = None,
+        prefer: Literal["nearest", "smaller", "larger"] = "nearest",
+    ) -> "Dataset":
+        r"""
+        Get a dataset at or near to a given value.
+
+        Parameters
+        ----------
+        attribute : str
+            The key by which to retrieve an output, usually 'current_time' or
+            'current_redshift'. The key must be an attribute of the dataset
+            and monotonic.
+        value : unyt_quantity or (value, unit)
+            The value to search for.
+        tolerance : unyt_quantity or (value, unit), optional
+            If not None, do not return a dataset unless the value is
+            within the tolerance value. If None, simply return the
+            nearest dataset.
+            Default: None.
+        prefer : str
+            The side of the value to return. Can be 'nearest', 'smaller' or 'larger'.
+            Default: 'nearest'.
+        """
+
+        if prefer not in ("nearest", "smaller", "larger"):
+            raise ValueError(
+                f"Side must be 'nearest', 'smaller' or 'larger', got {prefer}."
+            )
+
+        # Use a binary search to find the closest value
+        iL = 0
+        iR = len(self._pre_outputs) - 1
+
+        if iL == iR:
+            ds = self[0]
+            if (
+                tolerance is not None
+                and abs(getattr(ds, attribute) - value) > tolerance
+            ):
+                raise ValueError(
+                    f"No dataset found with {attribute} within {tolerance} of {value}."
+                )
+            return ds
+
+        # Check signedness
+        dsL = self[iL]
+        dsR = self[iR]
+        vL = getattr(dsL, attribute)
+        vR = getattr(dsR, attribute)
+
+        if vL < vR:
+            sign = 1
+        elif vL > vR:
+            sign = -1
+        else:
+            raise ValueError(
+                f"{dsL} and {dsR} have both {attribute}={vL}, cannot perform search."
+            )
+
+        if isinstance(value, tuple):
+            value = dsL.quan(*value)
+        if isinstance(tolerance, tuple):
+            tolerance = dsL.quan(*tolerance)
+
+        # Short-circuit if value is out-of-range
+        if not (vL * sign < value * sign < vR * sign):
+            iL = iR = 0
+
+        while iR - iL > 1:
+            iM = (iR + iL) // 2
+            dsM = self[iM]
+            vM = getattr(dsM, attribute)
+
+            if sign * value < sign * vM:
+                iR = iM
+                dsR = dsM
+            elif sign * value > sign * vM:
+                iL = iM
+                dsL = dsM
+            else:  # Exact match
+                dsL = dsR = dsM
+                break
+
+        if prefer == "smaller":
+            ds_best = dsL if sign > 0 else dsR
+        elif prefer == "larger":
+            ds_best = dsR if sign > 0 else dsL
+        elif abs(value - getattr(dsL, attribute)) < abs(
+            value - getattr(dsR, attribute)
+        ):
+            ds_best = dsL
+        else:
+            ds_best = dsR
+
+        if tolerance is not None:
+            if abs(value - getattr(ds_best, attribute)) > tolerance:
+                raise ValueError(
+                    f"No dataset found with {attribute} within {tolerance} of {value}."
+                )
+        return ds_best
+
+    def get_by_time(
+        self,
+        time: unyt_quantity | tuple[float, Unit | str],
+        tolerance: None | unyt_quantity | tuple[float, Unit | str] = None,
+        prefer: Literal["nearest", "smaller", "larger"] = "nearest",
+    ) -> "Dataset":
+        """
+        Get a dataset at or near to a given time.
+
+        Parameters
+        ----------
+        time : unyt_quantity or (value, unit)
+            The time to search for.
+        tolerance : unyt_quantity or (value, unit)
+            If not None, do not return a dataset unless the time is
+            within the tolerance value. If None, simply return the
+            nearest dataset.
+            Default: None.
+        prefer : str
+            The side of the value to return. Can be 'nearest', 'smaller' or 'larger'.
+            Default: 'nearest'.
+
+        Examples
+        --------
+        >>> ds = ts.get_by_time((12, "Gyr"))
+        >>> t = ts[0].quan(12, "Gyr")
+        ... ds = ts.get_by_time(t, tolerance=(100, "Myr"))
+        """
+        return self._get_by_attribute(
+            "current_time", time, tolerance=tolerance, prefer=prefer
+        )
+
+    def get_by_redshift(
+        self,
+        redshift: float,
+        tolerance: float | None = None,
+        prefer: Literal["nearest", "smaller", "larger"] = "nearest",
+    ) -> "Dataset":
+        """
+        Get a dataset at or near to a given time.
+
+        Parameters
+        ----------
+        redshift : float
+            The redshift to search for.
+        tolerance : float
+            If not None, do not return a dataset unless the redshift is
+            within the tolerance value. If None, simply return the
+            nearest dataset.
+            Default: None.
+        prefer : str
+            The side of the value to return. Can be 'nearest', 'smaller' or 'larger'.
+            Default: 'nearest'.
+
+        Examples
+        --------
+        >>> ds = ts.get_by_redshift(0.0)
+        """
+        return self._get_by_attribute(
+            "current_redshift", redshift, tolerance=tolerance, prefer=prefer
         )
 
 

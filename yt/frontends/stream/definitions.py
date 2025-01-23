@@ -1,4 +1,3 @@
-import sys
 from collections import defaultdict
 
 import numpy as np
@@ -13,9 +12,6 @@ from yt.utilities.exceptions import (
 from yt.utilities.logger import ytLogger as mylog
 
 from .fields import StreamFieldInfo
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def assign_particle_data(ds, pdata, bbox):

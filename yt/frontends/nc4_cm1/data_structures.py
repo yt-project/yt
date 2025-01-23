@@ -1,7 +1,6 @@
 import os
 import weakref
 from collections import OrderedDict
-from typing import Optional
 
 import numpy as np
 
@@ -90,7 +89,7 @@ class CM1Dataset(Dataset):
         )
         self.storage_filename = storage_filename
 
-    def _setup_coordinate_handler(self, axis_order: Optional[AxisOrder]) -> None:
+    def _setup_coordinate_handler(self, axis_order: AxisOrder | None) -> None:
         # ensure correct ordering of axes so plots aren't rotated (z should always be
         # on the vertical axis).
         super()._setup_coordinate_handler(axis_order)

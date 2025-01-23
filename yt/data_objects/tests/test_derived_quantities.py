@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 
@@ -12,9 +10,6 @@ from yt.testing import (
     fake_sph_orientation_ds,
     requires_file,
 )
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def setup_module():
@@ -73,7 +68,7 @@ def test_average():
                 ("gas", "density"), ("gas", "cell_mass")
             )
             a_mean = (ad["gas", "density"] * ad["gas", "cell_mass"]).sum() / ad[
-                ("gas", "cell_mass")
+                "gas", "cell_mass"
             ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
 
@@ -92,7 +87,7 @@ def test_standard_deviation():
                 ("gas", "density"), ("gas", "cell_mass")
             )
             a_mean = (ad["gas", "density"] * ad["gas", "cell_mass"]).sum() / ad[
-                ("gas", "cell_mass")
+                "gas", "cell_mass"
             ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
             a_std = np.sqrt(

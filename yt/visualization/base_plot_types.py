@@ -2,7 +2,7 @@ import sys
 import warnings
 from abc import ABC
 from io import BytesIO
-from typing import TYPE_CHECKING, Optional, TypedDict, Union
+from typing import TYPE_CHECKING, Optional, TypedDict
 
 import matplotlib
 import numpy as np
@@ -247,7 +247,7 @@ class ImagePlotMPL(PlotMPL, ABC):
     ):
         """Initialize ImagePlotMPL class object"""
 
-        self._transform: Optional[Transform]
+        self._transform: Transform | None
         setdefaultattr(self, "_transform", None)
 
         self.colorbar_handler = colorbar_handler
@@ -272,7 +272,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             self.cax = cax
 
     def _setup_layout_constraints(
-        self, figure_size: Union[tuple[float, float], float], fontsize: float
+        self, figure_size: tuple[float, float] | float, fontsize: float
     ):
         # Setup base layout attributes
         # derived classes need to call this before super().__init__
@@ -326,6 +326,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             aspect=aspect,
             cmap=self.colorbar_handler.cmap,
             interpolation="nearest",
+            interpolation_stage="data",
             transform=transform,
             alpha=alpha,
         )

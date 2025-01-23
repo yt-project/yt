@@ -1,7 +1,6 @@
-import sys
 import weakref
 from numbers import Real
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, TypeAlias, Union
 
 import matplotlib as mpl
 import numpy as np
@@ -13,15 +12,10 @@ from yt._typing import Quantity, Unit
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
 
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
-
 if TYPE_CHECKING:
     # RGBColorType, RGBAColorType and ColorType are backported from matplotlib 3.8.0
-    RGBColorType = Union[tuple[float, float, float], str]
-    RGBAColorType = Union[
+    RGBColorType = tuple[float, float, float] | str
+    RGBAColorType = Union[  # noqa: UP007
         str,  # "none" or "#RRGGBBAA"/"#RGBA" hex strings
         tuple[float, float, float, float],
         # 2 tuple (color, alpha) representations, not infinitely recursive
@@ -31,10 +25,10 @@ if TYPE_CHECKING:
         tuple[tuple[float, float, float, float], float],
     ]
 
-    ColorType = Union[RGBColorType, RGBAColorType]
+    ColorType = RGBColorType | RGBAColorType
 
     # this type alias is unique to the present module
-    ColormapInput: TypeAlias = Union[Colormap, str, None]
+    ColormapInput: TypeAlias = Colormap | str | None
 
 
 class NormHandler:
@@ -78,12 +72,12 @@ class NormHandler:
         data_source,
         *,
         display_units: un.Unit,
-        vmin: Optional[un.unyt_quantity] = None,
-        vmax: Optional[un.unyt_quantity] = None,
-        dynamic_range: Optional[float] = None,
-        norm_type: Optional[type[Normalize]] = None,
-        norm: Optional[Normalize] = None,
-        linthresh: Optional[float] = None,
+        vmin: un.unyt_quantity | None = None,
+        vmax: un.unyt_quantity | None = None,
+        dynamic_range: float | None = None,
+        norm_type: type[Normalize] | None = None,
+        norm: Normalize | None = None,
+        linthresh: float | None = None,
     ):
         self.data_source = weakref.proxy(data_source)
         self.ds = data_source.ds  # should already be a weakref proxy
@@ -156,9 +150,7 @@ class NormHandler:
     def display_units(self, newval: Unit) -> None:
         self._display_units = un.Unit(newval, registry=self.ds.unit_registry)
 
-    def _set_quan_attr(
-        self, attr: str, newval: Optional[Union[Quantity, float]]
-    ) -> None:
+    def _set_quan_attr(self, attr: str, newval: Quantity | float | None) -> None:
         if newval is None:
             setattr(self, attr, None)
         else:
@@ -173,11 +165,11 @@ class NormHandler:
                 setattr(self, attr, quan)
 
     @property
-    def vmin(self) -> Optional[Union[un.unyt_quantity, Literal["min"]]]:
+    def vmin(self) -> un.unyt_quantity | Literal["min"] | None:
         return self._vmin
 
     @vmin.setter
-    def vmin(self, newval: Optional[Union[Quantity, float, Literal["min"]]]) -> None:
+    def vmin(self, newval: Quantity | float | Literal["min"] | None) -> None:
         self._reset_norm()
         if newval == "min":
             self._vmin = "min"
@@ -185,11 +177,11 @@ class NormHandler:
             self._set_quan_attr("_vmin", newval)
 
     @property
-    def vmax(self) -> Optional[Union[un.unyt_quantity, Literal["max"]]]:
+    def vmax(self) -> un.unyt_quantity | Literal["max"] | None:
         return self._vmax
 
     @vmax.setter
-    def vmax(self, newval: Optional[Union[Quantity, float, Literal["max"]]]) -> None:
+    def vmax(self, newval: Quantity | float | Literal["max"] | None) -> None:
         self._reset_norm()
         if newval == "max":
             self._vmax = "max"
@@ -197,11 +189,11 @@ class NormHandler:
             self._set_quan_attr("_vmax", newval)
 
     @property
-    def dynamic_range(self) -> Optional[float]:
+    def dynamic_range(self) -> float | None:
         return self._dynamic_range
 
     @dynamic_range.setter
-    def dynamic_range(self, newval: Optional[float]) -> None:
+    def dynamic_range(self, newval: float | None) -> None:
         if newval is None:
             return
 
@@ -222,7 +214,7 @@ class NormHandler:
         self._dynamic_range = newval
 
     def get_dynamic_range(
-        self, dvmin: Optional[float], dvmax: Optional[float]
+        self, dvmin: float | None, dvmax: float | None
     ) -> tuple[float, float]:
         if self.dynamic_range is None:
             raise RuntimeError(
@@ -253,11 +245,11 @@ class NormHandler:
             )
 
     @property
-    def norm_type(self) -> Optional[type[Normalize]]:
+    def norm_type(self) -> type[Normalize] | None:
         return self._norm_type
 
     @norm_type.setter
-    def norm_type(self, newval: Optional[type[Normalize]]) -> None:
+    def norm_type(self, newval: type[Normalize] | None) -> None:
         if not (
             newval is None
             or (isinstance(newval, type) and issubclass(newval, Normalize))
@@ -272,7 +264,7 @@ class NormHandler:
         self._norm_type = newval
 
     @property
-    def norm(self) -> Optional[Normalize]:
+    def norm(self) -> Normalize | None:
         return self._norm
 
     @norm.setter
@@ -286,11 +278,11 @@ class NormHandler:
         self._norm = newval
 
     @property
-    def linthresh(self) -> Optional[float]:
+    def linthresh(self) -> float | None:
         return self._linthresh
 
     @linthresh.setter
-    def linthresh(self, newval: Optional[Union[Quantity, float]]) -> None:
+    def linthresh(self, newval: Quantity | float | None) -> None:
         self._reset_norm()
         self._set_quan_attr("_linthresh", newval)
         if self._linthresh is not None and self._linthresh <= 0:
@@ -425,13 +417,13 @@ class ColorbarHandler:
         draw_cbar: bool = True,
         draw_minorticks: bool = True,
         cmap: "ColormapInput" = None,
-        background_color: Optional[str] = None,
+        background_color: str | None = None,
     ):
         self._draw_cbar = draw_cbar
         self._draw_minorticks = draw_minorticks
-        self._cmap: Optional[Colormap] = None
+        self._cmap: Colormap | None = None
         self._set_cmap(cmap)
-        self._background_color: Optional[ColorType] = background_color
+        self._background_color: ColorType | None = background_color
 
     @property
     def draw_cbar(self) -> bool:

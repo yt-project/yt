@@ -4,8 +4,6 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Union
-
     from yt.data_objects.analyzer_objects import AnalysisTask
     from yt.data_objects.data_containers import YTDataContainer
     from yt.data_objects.derived_quantities import DerivedQuantity
@@ -19,4 +17,4 @@ output_type_registry: dict[str, type["Dataset"]] = {}
 simulation_time_series_registry: dict[str, type["DatasetSeries"]] = {}
 
 # TODO: split into 2 registries to avoid a typing.Union
-data_object_registry: dict[str, "Union[type[YTDataContainer], type[Camera]]"] = {}
+data_object_registry: dict[str, "type[YTDataContainer] | type[Camera]"] = {}

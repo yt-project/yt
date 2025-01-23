@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 
@@ -9,9 +7,6 @@ from yt.loaders import load as yt_load
 from yt.testing import TempDirTest, requires_file, requires_module
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import data_dir_load
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def fake_halo_catalog(data):

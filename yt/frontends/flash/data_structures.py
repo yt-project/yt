@@ -1,6 +1,6 @@
 import os
-import sys
 import weakref
+from pathlib import Path
 
 import numpy as np
 
@@ -15,9 +15,6 @@ from yt.utilities.file_handler import HDF5FileHandler, valid_hdf5_signature
 from yt.utilities.physical_ratios import cm_per_mpc
 
 from .fields import FLASHFieldInfo
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class FLASHGrid(AMRGridPatch):
@@ -189,17 +186,27 @@ class FLASHDataset(Dataset):
 
         self.particle_filename = particle_filename
 
+        filepath = Path(filename)
+
         if self.particle_filename is None:
             # try to guess the particle filename
-            try:
-                self._particle_handle = HDF5FileHandler(
-                    filename.replace("plt_cnt", "part")
-                )
-                self.particle_filename = filename.replace("plt_cnt", "part")
-                mylog.info(
-                    "Particle file found: %s", self.particle_filename.split("/")[-1]
-                )
-            except OSError:
+            if "hdf5_plt_cnt" in filepath.name:
+                # We have a plotfile, look for the particle file
+                try:
+                    pfn = str(
+                        filepath.parent.resolve()
+                        / filepath.name.replace("plt_cnt", "part")
+                    )
+                    self._particle_handle = HDF5FileHandler(pfn)
+                    self.particle_filename = pfn
+                    mylog.info(
+                        "Particle file found: %s",
+                        os.path.basename(self.particle_filename),
+                    )
+                except OSError:
+                    self._particle_handle = self._handle
+            elif "hdf5_chk" in filepath.name:
+                # This is a checkpoint file, should have the particles in it
                 self._particle_handle = self._handle
         else:
             # particle_filename is specified by user
@@ -207,9 +214,10 @@ class FLASHDataset(Dataset):
 
         # Check if the particle file has the same time
         if self._particle_handle != self._handle:
-            part_time = self._particle_handle.handle.get("real scalars")[0][1]
-            plot_time = self._handle.handle.get("real scalars")[0][1]
-            if not np.isclose(part_time, plot_time):
+            plot_time = self._handle.handle.get("real scalars")
+            if (part_time := self._particle_handle.handle.get("real scalars")) is None:
+                raise RuntimeError("FLASH 2.x particle files are not supported!")
+            if not np.isclose(part_time[0][1], plot_time[0][1]):
                 self._particle_handle = self._handle
                 mylog.warning(
                     "%s and %s are not at the same time. "
@@ -420,18 +428,22 @@ class FLASHDataset(Dataset):
                         d,
                     )
                     dre[d] = dle[d] + 1.0
-        if self.dimensionality < 3 and self.geometry == "cylindrical":
-            mylog.warning("Extending theta dimension to 2PI + left edge.")
-            dre[2] = dle[2] + 2 * np.pi
-        elif self.dimensionality < 3 and self.geometry == "polar":
-            mylog.warning("Extending theta dimension to 2PI + left edge.")
-            dre[1] = dle[1] + 2 * np.pi
-        elif self.dimensionality < 3 and self.geometry == "spherical":
-            mylog.warning("Extending phi dimension to 2PI + left edge.")
-            dre[2] = dle[2] + 2 * np.pi
-        if self.dimensionality == 1 and self.geometry == "spherical":
-            mylog.warning("Extending theta dimension to PI + left edge.")
-            dre[1] = dle[1] + np.pi
+
+        if self.dimensionality < 3:
+            match self.geometry:
+                case Geometry.CYLINDRICAL:
+                    mylog.warning("Extending theta dimension to 2PI + left edge.")
+                    dre[2] = dle[2] + 2 * np.pi
+                case Geometry.POLAR:
+                    mylog.warning("Extending theta dimension to 2PI + left edge.")
+                    dre[1] = dle[1] + 2 * np.pi
+                case Geometry.SPHERICAL:
+                    mylog.warning("Extending phi dimension to 2PI + left edge.")
+                    dre[2] = dle[2] + 2 * np.pi
+                    if self.dimensionality == 1:
+                        mylog.warning("Extending theta dimension to PI + left edge.")
+                        dre[1] = dle[1] + np.pi
+
         self.domain_left_edge = dle
         self.domain_right_edge = dre
         self.domain_dimensions = np.array([nblockx * nxb, nblocky * nyb, nblockz * nzb])

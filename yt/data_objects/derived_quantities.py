@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 
 from yt.funcs import camelcase_to_underscore, iter_fields
@@ -12,9 +10,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 )
 from yt.utilities.physical_constants import gravitational_constant_cgs
 from yt.utilities.physical_ratios import HUGE
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def get_position_fields(field, data):

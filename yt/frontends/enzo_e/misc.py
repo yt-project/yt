@@ -1,10 +1,5 @@
-import sys
-
 import numpy as np
 from more_itertools import always_iterable
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def bdecode(block):

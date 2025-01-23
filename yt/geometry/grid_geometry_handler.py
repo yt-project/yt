@@ -1,7 +1,6 @@
 import abc
 import weakref
 from collections import defaultdict
-from typing import Optional
 
 import numpy as np
 
@@ -452,7 +451,7 @@ class GridIndex(Index, abc.ABC):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[tuple[int, ...]] = None,
+        axes: tuple[int, ...] | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.

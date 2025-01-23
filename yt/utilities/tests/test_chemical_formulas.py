@@ -1,12 +1,7 @@
-import sys
-
 from numpy.testing import assert_allclose, assert_equal
 
 from yt.utilities.chemical_formulas import ChemicalFormula, compute_mu
 from yt.utilities.periodic_table import periodic_table
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 _molecules = (
     ("H2O_p1", (("H", 2), ("O", 1)), 1),

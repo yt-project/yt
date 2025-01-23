@@ -7,7 +7,6 @@ AMRVAC data structures
 
 import os
 import struct
-import sys
 import warnings
 import weakref
 from pathlib import Path
@@ -26,9 +25,6 @@ from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 from .datfile_utils import get_header, get_tree_info
 from .fields import AMRVACFieldInfo
 from .io import read_amrvac_namelist
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def _parse_geometry(geometry_tag: str) -> Geometry:

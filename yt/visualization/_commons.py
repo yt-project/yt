@@ -1,17 +1,13 @@
 import os
-import sys
 import warnings
 from functools import wraps
-from typing import TYPE_CHECKING, Optional, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 import matplotlib as mpl
 from matplotlib.ticker import SymmetricalLogLocator
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 if TYPE_CHECKING:
     from matplotlib.backend_bases import FigureCanvasBase
@@ -68,7 +64,7 @@ def get_canvas_class(suffix: str) -> type["FigureCanvasBase"]:
     )
 
 
-def validate_image_name(filename, suffix: Optional[str] = None) -> str:
+def validate_image_name(filename, suffix: str | None = None) -> str:
     """
     Build a valid image filename with a specified extension (default to png).
     The suffix parameter is ignored if the input filename has a valid extension already.

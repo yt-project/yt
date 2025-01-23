@@ -1,7 +1,7 @@
 import sys
 import weakref
 from functools import partial
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -116,7 +116,7 @@ class FixedResolutionBuffer:
         antialias=True,
         periodic=False,
         *,
-        filters: Optional[list["FixedResolutionBufferFilter"]] = None,
+        filters: list["FixedResolutionBufferFilter"] | None = None,
     ):
         self.data_source = data_source
         self.ds = data_source.ds

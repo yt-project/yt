@@ -439,9 +439,9 @@ which results in:
     p_B = \frac{B^2}{2} \\
     v_A = \frac{B}{\sqrt{\rho}}
 
-Using this convention is currently only available for :ref:`Athena<loading-athena-data>`
-and :ref:`Athena++<loading-athena-pp-data>` datasets, though it will likely be available
-for more datasets in the future.
+Using this convention is currently only available for :ref:`Athena<loading-athena-data>`,
+:ref:`Athena++<loading-athena-pp-data>`, and :ref:`AthenaPK<loading-parthenon-data>` datasets,
+though it will likely be available for more datasets in the future.
 
 yt automatically detects on a per-frontend basis what units the magnetic should be in, and allows conversion between
 different magnetic field units in the different unit systems as well. To determine how to set up special magnetic field handling when designing a new frontend, check out
@@ -702,16 +702,20 @@ you want to examine a line-of-sight vector within a 3-D data object, set the
     # Set to a three-vector for an off-axis component
     dd.set_field_parameter("axis", [0.3, 0.4, -0.7])
     print(dd["gas", "velocity_los"])
+    # particle fields are supported too!
+    print(dd["all", "particle_velocity_los"])
 
 .. warning::
 
     If you need to change the axis of the line of sight on the *same* data container
-    (sphere, box, cylinder, or whatever), you will need to delete the field using
+    (sphere, box, cylinder, or whatever), you will need to delete the field using (e.g.)
     ``del dd['velocity_los']`` and re-generate it.
 
 At this time, this functionality is enabled for the velocity and magnetic vector
-fields, ``('gas', 'velocity_los')`` and ``('gas', 'magnetic_field_los')``. The
-following fields built into yt make use of these line-of-sight fields:
+fields, ``('gas', 'velocity_los')`` and ``('gas', 'magnetic_field_los')`` for
+the ``"gas"`` field type, as well as every particle type with
+a velocity field, e.g. ``("all", "particle_velocity_los")``. The following fields
+built into yt make use of these line-of-sight fields:
 
 * ``('gas', 'sz_kinetic')`` uses ``('gas', 'velocity_los')``
 * ``('gas', 'rotation_measure')`` uses ``('gas', 'magnetic_field_los')``

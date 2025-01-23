@@ -25,9 +25,6 @@ from yt.visualization.particle_plots import (
 )
 from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
-
 
 class UnitfulHDU:
     def __init__(self, hdu):

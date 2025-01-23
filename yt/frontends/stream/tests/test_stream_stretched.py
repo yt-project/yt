@@ -60,7 +60,10 @@ def test_variable_dx():
 def data_cell_widths_N16():
     np.random.seed(0x4D3D3D3)
     N = 16
-    data = {"density": np.random.random((N, N, N))}
+    data = {
+        "density": np.random.random((N, N, N)),
+        "temperature": np.random.random((N, N, N)),
+    }
 
     cell_widths = []
     for _ in range(3):
@@ -84,7 +87,7 @@ def test_cell_width_type(data_cell_widths_N16):
         cell_widths=cell_widths,
     )
 
-    _ = ds.slice(0, ds.domain_center[0])[("stream", "density")]
+    _ = ds.slice(0, ds.domain_center[0])["stream", "density"]
 
 
 def test_cell_width_dimensionality(data_cell_widths_N16):

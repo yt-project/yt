@@ -1,7 +1,6 @@
 import abc
 import os
 import weakref
-from typing import Optional
 
 import numpy as np
 
@@ -54,7 +53,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[tuple[int, ...]] = None,
+        axes: tuple[int, ...] | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         # What's the use of raising NotImplementedError for this, when it's an
         # abstract base class?  Well, only *some* of the subclasses have it --

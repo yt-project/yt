@@ -1,10 +1,6 @@
 import inspect
-import sys
 
 from yt.utilities.object_registries import analysis_task_registry
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 class AnalysisTask:

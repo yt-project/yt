@@ -2,7 +2,7 @@ import abc
 import sys
 from collections import defaultdict
 from numbers import Number
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import matplotlib
 import numpy as np
@@ -26,6 +26,7 @@ from yt.funcs import (
     validate_moment,
 )
 from yt.geometry.api import Geometry
+from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -60,9 +61,6 @@ from .plot_container import (
 
 if TYPE_CHECKING:
     from yt.visualization.plot_modifications import PlotCallback
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
@@ -229,25 +227,26 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
-        self._frb: Optional[FixedResolutionBuffer] = None
+        self._frb: FixedResolutionBuffer | None = None
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
 
         if origin != "native":
-            if geometry is Geometry.CARTESIAN or geometry is Geometry.SPECTRAL_CUBE:
-                pass
-            elif (
-                geometry is Geometry.CYLINDRICAL
-                or geometry is Geometry.POLAR
-                or geometry is Geometry.SPHERICAL
-                or geometry is Geometry.GEOGRAPHIC
-                or geometry is Geometry.INTERNAL_GEOGRAPHIC
-            ):
-                mylog.info("Setting origin='native' for %s geometry.", geometry)
-                origin = "native"
-            else:
-                assert_never(geometry)
+            match geometry:
+                case Geometry.CARTESIAN | Geometry.SPECTRAL_CUBE:
+                    pass
+                case (
+                    Geometry.CYLINDRICAL
+                    | Geometry.POLAR
+                    | Geometry.SPHERICAL
+                    | Geometry.GEOGRAPHIC
+                    | Geometry.INTERNAL_GEOGRAPHIC
+                ):
+                    mylog.info("Setting origin='native' for %s geometry.", geometry)
+                    origin = "native"
+                case _:
+                    assert_never(geometry)
 
         self.origin = origin
         if self.data_source.center is not None and not oblique:
@@ -346,7 +345,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         # At this point the frb has the valid bounds, size, aliasing, etc.
         if old_fields is not None:
             # Restore the old fields
-            for key, units in zip(old_fields, old_units):
+            for key, units in zip(old_fields, old_units, strict=False):
                 self._frb.render(key)
                 equiv = self._equivalencies[key]
                 if equiv[0] is None:
@@ -869,8 +868,8 @@ class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
-    _frb_generator: Optional[type[FixedResolutionBuffer]] = None
-    _plot_type: Optional[str] = None
+    _frb_generator: type[FixedResolutionBuffer] | None = None
+    _plot_type: str | None = None
 
     def __init__(self, *args, **kwargs) -> None:
         if self._frb_generator is None:
@@ -1263,7 +1262,7 @@ class PWViewerMPL(PlotWindow):
         )
 
     @invalidate_plot
-    def clear_annotations(self, index: Optional[int] = None):
+    def clear_annotations(self, index: int | None = None):
         """
         Clear callbacks from the plot.  If index is not set, clear all
         callbacks.  If index is set, clear that index (ie 0 is the first one
@@ -1398,7 +1397,7 @@ class NormalPlot:
     """
 
     @staticmethod
-    def sanitize_normal_vector(ds, normal) -> Union[str, np.ndarray]:
+    def sanitize_normal_vector(ds, normal) -> str | np.ndarray:
         """Return the name of a cartesian axis whener possible,
         or a 3-element 1D ndarray of float64 in any other valid case.
         Fail with a descriptive error message otherwise.
@@ -2496,7 +2495,12 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         is_sph_field = finfo.is_sph_field
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
 
-        if isinstance(data_source.ds, particle_datasets) and is_sph_field:
+        dom_width = data_source.ds.domain_width
+        cubic_domain = dom_width.max() == dom_width.min()
+
+        if (isinstance(data_source.ds, particle_datasets) and is_sph_field) or (
+            isinstance(data_source.ds.index, OctreeIndex) and cubic_domain
+        ):
             center_use = parse_center_array(center, ds=data_source.ds, axis=None)
         else:
             center_use = center_rot
@@ -2727,25 +2731,20 @@ def plot_2d(
     """
     if ds.dimensionality != 2:
         raise RuntimeError("plot_2d only plots 2D datasets!")
-    if (
-        ds.geometry is Geometry.CARTESIAN
-        or ds.geometry is Geometry.POLAR
-        or ds.geometry is Geometry.SPECTRAL_CUBE
-    ):
-        axis = "z"
-    elif ds.geometry is Geometry.CYLINDRICAL:
-        axis = "theta"
-    elif ds.geometry is Geometry.SPHERICAL:
-        axis = "phi"
-    elif (
-        ds.geometry is Geometry.GEOGRAPHIC
-        or ds.geometry is Geometry.INTERNAL_GEOGRAPHIC
-    ):
-        raise NotImplementedError(
-            f"plot_2d does not yet support datasets with {ds.geometry} geometries"
-        )
-    else:
-        assert_never(ds.geometry)
+    match ds.geometry:
+        case Geometry.CARTESIAN | Geometry.POLAR | Geometry.SPECTRAL_CUBE:
+            axis = "z"
+        case Geometry.CYLINDRICAL:
+            axis = "theta"
+        case Geometry.SPHERICAL:
+            axis = "phi"
+        case Geometry.GEOGRAPHIC | Geometry.INTERNAL_GEOGRAPHIC:
+            raise NotImplementedError(
+                f"plot_2d does not yet support datasets with {ds.geometry} geometries"
+            )
+        case _:
+            assert_never(ds.geometry)
+
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
     if not isinstance(center, str) and obj_length(center) == 2:

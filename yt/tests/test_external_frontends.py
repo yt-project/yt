@@ -1,5 +1,4 @@
 import importlib.metadata
-import sys
 
 import pytest
 
@@ -35,10 +34,7 @@ class MockEntryPoint:
 @pytest.fixture()
 def mock_external_frontend(monkeypatch):
     def mock_entry_points(group=None):
-        if sys.version_info >= (3, 10):
-            return [MockEntryPoint]
-        else:
-            return {"yt.frontends": [MockEntryPoint]}
+        return [MockEntryPoint]
 
     monkeypatch.setattr(importlib.metadata, "entry_points", mock_entry_points)
     assert "ExtDataset" not in output_type_registry

@@ -1,14 +1,9 @@
-import sys
-
 import numpy as np
 from numpy.testing import assert_equal
 
 import yt
 from yt.frontends.ramses.hilbert import get_cpu_list_cuboid, hilbert3d
 from yt.testing import requires_file
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 
 def test_hilbert3d():

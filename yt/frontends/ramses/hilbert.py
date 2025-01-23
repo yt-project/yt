@@ -72,7 +72,7 @@ def get_intersecting_cpus(
     region: YTRegion,
     LE: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
     dx: float = 1.0,
-    dx_cond: Optional[float] = None,
+    dx_cond: float | None = None,
     factor: float = 4.0,
     bound_keys: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
 ) -> set[int]:

@@ -1,5 +1,4 @@
 import os
-import sys
 import weakref
 
 import numpy as np
@@ -15,9 +14,6 @@ from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import AthenaPPFieldInfo
-
-if sys.version_info < (3, 10):
-    from yt._maintenance.backports import zip
 
 geom_map = {
     "cartesian": "cartesian",
@@ -160,7 +156,7 @@ class AthenaPPDataset(Dataset):
 
         geom = self._handle.attrs["Coordinates"].decode("utf-8")
         self.geometry = Geometry(geom_map[geom])
-        if self.geometry == "cylindrical":
+        if self.geometry is Geometry.CYLINDRICAL:
             axis_order = ("r", "theta", "z")
         else:
             axis_order = None

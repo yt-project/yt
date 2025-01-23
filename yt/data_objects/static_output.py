@@ -13,7 +13,7 @@ from collections.abc import MutableMapping
 from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import numpy as np
 import unyt as un
@@ -88,15 +88,13 @@ else:
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
 
-_cached_datasets: MutableMapping[Union[int, str], "Dataset"] = (
-    weakref.WeakValueDictionary()
-)
+_cached_datasets: MutableMapping[int | str, "Dataset"] = weakref.WeakValueDictionary()
 
 # we set this global to None as a place holder
 # its actual instantiation is delayed until after yt.__init__
 # is completed because we need yt.config.ytcfg to be instantiated first
 
-_ds_store: Optional[ParameterFileStore] = None
+_ds_store: ParameterFileStore | None = None
 
 
 def _setup_ds_store(ytcfg: YTConfig) -> None:
@@ -163,24 +161,24 @@ class Dataset(abc.ABC):
     default_field = ("gas", "density")
     fluid_types: tuple[FieldType, ...] = ("gas", "deposit", "index")
     particle_types: tuple[ParticleType, ...] = ("io",)  # By default we have an 'all'
-    particle_types_raw: Optional[tuple[ParticleType, ...]] = ("io",)
+    particle_types_raw: tuple[ParticleType, ...] | None = ("io",)
     geometry: Geometry = Geometry.CARTESIAN
     coordinates = None
     storage_filename = None
-    particle_unions: Optional[dict[ParticleType, ParticleUnion]] = None
-    known_filters: Optional[dict[ParticleType, ParticleFilter]] = None
+    particle_unions: dict[ParticleType, ParticleUnion] | None = None
+    known_filters: dict[ParticleType, ParticleFilter] | None = None
     _index_class: type[Index]
-    field_units: Optional[dict[AnyFieldKey, Unit]] = None
+    field_units: dict[AnyFieldKey, Unit] | None = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
-    conversion_factors: Optional[dict[str, float]] = None
+    conversion_factors: dict[str, float] | None = None
     # _instantiated represents an instantiation time (since Epoch)
     # the default is a place holder sentinel, falsy value
     _instantiated: float = 0
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
-    _determined_fields: Optional[dict[str, list[FieldKey]]] = None
+    _determined_fields: dict[str, list[FieldKey]] | None = None
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
@@ -235,8 +233,8 @@ class Dataset(abc.ABC):
     def __init__(
         self,
         filename: str,
-        dataset_type: Optional[str] = None,
-        units_override: Optional[dict[str, str]] = None,
+        dataset_type: str | None = None,
+        units_override: dict[str, str] | None = None,
         # valid unit_system values include all keys from unyt.unit_systems.unit_systems_registry + "code"
         unit_system: Literal[
             "cgs",
@@ -252,7 +250,7 @@ class Dataset(abc.ABC):
             "Any"
         ] = None,  # Any used as a placeholder here
         *,
-        axis_order: Optional[AxisOrder] = None,
+        axis_order: AxisOrder | None = None,
     ) -> None:
         """
         Base class for generating new output types.  Principally consists of
@@ -734,7 +732,7 @@ class Dataset(abc.ABC):
             added.append(("gas", old_name))
         self.field_info.find_dependencies(added)
 
-    def _setup_coordinate_handler(self, axis_order: Optional[AxisOrder]) -> None:
+    def _setup_coordinate_handler(self, axis_order: AxisOrder | None) -> None:
         # backward compatibility layer:
         # turning off type-checker on a per-line basis
         cls: type[CoordinateHandler]
@@ -800,28 +798,29 @@ class Dataset(abc.ABC):
                 f"Got {self.geometry=} with type {type(self.geometry)}"
             )
 
-        if self.geometry is Geometry.CARTESIAN:
-            cls = CartesianCoordinateHandler
-        elif self.geometry is Geometry.CYLINDRICAL:
-            cls = CylindricalCoordinateHandler
-        elif self.geometry is Geometry.POLAR:
-            cls = PolarCoordinateHandler
-        elif self.geometry is Geometry.SPHERICAL:
-            cls = SphericalCoordinateHandler
-            # It shouldn't be required to reset self.no_cgs_equiv_length
-            # to the default value (False) here, but it's still necessary
-            # see https://github.com/yt-project/yt/pull/3618
-            self.no_cgs_equiv_length = False
-        elif self.geometry is Geometry.GEOGRAPHIC:
-            cls = GeographicCoordinateHandler
-            self.no_cgs_equiv_length = True
-        elif self.geometry is Geometry.INTERNAL_GEOGRAPHIC:
-            cls = InternalGeographicCoordinateHandler
-            self.no_cgs_equiv_length = True
-        elif self.geometry is Geometry.SPECTRAL_CUBE:
-            cls = SpectralCubeCoordinateHandler
-        else:
-            assert_never(self.geometry)
+        match self.geometry:
+            case Geometry.CARTESIAN:
+                cls = CartesianCoordinateHandler
+            case Geometry.CYLINDRICAL:
+                cls = CylindricalCoordinateHandler
+            case Geometry.POLAR:
+                cls = PolarCoordinateHandler
+            case Geometry.SPHERICAL:
+                cls = SphericalCoordinateHandler
+                # It shouldn't be required to reset self.no_cgs_equiv_length
+                # to the default value (False) here, but it's still necessary
+                # see https://github.com/yt-project/yt/pull/3618
+                self.no_cgs_equiv_length = False
+            case Geometry.GEOGRAPHIC:
+                cls = GeographicCoordinateHandler
+                self.no_cgs_equiv_length = True
+            case Geometry.INTERNAL_GEOGRAPHIC:
+                cls = InternalGeographicCoordinateHandler
+                self.no_cgs_equiv_length = True
+            case Geometry.SPECTRAL_CUBE:
+                cls = SpectralCubeCoordinateHandler
+            case _:
+                assert_never(self.geometry)
 
         self.coordinates = cls(self, ordering=axis_order)
 
@@ -949,7 +948,7 @@ class Dataset(abc.ABC):
 
     def _get_field_info(
         self,
-        field: Union[FieldKey, ImplicitFieldKey, DerivedField],
+        field: FieldKey | ImplicitFieldKey | DerivedField,
         /,
     ) -> DerivedField:
         field_info, candidates = self._get_field_info_helper(field)
@@ -1010,7 +1009,7 @@ class Dataset(abc.ABC):
 
     def _get_field_info_helper(
         self,
-        field: Union[FieldKey, ImplicitFieldKey, DerivedField],
+        field: FieldKey | ImplicitFieldKey | DerivedField,
         /,
     ) -> tuple[DerivedField, list[FieldKey]]:
         self.index
@@ -1282,8 +1281,8 @@ class Dataset(abc.ABC):
         # is mks-like: i.e., it has a current with the same
         # dimensions as amperes.
         mks_system = False
-        mag_unit: Optional[unyt_quantity] = getattr(self, "magnetic_unit", None)
-        mag_dims: Optional[set[Symbol]]
+        mag_unit: unyt_quantity | None = getattr(self, "magnetic_unit", None)
+        mag_dims: set[Symbol] | None
         if mag_unit is not None:
             mag_dims = mag_unit.units.dimensions.free_symbols
         else:
@@ -1950,9 +1949,9 @@ class Dataset(abc.ABC):
         ...     ("gas", "density_gradient_magnitude"),
         ... ]
 
-        Note that the above example assumes ds.geometry == 'cartesian'. In general,
-        the function will create gradient components along the axes of the dataset
-        coordinate system.
+        Note that the above example assumes ds.geometry is Geometry.CARTESIAN.
+        In general, the function will create gradient components along the axes
+        of the dataset coordinate system.
         For instance, with cylindrical data, one gets 'density_gradient_<r,theta,z>'
 
         """
@@ -2059,9 +2058,9 @@ class ParticleFile:
     filename: str
     file_id: int
 
-    start: Optional[int] = None
-    end: Optional[int] = None
-    total_particles: Optional[defaultdict[str, int]] = None
+    start: int | None = None
+    end: int | None = None
+    total_particles: defaultdict[str, int] | None = None
 
     def __init__(self, ds, io, filename, file_id, range=None):
         self.ds = ds

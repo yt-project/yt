@@ -22,7 +22,7 @@ from yt.utilities.math_utils import (
 )
 
 from .field_functions import get_radius
-from .vector_operations import create_magnitude_field
+from .vector_operations import create_los_field, create_magnitude_field
 
 sph_whitelist_fields = (
     "density",
@@ -327,6 +327,14 @@ def standard_particle_fields(
         function=_particle_velocity_magnitude,
         take_log=False,
         units=unit_system["velocity"],
+    )
+
+    create_los_field(
+        registry,
+        "particle_velocity",
+        unit_system["velocity"],
+        ftype=ptype,
+        sampling_type="particle",
     )
 
     def _particle_specific_angular_momentum(field, data):
