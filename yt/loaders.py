@@ -1467,7 +1467,7 @@ def load_unstructured_mesh(
 
     fluid_types = ["all"]
     for i in range(1, num_meshes + 1):
-        fluid_types += ["connect%d" % i]
+        fluid_types += [f"connect{i}"]
     sds.fluid_types = tuple(fluid_types)
 
     def flatten(l):

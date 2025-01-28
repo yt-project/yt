@@ -7,13 +7,13 @@ v_units = "code_velocity"
 
 _pnums = 6
 _type_fields: KnownFieldsT = tuple(
-    ("%s%sType_%d" % (ptype, field, pnum), (units, [], None))
+    (f"{ptype}{field}Type_{pnum}", (units, [], None))
     for pnum in range(_pnums)
     for field, units in (("Mass", m_units), ("Len", p_units))
     for ptype in ("Group", "Subhalo")
 )
 _sub_type_fields: KnownFieldsT = tuple(
-    ("Subhalo%sType_%d" % (field, pnum), (units, [], None))
+    (f"Subhalo{field}Type_{pnum}", (units, [], None))
     for pnum in range(_pnums)
     for field, units in (
         ("HalfmassRad", p_units),

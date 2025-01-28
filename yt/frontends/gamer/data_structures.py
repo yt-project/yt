@@ -173,19 +173,19 @@ class GAMERHierarchy(GridIndex):
             # edges between children and parent
             for c in grid.Children:
                 for d in range(0, 3):
-                    msgL = (
-                        "Grid %d, Child %d, Grid->EdgeL %14.7e, Children->EdgeL %14.7e"
-                        % (grid.id, c.id, grid.LeftEdge[d], c.LeftEdge[d])
-                    )
-                    msgR = (
-                        "Grid %d, Child %d, Grid->EdgeR %14.7e, Children->EdgeR %14.7e"
-                        % (grid.id, c.id, grid.RightEdge[d], c.RightEdge[d])
-                    )
                     if not grid.LeftEdge[d] <= c.LeftEdge[d]:
-                        raise ValueError(msgL)
+                        raise ValueError(
+                            f"Grid {grid.id}, Child {c.id}, "
+                            f"Grid->EdgeL {grid.LeftEdge[d]:14.7e}, "
+                            f"Children->EdgeL {c.LeftEdge[d]:14.7e}"
+                        )
 
                     if not grid.RightEdge[d] >= c.RightEdge[d]:
-                        raise ValueError(msgR)
+                        raise ValueError(
+                            f"Grid {grid.id}, Child {c.id}, "
+                            f"Grid->EdgeR {grid.RightEdge[d]:14.7e}, "
+                            f"Children->EdgeR {c.RightEdge[d]:14.7e}"
+                        )
 
         mylog.info("Check passed")
 

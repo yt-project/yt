@@ -7,7 +7,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 def _grid_dname(grid_id):
-    return "/data/grid_%010i" % grid_id
+    return f"/data/grid_{grid_id:010}"
 
 
 def _field_dname(grid_id, field_name):

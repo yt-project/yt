@@ -300,7 +300,7 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
             for g in objs:
                 ds = self.fields[g.mesh_id].get(field, None)
                 if ds is None:
-                    f = ("connect%d" % (g.mesh_id + 1), fname)
+                    f = (f"connect{(g.mesh_id + 1)}", fname)
                     ds = self.fields[g.mesh_id][f]
                 ind += g.select(selector, ds, rv[field], ind)  # caches
             rv[field] = rv[field][:ind]

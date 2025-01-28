@@ -57,7 +57,7 @@ class OpenPMDGrid(AMRGridPatch):
         self.Level = level
 
     def __str__(self):
-        return "OpenPMDGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+        return f"OpenPMDGrid_{self.id:04} ({self.ActiveDimensions})"
 
 
 class OpenPMDHierarchy(GridIndex):

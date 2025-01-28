@@ -910,8 +910,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     def __repr__(self):
         disp = (
             "<Color Transfer Function Object>:\n"
-            + "x_bounds:[%3.2g, %3.2g] nbins:%i features:\n"
-            % (self.x_bounds[0], self.x_bounds[1], self.nbins)
+            f"x_bounds:[{self.x_bounds[0]:3.2g}, {self.x_bounds[1]:3.2g}] "
+            f"nbins:{self.nbins} features:\n"
         )
         for f in self.features:
             disp += f"\t{str(f)}\n"

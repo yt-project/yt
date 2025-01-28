@@ -28,7 +28,7 @@ class AthenaDistributedConverter(Converter):
         self.source_dir = source_dir
         self.basename = name[0]
         if outname is None:
-            outname = self.basename + ".%04i" % self.ddn + ".gdf"
+            outname = f"{self.basename}.{self.ddn:04}.gdf"
         self.outname = outname
         if field_conversions is None:
             field_conversions = {}
@@ -68,10 +68,10 @@ class AthenaDistributedConverter(Converter):
     def write_gdf_field(self, fn, grid_number, field, data):
         f = self.handle
         ## --------- Store Grid Data --------- ##
-        if "grid_%010i" % grid_number not in f["data"].keys():
-            g = f["data"].create_group("grid_%010i" % grid_number)
+        if (group_name := f"grid_{grid_number:010}") not in f["data"].keys():
+            g = f["data"].create_group(group_name)
         else:
-            g = f["data"]["grid_%010i" % grid_number]
+            g = f["data"][group_name]
         name = field
         try:
             name = translation_dict[name]
@@ -130,8 +130,8 @@ class AthenaDistributedConverter(Converter):
                 grid["dimensions"][grid["dimensions"] == 0] = 1
             if np.prod(grid["dimensions"]) != grid["ncells"]:
                 print(
-                    "product of dimensions %i not equal to number of cells %i"
-                    % (np.prod(grid["dimensions"]), grid["ncells"])
+                    f"product of dimensions {np.prod(grid['dimensions'])} "
+                    f"not equal to number of cells {grid['ncells']}"
                 )
                 raise TypeError
 
@@ -235,8 +235,8 @@ class AthenaDistributedConverter(Converter):
                         grid_dims[grid_dims == 0] = 1
                     if np.prod(grid_dims) != grid_ncells:
                         print(
-                            "product of dimensions %i not equal to number of cells %i"
-                            % (np.prod(grid_dims), grid_ncells)
+                            f"product of dimensions {np.prod(grid_dims)} "
+                            f"not equal to number of cells {grid_ncells}"
                         )
                         raise TypeError
                     break
@@ -312,7 +312,7 @@ class AthenaConverter(Converter):
         self.fields = []
         self.basename = basename
         name = basename.split(".")
-        fn = "%s.%04i" % (name[0], int(name[1]))
+        fn = f"{name[0]}.{int(name[1]):04}"
         self.ddn = int(name[1])
         self.basename = fn
         if outname is None:
@@ -373,8 +373,8 @@ class AthenaConverter(Converter):
                 grid["dimensions"] -= 1
             if np.prod(grid["dimensions"]) != grid["ncells"]:
                 print(
-                    "product of dimensions %i not equal to number of cells %i"
-                    % (np.prod(grid["dimensions"]), grid["ncells"])
+                    f"product of dimensions {np.prod(grid['dimensions'])} "
+                    f"not equal to number of cells {grid['ncells']}"
                 )
                 raise TypeError
 
@@ -450,7 +450,7 @@ class AthenaConverter(Converter):
 
         ## --------- Store Grid Data --------- ##
 
-        g0 = data_g.create_group("grid_%010i" % 0)
+        g0 = data_g.create_group("grid_{0:010}")
         for field in self.fields:
             name = field
             if field in translation_dict.keys():

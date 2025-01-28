@@ -320,7 +320,7 @@ class ARTDataset(Dataset):
             self.parameters["wspecies"] = wspecies[:n]
             self.parameters["lspecies"] = lspecies[:n]
             for specie in range(n):
-                self.particle_types.append("specie%i" % specie)
+                self.particle_types.append(f"specie{specie}")
             self.particle_types_raw = tuple(self.particle_types)
             ls_nonzero = np.diff(lspecies)[: n - 1]
             ls_nonzero = np.append(lspecies[0], ls_nonzero)
@@ -611,7 +611,7 @@ class DarkMatterARTDataset(ARTDataset):
             else:
                 particle_header_vals[a1] = arr[:a2]
         for specie in range(n):
-            self.particle_types.append("specie%i" % specie)
+            self.particle_types.append(f"specie{specie}")
         self.particle_types_raw = tuple(self.particle_types)
         ls_nonzero = np.diff(lspecies)[: n - 1]
         ls_nonzero = np.append(lspecies[0], ls_nonzero)
