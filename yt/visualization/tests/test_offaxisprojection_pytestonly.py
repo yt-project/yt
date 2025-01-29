@@ -1,10 +1,12 @@
 import numpy as np
 import pytest
 import unyt
+from numpy.testing import assert_allclose
 
 from yt.testing import (
     assert_rel_equal,
     cubicspline_python,
+    fake_amr_ds,
     fake_sph_flexible_grid_ds,
     integrate_kernel,
 )
@@ -165,3 +167,45 @@ def test_sph_proj_general_offaxis(
     # print("expected:\n", expected_out)
     # print("recovered:\n", img.v)
     assert_rel_equal(expected_out, img.v, 4)
+
+
+@pytest.fixture
+def fame_amr_ds_for_proj():
+    return fake_amr_ds()
+
+
+_diag_dist = np.sqrt(3.0)  # diagonal distance of a cube with length 1.
+# each case is depth, center, expected integrated distance
+_cases_to_test = [
+    (_diag_dist / 3.0, "domain_left_edge", _diag_dist / 3.0 / 2.0),
+    (_diag_dist * 2.0, "domain_left_edge", _diag_dist),
+    (_diag_dist * 4.0, "domain_left_edge", _diag_dist),
+    (None, "domain_center", _diag_dist),
+]
+
+
+@pytest.mark.parametrize("depth,proj_center,expected", _cases_to_test)
+def test_offaxisprojection_depth(depth, proj_center, expected, fame_amr_ds_for_proj):
+    # this checks that the depth keyword argument works as expected.
+    # in all cases, it integrates the (index, ones) field for a normal
+    # pointing to the right edge corner of the domain.
+    #
+    # For the tests where the projection is centered on the left edge,
+    # the integrate distance will scale as depth / 2.0. When centered
+    # on the origin, it will scale with depth. The integrated distance
+    # should max out at the diagonal distance of the cube (when the depth
+    # exceeds the cube diagonal distance).
+    #
+    # Also note that the accuracy will depend on the buffer dimensions:
+    # using the default (800,800) results in accuracy of about 1 percent
+
+    ds = fame_amr_ds_for_proj
+
+    n = [1.0, 1.0, 1.0]
+    c = getattr(ds, proj_center)
+    field = ("index", "ones")
+
+    p = ProjectionPlot(ds, n, field, depth=depth, weight_field=None, center=c)
+
+    maxval = p.frb[field].max().d
+    assert_allclose(expected, maxval, atol=1e-2)
