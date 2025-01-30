@@ -10,6 +10,7 @@ from yt.testing import (
     fake_sph_flexible_grid_ds,
     fake_sph_grid_ds,
     integrate_kernel,
+    requires_module_pytest,
 )
 from yt.visualization.api import OffAxisProjectionPlot, ProjectionPlot
 
@@ -219,6 +220,7 @@ _sph_test_cases = [
 ]
 
 
+@requires_module_pytest("contourpy")
 @pytest.mark.parametrize("normal_vec, n_particles", _sph_test_cases)
 def test_offaxisprojection_sph_defaultdepth(normal_vec, n_particles):
     # checks that particles are picked up as expected for a range of
