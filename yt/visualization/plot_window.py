@@ -2467,7 +2467,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         if depth is None:
             # off-axis projection, depth not specified
             # -> set 'large enough' depth using half the box diagonal + margin
-            depth = np.linalg.norm(ds.domain_width.in_units("code_length")) * 1.02
+            depth = np.linalg.norm(ds.domain_width.in_units("code_length")) * 1.0001
         depth = ds.coordinates.sanitize_depth(depth)[0]
 
         # center_rot normalizes the center to (0,0),

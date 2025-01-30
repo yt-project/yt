@@ -8,9 +8,10 @@ from yt.testing import (
     cubicspline_python,
     fake_amr_ds,
     fake_sph_flexible_grid_ds,
+    fake_sph_grid_ds,
     integrate_kernel,
 )
-from yt.visualization.api import ProjectionPlot
+from yt.visualization.api import OffAxisProjectionPlot, ProjectionPlot
 
 
 @pytest.mark.parametrize("weighted", [True, False])
@@ -209,3 +210,34 @@ def test_offaxisprojection_depth(depth, proj_center, expected, fame_amr_ds_for_p
 
     maxval = p.frb[field].max().d
     assert_allclose(expected, maxval, atol=1e-2)
+
+
+_sph_test_cases = [
+    ([1.0, 1.0, 0.7], 27),
+    ([1.0, 1.0, 1], 19),
+    ([0.0, 0.0, 1], 9),
+]
+
+
+@pytest.mark.parametrize("normal_vec, n_particles", _sph_test_cases)
+def test_offaxisprojection_sph_defaultdepth(normal_vec, n_particles):
+    # checks that particles are picked up as expected for a range of
+    # depths and normal vectors. Certain viewing angles will result
+    # in overlapping particles (since fake_sph_grid_ds aligns particles
+    # on a grid): n_particles is the expected number of circles in the
+    # resulting image for the given normal vector. Circle counts are
+    # calculated here using a contour generator.
+    from contourpy import contour_generator
+
+    ds = fake_sph_grid_ds()
+    c = ds.domain_center
+    diag_dist = np.linalg.norm(ds.domain_width)
+    field = ("gas", "mass")
+    p = OffAxisProjectionPlot(
+        ds, normal_vec, field, weight_field=None, center=c, width=diag_dist
+    )
+    p.render()
+
+    # get the number of circles in the plot
+    cg = contour_generator(z=p.frb[("gas", "mass")].d)
+    assert n_particles == len(cg.lines(1.0))
