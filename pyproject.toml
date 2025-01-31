@@ -44,7 +44,7 @@ requires-python = ">=3.10.3"
 dependencies = [
     "cmyt>=1.1.2",
     "ewah-bool-utils>=1.2.0",
-    "matplotlib>=3.5",
+    "matplotlib>=3.6.0",
     "more-itertools>=8.4",
     "numpy>=1.21.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
     # https://github.com/numpy/numpy/issues/27037
@@ -200,7 +200,6 @@ test = [
     "pytest-mpl>=0.16.1",
     "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
     "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
-    "contourpy",
 ]
 
 [project.scripts]
