@@ -639,7 +639,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 self.bounds[5] - self.bounds[4],
             )
         )
-        depth = dd.depth[0] if dd.depth is not None else None
         buff = off_axis_projection(
             dd.dd,
             dd.center,
@@ -652,7 +651,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             no_ghost=dd.no_ghost,
             interpolated=dd.interpolated,
             north_vector=dd.north_vector,
-            depth=depth,
+            depth=dd.depth,
             method=dd.method,
         )
         if self.data_source.moment == 2:
