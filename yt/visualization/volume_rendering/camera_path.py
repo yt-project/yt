@@ -78,7 +78,7 @@ class Keyframes:
             Nz = 1
             ndims = 2
         if Nx * Ny * Nz != Nx**ndims:
-            print("Need Nx (%d) == Ny (%d) == Nz (%d)" % (Nx, Ny, Nz))
+            print(f"Need Nx ({Nx}) == Ny ({Ny}) == Nz ({Nz})")
             raise RuntimeError
         self.nframes = Nx
         self.pos = np.zeros((Nx, 3))
@@ -315,22 +315,28 @@ class Keyframes:
             Filename containing the camera path.  Default: path.dat
         """
         fp = open(filename, "w")
-        fp.write(
-            "#%11s %12s %12s %12s %12s %12s %12s %12s %12s\n"
-            % ("x", "y", "z", "north_x", "north_y", "north_z", "up_x", "up_y", "up_z")
-        )
+        fields = [
+            "y",
+            "z",
+            "north_x",
+            "north_y",
+            "north_z",
+            "up_x",
+            "up_y",
+            "up_z",
+        ]
+        fp.write(f"#{'x':>11}" + " ".join(f"{s:>12}" for s in fields) + "\n")
         for i in range(self.npoints):
-            fp.write(
-                "{:.12f} {:.12f} {:.12f} {:.12f} {:.12f} {:.12f} {:.12f} {:.12f} {:.12f}\n".format(
-                    self.path["position"][i, 0],
-                    self.path["position"][i, 1],
-                    self.path["position"][i, 2],
-                    self.path["north_vectors"][i, 0],
-                    self.path["north_vectors"][i, 1],
-                    self.path["north_vectors"][i, 2],
-                    self.path["up_vectors"][i, 0],
-                    self.path["up_vectors"][i, 1],
-                    self.path["up_vectors"][i, 2],
-                )
-            )
+            values = [
+                self.path["position"][i, 0],
+                self.path["position"][i, 1],
+                self.path["position"][i, 2],
+                self.path["north_vectors"][i, 0],
+                self.path["north_vectors"][i, 1],
+                self.path["north_vectors"][i, 2],
+                self.path["up_vectors"][i, 0],
+                self.path["up_vectors"][i, 1],
+                self.path["up_vectors"][i, 2],
+            ]
+            fp.write(" ".join(f"{v:.12f}" for v in values) + "\n")
         fp.close()

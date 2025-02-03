@@ -26,6 +26,7 @@ from yt.funcs import (
     validate_moment,
 )
 from yt.geometry.api import Geometry
+from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -2494,7 +2495,12 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         is_sph_field = finfo.is_sph_field
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
 
-        if isinstance(data_source.ds, particle_datasets) and is_sph_field:
+        dom_width = data_source.ds.domain_width
+        cubic_domain = dom_width.max() == dom_width.min()
+
+        if (isinstance(data_source.ds, particle_datasets) and is_sph_field) or (
+            isinstance(data_source.ds.index, OctreeIndex) and cubic_domain
+        ):
             center_use = parse_center_array(center, ds=data_source.ds, axis=None)
         else:
             center_use = center_rot

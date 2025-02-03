@@ -161,7 +161,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
                 pos = np.column_stack(
                     [
                         self.fields[data_file.filename][
-                            (ptype, f"particle_position_{ax}")
+                            ptype, f"particle_position_{ax}"
                         ]
                         for ax in "xyz"
                     ]
@@ -300,7 +300,7 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
             for g in objs:
                 ds = self.fields[g.mesh_id].get(field, None)
                 if ds is None:
-                    f = ("connect%d" % (g.mesh_id + 1), fname)
+                    f = (f"connect{(g.mesh_id + 1)}", fname)
                     ds = self.fields[g.mesh_id][f]
                 ind += g.select(selector, ds, rv[field], ind)  # caches
             rv[field] = rv[field][:ind]

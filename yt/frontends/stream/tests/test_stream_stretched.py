@@ -87,7 +87,7 @@ def test_cell_width_type(data_cell_widths_N16):
         cell_widths=cell_widths,
     )
 
-    _ = ds.slice(0, ds.domain_center[0])[("stream", "density")]
+    _ = ds.slice(0, ds.domain_center[0])["stream", "density"]
 
 
 def test_cell_width_dimensionality(data_cell_widths_N16):

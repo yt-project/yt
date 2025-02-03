@@ -196,9 +196,7 @@ class BoxLibParticleHeader:
         self.known_int_fields = self.known_int_fields[0 : self.num_int_base]
 
         # these are extra integer fields
-        extra_int_fields = [
-            "particle_int_comp%d" % i for i in range(self.num_int_extra)
-        ]
+        extra_int_fields = [f"particle_int_comp{i}" for i in range(self.num_int_extra)]
         self.known_int_fields.extend(
             [(self.particle_type, field) for field in extra_int_fields]
         )
@@ -216,7 +214,7 @@ class BoxLibParticleHeader:
             assert len(extra_field_names) == self.num_real_extra
         else:
             extra_field_names = [
-                "particle_real_comp%d" % i for i in range(self.num_real_extra)
+                f"particle_real_comp{i}" for i in range(self.num_real_extra)
             ]
 
         self.known_real_fields.extend(
@@ -1479,7 +1477,7 @@ class WarpXHeader:
                 if len(line) == 1:
                     line = f.readline()
                     continue
-                self.data["species_%d" % i] = [float(val) for val in line]
+                self.data[f"species_{i}"] = [float(val) for val in line]
                 i = i + 1
                 line = f.readline()
 
@@ -1498,8 +1496,8 @@ class WarpXHierarchy(BoxlibHierarchy):
         for key, val in self.warpx_header.data.items():
             if key.startswith("species_"):
                 i = int(key.split("_")[-1])
-                charge_name = "particle%.1d_charge" % i
-                mass_name = "particle%.1d_mass" % i
+                charge_name = f"particle{i}_charge"
+                mass_name = f"particle{i}_mass"
                 self.parameters[charge_name] = val[0]
                 self.parameters[mass_name] = val[1]
 
