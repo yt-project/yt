@@ -214,8 +214,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     except KeyError:
                         if recname != "particlePatches":
                             mylog.info(
-                                "open_pmd - %s_%s does not seem to have "
-                                "unitDimension",
+                                "open_pmd - %s_%s does not seem to have unitDimension",
                                 pname,
                                 recname,
                             )

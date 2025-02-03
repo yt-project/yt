@@ -351,8 +351,7 @@ class PlotContainer(abc.ABC):
         if data_source is not None:
             if name != "proj":
                 raise RuntimeError(
-                    "The data_source keyword argument "
-                    "is only defined for projections."
+                    "The data_source keyword argument is only defined for projections."
                 )
             kwargs["data_source"] = data_source
 

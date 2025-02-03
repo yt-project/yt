@@ -236,7 +236,7 @@ class ARTDataset(Dataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        setdefaultattr(self, "mass_unit", self.quan(mass, f"g*{ng ** 3}"))
+        setdefaultattr(self, "mass_unit", self.quan(mass, f"g*{ng**3}"))
         setdefaultattr(self, "length_unit", self.quan(box_proper, "Mpc"))
         setdefaultattr(self, "velocity_unit", self.quan(velocity, "cm/s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
@@ -519,7 +519,7 @@ class DarkMatterARTDataset(ARTDataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        self.mass_unit = self.quan(mass, f"g*{ng ** 3}")
+        self.mass_unit = self.quan(mass, f"g*{ng**3}")
         self.length_unit = self.quan(box_proper, "Mpc")
         self.velocity_unit = self.quan(velocity, "cm/s")
         self.time_unit = self.length_unit / self.velocity_unit

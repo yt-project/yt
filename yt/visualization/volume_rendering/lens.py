@@ -138,9 +138,7 @@ class PlaneParallelLens(Lens):
 
     def __repr__(self):
         return (
-            "<Lens Object>:\n"
-            "\tlens_type:plane-parallel\n"
-            f"\tviewpoint:{self.viewpoint}"
+            f"<Lens Object>:\n\tlens_type:plane-parallel\n\tviewpoint:{self.viewpoint}"
         )
 
 

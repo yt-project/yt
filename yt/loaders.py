@@ -191,8 +191,7 @@ def _sanitize_axis_order_args(
     geometry_str: str
     if isinstance(geometry, tuple):
         issue_deprecation_warning(
-            f"Received a tuple as {geometry=}\n"
-            "Use the `axis_order` argument instead.",
+            f"Received a tuple as {geometry=}\nUse the `axis_order` argument instead.",
             since="4.2",
             stacklevel=4,
         )

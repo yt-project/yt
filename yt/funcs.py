@@ -1156,7 +1156,7 @@ def validate_float(obj):
 def validate_sequence(obj):
     if obj is not None and not is_sequence(obj):
         raise TypeError(
-            "Expected an iterable object, " f"received {_full_type_name(obj)!r}"
+            f"Expected an iterable object, received {_full_type_name(obj)!r}"
         )
 
 

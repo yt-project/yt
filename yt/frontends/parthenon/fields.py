@@ -84,7 +84,7 @@ class ParthenonFieldInfo(FieldInfoContainer):
         for i, comp in enumerate(self.ds.coordinates.axis_order):
             # Support both current and legacy scheme
             for mom_field_name in ["MomentumDensity", "cons_momentum_density_"]:
-                mom_field = ("parthenon", f"{mom_field_name}{i+1}")
+                mom_field = ("parthenon", f"{mom_field_name}{i + 1}")
                 if mom_field in self.field_list:
                     self.add_field(
                         ("gas", f"velocity_{comp}"),

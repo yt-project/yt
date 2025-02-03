@@ -2233,7 +2233,7 @@ class YTSurface(YTSelectionContainer3D):
             fobj.write(
                 f"usemtl {omname}\n"
             )  # which material to use for this face (color)
-            fobj.write(f"f {cc} {cc+1} {cc+2}\n\n")  # vertices to color
+            fobj.write(f"f {cc} {cc + 1} {cc + 2}\n\n")  # vertices to color
             cc = cc + 3
         fmtl.close()
         fobj.close()
@@ -2612,7 +2612,7 @@ class YTSurface(YTSelectionContainer3D):
             )
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
-        line = f"element face {int(nv/3)}\n"
+        line = f"element face {int(nv / 3)}\n"
         f.write(line.encode("latin-1"))
         f.write(b"property list uchar int vertex_indices\n")
         if color_field is not None and sample_type == "face":
