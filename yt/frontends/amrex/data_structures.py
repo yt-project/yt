@@ -373,14 +373,9 @@ class BoxlibHierarchy(GridIndex):
                 default_ybounds = (0.0, 1.0)
                 default_zbounds = (0.0, 1.0)
             case Geometry.CYLINDRICAL:
-                self.level_dds[:, 2] = 2 * np.pi
                 default_ybounds = (0.0, 1.0)
                 default_zbounds = (0.0, 2 * np.pi)
             case Geometry.SPHERICAL:
-                # BoxLib only supports 1D spherical, so ensure
-                # the other dimensions have the right extent.
-                self.level_dds[:, 1] = np.pi
-                self.level_dds[:, 2] = 2 * np.pi
                 default_ybounds = (0.0, np.pi)
                 default_zbounds = (0.0, 2 * np.pi)
             case _:
@@ -906,6 +901,12 @@ class BoxlibDataset(Dataset):
         if self.geometry is Geometry.CYLINDRICAL:
             dre = self.domain_right_edge.copy()
             dre[2] = 2.0 * np.pi
+            self.domain_right_edge = dre
+        if self.geometry is Geometry.SPHERICAL and self.dimensionality < 3:
+            dre = self.domain_right_edge.copy()
+            dre[2] = 2.0 * np.pi
+            if self.dimensionality < 2:
+                dre[1] = np.pi
             self.domain_right_edge = dre
 
         header_file.close()
