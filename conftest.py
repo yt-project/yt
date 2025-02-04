@@ -156,8 +156,7 @@ def pytest_configure(config):
             # https://github.com/h5py/h5py/pull/2242
             config.addinivalue_line(
                 "filterwarnings",
-                "ignore:`product` is deprecated as of NumPy 1.25.0"
-                ":DeprecationWarning",
+                "ignore:`product` is deprecated as of NumPy 1.25.0:DeprecationWarning",
             )
 
     if PANDAS_VERSION is not None and PANDAS_VERSION >= Version("2.2.0"):

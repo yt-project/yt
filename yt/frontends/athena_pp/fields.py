@@ -31,8 +31,8 @@ class AthenaPPFieldInfo(FieldInfoContainer):
         # Add velocity fields
         vel_prefix = "velocity"
         for i, comp in enumerate(self.ds.coordinates.axis_order):
-            vel_field = ("athena_pp", f"vel{i+1}")
-            mom_field = ("athena_pp", f"mom{i+1}")
+            vel_field = ("athena_pp", f"vel{i + 1}")
+            mom_field = ("athena_pp", f"mom{i + 1}")
             if vel_field in self.field_list:
                 self.add_output_field(
                     vel_field, sampling_type="cell", units="code_length/code_time"

@@ -70,7 +70,7 @@ class IOHandlerExodusII(BaseIOHandler):
                 if fname in self.elem_fields:
                     field_ind = self.elem_fields.index(fname)
                     for g, mesh_id in zip(objs, mesh_ids, strict=True):
-                        varname = f"vals_elem_var{field_ind+1}eb{mesh_id}"
+                        varname = f"vals_elem_var{field_ind + 1}eb{mesh_id}"
                         fdata = ds.variables[varname][:]
                         data = fdata[self.ds.step, :]
                         ind += g.select(selector, data, rv[field], ind)  # caches

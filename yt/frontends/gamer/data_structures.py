@@ -151,8 +151,7 @@ class GAMERHierarchy(GridIndex):
             # children->parent == itself
             for c in grid.Children:
                 assert c.Parent is grid, (
-                    f"Grid {grid.id}, Children {c.id}, "
-                    f"Children->Parent {c.Parent.id}"
+                    f"Grid {grid.id}, Children {c.id}, Children->Parent {c.Parent.id}"
                 )
 
             # all refinement grids should have parent

@@ -100,7 +100,7 @@ class FITSHierarchy(GridIndex):
         ds = self.dataset
         conditions = [hdu.header["naxis"] != ds.primary_header["naxis"]]
         for i in range(ds.naxis):
-            nax = f"naxis{i+1}"
+            nax = f"naxis{i + 1}"
             conditions.append(hdu.header[nax] != ds.primary_header[nax])
         if np.any(conditions):
             return False
@@ -162,7 +162,7 @@ class FITSHierarchy(GridIndex):
                         fname += f"_{dup_field_index[fname]}"
                     for k in range(naxis4):
                         if naxis4 > 1:
-                            fname += f"_{hdu.header['CTYPE4']}_{k+1}"
+                            fname += f"_{hdu.header['CTYPE4']}_{k + 1}"
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -300,7 +300,7 @@ def check_sky_coords(filename, ndim):
                 if header["naxis"] < ndim:
                     return False
                 axis_names = [
-                    header.get(f"ctype{i+1}", "") for i in range(header["naxis"])
+                    header.get(f"ctype{i + 1}", "") for i in range(header["naxis"])
                 ]
                 if len(axis_names) == 3 and axis_names.count("LINEAR") == 2:
                     return any(a[0] in spec_prefixes for a in axis_names)
@@ -500,9 +500,10 @@ class FITSDataset(Dataset):
         self.primary_header, self.first_image = find_primary_header(self._handle)
         self.naxis = self.primary_header["naxis"]
         self.axis_names = [
-            self.primary_header.get(f"ctype{i+1}", "LINEAR") for i in range(self.naxis)
+            self.primary_header.get(f"ctype{i + 1}", "LINEAR")
+            for i in range(self.naxis)
         ]
-        self.dims = [self.primary_header[f"naxis{i+1}"] for i in range(self.naxis)]
+        self.dims = [self.primary_header[f"naxis{i + 1}"] for i in range(self.naxis)]
 
     def _determine_wcs(self):
         wcs = _astropy.pywcs.WCS(header=self.primary_header)
