@@ -112,6 +112,19 @@ def test_slice_from_r():
     frb4 = ds.r[0.5, 0.25:0.75:1024j, 0.25:0.75:512j]
     assert_equal(frb3["gas", "density"], frb4["gas", "density"])
 
+    # Test off-center slice
+    offset_box = ds.box([0.0, 0.0, 0.4], [1.0, 0.5, 0.9])
+
+    sl5 = ds.r[0.5, 0:0.5, 0.4:0.9]
+    sl6 = ds.slice("x", 0.5, data_source=offset_box)
+    assert_equal(sl5["gas", "density"], sl6["gas", "density"])
+
+    frb5 = sl5.to_frb(
+        width=0.5, height=0.5, resolution=(1024, 512), center=(0.5, 0.25, 0.65)
+    )
+    frb6 = ds.r[0.5, 0.0:0.5:1024j, 0.4:0.9:512j]
+    assert_equal(frb5["gas", "density"], frb6["gas", "density"])
+
 
 def test_point_from_r():
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
