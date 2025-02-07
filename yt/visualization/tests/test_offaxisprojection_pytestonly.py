@@ -171,11 +171,6 @@ def test_sph_proj_general_offaxis(
     assert_rel_equal(expected_out, img.v, 4)
 
 
-@pytest.fixture
-def fame_amr_ds_for_proj():
-    return fake_amr_ds()
-
-
 _diag_dist = np.sqrt(3.0)  # diagonal distance of a cube with length 1.
 # each case is depth, center, expected integrated distance
 _cases_to_test = [
@@ -187,7 +182,7 @@ _cases_to_test = [
 
 
 @pytest.mark.parametrize("depth,proj_center,expected", _cases_to_test)
-def test_offaxisprojection_depth(depth, proj_center, expected, fame_amr_ds_for_proj):
+def test_offaxisprojection_depth(depth, proj_center, expected):
     # this checks that the depth keyword argument works as expected.
     # in all cases, it integrates the (index, ones) field for a normal
     # pointing to the right edge corner of the domain.
@@ -201,7 +196,7 @@ def test_offaxisprojection_depth(depth, proj_center, expected, fame_amr_ds_for_p
     # Also note that the accuracy will depend on the buffer dimensions:
     # using the default (800,800) results in accuracy of about 1 percent
 
-    ds = fame_amr_ds_for_proj
+    ds = fake_amr_ds()
 
     n = [1.0, 1.0, 1.0]
     c = getattr(ds, proj_center)
