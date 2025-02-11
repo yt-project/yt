@@ -504,7 +504,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                 )
 
 
-substance_expr_re = re.compile(r"\(([a-zA-Z][a-zA-Z0-9]*)\)")
+substance_expr_re = re.compile(r"\(([a-zA-Z][a-zA-Z0-9_]*)\)")
 substance_elements_re = re.compile(r"(?P<element>[a-zA-Z]+)(?P<digits>\d*)")
 SubstanceSpec: TypeAlias = list[tuple[str, int]]
 
