@@ -963,9 +963,9 @@ class ContourCallback(PlotCallback):
         self.take_log = take_log
 
         self.plot_args = {**(plot_args or {})}
-        if "colors" not in plot_args and "cmap" not in plot_args:
+        if "colors" not in self.plot_args and "cmap" not in self.plot_args:
             self.plot_args["colors"] = "black"
-        if "linestyles" not in plot_args:
+        if "linestyles" not in self.plot_args:
             self.plot_args["linestyles"] = "solid"
         self.label = label
         self.text_args = {
