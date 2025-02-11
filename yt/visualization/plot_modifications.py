@@ -961,11 +961,12 @@ class ContourCallback(PlotCallback):
         self.factor = _validate_factor_tuple(factor)
         self.clim = clim
         self.take_log = take_log
-        self.plot_args = {
-            "colors": "black",
-            "linestyles": "solid",
-            **(plot_args or {}),
-        }
+    
+        self.plot_args = {**(plot_args or {})}
+        if "colors" not in plot_args and "cmap" not in plot_args:
+            self.plot_args["colors"] = "black"
+        if "linestyles" not in plot_args:
+            self.plot_args["linestyles"] = "solid"
         self.label = label
         self.text_args = {
             "colors": "white",
