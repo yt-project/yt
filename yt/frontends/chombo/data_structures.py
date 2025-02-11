@@ -816,3 +816,143 @@ class ChomboPICDataset(ChomboDataset):
         except Exception:
             pass
         return False
+
+class AMReXHDF5Hierarchy(ChomboHierarchy):
+    def __init__(self, ds, dataset_type="amrex_hdf5"):
+        ChomboHierarchy.__init__(self, ds, dataset_type)
+
+    def _parse_index(self):
+        f = self._handle  # shortcut
+        self.max_level = int(f.attrs["num_levels"] - 1)
+
+        grids = []
+        self.dds_list = []
+        i = 0
+        D = int(self.dataset.dimensionality)
+        for lev_index, lev in enumerate(self._levels):
+            level_number = int(re.match(r"level_(\d+)", lev).groups()[0])
+            try:
+                boxes = f[lev]["boxes"][()]
+            except KeyError:
+                boxes = f[lev]["particles:boxes"][()]
+            dx = f[lev].attrs["dx"]
+            self.dds_list.append(dx * np.ones(3))
+
+            if D == 1:
+                self.dds_list[lev_index][1] = 1.0
+                self.dds_list[lev_index][2] = 1.0
+
+            if D == 2:
+                self.dds_list[lev_index][2] = 1.0
+
+            for level_id, box in enumerate(boxes):
+                si = np.array([box[f"lo_{ax}"] for ax in "ijk"[:D]])
+                ei = np.array([box[f"hi_{ax}"] for ax in "ijk"[:D]])
+
+                if D == 1:
+                    si = np.concatenate((si, [0.0, 0.0]))
+                    ei = np.concatenate((ei, [0.0, 0.0]))
+
+                if D == 2:
+                    si = np.concatenate((si, [0.0]))
+                    ei = np.concatenate((ei, [0.0]))
+
+                pg = self.grid(len(grids), self,
+                               level=level_number, start=si, stop=ei)
+                grids.append(pg)
+                grids[-1]._level_id = level_id
+                self.grid_levels[i] = level_number
+                self.grid_left_edge[i] = (
+                    self.dds_list[lev_index] * si.astype(self.float_type)
+                    + self.domain_left_edge.value
+                )
+                self.grid_right_edge[i] = (
+                    self.dds_list[lev_index] * (ei.astype(self.float_type) + 1)
+                    + self.domain_left_edge.value
+                )
+                self.grid_particle_count[i] = 0
+                self.grid_dimensions[i] = ei - si + 1
+                i += 1
+                
+        self.grids = np.empty(len(grids), dtype="object")
+        for gi, g in enumerate(grids):
+            self.grids[gi] = g
+
+    def _detect_output_fields(self):
+        # look for fluid fields
+        output_fields = []
+        for key, val in self._handle.attrs.items():
+            if key.startswith("component"):
+                output_fields.append(val.decode("ascii"))
+        self.field_list = [("boxlib", c) for c in output_fields]
+
+class AMReXHDF5Dataset(ChomboDataset):
+    _load_requirements = ["h5py"]
+    _index_class = AMReXHDF5Hierarchy
+    _field_info_class: type[FieldInfoContainer] = ChomboFieldInfo
+
+    def __init__(
+        self,
+        filename,
+        dataset_type="amrex_hdf5",
+        storage_filename=None,
+        ini_filename=None,
+        units_override=None,
+        unit_system="cgs",
+        default_species_fields=None,
+        comm=None
+    ):
+        ChomboDataset.__init__(
+            self,
+            filename,
+            dataset_type,
+            storage_filename,
+            ini_filename,
+            units_override=units_override,
+            default_species_fields=default_species_fields,
+        )
+
+        self.fluid_types += ("boxlib",)
+
+    def _calc_left_edge(self):
+        fileh = self._handle
+        dx0 = fileh["/level_0"].attrs["dx"]
+        D = self.dimensionality
+        LE = (np.array(list(fileh["/level_0"].attrs["prob_lo"])))[0:D]
+        return LE
+
+    def _calc_right_edge(self):
+        fileh = self._handle
+        dx0 = fileh["/level_0"].attrs["dx"]
+        D = self.dimensionality
+        RE = (np.array(list(fileh["/level_0"].attrs["prob_hi"])))[0:D]
+        return RE
+
+    def _parse_parameter_file(self):
+        self.dimensionality = int(
+            self._handle["Chombo_global/"].attrs["SpaceDim"])
+        self.domain_left_edge = self._calc_left_edge()
+        self.domain_right_edge = self._calc_right_edge()
+        self.domain_dimensions = self._calc_domain_dimensions()
+
+        # if a lower-dimensional dataset, set up pseudo-3D stuff here.
+        if self.dimensionality == 1:
+            self.domain_left_edge = np.concatenate(
+                (self.domain_left_edge, [0.0, 0.0]))
+            self.domain_right_edge = np.concatenate(
+                (self.domain_right_edge, [1.0, 1.0])
+            )
+            self.domain_dimensions = np.concatenate(
+                (self.domain_dimensions, [1, 1]))
+
+        if self.dimensionality == 2:
+            self.domain_left_edge = np.concatenate(
+                (self.domain_left_edge, [0.0]))
+            self.domain_right_edge = np.concatenate(
+                (self.domain_right_edge, [1.0]))
+            self.domain_dimensions = np.concatenate(
+                (self.domain_dimensions, [1]))
+
+        self.refine_by = int(self._handle["/level_0"].attrs["ref_ratio"])
+        self._determine_periodic()
+        self._determine_current_time()
