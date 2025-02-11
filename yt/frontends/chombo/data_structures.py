@@ -916,14 +916,12 @@ class AMReXHDF5Dataset(ChomboDataset):
 
     def _calc_left_edge(self):
         fileh = self._handle
-        dx0 = fileh["/level_0"].attrs["dx"]
         D = self.dimensionality
         LE = (np.array(list(fileh["/level_0"].attrs["prob_lo"])))[0:D]
         return LE
 
     def _calc_right_edge(self):
         fileh = self._handle
-        dx0 = fileh["/level_0"].attrs["dx"]
         D = self.dimensionality
         RE = (np.array(list(fileh["/level_0"].attrs["prob_hi"])))[0:D]
         return RE
