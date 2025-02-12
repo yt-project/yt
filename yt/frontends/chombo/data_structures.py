@@ -817,6 +817,7 @@ class ChomboPICDataset(ChomboDataset):
             pass
         return False
 
+
 class AMReXHDF5Hierarchy(ChomboHierarchy):
     def __init__(self, ds, dataset_type="amrex_hdf5"):
         ChomboHierarchy.__init__(self, ds, dataset_type)
@@ -857,8 +858,7 @@ class AMReXHDF5Hierarchy(ChomboHierarchy):
                     si = np.concatenate((si, [0.0]))
                     ei = np.concatenate((ei, [0.0]))
 
-                pg = self.grid(len(grids), self,
-                               level=level_number, start=si, stop=ei)
+                pg = self.grid(len(grids), self, level=level_number, start=si, stop=ei)
                 grids.append(pg)
                 grids[-1]._level_id = level_id
                 self.grid_levels[i] = level_number
@@ -873,7 +873,7 @@ class AMReXHDF5Hierarchy(ChomboHierarchy):
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
-                
+
         self.grids = np.empty(len(grids), dtype="object")
         for gi, g in enumerate(grids):
             self.grids[gi] = g
@@ -885,6 +885,7 @@ class AMReXHDF5Hierarchy(ChomboHierarchy):
             if key.startswith("component"):
                 output_fields.append(val.decode("ascii"))
         self.field_list = [("boxlib", c) for c in output_fields]
+
 
 class AMReXHDF5Dataset(ChomboDataset):
     _load_requirements = ["h5py"]
@@ -900,7 +901,7 @@ class AMReXHDF5Dataset(ChomboDataset):
         units_override=None,
         unit_system="cgs",
         default_species_fields=None,
-        comm=None
+        comm=None,
     ):
         ChomboDataset.__init__(
             self,
@@ -926,30 +927,46 @@ class AMReXHDF5Dataset(ChomboDataset):
         RE = (np.array(list(fileh["/level_0"].attrs["prob_hi"])))[0:D]
         return RE
 
+    @classmethod
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
+        if not is_chombo_hdf5(filename):
+            return False
+
+        try:
+            with h5py.File(filename, mode="r") as fileh:
+                valid = "Chombo_global" in fileh["/"]
+                # Check level 0 to see if dimensionality is non-int
+                valid = valid and not isinstance(fileh.attrs["dim"], int)
+                # Also ensure that we have the bounding box info
+                valid = valid and "prob_lo" in fileh["level_0"].attrs.keys()
+                valid = valid and "prob_hi" in fileh["level_0"].attrs.keys()
+                return valid
+        except Exception:
+            pass
+
+        return False
+
     def _parse_parameter_file(self):
-        self.dimensionality = int(
-            self._handle["Chombo_global/"].attrs["SpaceDim"])
+        self.dimensionality = int(self._handle["Chombo_global/"].attrs["SpaceDim"])
         self.domain_left_edge = self._calc_left_edge()
         self.domain_right_edge = self._calc_right_edge()
         self.domain_dimensions = self._calc_domain_dimensions()
 
         # if a lower-dimensional dataset, set up pseudo-3D stuff here.
         if self.dimensionality == 1:
-            self.domain_left_edge = np.concatenate(
-                (self.domain_left_edge, [0.0, 0.0]))
+            self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0, 0.0]))
             self.domain_right_edge = np.concatenate(
                 (self.domain_right_edge, [1.0, 1.0])
             )
-            self.domain_dimensions = np.concatenate(
-                (self.domain_dimensions, [1, 1]))
+            self.domain_dimensions = np.concatenate((self.domain_dimensions, [1, 1]))
 
         if self.dimensionality == 2:
-            self.domain_left_edge = np.concatenate(
-                (self.domain_left_edge, [0.0]))
-            self.domain_right_edge = np.concatenate(
-                (self.domain_right_edge, [1.0]))
-            self.domain_dimensions = np.concatenate(
-                (self.domain_dimensions, [1]))
+            self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0]))
+            self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0]))
+            self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
 
         self.refine_by = int(self._handle["/level_0"].attrs["ref_ratio"])
         self._determine_periodic()
