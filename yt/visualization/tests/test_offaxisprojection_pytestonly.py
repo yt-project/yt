@@ -1,14 +1,18 @@
 import numpy as np
 import pytest
 import unyt
+from numpy.testing import assert_allclose
 
 from yt.testing import (
     assert_rel_equal,
     cubicspline_python,
+    fake_amr_ds,
     fake_sph_flexible_grid_ds,
+    fake_sph_grid_ds,
     integrate_kernel,
+    requires_module_pytest,
 )
-from yt.visualization.api import ProjectionPlot
+from yt.visualization.api import OffAxisProjectionPlot, ProjectionPlot
 
 
 @pytest.mark.parametrize("weighted", [True, False])
@@ -165,3 +169,72 @@ def test_sph_proj_general_offaxis(
     # print("expected:\n", expected_out)
     # print("recovered:\n", img.v)
     assert_rel_equal(expected_out, img.v, 4)
+
+
+_diag_dist = np.sqrt(3.0)  # diagonal distance of a cube with length 1.
+# each case is depth, center, expected integrated distance
+_cases_to_test = [
+    (_diag_dist / 3.0, "domain_left_edge", _diag_dist / 3.0 / 2.0),
+    (_diag_dist * 2.0, "domain_left_edge", _diag_dist),
+    (_diag_dist * 4.0, "domain_left_edge", _diag_dist),
+    (None, "domain_center", _diag_dist),
+]
+
+
+@pytest.mark.parametrize("depth,proj_center,expected", _cases_to_test)
+def test_offaxisprojection_depth(depth, proj_center, expected):
+    # this checks that the depth keyword argument works as expected.
+    # in all cases, it integrates the (index, ones) field for a normal
+    # pointing to the right edge corner of the domain.
+    #
+    # For the tests where the projection is centered on the left edge,
+    # the integrate distance will scale as depth / 2.0. When centered
+    # on the origin, it will scale with depth. The integrated distance
+    # should max out at the diagonal distance of the cube (when the depth
+    # exceeds the cube diagonal distance).
+    #
+    # Also note that the accuracy will depend on the buffer dimensions:
+    # using the default (800,800) results in accuracy of about 1 percent
+
+    ds = fake_amr_ds()
+
+    n = [1.0, 1.0, 1.0]
+    c = getattr(ds, proj_center)
+    field = ("index", "ones")
+
+    p = ProjectionPlot(ds, n, field, depth=depth, weight_field=None, center=c)
+
+    maxval = p.frb[field].max().d
+    assert_allclose(expected, maxval, atol=1e-2)
+
+
+_sph_test_cases = [
+    ([1.0, 1.0, 0.7], 27),
+    ([1.0, 1.0, 1], 19),
+    ([0.0, 0.0, 1], 9),
+]
+
+
+@requires_module_pytest("contourpy")
+@pytest.mark.parametrize("normal_vec, n_particles", _sph_test_cases)
+def test_offaxisprojection_sph_defaultdepth(normal_vec, n_particles):
+    # checks that particles are picked up as expected for a range of
+    # depths and normal vectors. Certain viewing angles will result
+    # in overlapping particles (since fake_sph_grid_ds aligns particles
+    # on a grid): n_particles is the expected number of circles in the
+    # resulting image for the given normal vector. Circle counts are
+    # calculated here using a contour generator.
+    from contourpy import contour_generator
+
+    ds = fake_sph_grid_ds()
+    c = ds.domain_center
+    diag_dist = np.linalg.norm(ds.domain_width)
+    field = ("gas", "mass")
+    p = OffAxisProjectionPlot(
+        ds, normal_vec, field, weight_field=None, center=c, width=diag_dist
+    )
+    p.render()
+
+    # get the number of circles in the plot
+    cg = contour_generator(z=p.frb[("gas", "mass")].d)
+    assert n_particles == len(cg.lines(1.0))
