@@ -1321,8 +1321,10 @@ def pixelize_sph_kernel_projection_pencilbeam(
         free(local_buff)
         free(xiterv)
         free(yiterv)
+        free(ziterv)
         free(xiter)
         free(yiter)
+        free(ziter)
 
     return mask
 
@@ -1594,8 +1596,10 @@ def pixelize_sph_kernel_projection_pixelave(
         free(local_buff)
         free(xiterv)
         free(yiterv)
+        free(ziterv)
         free(xiter)
         free(yiter)
+        free(ziter)
 
     return mask
 
