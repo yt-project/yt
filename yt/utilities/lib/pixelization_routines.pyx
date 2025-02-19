@@ -1370,8 +1370,9 @@ def pixelize_sph_kernel_projection_pixelave(
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi, nx, ny, nsubx, nsuby
-    cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2, insubx, insuby
-    cdef np.float64_t x, y, dx, dy, idx, idy, ipixA, h_j2, px, py, pz
+    cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
+    cdef np.float_64_t insubx, insuby, insample_min, xnorm, ynorm
+    cdef np.float64_t x, y, dx, dy, idx, idy, ipixA, subA, h_j2, px, py, pz
     cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
     cdef int i, j, ii, jj, kk
     cdef np.float64_t[:] _weight_field
@@ -1412,6 +1413,22 @@ def pixelize_sph_kernel_projection_pixelave(
     if kernel_name not in kernel_tables:
         kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
+
+    # pre-calculate kernel 1D integral values to use for small particles
+    kernel1dint = <np.float64_t *> malloc(
+            sizeof(np.float64_t) * nsample_min * nsample_min)
+            # get line-of-sight kernel integral values
+    insample_min = 1.0 / <np.float64_t> nsample_min
+    for i in range(nsample_min):
+        xnorm = -1.0 + 2.0 * (i + 0.5) * insample_min
+        xnorm = xnorm * xnorm
+        for j in range(nsample_min):
+            ynorm = -1.0 + 2.0 * (i + 0.5) * insample_min
+            q_ij2 = xnorm + ynorm * ynorm
+            if q_ij2 >= 1.:
+                kernel1dint[nsample_min * i + j] = 0.0
+            else:
+                kernel1dint[nsample_min * i + j] = itab.interpolate(q_ij2)
     with nogil, parallel():
         # loop through every particle
         # NOTE: this loop can be quite time consuming. However it is easily
@@ -1427,6 +1444,7 @@ def pixelize_sph_kernel_projection_pixelave(
         # currently employ #1 as its workload is more even and consistent, even though it
         # comes with a price of an additional, per thread memory for storing the
         # intermediate results.
+        # !! These comments were written for  
 
         local_buff = <np.float64_t *> malloc(sizeof(np.float64_t) * xsize * ysize)
         xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
@@ -1506,7 +1524,7 @@ def pixelize_sph_kernel_projection_pixelave(
                         # case: particle is small, 
                         # overlaps with a small number of pixels (max. 4)
                         if hsml[j] < 0.5 * dx and hsml[j] < 0.5 * dy:
-                            # lower right corner indices
+                            # lower left corner indices
                             x0 = <np.int64_t> ((px - hsml[j] - x_min)*idx)
                             y0 = <np.int64_t> ((py - hsml[j] - y_min)*idy)
                             # sph particle lies entirely in one pixel
@@ -1529,7 +1547,41 @@ def pixelize_sph_kernel_projection_pixelave(
 
                             # sph particle lies in 2--4 pixels
                             # use a pre-calculated grid: TODO
-                            else: pass
+                            else: # use pre-calculated kernel values
+                                # pre-calculated grid has size 
+                                # (nsample_min, nsample_min)
+                                # bin edge values -1 -- 1
+                                # in impact parameter / hsml units
+
+                                # where does the overlapped pixel edge
+                                # fall in the save kernel space array?
+                                xnorm = (x_min + (x0 + 1) * dx - px) \
+                                         / hsml[j]
+                                ynorm = (y_min + (y0 + 1) * dy - py) \
+                                         / hsml[j]
+                                # round to the nearest kernel grid edge
+                                # (C float to int cast behaves like floor())
+                                xi = <np.int64_t> (
+                                     0.5 * (xnorm + 1.) * nsample_min + 0.5)
+                                yi = <np.int64_t> (
+                                     0.5 * (ynorm + 1.) * nsample_min + 0.5)
+                                # weight for each line integral: 
+                                # area of subsampled array in length units
+                                # divided by output grid pixel size
+                                prefactor_j *= 4.0 * hsml[j] * hsml[j] \
+                                               * insample_min * insample_min \
+                                               * ipixA
+                                
+                                for xxi in range(0, xi):
+                                    for yyi in range(0, yi):
+                                        if kernel1dint[xxi, yyi] == 0.: 
+                                            # no erroneous mask = 1
+                                            continue
+                                        local_buff[x0 + y0*xsize] += \
+                                            prefactor_j \
+                                            * kernel1dint[xxi, yyi]
+                                        mask[xi, yi] = 1
+                                        
                         else:
                             # subsample
 
@@ -1540,14 +1592,14 @@ def pixelize_sph_kernel_projection_pixelave(
                             x0 = <np.int64_t> ((px - hsml[j] - x_min)*idx)
                             x1 = <np.int64_t> ((px + hsml[j] - x_min)*idx)
                             nx = x1 - x0
-                            x0 = iclip(x0-1, 0, xsize)
-                            x1 = iclip(x1+1, 0, xsize)
+                            x0 = iclip(x0 - 1, 0, xsize)
+                            x1 = iclip(x1 + 1, 0, xsize)
 
                             y0 = <np.int64_t> ((py - hsml[j] - y_min)*idy)
                             y1 = <np.int64_t> ((py + hsml[j] - y_min)*idy)
                             ny = y1 - y0
-                            y0 = iclip(y0-1, 0, ysize)
-                            y1 = iclip(y1+1, 0, ysize)
+                            y0 = iclip(y0 - 1, 0, ysize)
+                            y1 = iclip(y1 + 1, 0, ysize)
                             
                             # using the same sampling rate in x and y directions
                             # should be fine for (typical) square grids, but 
@@ -1556,12 +1608,12 @@ def pixelize_sph_kernel_projection_pixelave(
                                      (<np.float64_t> nsample_min /
                                       <np.float64_t> nx)
                                       + 1)
-                            insubx = 1. / <np.float64_t> nsubx
+                            insubx = 1.0 / <np.float64_t> nsubx
                             nsubx = (<np.int64_t>
                                      (<np.float64_t> nsample_min /
                                       <np.float64_t> ny)
                                       + 1)
-                            insuby = 1. / <np.float64_t> nsuby
+                            insuby = 1.0 / <np.float64_t> nsuby
 
                             # found pixels we deposit on,
                             # loop through those pixels
@@ -1583,7 +1635,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                         
                                             q_ij2 = (posx_diff + posy_diff) \
                                                     * ih_j2
-                                            if q_ij2 >= 1: continue
+                                            if q_ij2 >= 1.0: continue
                                             local_buff[xi + yi*xsize] += \
                                                prefactor_j * insuby * insubx \
                                                * itab.interpolate(q_ij2)
@@ -1594,6 +1646,7 @@ def pixelize_sph_kernel_projection_pixelave(
                 for yyi in range(ysize):
                     buff[xxi, yyi] += local_buff[xxi + yyi*xsize]
         free(local_buff)
+        free(kernel1dint)
         free(xiterv)
         free(yiterv)
         free(ziterv)
