@@ -1370,11 +1370,11 @@ def pixelize_sph_kernel_projection_pixelave(
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi, nx, ny, nsubx, nsuby
-    cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
-    cdef np.float_64_t insubx, insuby, insample_min, xnorm, ynorm
-    cdef np.float64_t x, y, dx, dy, idx, idy, ipixA, subA, h_j2, px, py, pz
+    cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2, qts_j
+    cdef np.float_64_t insubx, insuby, insmin, xnorm, ynorm, kv
+    cdef np.float64_t x, y, dx, dy, idx, idy, ipixA, h_j2, px, py, pz
     cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
-    cdef int i, j, ii, jj, kk
+    cdef int i, j, ii, jj, kk, ic, nsmin
     cdef np.float64_t[:] _weight_field
     cdef int * xiter
     cdef int * yiter
@@ -1409,26 +1409,61 @@ def pixelize_sph_kernel_projection_pixelave(
     idx = 1.0/dx
     idy = 1.0/dy
     ipixA = idx * idy
+    nsmin = <int> nsample_min
 
     if kernel_name not in kernel_tables:
         kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
 
-    # pre-calculate kernel 1D integral values to use for small particles
-    kernel1dint = <np.float64_t *> malloc(
-            sizeof(np.float64_t) * nsample_min * nsample_min)
-            # get line-of-sight kernel integral values
-    insample_min = 1.0 / <np.float64_t> nsample_min
-    for i in range(nsample_min):
-        xnorm = -1.0 + 2.0 * (i + 0.5) * insample_min
+    # pre-calculate kernel integral values to use for small particles
+    # overlapping max. 2x2 output grid pixels. dimensions: 
+    # (part. position x, part. position y, kernel x, kernel y)
+    # kernel x, kernel y: shape (2, 2), values for the output grid
+    # part. x, y positions: position of the center pixel boundary of
+    # the 2x2 output values in x and y directions.
+    # units: (boundary x/y - particle center x/y) / particle hsml
+    # value range: [-1.0, 1.0]
+    # (The volume integral of this kernel should be one. We could
+    # normalize it explicitly, but skip that step for now, since we 
+    # also don't do this for larger particles.)
+    kern2by2 = <np.float64_t *> malloc(
+            sizeof(np.float64_t) * (nsmin + 1) * (nsmin + 1) * 4)
+    # step 1: just get a big grid of the 1D integral values
+    kern1dint = <np.float64_t *> malloc(
+            sizeof(np.float64_t) * nsmin * nsmin)
+    insmin = 1.0 / <np.float64_t> nsmin
+    for i in range(nsmin):
+        xnorm = -1.0 + 2.0 * (i + 0.5) * insmin
         xnorm = xnorm * xnorm
-        for j in range(nsample_min):
-            ynorm = -1.0 + 2.0 * (i + 0.5) * insample_min
+        for j in range(nsmin):
+            ynorm = -1.0 + 2.0 * (i + 0.5) * insmin
             q_ij2 = xnorm + ynorm * ynorm
             if q_ij2 >= 1.:
-                kernel1dint[nsample_min * i + j] = 0.0
+                kern1dint[nsample_min * i + j] = 0.0
             else:
-                kernel1dint[nsample_min * i + j] = itab.interpolate(q_ij2)
+                kern1dint[nsample_min * i + j] = itab.interpolate(q_ij2)
+    # step 2: integrate the 1D values for each grid edge position
+    for i in range(nsample_min + 1):
+        for j in range(nsample_min + 1):
+            # slowest 2 indices
+            ic = (4 * (nsample_min + 1) * (nsample_min + 1) * i
+                  + 4 * (nsample_min + 1) * j)
+            kern2by2[ic] = 0.0
+            kern2by2[ic + 1] = 0.0
+            kern2by2[ic + 2] = 0.0
+            kern2by2[ic + 3] = 0.0
+            for ii in range(0, i):
+                for jj in range(0, j):
+                    kern2by2[ic] += kern1dint[nsample_min * ii + jj]
+                for jj in range(j, nsample_min):
+                    kern2by2[ic + 1] += kern1dint[nsample_min * ii + jj]
+            for ii in range(i, nsample_min):
+                for jj in range(0, j):
+                    kern2by2[ic + 2] += kern1dint[nsample_min * ii + jj]
+                for jj in range(j, nsample_min):
+                    kern2by2[ic + 3] += kern1dint[nsample_min * ii + jj]
+    free(kern1dint)
+
     with nogil, parallel():
         # loop through every particle
         # NOTE: this loop can be quite time consuming. However it is easily
@@ -1444,7 +1479,8 @@ def pixelize_sph_kernel_projection_pixelave(
         # currently employ #1 as its workload is more even and consistent, even though it
         # comes with a price of an additional, per thread memory for storing the
         # intermediate results.
-        # !! These comments were written for  
+        # !!! These comments were written for the line of sight integral
+        # !!! counterpart to this function, and not checked for this version 
 
         local_buff = <np.float64_t *> malloc(sizeof(np.float64_t) * xsize * ysize)
         xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
@@ -1490,13 +1526,16 @@ def pixelize_sph_kernel_projection_pixelave(
             # we set the smoothing length squared with lower limit of the pixel
             # Nope! that causes weird grid resolution dependences and increases
             # total values when resolution elements have hsml < grid spacing
-            h_j2 = hsml[j]*hsml[j]
-            ih_j2 = 1.0/h_j2
-
-            prefactor_j = pmass[j] / pdens[j] / hsml[j]**2 * quantity_to_smooth[j]
+            h_j2 = hsml[j] * hsml[j]
+            ih_j2 = 1.0 / h_j2
+            
+            # for small particles, we use the particle to be smoothed 
+            # directly, for larger ones, we need the whole prefactor
+            qts_j = quantity_to_smooth[j]
             if weight_field is not None:
-                prefactor_j *= _weight_field[j]
-
+                qts_j *= _weight_field[j]
+            prefactor_j = pmass[j] / pdens[j] * ih_j2 * qts_j
+                
             # Discussion point: do we want the hsml margin on the z direction?
             # it's consistent with Ray and Region selections, I think,
             # but does tend to 'tack on' stuff compared to the nominal depth
@@ -1522,11 +1561,11 @@ def pixelize_sph_kernel_projection_pixelave(
                             continue
 
                         # case: particle is small, 
-                        # overlaps with a small number of pixels (max. 4)
+                        # overlaps with a small number of pixels (max. 2x2)
                         if hsml[j] < 0.5 * dx and hsml[j] < 0.5 * dy:
                             # lower left corner indices
-                            x0 = <np.int64_t> ((px - hsml[j] - x_min)*idx)
-                            y0 = <np.int64_t> ((py - hsml[j] - y_min)*idy)
+                            x0 = <np.int64_t> ((px - hsml[j] - x_min) * idx)
+                            y0 = <np.int64_t> ((py - hsml[j] - y_min) * idy)
                             # sph particle lies entirely in one pixel
                             if (px + hsml[j] < x_min + (x0 + 1) * dx and
                                 py + hsml[j] < y_min + (y0 + 1) * dy):
@@ -1538,23 +1577,24 @@ def pixelize_sph_kernel_projection_pixelave(
                                     # = density * av. length
                                     # = density * volume / area
                                     local_buff[x0 + y0 * xsize] += (
-                                        pmass[j] / pdens[j] * ipixA *
-                                        quantity_to_smooth[j]
+                                        pmass[j] / pdens[j] * ipixA * qts_j
                                         )
                                     mask[x0, y0] = 1  
                                 else:
                                     continue      
 
                             # sph particle lies in 2--4 pixels
-                            # use a pre-calculated grid: TODO
+                            # use a pre-calculated grid
                             else: # use pre-calculated kernel values
                                 # pre-calculated grid has size 
-                                # (nsample_min, nsample_min)
+                                # (nsmin + 1, nsmin + 1, 2, 2)
                                 # bin edge values -1 -- 1
-                                # in impact parameter / hsml units
+                                # in units:
+                                # center of 2x2 output pix grid 
+                                # offset from particle center / hsml
 
                                 # where does the overlapped pixel edge
-                                # fall in the save kernel space array?
+                                # fall in the saved kernel space array?
                                 xnorm = (x_min + (x0 + 1) * dx - px) \
                                          / hsml[j]
                                 ynorm = (y_min + (y0 + 1) * dy - py) \
@@ -1562,48 +1602,54 @@ def pixelize_sph_kernel_projection_pixelave(
                                 # round to the nearest kernel grid edge
                                 # (C float to int cast behaves like floor())
                                 xi = <np.int64_t> (
-                                     0.5 * (xnorm + 1.) * nsample_min + 0.5)
+                                     0.5 * (xnorm + 1.) * nsmin + 0.5)
                                 yi = <np.int64_t> (
-                                     0.5 * (ynorm + 1.) * nsample_min + 0.5)
+                                     0.5 * (ynorm + 1.) * nsmin + 0.5)
                                 # weight for each line integral: 
                                 # area of subsampled array in length units
                                 # divided by output grid pixel size
-                                prefactor_j *= 4.0 * hsml[j] * hsml[j] \
-                                               * insample_min * insample_min \
-                                               * ipixA
-                                
-                                for xxi in range(0, xi):
-                                    for yyi in range(0, yi):
-                                        if kernel1dint[xxi, yyi] == 0.: 
+                                prefactor_j *= (4.0 * h_j2
+                                                * insmin * insmin * ipixA)
+                                # coarse (part. pos rel. to grid) index                
+                                ci = (4 * nsmin * nsmin * xi
+                                      + 4 * nsmin * yi) 
+                                for xxi in range(2):
+                                    # catch on the next periodic loop
+                                    if x0 + xxi < 0 or x0 + xxi > xsize:
+                                        continue 
+                                    for yyi in range(2):
+                                        # catch on the next periodic loop
+                                        if y0 + yyi < 0 or y0 + yyi > ysize:
+                                            continue 
+                                        kv = kern2by2[ci + 2 * xxi + yyi]
+                                        if kv == 0.: 
                                             # no erroneous mask = 1
                                             continue
-                                        local_buff[x0 + y0*xsize] += \
-                                            prefactor_j \
-                                            * kernel1dint[xxi, yyi]
+                                        local_buff[x0 + xxi 
+                                                   + (y0 + yyi) * xsize] += (
+                                            prefactor_j * kv
+                                            )
                                         mask[xi, yi] = 1
-                                        
+
                         else:
                             # subsample
 
                             # here we find the pixels which this 
                             # particle contributes to
                             # subsampling does not depend on whether a
-                            # particle overlaps a boundary
+                            # particle overlaps a (periodic) edge
                             x0 = <np.int64_t> ((px - hsml[j] - x_min)*idx)
                             x1 = <np.int64_t> ((px + hsml[j] - x_min)*idx)
-                            nx = x1 - x0
+                            nx = x1 - x0 + 2
                             x0 = iclip(x0 - 1, 0, xsize)
                             x1 = iclip(x1 + 1, 0, xsize)
 
                             y0 = <np.int64_t> ((py - hsml[j] - y_min)*idy)
                             y1 = <np.int64_t> ((py + hsml[j] - y_min)*idy)
-                            ny = y1 - y0
+                            ny = y1 - y0 + 2
                             y0 = iclip(y0 - 1, 0, ysize)
                             y1 = iclip(y1 + 1, 0, ysize)
                             
-                            # using the same sampling rate in x and y directions
-                            # should be fine for (typical) square grids, but 
-                            # less than optimal for large aspect ratios
                             nsubx = (<np.int64_t>
                                      (<np.float64_t> nsample_min /
                                       <np.float64_t> nx)
@@ -1626,19 +1672,21 @@ def pixelize_sph_kernel_projection_pixelave(
                                         posx_diff = posx_diff * posx_diff
                                         if posx_diff > h_j2: continue
                                         for ysubi in range(nsuby):
-                                            y = y_min + \
-                                                (yi + (ysubi + 0.5) * insuby)\
-                                                * dy
+                                            y = (y_min +
+                                                 (yi + (ysubi + 0.5) * insuby)
+                                                 * dy
+                                                 )
                                             posy_diff = py - y
                                             posy_diff = posy_diff * posy_diff
                                             if posy_diff > h_j2: continue
                                         
-                                            q_ij2 = (posx_diff + posy_diff) \
-                                                    * ih_j2
+                                            q_ij2 = ((posx_diff + posy_diff)
+                                                     * ih_j2)
                                             if q_ij2 >= 1.0: continue
-                                            local_buff[xi + yi*xsize] += \
-                                               prefactor_j * insuby * insubx \
+                                            local_buff[xi + yi*xsize] += (
+                                               prefactor_j * insuby * insubx
                                                * itab.interpolate(q_ij2)
+                                               )
                                             mask[xi, yi] = 1
 
         with gil:
@@ -1646,7 +1694,7 @@ def pixelize_sph_kernel_projection_pixelave(
                 for yyi in range(ysize):
                     buff[xxi, yyi] += local_buff[xxi + yyi*xsize]
         free(local_buff)
-        free(kernel1dint)
+        free(kern2by2)
         free(xiterv)
         free(yiterv)
         free(ziterv)
