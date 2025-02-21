@@ -2494,7 +2494,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                             north_vector,
                             weight_field=None,
                             depth=None,
-                            kernel_name="cubic"):
+                            kernel_name="cubic",
+                            pixelmeaning="pixelave"):
     # periodic: periodicity of the data set:
     # Do nothing in event of a 0 normal vector
     if np.allclose(normal_vector, 0.):
@@ -2521,21 +2522,30 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     # approach implemented for this along-axis projection method
     # would fail here
     check_period = np.array([0, 0, 0], dtype="int")
-    pixelize_sph_kernel_projection(projection_array,
-                                   mask,
-                                   px_rotated,
-                                   py_rotated,
-                                   pz_rotated,
-                                   smoothing_lengths,
-                                   particle_masses,
-                                   particle_densities,
-                                   quantity_to_smooth,
-                                   [rot_bounds_x0, rot_bounds_x1,
-                                    rot_bounds_y0, rot_bounds_y1,
-                                    rot_bounds_z0, rot_bounds_z1],
-                                   weight_field=weight_field,
-                                   _check_period=check_period,
-                                   kernel_name=kernel_name)
+    if pixelmeaning == "pencilbeam":
+        pixelize_sph_kernel_projection_pencilbeam(
+            projection_array, mask,
+            px_rotated, py_rotated, pz_rotated,
+            smoothing_lengths, particle_masses, particle_densities,
+            quantity_to_smooth,
+            [rot_bounds_x0, rot_bounds_x1,
+            rot_bounds_y0, rot_bounds_y1,
+            rot_bounds_z0, rot_bounds_z1],
+            weight_field=weight_field, _check_period=check_period,
+            kernel_name=kernel_name
+        )
+    elif pixelmeaning == "pixelave":
+        pixelize_sph_kernel_projection_pixelave(
+            projection_array, mask,
+            px_rotated, py_rotated, pz_rotated,
+            smoothing_lengths, particle_masses, particle_densities,
+            quantity_to_smooth,
+            [rot_bounds_x0, rot_bounds_x1,
+            rot_bounds_y0, rot_bounds_y1,
+            rot_bounds_z0, rot_bounds_z1],
+            weight_field=weight_field, _check_period=check_period,
+            kernel_name=kernel_name
+        )
 
 # like slice pixelization, but for off-axis planes
 def pixelize_sph_kernel_cutting(

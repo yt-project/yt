@@ -13,7 +13,8 @@ from yt.utilities.lib.pixelization_routines import (
     pixelize_element_mesh_line,
     pixelize_off_axis_cartesian,
     pixelize_sph_kernel_cutting,
-    pixelize_sph_kernel_projection,
+    pixelize_sph_kernel_projection_pencilbeam,
+    pixelize_sph_kernel_projection_pixelave,
     pixelize_sph_kernel_slice,
 )
 from yt.utilities.math_utils import compute_stddev_image
@@ -170,6 +171,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         size,
         antialias=True,
         periodic=True,
+        pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave",
         *,
         return_mask=False,
     ):
@@ -177,6 +179,16 @@ class CartesianCoordinateHandler(CoordinateHandler):
         Method for pixelizing datasets in preparation for
         two-dimensional image plots. Relies on several sampling
         routines written in cython
+
+        pixelmeaning:
+            "pixelav": a pixel represents an average surface density or
+            surface-density-weighted average across a pixel.
+
+            "pencilbeam": a pixel represents a column density or 
+            column-density-weighted average integrated over a pencil
+            beam through the pixel center.
+
+            Only applies to SPH datasets.
         """
         index = data_source.ds.index
         if hasattr(index, "meshes") and not isinstance(
@@ -236,11 +248,12 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
         elif self.axis_id.get(dimension, dimension) is not None:
             buff, mask = self._ortho_pixelize(
-                data_source, field, bounds, size, antialias, dimension, periodic
+                data_source, field, bounds, size, antialias, dimension,
+                periodic, pixelmeaning
             )
         else:
             buff, mask = self._oblique_pixelize(
-                data_source, field, bounds, size, antialias
+                data_source, field, bounds, size, antialias, pixelmeaning
             )
 
         if return_mask:
@@ -314,7 +327,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
         return arc_length, plot_values
 
     def _ortho_pixelize(
-        self, data_source, field, bounds, size, antialias, dim, periodic
+        self, data_source, field, bounds, size, antialias, dim, periodic,
+        pixelmeaning
     ):
         from yt.data_objects.construction_data_containers import YTParticleProj
         from yt.data_objects.selection_objects.slices import YTSlice
@@ -396,6 +410,19 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 kernel_name = "cubic"
 
             if isinstance(data_source, YTParticleProj):  # projection
+                # pick out projection function. _pencilbeam does have 
+                # one extra optional parameter (minimum number of 
+                # subsampling pixels), but we just use the default value
+                # for now. 
+                if pixelmeaning == "pencilbeam":
+                     pixelize_sph_kernel_projection = \
+                        pixelize_sph_kernel_projection_pencilbeam
+                elif pixelmeaning == "pixelave":
+                    pixelize_sph_kernel_projection = \
+                        pixelize_sph_kernel_projection_pixelave
+                else:
+                    raise NotImplementedError(
+                        f"No pixelmeaning option {pixelmeaning}") 
                 weight = data_source.weight_field
                 moment = data_source.moment
                 le, re = data_source.data_source.get_bbox()
@@ -431,7 +458,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 if weight is None:
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([field], chunk)
-                        pixelize_sph_kernel_projection(
+                        pixelize_sph_kernel_projection_pencilbeam(
                             buff,
                             mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
@@ -667,7 +694,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
         assert mask is None or mask.dtype == bool
         return buff, mask
 
-    def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
+    def _oblique_pixelize(self, data_source, field, bounds, size, antialias,
+                          pixelmeaning):
         from yt.data_objects.selection_objects.slices import YTCuttingPlane
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
