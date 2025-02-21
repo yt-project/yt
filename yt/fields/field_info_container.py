@@ -280,21 +280,13 @@ class FieldInfoContainer(UserDict):
             for alias in aliases:
                 match self.ds.geometry:
                     case Geometry.POLAR | Geometry.CYLINDRICAL | Geometry.SPHERICAL:
-                        if alias[-2:] not in ["_x", "_y", "_z"]:
-                            to_convert = False
-                        else:
-                            for suffix in ["x", "y", "z"]:
-                                if f"{alias[:-2]}_{suffix}" not in aliases_gallery:
-                                    to_convert = False
-                                    break
-                            to_convert = True
-                        if to_convert:
-                            if alias[-2:] == "_x":
-                                alias = f"{alias[:-2]}_{axis_names[0]}"
-                            elif alias[-2:] == "_y":
-                                alias = f"{alias[:-2]}_{axis_names[1]}"
-                            elif alias[-2:] == "_z":
-                                alias = f"{alias[:-2]}_{axis_names[2]}"
+                        KNOWN_SUFFIXES = ("x", "y", "z")
+                        stem, _, suffix = alias.rpartition("_")
+                        if suffix in KNOWN_SUFFIXES and all(
+                            f"{stem}_{s}" in aliases_gallery for s in KNOWN_SUFFIXES
+                        ):
+                            new_suffix = axis_names[KNOWN_SUFFIXES.index(suffix)]
+                            alias = f"{stem}_{new_suffix}"
                     case (
                         Geometry.CARTESIAN
                         | Geometry.GEOGRAPHIC
