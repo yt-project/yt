@@ -567,7 +567,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
         pw._setup_plots()
         return pw
 
-    def to_frb(self, width, resolution, center=None, height=None, periodic=False):
+    def to_frb(self, width, resolution, center=None, height=None,
+               periodic=False, 
+               pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave"):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -595,7 +597,15 @@ class YTSelectionContainer2D(YTSelectionContainer):
         periodic : bool
             Should the returned Fixed Resolution Buffer be periodic?  (default:
             False).
+        pixelmeaning:
+            "pixelav": a pixel represents an average surface density or
+            surface-density-weighted average across a pixel.
 
+            "pencilbeam": a pixel represents a column density or 
+            column-density-weighted average integrated over a pencil
+            beam through the pixel center.
+
+            Only applies to projections of SPH datasets.
         Returns
         -------
         frb : :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
@@ -659,7 +669,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center[yax] - height * 0.5,
             center[yax] + height * 0.5,
         )
-        frb = FixedResolutionBuffer(self, bounds, resolution, periodic=periodic)
+        frb = FixedResolutionBuffer(self, bounds, resolution,
+                                    periodic=periodic,
+                                    pixelmeaning=pixelmeaning)
         return frb
 
 
