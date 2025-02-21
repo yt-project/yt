@@ -112,6 +112,7 @@ def test_sph_proj_general_alongaxes(
         buff_size=(5, 5),
         center=center,
         data_source=source,
+        pixelmeaning="pencilbeam",
     )
     img = prj.frb.data["gas", "density"]
     if weighted:
