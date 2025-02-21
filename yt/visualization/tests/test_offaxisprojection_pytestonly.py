@@ -128,6 +128,7 @@ def test_sph_proj_general_offaxis(
         data_source=source,
         north_vector=northvector,
         depth=depth,
+        pixelmeaning="pencilbeam",
     )
     img = prj.frb.data["gas", "density"]
     if weighted:

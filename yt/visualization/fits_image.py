@@ -1664,7 +1664,7 @@ class FITSOffAxisProjection(FITSImageData):
         depth=(1.0, "unitary"),
         method="integrate",
         length_unit=None,
-
+        pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave",
         *,
         moment=1,
     ):
