@@ -33,6 +33,7 @@ def off_axis_projection(
     depth=None,
     num_threads=1,
     method="integrate",
+    pixelmeaning: {"pencilbeam", "pixelave"} = "pixelave",
 ):
     r"""Project through a dataset, off-axis, and return the image plane.
 
@@ -102,6 +103,16 @@ def off_axis_projection(
         This should only be used for uniform resolution grid datasets, as other
         datasets may result in unphysical images.
         or camera movements.
+    pixelmeaning:
+        "pixelav": a pixel represents an average surface density or
+        surface-density-weighted average across a pixel.
+
+        "pencilbeam": a pixel represents a column density or 
+        column-density-weighted average integrated over a pencil beam
+        through the pixel center.
+        
+        Only applies to SPH datasets.
+        
     Returns
     -------
     image : array
@@ -132,6 +143,9 @@ def off_axis_projection(
             "Only interpolated=False methods are currently implemented "
             "for off-axis-projections"
         )
+    if pixelmeaning not in {"pencilbeam", "pixelave"}:
+        raise ValueError(
+            f"No pixelmeaning option {pixelmeaning} exists") 
 
     data_source = data_source_or_all(data_source)
 
@@ -261,6 +275,7 @@ def off_axis_projection(
                     north,
                     depth=depth,
                     kernel_name=kernel_name,
+                    pixelmeaning=pixelmeaning,
                 )
 
             # Assure that the path length unit is in the default length units
@@ -303,6 +318,7 @@ def off_axis_projection(
                     weight_field=chunk[weight].in_units(wounits),
                     depth=depth,
                     kernel_name=kernel_name,
+                    pixelmeaning=pixelmeaning,
                 )
 
             for chunk in data_source.chunks([], "io"):
@@ -324,6 +340,7 @@ def off_axis_projection(
                     north,
                     depth=depth,
                     kernel_name=kernel_name,
+                    pixelmeaning=pixelmeaning,
                 )
 
             normalization_2d_utility(buf, weight_buff)
