@@ -1153,7 +1153,7 @@ class FITSProjection(FITSImageData):
         weighted average. moment = 2 corresponds to a weighted standard
         deviation.
     pixelmeaning:
-        "pixelav": a pixel represents an average surface density or
+        "e": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
         "pencilbeam": a pixel represents a column density or 
@@ -1404,7 +1404,7 @@ class FITSParticleOffAxisProjection(FITSImageData):
         defined by the *center* keyword argument. If "image", then the center
         coordinates will be set to (0,0). Default: "domain"
     pixelmeaning:
-        "pixelav": a pixel represents an average surface density or
+        "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
         "pencilbeam": a pixel represents a column density or 
@@ -1640,7 +1640,7 @@ class FITSOffAxisProjection(FITSImageData):
         weighted average. moment = 2 corresponds to a weighted standard
         deviation.
     pixelmeaning:
-        "pixelav": a pixel represents an average surface density or
+        "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
         "pencilbeam": a pixel represents a column density or 
