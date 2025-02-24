@@ -5,6 +5,7 @@ from numbers import Number as numeric_type
 
 import numpy as np
 from more_itertools import first, mark_ends
+from typing import Literal
 
 from yt._typing import FieldKey
 from yt.data_objects.construction_data_containers import YTCoveringGrid
@@ -881,7 +882,7 @@ axis_wcs = [[1, 2], [2, 0], [0, 1]]
 def construct_image(
     ds, axis, data_source, center, image_res, width, length_unit,
     origin="domain",
-    pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave",
+    pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
 ):
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
@@ -1153,7 +1154,7 @@ class FITSProjection(FITSImageData):
         weighted average. moment = 2 corresponds to a weighted standard
         deviation.
     pixelmeaning:
-        "e": a pixel represents an average surface density or
+        "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
         "pencilbeam": a pixel represents a column density or 
@@ -1176,7 +1177,7 @@ class FITSProjection(FITSImageData):
         *,
         origin="domain",
         moment=1,
-        pixelmeaning: {"pixelave", "pencilbeam" } = "pixelave",
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         **kwargs,
     ):
         fields = list(iter_fields(fields))
@@ -1430,7 +1431,7 @@ class FITSParticleOffAxisProjection(FITSImageData):
         field_parameters=None,
         data_source=None,
         north_vector=None,
-        pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave",
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
     ):
         fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, None)
@@ -1664,7 +1665,7 @@ class FITSOffAxisProjection(FITSImageData):
         depth=(1.0, "unitary"),
         method="integrate",
         length_unit=None,
-        pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave",
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         moment=1,
     ):

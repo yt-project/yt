@@ -1,3 +1,5 @@
+from typing import Literal
+
 import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
@@ -171,7 +173,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         size,
         antialias=True,
         periodic=True,
-        pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave",
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         return_mask=False,
     ):
@@ -181,7 +183,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         routines written in cython
 
         pixelmeaning:
-            "pixelav": a pixel represents an average surface density or
+            "pixelave": a pixel represents an average surface density or
             surface-density-weighted average across a pixel.
 
             "pencilbeam": a pixel represents a column density or 

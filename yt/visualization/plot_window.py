@@ -2,7 +2,7 @@ import abc
 import sys
 from collections import defaultdict
 from numbers import Number
-from typing import TYPE_CHECKING, Union
+from typing import Literal, TYPE_CHECKING, Union
 
 import matplotlib
 import numpy as np
@@ -208,7 +208,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         fontsize=18,
         aspect=None,
         setup=False,
-        pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave",
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         geometry: Geometry = Geometry.CARTESIAN,
     ) -> None:
@@ -779,7 +779,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
     @invalidate_data
     def set_pixelmeaning(
             self, 
-            pixelmeaning: {"pixelave", "pencilbeam"} = "pencilbeam",
+            pixelmeaning: Literal["pixelave", "pencilbeam"] = "pencilbeam",
         ):
         """
         Change the SPH surface density calculation approach
@@ -2090,7 +2090,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
-        pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave",
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         moment=1,
     ):
@@ -2508,7 +2508,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         moment=1,
         data_source=None,
         buff_size=(800, 800),
-        pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave",
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
     ):
         if ds.geometry not in self._supported_geometries:
             raise NotImplementedError(

@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Literal
 
 from yt.data_objects.api import ImageArray
 from yt.funcs import is_sequence, mylog
@@ -33,7 +34,7 @@ def off_axis_projection(
     depth=None,
     num_threads=1,
     method="integrate",
-    pixelmeaning: {"pencilbeam", "pixelave"} = "pixelave",
+    pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
 ):
     r"""Project through a dataset, off-axis, and return the image plane.
 
@@ -143,7 +144,7 @@ def off_axis_projection(
             "Only interpolated=False methods are currently implemented "
             "for off-axis-projections"
         )
-    if pixelmeaning not in {"pencilbeam", "pixelave"}:
+    if pixelmeaning not in["pencilbeam", "pixelave"]:
         raise ValueError(
             f"No pixelmeaning option {pixelmeaning} exists") 
 
