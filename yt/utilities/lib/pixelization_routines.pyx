@@ -1366,7 +1366,7 @@ def pixelize_sph_kernel_projection_pixelave(
         _check_period = (1, 1, 1),
         period=None,
         nsample_min=32):
-    
+
     # shared variables (or used before parallel section)
     cdef np.intp_t xsize, ysize, si, sj, sii, sjj, sci
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max
@@ -1474,32 +1474,32 @@ def pixelize_sph_kernel_projection_pixelave(
 
     with nogil, parallel():
         # loop through every particle
-        # NOTE: this loop can be quite time consuming. However it is 
+        # NOTE: this loop can be quite time consuming. However it is
         # easily parallelizable in multiple ways, such as:
         #   1) use multiple cores to process individual particles (the
         #      outer loop)
-        #   2) use multiple cores to process individual pixels for a 
+        #   2) use multiple cores to process individual pixels for a
         #      given particle (the inner loops)
-        # Depending on the ratio of particles' "sphere of influence" 
+        # Depending on the ratio of particles' "sphere of influence"
         # (a.k.a. the smoothing length) to the physical width of the
-        # pixels, different parallelization strategies may yield 
+        # pixels, different parallelization strategies may yield
         # different speed-ups. Strategy #1 works better in the case of
         # lots of itty bitty particles. Strategy #2 works well when we
-        # have a not-very-large-number of reasonably 
+        # have a not-very-large-number of reasonably
         # large-compared-to-pixels particles. We currently employ #1 as
         # its workload is more even and consistent, even though it
-        # comes with a price of an additional, per thread memory for 
+        # comes with a price of an additional, per thread memory for
         # storing the intermediate results.
-        # !!! These comments were written for the line of sight 
+        # !!! These comments were written for the line of sight
         # !!! integral counterpart to this function, and not checked
         # for this version
         # (also, I don't know if this is possible in cython, but in
-        #  C + OpenMP without pixel subsampling, atomic read/write 
+        #  C + OpenMP without pixel subsampling, atomic read/write
         #  operations to the output array weren't much slower than
         #  using the memory-intensive ouput array buffer for each
         #  thread)
 
-        local_buff = <np.float64_t *> malloc(sizeof(np.float64_t) 
+        local_buff = <np.float64_t *> malloc(sizeof(np.float64_t)
                                              * xsize * ysize)
         xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
         yiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
@@ -1618,7 +1618,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                 xn = (x_min + (x0 + 1) * dx - px) / hsml[j]
                                 yn = (y_min + (y0 + 1) * dy - py) / hsml[j]
                                 # round to the nearest kernel grid edge
-                                # (C float to int cast behaves like 
+                                # (C float to int cast behaves like
                                 #  floor())
                                 xi = <np.int64_t> (
                                      0.5 * (xn + 1.) * nsmin + 0.5)

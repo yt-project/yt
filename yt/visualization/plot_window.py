@@ -2,7 +2,7 @@ import abc
 import sys
 from collections import defaultdict
 from numbers import Number
-from typing import Literal, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Literal, Union
 
 import matplotlib
 import numpy as np
@@ -186,7 +186,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
-        "pencilbeam": a pixel represents a column density or 
+        "pencilbeam": a pixel represents a column density or
         column-density-weighted average integrated over a pencil
         beam through the pixel center.
 
@@ -775,12 +775,12 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         aa : boolean
         """
         self.antialias = aa
-    
+
     @invalidate_data
     def set_pixelmeaning(
-            self, 
-            pixelmeaning: Literal["pixelave", "pencilbeam"] = "pencilbeam",
-        ):
+        self,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pencilbeam",
+    ):
         """
         Change the SPH surface density calculation approach
 
@@ -790,7 +790,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
             "pixelave": a pixel represents an average surface density or
             surface-density-weighted average across a pixel.
 
-            "pencilbeam": a pixel represents a column density or 
+            "pencilbeam": a pixel represents a column density or
             column-density-weighted average integrated over a pencil
             beam through the pixel center.
 
@@ -2052,7 +2052,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
-        "pencilbeam": a pixel represents a column density or 
+        "pencilbeam": a pixel represents a column density or
         column-density-weighted average integrated over a pencil
         beam through the pixel center.
 
@@ -2475,7 +2475,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
-        "pencilbeam": a pixel represents a column density or 
+        "pencilbeam": a pixel represents a column density or
         column-density-weighted average integrated over a pencil
         beam through the pixel center.
 

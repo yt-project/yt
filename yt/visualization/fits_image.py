@@ -2,10 +2,10 @@ import re
 import sys
 from functools import partial
 from numbers import Number as numeric_type
+from typing import Literal
 
 import numpy as np
 from more_itertools import first, mark_ends
-from typing import Literal
 
 from yt._typing import FieldKey
 from yt.data_objects.construction_data_containers import YTCoveringGrid
@@ -116,7 +116,7 @@ class FITSImageData:
             "pixelave": a pixel represents an average surface density or
             surface-density-weighted average across a pixel.
 
-            "pencilbeam": a pixel represents a column density or 
+            "pencilbeam": a pixel represents a column density or
             column-density-weighted average integrated over a pencil
             beam through the pixel center.
 
@@ -880,7 +880,13 @@ axis_wcs = [[1, 2], [2, 0], [0, 1]]
 
 
 def construct_image(
-    ds, axis, data_source, center, image_res, width, length_unit,
+    ds,
+    axis,
+    data_source,
+    center,
+    image_res,
+    width,
+    length_unit,
     origin="domain",
     pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
 ):
@@ -922,12 +928,17 @@ def construct_image(
         crval = np.zeros(2)
     if hasattr(data_source, "to_frb"):
         if is_sequence(axis):
-            frb = data_source.to_frb(width[0], (nx, ny), height=width[1],
-                                     pixelmeaning=pixelmeaning)
+            frb = data_source.to_frb(
+                width[0], (nx, ny), height=width[1], pixelmeaning=pixelmeaning
+            )
         else:
-            frb = data_source.to_frb(width[0], (nx, ny), center=center,
-                                     height=width[1],
-                                     pixelmeaning=pixelmeaning)
+            frb = data_source.to_frb(
+                width[0],
+                (nx, ny),
+                center=center,
+                height=width[1],
+                pixelmeaning=pixelmeaning,
+            )
     elif isinstance(data_source, ParticleDummyDataSource):
         if hasattr(data_source, "normal_vector"):
             # If we have a normal vector, this means
@@ -1157,7 +1168,7 @@ class FITSProjection(FITSImageData):
         "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
-        "pencilbeam": a pixel represents a column density or 
+        "pencilbeam": a pixel represents a column density or
         column-density-weighted average integrated over a pencil
         beam through the pixel center.
 
@@ -1408,7 +1419,7 @@ class FITSParticleOffAxisProjection(FITSImageData):
         "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
-        "pencilbeam": a pixel represents a column density or 
+        "pencilbeam": a pixel represents a column density or
         column-density-weighted average integrated over a pencil
         beam through the pixel center.
 
@@ -1644,7 +1655,7 @@ class FITSOffAxisProjection(FITSImageData):
         "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
-        "pencilbeam": a pixel represents a column density or 
+        "pencilbeam": a pixel represents a column density or
         column-density-weighted average integrated over a pencil
         beam through the pixel center.
 

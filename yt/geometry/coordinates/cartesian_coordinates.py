@@ -186,7 +186,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             "pixelave": a pixel represents an average surface density or
             surface-density-weighted average across a pixel.
 
-            "pencilbeam": a pixel represents a column density or 
+            "pencilbeam": a pixel represents a column density or
             column-density-weighted average integrated over a pencil
             beam through the pixel center.
 
@@ -250,8 +250,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
         elif self.axis_id.get(dimension, dimension) is not None:
             buff, mask = self._ortho_pixelize(
-                data_source, field, bounds, size, antialias, dimension,
-                periodic, pixelmeaning
+                data_source,
+                field,
+                bounds,
+                size,
+                antialias,
+                dimension,
+                periodic,
+                pixelmeaning,
             )
         else:
             buff, mask = self._oblique_pixelize(
@@ -329,8 +335,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         return arc_length, plot_values
 
     def _ortho_pixelize(
-        self, data_source, field, bounds, size, antialias, dim, periodic,
-        pixelmeaning
+        self, data_source, field, bounds, size, antialias, dim, periodic, pixelmeaning
     ):
         from yt.data_objects.construction_data_containers import YTParticleProj
         from yt.data_objects.selection_objects.slices import YTSlice
@@ -412,19 +417,20 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 kernel_name = "cubic"
 
             if isinstance(data_source, YTParticleProj):  # projection
-                # pick out projection function. _pencilbeam does have 
-                # one extra optional parameter (minimum number of 
+                # pick out projection function. _pencilbeam does have
+                # one extra optional parameter (minimum number of
                 # subsampling pixels), but we just use the default value
-                # for now. 
+                # for now.
                 if pixelmeaning == "pencilbeam":
-                     pixelize_sph_kernel_projection = \
+                    pixelize_sph_kernel_projection = (
                         pixelize_sph_kernel_projection_pencilbeam
+                    )
                 elif pixelmeaning == "pixelave":
-                    pixelize_sph_kernel_projection = \
+                    pixelize_sph_kernel_projection = (
                         pixelize_sph_kernel_projection_pixelave
+                    )
                 else:
-                    raise NotImplementedError(
-                        f"No pixelmeaning option {pixelmeaning}") 
+                    raise NotImplementedError(f"No pixelmeaning option {pixelmeaning}")
                 weight = data_source.weight_field
                 moment = data_source.moment
                 le, re = data_source.data_source.get_bbox()
@@ -696,8 +702,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
         assert mask is None or mask.dtype == bool
         return buff, mask
 
-    def _oblique_pixelize(self, data_source, field, bounds, size, antialias,
-                          pixelmeaning):
+    def _oblique_pixelize(
+        self, data_source, field, bounds, size, antialias, pixelmeaning
+    ):
         from yt.data_objects.selection_objects.slices import YTCuttingPlane
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
