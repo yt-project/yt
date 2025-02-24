@@ -11,6 +11,7 @@ from yt.testing import (
     fake_random_sph_ds,
     fake_sph_flexible_grid_ds,
     integrate_kernel,
+    pixelintegrate_kernel,
 )
 
 
@@ -160,6 +161,148 @@ def test_sph_proj_general_alongaxes(
     # print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
 
+@pytest.mark.parametrize("weighted", [True, False])
+@pytest.mark.parametrize("periodic", [True, False])
+@pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
+@pytest.mark.parametrize("shiftcenter", [False, True])
+@pytest.mark.parametrize("axis", [0, 1, 2])
+@pytest.mark.parametrize("hsmlfac", [0.2, 1.0, 2.0])
+def test_sph_projection_pixelave_alongaxes(
+    axis: int,
+    shiftcenter: bool,
+    periodic: bool,
+    depth: float,
+    weighted: bool,
+    hsmlfac: float,
+) -> None:
+    if shiftcenter:
+        center = unyt.unyt_array(np.array((0.625, 0.525, 0.425)), "cm")
+    else:
+        center = unyt.unyt_array(np.array((1.5, 1.5, 1.5)), "cm")
+    bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]), "cm")
+    hsml_factor = hsmlfac
+    unitrho = 1.5
+
+    if axis == 2:
+        ax0 = 0
+        ax1 = 1
+    elif axis == 0:
+        ax0 = 1
+        ax1 = 2
+    elif axis == 1:
+        ax0 = 2
+        ax1 = 0
+    buff_size = (5, 5)
+    # test correct centering, particle selection
+    def makemasses(i, j, k):
+        if i == j == k == 1:
+            return 2.0
+        else:
+            return 1.0
+
+    # result shouldn't depend explicitly on the center if we re-center
+    # the data, unless we get cut-offs in the non-periodic case
+    ds = fake_sph_flexible_grid_ds(
+        hsml_factor=hsml_factor,
+        nperside=3,
+        periodic=periodic,
+        offsets=np.full(3, 0.5),
+        massgenerator=makemasses,
+        unitrho=unitrho,
+        bbox=bbox.v,
+        recenter=center.v,
+    )
+    if depth is None:
+        source = ds.all_data()
+    else:
+        depth = unyt.unyt_quantity(*depth)
+        le = np.array(ds.domain_left_edge)
+        re = np.array(ds.domain_right_edge)
+        le[axis] = center[axis] - 0.5 * depth
+        re[axis] = center[axis] + 0.5 * depth
+        cen = 0.5 * (le + re)
+        reg = YTRegion(center=cen, left_edge=le, right_edge=re, ds=ds)
+        source = reg
+
+    # we don't actually want a plot, it's just a straightforward,
+    # common way to get an frb / image array
+    if weighted:
+        toweight_field = ("gas", "density")
+    else:
+        toweight_field = None
+    prj = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=toweight_field,
+        buff_size=buff_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pixelave",
+    )
+    img = prj.frb.data[("gas", "density")]
+
+    projwidth = unyt.unyt_array(np.array((2.5,)), "cm")
+    pixedges_x = np.linspace(center[ax0] - 0.5 * projwidth,
+                             center[ax0] + 0.5 * projwidth,
+                             buff_size[0] + 1)
+    pixedges_y = np.linspace(center[ax1] - 0.5 * projwidth,
+                             center[ax1] + 0.5 * projwidth,
+                             buff_size[1] + 1)
+    _depth = depth if depth is not None else np.inf
+    zlims = (center[axis] - 0.5 * _depth,
+             center[axis] + 0.5 * _depth)
+    ad = ds.all_data()
+    pcenxy = np.array(
+        [
+            (ad[("gas", "xyz"[ax0])]).to("cm"),
+            (ad[("gas", "xyz"[ax1])]).to("cm"),
+        ]
+    ).T
+    projz = (ad[("gas", "xyz"[axis])]).to("cm")
+    hsml = (ad[("gas", "smoothing_length")]).to("cm")
+    mass = (ad[("gas", "mass")]).to("g")
+    density = (ad[("gas", "density")]).to("g * cm**-3")
+    baseline = np.zeros(buff_size)
+    if periodic:
+        periodxy = (bbox[ax0][1] - bbox[ax0][0],
+                    bbox[ax1][1] - bbox[ax1][0])
+        periodz = bbox[axis][1] - bbox[axis][0]
+    else:
+        periodxy = (None, None)
+    for i in range(buff_size[0]):
+        for j in range(buff_size[1]):
+            pixelxy = np.array([pixedges_x[i], pixedges_x[i + 1],
+                                pixedges_y[j], pixedges_y[j + 1]])
+            weightsum = 0.
+            weightedsum = 0.
+            for p in range(len(pcenxy.shape[0])):
+                # check if the particle is excluded along z
+                if projz[p] < zlims[0] or projz[p] > zlims[1]:
+                    if periodz is None:
+                        continue
+                    else:
+                        dz = projz - center[axis].to("cm")
+                        dz += 0.5 * periodz
+                        dz %= periodz
+                        dz -= periodz
+                        if np.abs(dz) > 0.5 * depth:
+                            continue
+                
+                kernint = pixelintegrate_kernel(
+                    cubicspline_python, pixelxy, pcenxy[p], hsml[p],
+                    nsample=100, periodxy=periodxy,
+                )
+                weightsum += kernint * mass[p]
+                if weighted:
+                    weightedsum += kernint * mass[p] * density[p]
+            if weighted:
+                baseline[i, j] += weightedsum / weightsum
+            else:
+                baseline[i, j] += weightsum
+    assert_rel_equal(baseline, img.v, 5)
+    
 
 @pytest.mark.parametrize("periodic", [True, False])
 @pytest.mark.parametrize("shiftcenter", [False, True])
