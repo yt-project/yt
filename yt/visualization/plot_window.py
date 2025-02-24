@@ -183,7 +183,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
     pixelmeaning:
-        "pixelav": a pixel represents an average surface density or
+        "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
         "pencilbeam": a pixel represents a column density or 
@@ -787,7 +787,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         parameters
         ----------
         pixelmeaning:
-            "pixelav": a pixel represents an average surface density or
+            "pixelave": a pixel represents an average surface density or
             surface-density-weighted average across a pixel.
 
             "pencilbeam": a pixel represents a column density or 
@@ -2049,7 +2049,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         weighted average. moment = 2 corresponds to a weighted standard
         deviation.
     pixelmeaning:
-        "pixelav": a pixel represents an average surface density or
+        "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
         "pencilbeam": a pixel represents a column density or 
@@ -2472,7 +2472,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         used. Effectively sets a resolution limit to the image if buff_size is
         smaller than the finest gridding.
     pixelmeaning:
-        "pixelav": a pixel represents an average surface density or
+        "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
         "pencilbeam": a pixel represents a column density or 
