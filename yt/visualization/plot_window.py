@@ -83,7 +83,11 @@ def get_window_parameters(axis, center, width, ds):
 
 
 def get_oblique_window_parameters(
-    normal, center, width, ds, depth=None, get3bounds=False
+    normal,
+    center,
+    width,
+    ds,
+    depth=None,
 ):
     center, display_center = ds.coordinates.sanitize_center(center, axis=None)
     width = ds.coordinates.sanitize_width(normal, width, depth)
@@ -101,15 +105,7 @@ def get_oblique_window_parameters(
 
     w = tuple(el.in_units("code_length") for el in width)
     bounds = tuple(((2 * (i % 2)) - 1) * w[i // 2] / 2 for i in range(len(w) * 2))
-    if get3bounds and depth is None:
-        # off-axis projection, depth not specified
-        # -> set 'large enough' depth using half the box diagonal + margin
-        d2 = ds.domain_width[0].in_units("code_length") ** 2
-        d2 += ds.domain_width[1].in_units("code_length") ** 2
-        d2 += ds.domain_width[2].in_units("code_length") ** 2
-        diag = np.sqrt(d2)
-        bounds = bounds + (-0.51 * diag, 0.51 * diag)
-    return (bounds, center)
+    return bounds, center
 
 
 def get_axes_unit(width, ds):
@@ -2388,7 +2384,8 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
     depth : A tuple or a float
         A tuple containing the depth to project through and the string
         key of the unit: (width, 'unit'). If set to a float, code units
-        are assumed
+        are assumed. In not set, then a depth equal to the diagonal of
+        the domain width plus a small margin will be used.
     weight_field : string
         The name of the weighting field.  Set to None for no weight.
     max_level: int
@@ -2465,6 +2462,13 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
                 "currently supported geometries:"
                 f" {self._supported_geometries!r}"
             )
+
+        if depth is None:
+            # off-axis projection, depth not specified
+            # -> set 'large enough' depth using half the box diagonal + margin
+            depth = np.linalg.norm(ds.domain_width.in_units("code_length")) * 1.0001
+        depth = ds.coordinates.sanitize_depth(depth)[0]
+
         # center_rot normalizes the center to (0,0),
         # units match bounds
         # for SPH data, we want to input the original center
@@ -2478,7 +2482,6 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             width,
             ds,
             depth=depth,
-            get3bounds=True,
         )
         # will probably fail if you try to project an SPH and non-SPH
         # field in a single call
