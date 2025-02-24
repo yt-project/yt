@@ -104,7 +104,7 @@ def off_axis_projection(
         datasets may result in unphysical images.
         or camera movements.
     pixelmeaning:
-        "pixelav": a pixel represents an average surface density or
+        "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
         "pencilbeam": a pixel represents a column density or 
