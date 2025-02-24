@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Literal
+
+import numpy as np
 
 from yt.data_objects.api import ImageArray
 from yt.funcs import is_sequence, mylog
@@ -108,12 +109,12 @@ def off_axis_projection(
         "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
-        "pencilbeam": a pixel represents a column density or 
+        "pencilbeam": a pixel represents a column density or
         column-density-weighted average integrated over a pencil beam
         through the pixel center.
-        
+
         Only applies to SPH datasets.
-        
+
     Returns
     -------
     image : array
@@ -144,9 +145,8 @@ def off_axis_projection(
             "Only interpolated=False methods are currently implemented "
             "for off-axis-projections"
         )
-    if pixelmeaning not in["pencilbeam", "pixelave"]:
-        raise ValueError(
-            f"No pixelmeaning option {pixelmeaning} exists") 
+    if pixelmeaning not in ["pencilbeam", "pixelave"]:
+        raise ValueError(f"No pixelmeaning option {pixelmeaning} exists")
 
     data_source = data_source_or_all(data_source)
 

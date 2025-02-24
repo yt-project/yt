@@ -4,10 +4,10 @@ import sys
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import Literal
 
 import numpy as np
 from more_itertools import always_iterable
-from typing import Literal
 from unyt import unyt_array
 from unyt.exceptions import UnitConversionError, UnitParseError
 
@@ -568,9 +568,15 @@ class YTSelectionContainer2D(YTSelectionContainer):
         pw._setup_plots()
         return pw
 
-    def to_frb(self, width, resolution, center=None, height=None,
-               periodic=False, 
-               pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave"):
+    def to_frb(
+        self,
+        width,
+        resolution,
+        center=None,
+        height=None,
+        periodic=False,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
+    ):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -602,7 +608,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             "pixelav": a pixel represents an average surface density or
             surface-density-weighted average across a pixel.
 
-            "pencilbeam": a pixel represents a column density or 
+            "pencilbeam": a pixel represents a column density or
             column-density-weighted average integrated over a pencil
             beam through the pixel center.
 
@@ -670,9 +676,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center[yax] - height * 0.5,
             center[yax] + height * 0.5,
         )
-        frb = FixedResolutionBuffer(self, bounds, resolution,
-                                    periodic=periodic,
-                                    pixelmeaning=pixelmeaning)
+        frb = FixedResolutionBuffer(
+            self, bounds, resolution, periodic=periodic, pixelmeaning=pixelmeaning
+        )
         return frb
 
 

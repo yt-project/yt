@@ -1,7 +1,7 @@
 import sys
 import weakref
 from functools import partial
-from typing import Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
@@ -71,7 +71,7 @@ class FixedResolutionBuffer:
         "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
-        "pencilbeam": a pixel represents a column density or 
+        "pencilbeam": a pixel represents a column density or
         column-density-weighted average integrated over a pencil
         beam through the pixel center.
 

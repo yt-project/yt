@@ -630,8 +630,11 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
     def _get_frb(self, obj):
         # pixelmeaning="pencilbeam" for backwards compatible SPH tests
         proj = self.ds.proj(
-            self.field, self.axis, weight_field=self.weight_field,
-            data_source=obj, pixelmeaning="pencilbeam",
+            self.field,
+            self.axis,
+            weight_field=self.weight_field,
+            data_source=obj,
+            pixelmeaning="pencilbeam",
         )
         frb = proj.to_frb((1.0, "unitary"), 256)
         return proj, frb
