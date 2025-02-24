@@ -7,6 +7,7 @@ from contextlib import contextmanager
 
 import numpy as np
 from more_itertools import always_iterable
+from typing import Literal
 from unyt import unyt_array
 from unyt.exceptions import UnitConversionError, UnitParseError
 
@@ -569,7 +570,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
     def to_frb(self, width, resolution, center=None, height=None,
                periodic=False, 
-               pixelmeaning: {"pixelave", "pencilbeam"} = "pixelave"):
+               pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave"):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 

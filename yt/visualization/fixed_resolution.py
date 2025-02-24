@@ -1,7 +1,7 @@
 import sys
 import weakref
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import Literal, TYPE_CHECKING
 
 import numpy as np
 
@@ -68,7 +68,7 @@ class FixedResolutionBuffer:
         This can be true or false, and governs whether the pixelization
         will span the domain boundaries.
     pixelmeaning:
-        "pixelav": a pixel represents an average surface density or
+        "pixelave": a pixel represents an average surface density or
         surface-density-weighted average across a pixel.
 
         "pencilbeam": a pixel represents a column density or 
@@ -124,7 +124,7 @@ class FixedResolutionBuffer:
         buff_size,
         antialias=True,
         periodic=False,
-        pixelmeaning: {"pencilbeam", "pixelave"} = "pixelave",
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         filters: list["FixedResolutionBufferFilter"] | None = None,
     ):
