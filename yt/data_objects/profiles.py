@@ -1314,7 +1314,7 @@ def create_profile(
                 for f in bin_fields + fields
             ]
             if wf is not None:
-                is_local.append(wf.sampling_type == "local")
+                is_local.append(data_source.ds.field_info[wf].sampling_type == "local")
             is_local_or_pfield = [
                 pf or lf for (pf, lf) in zip(is_pfield, is_local, strict=True)
             ]
