@@ -112,7 +112,7 @@ class FITSImageData:
             to transfer metadata to the header(s). Does not need to be
             specified if *data* has a dataset as an attribute.
         pixelmeaning:
-            "pixelav": a pixel represents an average surface density or
+            "pixelave": a pixel represents an average surface density or
             surface-density-weighted average across a pixel.
 
             "pencilbeam": a pixel represents a column density or 
