@@ -99,7 +99,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         Parameters
         ----------
         pixelmeaning: ignored, argument meant for cartesian SPH data
-        
+
         """
         self.period
         name = self.axis_name[dimension]
