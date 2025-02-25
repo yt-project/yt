@@ -717,6 +717,10 @@ class ParticleImageBuffer(FixedResolutionBuffer):
     that supports particle plots. It splats points onto an image
     buffer.
 
+    parameters
+    ----------
+    pixelmeaning: ignored; arg. is meant for SPH projection plots
+
     """
 
     def __init__(
@@ -726,6 +730,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         buff_size,
         antialias=True,
         periodic=False,
+        pixelmeaning="pixelave",
         *,
         filters=None,
     ):
