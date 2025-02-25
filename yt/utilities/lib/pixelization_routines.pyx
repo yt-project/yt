@@ -2566,6 +2566,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
             weight_field=weight_field, _check_period=check_period,
             kernel_name=kernel_name
         )
+    else:
+        raise ValueError(f"no pixelmeaning option '{pixelmeaning}'")
 
 # like slice pixelization, but for off-axis planes
 def pixelize_sph_kernel_cutting(
