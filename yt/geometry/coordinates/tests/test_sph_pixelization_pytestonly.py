@@ -161,6 +161,7 @@ def test_sph_proj_general_alongaxes(
     # print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
 
+
 @pytest.mark.parametrize("weighted", [True, False])
 @pytest.mark.parametrize("periodic", [True, False])
 @pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
@@ -193,6 +194,7 @@ def test_sph_projection_pixelave_alongaxes(
         ax0 = 2
         ax1 = 0
     buff_size = (5, 5)
+
     # test correct centering, particle selection
     def makemasses(i, j, k):
         if i == j == k == 1:
@@ -244,15 +246,14 @@ def test_sph_projection_pixelave_alongaxes(
     img = prj.frb.data[("gas", "density")]
 
     projwidth = unyt.unyt_array(np.array((2.5,)), "cm")
-    pixedges_x = np.linspace(center[ax0] - 0.5 * projwidth,
-                             center[ax0] + 0.5 * projwidth,
-                             buff_size[0] + 1)
-    pixedges_y = np.linspace(center[ax1] - 0.5 * projwidth,
-                             center[ax1] + 0.5 * projwidth,
-                             buff_size[1] + 1)
+    pixedges_x = np.linspace(
+        center[ax0] - 0.5 * projwidth, center[ax0] + 0.5 * projwidth, buff_size[0] + 1
+    )
+    pixedges_y = np.linspace(
+        center[ax1] - 0.5 * projwidth, center[ax1] + 0.5 * projwidth, buff_size[1] + 1
+    )
     _depth = depth if depth is not None else np.inf
-    zlims = (center[axis] - 0.5 * _depth,
-             center[axis] + 0.5 * _depth)
+    zlims = (center[axis] - 0.5 * _depth, center[axis] + 0.5 * _depth)
     ad = ds.all_data()
     pcenxy = np.array(
         [
@@ -266,17 +267,17 @@ def test_sph_projection_pixelave_alongaxes(
     density = (ad[("gas", "density")]).to("g * cm**-3")
     baseline = np.zeros(buff_size)
     if periodic:
-        periodxy = (bbox[ax0][1] - bbox[ax0][0],
-                    bbox[ax1][1] - bbox[ax1][0])
+        periodxy = (bbox[ax0][1] - bbox[ax0][0], bbox[ax1][1] - bbox[ax1][0])
         periodz = bbox[axis][1] - bbox[axis][0]
     else:
         periodxy = (None, None)
     for i in range(buff_size[0]):
         for j in range(buff_size[1]):
-            pixelxy = np.array([pixedges_x[i], pixedges_x[i + 1],
-                                pixedges_y[j], pixedges_y[j + 1]])
-            weightsum = 0.
-            weightedsum = 0.
+            pixelxy = np.array(
+                [pixedges_x[i], pixedges_x[i + 1], pixedges_y[j], pixedges_y[j + 1]]
+            )
+            weightsum = 0.0
+            weightedsum = 0.0
             for p in range(len(pcenxy.shape[0])):
                 # check if the particle is excluded along z
                 if projz[p] < zlims[0] or projz[p] > zlims[1]:
@@ -289,10 +290,14 @@ def test_sph_projection_pixelave_alongaxes(
                         dz -= periodz
                         if np.abs(dz) > 0.5 * depth:
                             continue
-                
+
                 kernint = pixelintegrate_kernel(
-                    cubicspline_python, pixelxy, pcenxy[p], hsml[p],
-                    nsample=100, periodxy=periodxy,
+                    cubicspline_python,
+                    pixelxy,
+                    pcenxy[p],
+                    hsml[p],
+                    nsample=100,
+                    periodxy=periodxy,
                 )
                 weightsum += kernint * mass[p]
                 if weighted:
@@ -302,7 +307,7 @@ def test_sph_projection_pixelave_alongaxes(
             else:
                 baseline[i, j] += weightsum
     assert_rel_equal(baseline, img.v, 5)
-    
+
 
 @pytest.mark.parametrize("periodic", [True, False])
 @pytest.mark.parametrize("shiftcenter", [False, True])

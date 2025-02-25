@@ -154,6 +154,7 @@ def integrate_kernel(
     integral = np.sum(spv * dx, axis=0)
     return np.atleast_1d(pre * integral)
 
+
 def pixelintegrate_kernel(
     kernelfunc: Callable[[float], float],
     pixelxy: np.ndarray[float],
@@ -163,8 +164,8 @@ def pixelintegrate_kernel(
     periodxy: tuple[float | None, float | None] = (True, True),
 ) -> float:
     """
-    integrates a kernel function over a rectangular prism. 
-    
+    integrates a kernel function over a rectangular prism.
+
     Returns (kernel_volume_fraction) / pixel area,
     where the kernel_volume_fraction is the volume integral of the
     kernel over the rectangular prism defined by the pixel, divided
@@ -174,11 +175,11 @@ def pixelintegrate_kernel(
     ----------
     kernelfunc:
         the kernel function to integrate
-    pixelxy: 
+    pixelxy:
         corners of the pixel in the output grid;
         (xmin, xmax, ymin, ymax); [length units]
     pcenxy:
-        sph particle center in the output grid plane 
+        sph particle center in the output grid plane
         (x, y) [same units as pixelxy]
     hsml:
         smoothing length [same units as pixelxy]
@@ -193,7 +194,7 @@ def pixelintegrate_kernel(
 
     Note
     ----
-    The calculation assumes the kernel support is entirely 
+    The calculation assumes the kernel support is entirely
     within the rectangular prism defined by the pixel in the
     line-of-sight direction, as the backend functions for SPH
     projections do.
@@ -215,10 +216,11 @@ def pixelintegrate_kernel(
         yoff += 0.5 * periodxy[1]
         yoff %= periodxy[1]
         yoff -= 0.5 * periodxy[1]
-    bpars = np.sqrt(xoff[:, np.newaxis]**2 + yoff[np.newaxis, :]**2)
+    bpars = np.sqrt(xoff[:, np.newaxis] ** 2 + yoff[np.newaxis, :] ** 2)
     lineints = integrate_kernel(kernelfunc, bpars, hsml)
     volint = np.sum(lineints * dx[:, np.newaxis] * dy[np.newaxis, :])
     return volint / (pixelxy[1] - pixelxy[0]) / (pixelxy[3] - pixelxy[2])
+
 
 _zeroperiods = np.array([0.0, 0.0, 0.0])
 
