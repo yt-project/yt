@@ -246,7 +246,7 @@ def off_axis_projection(
         re = data_source.ds.domain_right_edge.to("code_length").d
         x_min, y_min, z_min = le
         x_max, y_max, z_max = re
-        bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
+        bounds = np.array([x_min, x_max, y_min, y_max, z_min, z_max])
         # only need (rotated) x/y widths
         _width = (width.to("code_length").d)[:2]
         finfo = data_source.ds.field_info[item]
