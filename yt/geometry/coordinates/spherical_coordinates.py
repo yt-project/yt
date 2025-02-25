@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Literal
 
 import numpy as np
 
@@ -90,9 +91,16 @@ class SphericalCoordinateHandler(CoordinateHandler):
         size,
         antialias=True,
         periodic=True,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         return_mask=False,
     ):
+        """
+        Parameters
+        ----------
+        pixelmeaning: ignored, argument meant for cartesian SPH data
+        
+        """
         self.period
         name = self.axis_name[dimension]
         if name == "r":
