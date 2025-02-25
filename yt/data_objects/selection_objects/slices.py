@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Literal
 
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -313,7 +314,8 @@ class YTCuttingPlane(YTSelectionContainer2D):
         pw._setup_plots()
         return pw
 
-    def to_frb(self, width, resolution, height=None, periodic=False):
+    def to_frb(self, width, resolution, height=None, periodic=False,
+               pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave"):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -338,6 +340,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         periodic : boolean
             This can be true or false, and governs whether the pixelization
             will span the domain boundaries.
+        pixelmeaning: ignored, arg. meant for SPH projections
 
         Returns
         -------
