@@ -145,7 +145,6 @@ def get_dataset_sphrefine(reflevel: int = 1):
         massgenerator=refmass,
         unitrho=unitrho,
         bbox=bbox,
-        pixelmeaning="pencilbeam",
     )
     return ds
 
