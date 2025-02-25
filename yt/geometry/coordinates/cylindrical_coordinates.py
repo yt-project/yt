@@ -96,7 +96,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         Parameters
         ----------
         pixelmeaning: ignored, argument meant for cartesian SPH data
-        
+
         """
         # Note that above, we set periodic by default to be *false*.  This is
         # because our pixelizers, at present, do not handle periodicity

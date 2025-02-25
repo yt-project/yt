@@ -1,17 +1,18 @@
 import numpy as np
-from numpy.testing import assert_almost_equal
 import pytest
+from numpy.testing import assert_almost_equal
 
 from yt.testing import fake_sph_orientation_ds, requires_module
 from yt.utilities.lib.pixelization_routines import (
     pixelize_sph_kernel_projection_pencilbeam,
-    pixelize_sph_kernel_projection_pixelave
+    pixelize_sph_kernel_projection_pixelave,
 )
 from yt.utilities.on_demand_imports import _scipy
 from yt.visualization.volume_rendering import off_axis_projection as OffAP
 
 spatial = _scipy.spatial
 ndimage = _scipy.ndimage
+
 
 @pytest.mark.parametrize("pixelmeaning", ["pixelave", "pencilbeam"])
 def test_no_rotation(pixelmeaning):
@@ -41,7 +42,12 @@ def test_no_rotation(pixelmeaning):
     buf2 = np.zeros(resolution)
     mask = np.ones_like(buf2, dtype="uint8")
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density"),
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
         pixelmeaning=pixelmeaning,
     )
     if pixelmeaning == "pixelave":
@@ -49,9 +55,7 @@ def test_no_rotation(pixelmeaning):
     elif pixelmeaning == "pencilbeam":
         onaxisfunc = pixelize_sph_kernel_projection_pencilbeam
 
-    onaxisfunc(
-        buf2, mask, px, py, pz, hsml, mass, density, quantity_to_smooth, bounds
-    )
+    onaxisfunc(buf2, mask, px, py, pz, hsml, mass, density, quantity_to_smooth, bounds)
     assert_almost_equal(buf1.ndarray_view(), buf2)
 
 
@@ -161,7 +165,12 @@ def test_basic_rotation_3(pixelmeaning):
     center = (left_edge + right_edge) / 2
     width = right_edge - left_edge
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density"),
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
         pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
@@ -234,7 +243,12 @@ def test_center_1(pixelmeaning):
     center = [0.0, 3.0, 0.0]
     width = right_edge - left_edge
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density"),
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
         pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
@@ -263,7 +277,12 @@ def test_center_2(pixelmeaning):
     center = [0.0, -1.0, 0.0]
     width = right_edge - left_edge
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density"),
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
         pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
@@ -289,7 +308,12 @@ def test_center_3(pixelmeaning):
         (right_edge[2] - left_edge[2]),
     ]
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density"),
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
         pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)

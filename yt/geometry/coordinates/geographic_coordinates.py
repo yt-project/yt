@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Literal
+
+import numpy as np
 import unyt
 
 from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
@@ -237,7 +238,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         Parameters
         ----------
         pixelmeaning: ignored, argument meant for cartesian SPH data
-        
+
         """
         if self.axis_name[dimension] in ("latitude", "longitude"):
             buff, mask = self._cyl_pixelize(

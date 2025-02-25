@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Literal
+
+import numpy as np
 
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -314,8 +315,14 @@ class YTCuttingPlane(YTSelectionContainer2D):
         pw._setup_plots()
         return pw
 
-    def to_frb(self, width, resolution, height=None, periodic=False,
-               pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave"):
+    def to_frb(
+        self,
+        width,
+        resolution,
+        height=None,
+        periodic=False,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
+    ):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
