@@ -195,7 +195,7 @@ class FixedResolutionBuffer:
             self.buff_size,
             int(self.antialias),
             return_mask=True,
-            pixelmeaning="pixelmeaning",
+            pixelmeaning=self.pixelmeaning,
         )
 
         buff = self._apply_filters(buff)
