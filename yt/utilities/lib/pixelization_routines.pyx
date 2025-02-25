@@ -1360,7 +1360,7 @@ def pixelize_sph_kernel_projection_pixelave(
         any_float[:] pmass,
         any_float[:] pdens,
         any_float[:] quantity_to_smooth,
-        any_float[:] bounds,
+        bounds,
         kernel_name="cubic",
         weight_field=None,
         _check_period = (1, 1, 1),
