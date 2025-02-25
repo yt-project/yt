@@ -156,19 +156,22 @@ def integrate_kernel(
 
 def pixelintegrate_kernel(
     kernelfunc: Callable[[float], float],
-    pixelxy: np.array[float],
-    pcenxy: np.array[float],
+    pixelxy: np.ndarray[float],
+    pcenxy: np.ndarray[float],
     hsml: float,
     nsample: int = 100,
     periodxy: tuple[float | None, float | None] = (True, True),
 ) -> float:
     """
-    integrates a kernel function over a rectangular prism. Assumes
-    The kernel support is entirely within the prism in the 
-    line-of-sight direction. Does not handle periodicity.
+    integrates a kernel function over a rectangular prism. 
+    
+    Returns (kernel_volume_fraction) / pixel area,
+    where the kernel_volume_fraction is the volume integral of the
+    kernel over the rectangular prism defined by the pixel, divided
+    by the volume integral of the kernel over its entire support.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     kernelfunc:
         the kernel function to integrate
     pixelxy: 
@@ -183,10 +186,17 @@ def pixelintegrate_kernel(
         number of subsamples used within the pixel
         in each grid direction
 
-    Returns:
+    Returns
     --------
-    the integral of the SPH kernel function.
+    integral of the SPH kernel function / pixel area
     units: (1  / input length units)**2
+
+    Note
+    ----
+    The calculation assumes the kernel support is entirely 
+    within the rectangular prism defined by the pixel in the
+    line-of-sight direction, as the backend functions for SPH
+    projections do.
     """
     xedges = np.linspace(pixelxy[0], pixelxy[1], nsample + 1)
     xcens = 0.5 * (xedges[:-1] + xedges[1:])
