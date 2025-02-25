@@ -157,8 +157,8 @@ def integrate_kernel(
 
 def pixelintegrate_kernel(
     kernelfunc: Callable[[float], float],
-    pixelxy: np.ndarray[float],
-    pcenxy: np.ndarray[float],
+    pixelxy: np.ndarray,
+    pcenxy: np.ndarray,
     hsml: float,
     nsample: int = 100,
     periodxy: tuple[float | None, float | None] = (True, True),
