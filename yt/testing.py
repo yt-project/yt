@@ -118,7 +118,8 @@ def cubicspline_python(
 
 
 def integrate_kernel(
-    kernelfunc: Callable[[float], float], b: float, hsml: float
+    kernelfunc: Callable[[float], float], b: float, hsml: float,
+    nsample: int = 500,
 ) -> float:
     """
     integrates a kernel function over a line passing entirely
@@ -132,6 +133,8 @@ def integrate_kernel(
         impact parameter
     hsml:
         smoothing length [same units as impact parameter]
+    nsample:
+        number of points to sample for the integral
 
     Returns:
     --------
@@ -140,9 +143,10 @@ def integrate_kernel(
     """
     pre = 1.0 / hsml**2
     x = b / hsml
+    x[x >= 1.] = 1. # kernel is zero at 1. and > 1.
     xmax = np.sqrt(1.0 - x**2)
     xmin = -1.0 * xmax
-    xe = np.linspace(xmin, xmax, 500)  # shape: 500, x.shape
+    xe = np.linspace(xmin, xmax, nsample)  # shape: 500, x.shape
     xc = 0.5 * (xe[:-1, ...] + xe[1:, ...])
     dx = np.diff(xe, axis=0)
     spv = kernelfunc(np.sqrt(xc**2 + x**2))
@@ -155,7 +159,7 @@ def pixelintegrate_kernel(
     pixelxy: np.ndarray,
     pcenxy: np.ndarray,
     hsml: float,
-    nsample: int = 100,
+    nsample: int = 50,
     periodxy: tuple[float | None, float | None] = (True, True),
 ) -> float:
     """
@@ -196,10 +200,10 @@ def pixelintegrate_kernel(
     """
     xedges = np.linspace(pixelxy[0], pixelxy[1], nsample + 1)
     xcens = 0.5 * (xedges[:-1] + xedges[1:])
-    dx = np.diff(xedges)
+    dx = np.diff(xedges, axis=0)
     yedges = np.linspace(pixelxy[2], pixelxy[3], nsample + 1)
     ycens = 0.5 * (yedges[:-1] + yedges[1:])
-    dy = np.diff(yedges)
+    dy = np.diff(yedges, axis=0)
 
     xoff = xcens - pcenxy[0]
     if periodxy[0] is not None:
@@ -211,8 +215,9 @@ def pixelintegrate_kernel(
         yoff += 0.5 * periodxy[1]
         yoff %= periodxy[1]
         yoff -= 0.5 * periodxy[1]
-    bpars = np.sqrt(xoff[:, np.newaxis] ** 2 + yoff[np.newaxis, :] ** 2)
-    lineints = integrate_kernel(kernelfunc, bpars, hsml)
+    bpars = np.sqrt(xoff[:, np.newaxis, ...] ** 2 
+                    + yoff[np.newaxis, :, ...] ** 2)
+    lineints = integrate_kernel(kernelfunc, bpars, hsml, nsample=nsample)
     volint = np.sum(lineints * dx[:, np.newaxis] * dy[np.newaxis, :])
     return volint / (pixelxy[1] - pixelxy[0]) / (pixelxy[3] - pixelxy[2])
 
