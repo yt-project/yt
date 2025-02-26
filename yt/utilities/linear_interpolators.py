@@ -41,7 +41,7 @@ class _LinearInterpolator(abc.ABC):
             dim_bins = getattr(self, f"{dim}_bins")
 
             dim_vals = data_object[dim_name].astype("float64").ravel()
-            dim_i = (np.digitize(dim_vals, dim_bins) - 1).astype("int_")
+            dim_i = (np.digitize(dim_vals, dim_bins) - 1).astype("int64")
             if np.any((dim_i == -1) | (dim_i == len(dim_bins) - 1)):
                 if not self.truncate:
                     msg = (
@@ -260,7 +260,6 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
 
         orig_shape = data_object[self.x_name].shape
         x_vals, x_i, y_vals, y_i, z_vals, z_i = self._get_digitized_arrays(data_object)
-
 
         my_vals = np.zeros(x_vals.shape, dtype="float64")
         lib.TrilinearlyInterpolate(
