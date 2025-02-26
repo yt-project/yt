@@ -124,7 +124,7 @@ def integrate_kernel(
     ],
     b: float | npt.NDArray[np.floating],
     hsml: float | npt.NDArray[np.floating],
-    nsample: int = 500,
+    nsample: int = 500,   
 ) -> npt.NDArray[np.floating]:
     """
     integrates a kernel function over a line passing entirely
@@ -148,7 +148,7 @@ def integrate_kernel(
     """
     pre = 1.0 / hsml**2
     x = b / hsml
-    x[x >= 1.] = 1. # kernel is zero at 1. and > 1.
+    x[x >= 1.0] = 1.0  # kernel is zero at 1. and > 1.
     xmax = np.sqrt(1.0 - x**2)
     xmin = -1.0 * xmax
     xe = np.linspace(xmin, xmax, nsample)  # shape: 500, x.shape
@@ -220,8 +220,7 @@ def pixelintegrate_kernel(
         yoff += 0.5 * periodxy[1]
         yoff %= periodxy[1]
         yoff -= 0.5 * periodxy[1]
-    bpars = np.sqrt(xoff[:, np.newaxis, ...] ** 2 
-                    + yoff[np.newaxis, :, ...] ** 2)
+    bpars = np.sqrt(xoff[:, np.newaxis, ...] ** 2 + yoff[np.newaxis, :, ...] ** 2)
     lineints = integrate_kernel(kernelfunc, bpars, hsml, nsample=nsample)
     volint = np.sum(lineints * dx[:, np.newaxis] * dy[np.newaxis, :])
     return volint / (pixelxy[1] - pixelxy[0]) / (pixelxy[3] - pixelxy[2])
