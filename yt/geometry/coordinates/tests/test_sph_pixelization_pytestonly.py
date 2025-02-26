@@ -161,6 +161,7 @@ def test_sph_proj_general_alongaxes(
     # print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
 
+
 @pytest.mark.parametrize("axis", [0, 1, 2])
 @pytest.mark.parametrize("shiftcenter", [False, True])
 @pytest.mark.parametrize("periodic", [True, False])
@@ -251,8 +252,7 @@ def test_sph_projection_pixelave_alongaxes(
     pixedges_y = np.linspace(
         center[ax1] - 0.5 * projwidth, center[ax1] + 0.5 * projwidth, buff_size[1] + 1
     )
-    _depth = (depth if depth is not None 
-              else unyt.unyt_array(np.array((np.inf,)), "cm"))
+    _depth = depth if depth is not None else unyt.unyt_array(np.array((np.inf,)), "cm")
     zlims = (center[axis] - 0.5 * _depth, center[axis] + 0.5 * _depth)
     ad = ds.all_data()
     pcenxy = np.array(
@@ -267,17 +267,21 @@ def test_sph_projection_pixelave_alongaxes(
     density = (ad[("gas", "density")]).to("g * cm**-3")
     baseline = np.zeros(buff_size)
     if periodic:
-        periodxy = ((bbox[ax0][1] - bbox[ax0][0]).to("cm").v,
-                    (bbox[ax1][1] - bbox[ax1][0]).to("cm").v)
+        periodxy = (
+            (bbox[ax0][1] - bbox[ax0][0]).to("cm").v,
+            (bbox[ax1][1] - bbox[ax1][0]).to("cm").v,
+        )
         periodz = bbox[axis][1] - bbox[axis][0]
     else:
         periodxy = (None, None)
     for i in range(buff_size[0]):
         for j in range(buff_size[1]):
-            pixelxy = unyt.unyt_array(np.array(
-                [pixedges_x[i], pixedges_x[i + 1],
-                 pixedges_y[j], pixedges_y[j + 1]]
-            ), "cm")
+            pixelxy = unyt.unyt_array(
+                np.array(
+                    [pixedges_x[i], pixedges_x[i + 1], pixedges_y[j], pixedges_y[j + 1]]
+                ),
+                "cm",
+            )
             weightsum = 0.0
             weightedsum = 0.0
             for p in range(pcenxy.shape[0]):
@@ -308,7 +312,7 @@ def test_sph_projection_pixelave_alongaxes(
                 baseline[i, j] += weightedsum / weightsum
             else:
                 baseline[i, j] += weightsum
-    baseline[np.isnan(baseline)] = 0.
+    baseline[np.isnan(baseline)] = 0.0
     assert_rel_equal(baseline, img.v, 5)
 
 
