@@ -28,7 +28,7 @@ def test_linear_interpolator_2d():
     random_data = np.random.random((64, 64))
     # evenly spaced bins
     fv = dict(zip("xy", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j], strict=True))
-    fv = dict(zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j]))
+    fv = dict(zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j], strict=False))
     bfi = lin.BilinearFieldInterpolator(
         random_data, (0.0, 1.0, 0.0, 1.0), "xy", truncate=True
     )
@@ -77,9 +77,11 @@ def test_linear_interpolator_4d():
     # evenly spaced bins
     step = complex(0, size)
     fv = dict(
-        zip("xyzw", 
+        zip(
+            "xyzw",
             np.mgrid[0.0:1.0:step, 0.0:1.0:step, 0.0:1.0:step, 0.0:1.0:step],
-            strict=True,)
+            strict=True,
+        )
     )
     tfi = lin.QuadrilinearFieldInterpolator(
         random_data, (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyzw", truncate=True
@@ -175,7 +177,7 @@ def test_table_override(ndim):
 
     field_names = "xyzw"[:ndim]
     slc = slice(0.0, 1.0, complex(0, sz))
-    fv = dict(zip(field_names, np.mgrid[(slc,) * ndim]))
+    fv = dict(zip(field_names, np.mgrid[(slc,) * ndim], strict=False))
     boundaries = (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0)[: ndim * 2]
 
     interp_class = _lin_interpolators_by_dim[ndim]
