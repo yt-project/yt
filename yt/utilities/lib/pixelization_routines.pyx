@@ -1713,15 +1713,17 @@ def pixelize_sph_kernel_projection_pixelave(
             for sxi in range(xsize):
                 for syi in range(ysize):
                     buff[sxi, syi] += local_buff[sxi + syi * xsize]
+        # free memory in (hopefully) private variables assigned in
+        # each thread
         free(local_buff)
-        free(kern2by2)
         free(xiterv)
         free(yiterv)
         free(ziterv)
         free(xiter)
         free(yiter)
         free(ziter)
-
+    # free memory in shared variable
+    free(kern2by2)
     return mask
 
 @cython.boundscheck(False)
