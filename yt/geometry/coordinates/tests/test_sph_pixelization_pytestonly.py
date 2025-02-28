@@ -318,7 +318,6 @@ def test_sph_proj_pixelave_alongaxes(
                 baseline[i, j] += weightedsum[()] / weightsum[()]
             else:
                 baseline[i, j] += weightsum[()]
-    baseline = baseline.T # projections use (y, x) image axes order
     baseline[np.isnan(baseline)] = 0.0
     print(f"axis: {axis}, shiftcenter: {shiftcenter}, "
           f"depth: {depth}, periodic: {periodic}, weighted: {weighted}, "
