@@ -430,8 +430,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         pixelize_sph_kernel_projection_pixelave
                     )
                 else:
-                    raise NotImplementedError(
-                        f"No pixelmeaning option {pixelmeaning}")
+                    raise NotImplementedError(f"No pixelmeaning option {pixelmeaning}")
                 weight = data_source.weight_field
                 moment = data_source.moment
                 le, re = data_source.data_source.get_bbox()
