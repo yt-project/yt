@@ -1770,7 +1770,7 @@ def pixelize_sph_kernel_projection_pixelave(
                     buff[syi, sxi] += local_buff[sxi + syi * xsize]
             print("pixelization_routines.pyx :"
                   "thread buffer added to output grid")
-        # free memory in (hopefully) private variables assigned in
+        # free memory in (hopefully?) private variables assigned in
         # each thread
         free(local_buff)
         free(xiterv)
