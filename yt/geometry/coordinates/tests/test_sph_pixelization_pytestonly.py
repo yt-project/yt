@@ -225,6 +225,9 @@ def test_sph_proj_pixelave_alongaxes(
         re = np.array(ds.domain_right_edge)
         le[axis] = center[axis] - 0.5 * depth
         re[axis] = center[axis] + 0.5 * depth
+        if not periodic:
+            le[axis] = max(le[axis], ds.domain_left_edge[axis])
+            re[axis] = min(re[axis], ds.domain_right_edge[axis])
         cen = 0.5 * (le + re)
         reg = YTRegion(center=cen, left_edge=le, right_edge=re, ds=ds)
         source = reg
