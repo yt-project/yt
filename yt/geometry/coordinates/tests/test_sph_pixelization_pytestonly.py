@@ -156,9 +156,12 @@ def test_sph_proj_general_alongaxes(
     if (not periodic) and shiftcenter:
         expected_out[:1, :] = 0.0
         expected_out[:, :1] = 0.0
-    # print(axis, shiftcenter, depth, periodic, weighted)
-    # print(expected_out)
-    # print(img.v)
+    #print(f"axis: {axis}, shiftcenter: {shiftcenter}, "
+    #      f"depth: {depth}, periodic: {periodic}, weighted: {weighted}")
+    #print("expected:")
+    #print(expected_out)
+    #print("got:")
+    #print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
 
 
@@ -313,6 +316,13 @@ def test_sph_projection_pixelave_alongaxes(
             else:
                 baseline[i, j] += weightsum
     baseline[np.isnan(baseline)] = 0.0
+    print(f"axis: {axis}, shiftcenter: {shiftcenter}, "
+          f"depth: {depth}, periodic: {periodic}, weighted: {weighted}, "
+          f"hsmlfac: {hsmlfac}")
+    print("expected:")
+    print(baseline)
+    print("got:")
+    print(img.v)
     assert_rel_equal(baseline, img.v, 5)
 
 

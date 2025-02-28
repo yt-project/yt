@@ -1385,12 +1385,14 @@ def pixelize_sph_kernel_projection_pixelave(
     cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
     cdef np.int64_t nx, ny, nsubx, nsuby
     cdef int i, j, ii, jj, kk, ci, xsubi, ysubi
-    cdef int * xiter
-    cdef int * yiter
-    cdef int * ziter
-    cdef np.float64_t * xiterv
-    cdef np.float64_t * yiterv
-    cdef np.float64_t * ziterv
+    #cdef int * xiter
+    #cdef int * yiter
+    #cdef int * ziter
+    #cdef np.float64_t * xiterv
+    #cdef np.float64_t * yiterv
+    #cdef np.float64_t * ziterv
+
+    print("Line 1395 pixelization_routines.pyx : function call, cdef block OK")
 
     if weight_field is not None:
         _weight_field = weight_field
@@ -1423,6 +1425,7 @@ def pixelize_sph_kernel_projection_pixelave(
     if kernel_name not in kernel_tables:
         kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
+    print("Line 1428 pixelization_routines.pyx : basic setup seems to work")
 
     # pre-calculate kernel integral values to use for small particles
     # overlapping max. 2x2 output grid pixels. dimensions:
@@ -1440,6 +1443,7 @@ def pixelize_sph_kernel_projection_pixelave(
     # step 1: just get a big grid of the 1D integral values
     kern1dint = <np.float64_t *> malloc(sizeof(np.float64_t) * nsmin * nsmin)
     insmin = 1.0 / <np.float64_t> nsmin
+    print("Line 1446 pixelization_routines.pyx : kern2by2, kern1dint allocated")
     for si in range(nsmin):
         xnorm = -1.0 + 2.0 * (si + 0.5) * insmin
         xnorm = xnorm * xnorm
@@ -1450,6 +1454,7 @@ def pixelize_sph_kernel_projection_pixelave(
                 kern1dint[nsmin * si + sj] = 0.0
             else:
                 kern1dint[nsmin * si + sj] = itab.interpolate(q2)
+    print("Line 1446 pixelization_routines.pyx : kern1dint calculated")
     # step 2: integrate the 1D values for each grid edge position
     for si in range(nsmin + 1):
         for sj in range(nsmin + 1):
@@ -1470,7 +1475,9 @@ def pixelize_sph_kernel_projection_pixelave(
                     kern2by2[sci + 2] += kern1dint[nsmin * sii + sjj]
                 for sjj in range(sj, nsmin):
                     kern2by2[sci + 3] += kern1dint[nsmin * sii + sjj]
+    print("Line 1478 pixelization_routines.pyx : kern2by2 calculated")
     free(kern1dint)
+    print("Line 1480 pixelization_routines.pyx : kern1dint freed")
 
     with nogil, parallel():
         # loop through every particle
@@ -1498,7 +1505,8 @@ def pixelize_sph_kernel_projection_pixelave(
         #  operations to the output array weren't much slower than
         #  using the memory-intensive ouput array buffer for each
         #  thread)
-
+        with gil:
+            print("Line 1509 pixelization_routines.pyx : parallel started")
         local_buff = <np.float64_t *> malloc(sizeof(np.float64_t)
                                              * xsize * ysize)
         xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
@@ -1511,11 +1519,16 @@ def pixelize_sph_kernel_projection_pixelave(
         xiterv[0] = yiterv[0] = ziterv[0] = 0.0
         for i in range(xsize * ysize):
             local_buff[i] = 0.0
+        with gil:
+            print("Line 1522 pixelization_routines.pyx : thread vars set up")
 
         for j in prange(0, posx.shape[0], schedule="dynamic"):
             if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
+            with gil:
+                print("Line 1530 pixelization_routines.pyx :"
+                      f"loop over particles started; at index {j}")
 
             xiter[1] = yiter[1] = ziter[1] = 999
 
@@ -1710,11 +1723,15 @@ def pixelize_sph_kernel_projection_pixelave(
                                             mask[xi, yi] = 1
 
         with gil:
+            print("Line 1726 pixelization_routines.pyx :"
+                  f"loop over particles done in this thread")
             for sxi in range(xsize):
                 for syi in range(ysize):
                     buff[sxi, syi] += local_buff[sxi + syi * xsize]
         # free memory in (hopefully) private variables assigned in
         # each thread
+            print("Line 1733 pixelization_routines.pyx :"
+                 f"thread buffer added to output grid")
         free(local_buff)
         free(xiterv)
         free(yiterv)
@@ -1722,6 +1739,9 @@ def pixelize_sph_kernel_projection_pixelave(
         free(xiter)
         free(yiter)
         free(ziter)
+        with gil:
+            print("Line 1743 pixelization_routines.pyx :"
+                 f"thread variables freed")
     # free memory in shared variable
     free(kern2by2)
     return mask
