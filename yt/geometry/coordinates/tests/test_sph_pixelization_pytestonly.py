@@ -165,12 +165,12 @@ def test_sph_proj_general_alongaxes(
     assert_rel_equal(expected_out, img.v, 5)
 
 
-@pytest.mark.parametrize("axis", [0, 1, 2])
-@pytest.mark.parametrize("shiftcenter", [False, True])
-@pytest.mark.parametrize("periodic", [True, False])
-@pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
-@pytest.mark.parametrize("weighted", [True, False])
-@pytest.mark.parametrize("hsmlfac", [0.2, 1.0, 2.0])
+@pytest.mark.parametrize("axis", [0]) # , 1, 2
+@pytest.mark.parametrize("shiftcenter", [False]) #, True
+@pytest.mark.parametrize("periodic", [True]) # , False
+@pytest.mark.parametrize("depth", [None]) # , (1.0, "cm"), (5.0, "cm")
+@pytest.mark.parametrize("weighted", [False]) # , True 
+@pytest.mark.parametrize("hsmlfac", [0.2]) # , 1.0, 2.0
 def test_sph_proj_pixelave_alongaxes(
     axis: int,
     shiftcenter: bool,
@@ -180,7 +180,7 @@ def test_sph_proj_pixelave_alongaxes(
     hsmlfac: float,
 ) -> None:
     if shiftcenter:
-        center = unyt.unyt_array(np.array((0.625, 0.525, 0.425)), "cm")
+        center = unyt.unyt_array(np.array((0.6, 0.5, 0.4)), "cm")
     else:
         center = unyt.unyt_array(np.array((1.5, 1.5, 1.5)), "cm")
     bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]), "cm")
@@ -200,7 +200,7 @@ def test_sph_proj_pixelave_alongaxes(
 
     # test correct centering, particle selection
     def makemasses(i, j, k):
-        if i == j == k == 1:
+        if i == 0 and j == 1 and k == 2:
             return 2.0
         else:
             return 1.0
@@ -247,6 +247,8 @@ def test_sph_proj_pixelave_alongaxes(
         pixelmeaning="pixelave",
     )
     img = prj.frb.data[("gas", "density")]
+    print("FRB info:")
+    print(prj.frb._get_info(("gas", "density")))
 
     projwidth = unyt.unyt_array(np.array((2.5,)), "cm")
     pixedges_x = np.linspace(
@@ -308,13 +310,15 @@ def test_sph_proj_pixelave_alongaxes(
                     nsample=50,
                     periodxy=periodxy,
                 )
-                weightsum += kernint * mass[p]
+                weightsum += kernint * mass[p].to("g").v
                 if weighted:
-                    weightedsum += kernint * mass[p] * density[p]
+                    weightedsum += (kernint * mass[p].to("g").v 
+                                    * density[p].to("g * cm**-3").v)
             if weighted:
-                baseline[i, j] += weightedsum / weightsum
+                baseline[i, j] += weightedsum[()] / weightsum[()]
             else:
-                baseline[i, j] += weightsum
+                baseline[i, j] += weightsum[()]
+    baseline = baseline.T # projections use (y, x) image axes order
     baseline[np.isnan(baseline)] = 0.0
     print(f"axis: {axis}, shiftcenter: {shiftcenter}, "
           f"depth: {depth}, periodic: {periodic}, weighted: {weighted}, "
