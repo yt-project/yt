@@ -1370,7 +1370,7 @@ def pixelize_sph_kernel_projection_pixelave(
     # axes x, y, and z here need not be the corresponding axes in
     # the simulation. Projections are always along the "z" axis here,
     # bounds are in this function's x, y, z order. The calling python
-    # function should ensure these line up with the line of sight 
+    # function should ensure these line up with the line of sight
     # (here z) and projection plane (x, y) coordinate orders in the
     # (possible rotated) simulation coordinates.
 
