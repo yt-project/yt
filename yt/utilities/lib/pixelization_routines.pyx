@@ -1398,7 +1398,7 @@ def pixelize_sph_kernel_projection_pixelave(
     cdef np.float64_t * xiterv
     cdef np.float64_t * yiterv
     cdef np.float64_t * ziterv
-    print("Line 1395 pixelization_routines.pyx : function call, cdef block OK")
+    print("pixelization_routines.pyx : function call, cdef block OK")
     print(f"check_period: {check_period}")
     if weight_field is not None:
         _weight_field = weight_field
@@ -1408,12 +1408,14 @@ def pixelize_sph_kernel_projection_pixelave(
         period_x = period[0]
         period_y = period[1]
         period_z = period[2]
-        print(f"period_x: {period_x}, period_y: {period_y}, period_z: {period_z}")
+        print(f"period_x: {period_x}, period_y: {period_y},"
+              f" period_z: {period_z}")
     else:
         print("period input was None")
     for si in range(3):
         check_period[si] = <np.int8_t> _check_period[si]
-        print(f"check_period: ({check_period[0]}, {check_period[1]}, {check_period[2]})")
+        print(f"check_period: ({check_period[0]}, {check_period[1]},"
+              f" {check_period[2]})")
     
     # we find the x and y range over which we have pixels and we find how many
     # pixels we have in each dimension
@@ -1436,7 +1438,7 @@ def pixelize_sph_kernel_projection_pixelave(
     if kernel_name not in kernel_tables:
         kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
-    print("Line 1428 pixelization_routines.pyx : basic setup seems to work")
+    print("pixelization_routines.pyx : basic setup seems to work")
 
     # pre-calculate kernel integral values to use for small particles
     # overlapping max. 2x2 output grid pixels. dimensions:
@@ -1761,14 +1763,14 @@ def pixelize_sph_kernel_projection_pixelave(
 
         with gil:
             print("Line 1726 pixelization_routines.pyx :"
-                  f"loop over particles done in this thread")
+                  "loop over particles done in this thread")
             for sxi in range(xsize):
                 for syi in range(ysize):
                     buff[sxi, syi] += local_buff[sxi + syi * xsize]
         # free memory in (hopefully) private variables assigned in
         # each thread
-            print("Line 1733 pixelization_routines.pyx :"
-                 f"thread buffer added to output grid")
+            print("pixelization_routines.pyx :"
+                  "thread buffer added to output grid")
         free(local_buff)
         free(xiterv)
         free(yiterv)
@@ -1777,10 +1779,11 @@ def pixelize_sph_kernel_projection_pixelave(
         free(yiter)
         free(ziter)
         with gil:
-            print("Line 1743 pixelization_routines.pyx :"
-                 f"thread variables freed")
+            print("pixelization_routines.pyx : thread variables freed")
     # free memory in shared variable
+    print("pixelization_routines.pyx : parallel part is over")
     free(kern2by2)
+    print("pixelization_routines.pyx : kern2by2 freed")
     return mask
 
 @cython.boundscheck(False)
