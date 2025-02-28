@@ -171,7 +171,7 @@ def test_sph_proj_general_alongaxes(
 @pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
 @pytest.mark.parametrize("weighted", [True, False])
 @pytest.mark.parametrize("hsmlfac", [0.2, 1.0, 2.0])
-def test_sph_projection_pixelave_alongaxes(
+def test_sph_proj_pixelave_alongaxes(
     axis: int,
     shiftcenter: bool,
     periodic: bool,
