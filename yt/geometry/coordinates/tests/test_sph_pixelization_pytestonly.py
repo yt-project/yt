@@ -165,12 +165,12 @@ def test_sph_proj_general_alongaxes(
     assert_rel_equal(expected_out, img.v, 5)
 
 
-@pytest.mark.parametrize("axis", [0]) # , 1, 2
-@pytest.mark.parametrize("shiftcenter", [False]) #, True
-@pytest.mark.parametrize("periodic", [True]) # , False
-@pytest.mark.parametrize("depth", [None]) # , (1.0, "cm"), (5.0, "cm")
-@pytest.mark.parametrize("weighted", [False]) # , True 
-@pytest.mark.parametrize("hsmlfac", [0.2]) # , 1.0, 2.0
+@pytest.mark.parametrize("axis", [0, 1, 2])
+@pytest.mark.parametrize("shiftcenter", [False, True])
+@pytest.mark.parametrize("periodic", [True, False])
+@pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
+@pytest.mark.parametrize("weighted", [False, True ])
+@pytest.mark.parametrize("hsmlfac", [0.2, 0.5, 1.0])
 def test_sph_proj_pixelave_alongaxes(
     axis: int,
     shiftcenter: bool,
@@ -246,6 +246,7 @@ def test_sph_proj_pixelave_alongaxes(
         data_source=source,
         pixelmeaning="pixelave",
     )
+    print("ProjectionPlot returned")
     img = prj.frb.data[("gas", "density")]
     print("FRB info:")
     print(prj.frb._get_info(("gas", "density")))
@@ -295,7 +296,7 @@ def test_sph_proj_pixelave_alongaxes(
                     if periodz is None:
                         continue
                     else:
-                        dz = projz - center[axis].to("cm")
+                        dz = projz[p] - center[axis].to("cm")
                         dz += 0.5 * periodz
                         dz %= periodz
                         dz -= periodz
