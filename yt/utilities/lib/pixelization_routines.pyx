@@ -1311,7 +1311,8 @@ def pixelize_sph_kernel_projection_pencilbeam(
 
                                 # see equation 32 of the SPLASH paper
                                 # now we just use the kernel projection
-                                local_buff[xi + yi*xsize] += prefactor_j * itab.interpolate(q_ij2)
+                                local_buff[xi + yi*xsize] += (
+                                    prefactor_j * itab.interpolate(q_ij2))
                                 mask[xi, yi] = 1
 
         with gil:
@@ -1461,30 +1462,30 @@ def pixelize_sph_kernel_projection_pixelave(
             ynorm = -1.0 + 2.0 * (sj + 0.5) * insmin
             q2 = xnorm + ynorm * ynorm
             if q2 >= 1.:
-                kern1dint[nsmin * si + sj] = 0.0
+                kern1dint[si + nsmin * sj] = 0.0
             else:
-                kern1dint[nsmin * si + sj] = itab.interpolate(q2)
+                kern1dint[si + nsmin * sj] = itab.interpolate(q2)
     print("pixelization_routines.pyx : kern1dint calculated")
     # step 2: integrate the 1D values for each grid edge position
     for si in range(nsmin + 1):
         for sj in range(nsmin + 1):
             # slowest 2 indices
-            sci = (4 * (nsmin + 1) * (nsmin + 1) * si
-                   + 4 * (nsmin + 1) * sj)
+            sci = (4 * (nsmin + 1) * si
+                   + 4 * (nsmin + 1) * (nsmin + 1) * sj)
             kern2by2[sci] = 0.0
             kern2by2[sci + 1] = 0.0
             kern2by2[sci + 2] = 0.0
             kern2by2[sci + 3] = 0.0
             for sii in range(0, si):
                 for sjj in range(0, sj):
-                    kern2by2[sci] += kern1dint[nsmin * sii + sjj]
+                    kern2by2[sci] += kern1dint[sii + nsmin * sjj]
                 for sjj in range(sj, nsmin):
-                    kern2by2[sci + 1] += kern1dint[nsmin * sii + sjj]
+                    kern2by2[sci + 1] += kern1dint[sii + nsmin * sjj]
             for sii in range(si, nsmin):
                 for sjj in range(0, sj):
-                    kern2by2[sci + 2] += kern1dint[nsmin * sii + sjj]
+                    kern2by2[sci + 2] += kern1dint[sii + nsmin * sjj]
                 for sjj in range(sj, nsmin):
-                    kern2by2[sci + 3] += kern1dint[nsmin * sii + sjj]
+                    kern2by2[sci + 3] += kern1dint[sii + nsmin * sjj]
     print("pixelization_routines.pyx : kern2by2 calculated")
     free(kern1dint)
     print("pixelization_routines.pyx : kern1dint freed")
@@ -1616,11 +1617,11 @@ def pixelize_sph_kernel_projection_pixelave(
                             # sph particle lies entirely in one pixel
                             if (px + hsml[j] < x_min + (x0 + 1) * dx and
                                 py + hsml[j] < y_min + (y0 + 1) * dy):
-                                # check that we're not on the wrong
-                                # periodicity iteration
                                 with gil:
                                     print(f"part {j}: has 1-cell overlap"
                                           f" ({x0}, {y0})")
+                                # check that we're not on the wrong
+                                # periodicity iteration
                                 if (x0 >= 0 and x0 < xsize and
                                     y0 >= 0 and y0 < ysize):
                                     # surface density
@@ -1629,7 +1630,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                     with gil:
                                         print(f"part {j}:"
                                                " 1-cell overlap add")
-                                    local_buff[x0 + y0 * xsize] += (
+                                    local_buff[x0 * ysize + y0] += (
                                         pmass[j] / pdens[j] * ipixA * qts_j
                                         )
                                     mask[x0, y0] = 1
@@ -1664,18 +1665,17 @@ def pixelize_sph_kernel_projection_pixelave(
                                 prefactor_j *= (4.0 * h_j2
                                                 * insmin * insmin * ipixA)
                                 # coarse (part. pos rel. to grid) index
-                                ci = (4 * nsmin * nsmin * xi
-                                      + 4 * nsmin * yi)
+                                ci = (4 * xi * (nsmin + 1) + 4 * yi)
                                 with gil:
                                     print(f"part {j}: has 2x2-cell overlap;"
                                           f"lower-left corner ({x0}, {y0})")
                                 for xxi in range(2):
-                                    if x0 + xxi < 0 or x0 + xxi > xsize:
+                                    if x0 + xxi < 0 or x0 + xxi >= xsize:
                                         # catch on the next periodic
                                         # loop
                                         continue
                                     for yyi in range(2):
-                                        if y0 + yyi < 0 or y0 + yyi > ysize:
+                                        if y0 + yyi < 0 or y0 + yyi >= ysize:
                                             # catch on the next
                                             # periodic loop
                                             continue
@@ -1686,8 +1686,8 @@ def pixelize_sph_kernel_projection_pixelave(
                                         with gil:
                                             print(f"part {j}: 2x2-cell"
                                                   "overlap add")
-                                        local_buff[x0 + xxi
-                                                   + (y0 + yyi) * xsize] += (
+                                        local_buff[(x0 + xxi) * ysize
+                                                   + (y0 + yyi)] += (
                                             prefactor_j * kv
                                             )
                                         mask[xi, yi] = 1
@@ -1753,7 +1753,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                             if q_ij2 >= 1.0: continue
                                             with gil:
                                                 print(f"part {j}: multi-cell overlap add")
-                                            local_buff[xi + yi*xsize] += (
+                                            local_buff[xi * ysize + yi] += (
                                                prefactor_j * insuby * insubx
                                                * itab.interpolate(q_ij2)
                                                )
