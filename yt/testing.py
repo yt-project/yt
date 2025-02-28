@@ -147,7 +147,7 @@ def integrate_kernel(
     units: 1  / (units of b and hsml)**2
     """
     pre = 1.0 / hsml**2
-    x = b / hsml
+    x = np.asarray(b / hsml)
     x[x >= 1.0] = 1.0  # kernel is zero at 1. and > 1.
     xmax = np.sqrt(1.0 - x**2)
     xmin = -1.0 * xmax
@@ -160,7 +160,7 @@ def integrate_kernel(
 
 
 def pixelintegrate_kernel(
-    kernelfunc: Callable[[float], float],
+    kernelfunc: Callable[[float | np.ndarray], np.ndarray],
     pixelxy: np.ndarray,
     pcenxy: np.ndarray,
     hsml: float,
