@@ -169,7 +169,7 @@ def test_sph_proj_general_alongaxes(
 @pytest.mark.parametrize("shiftcenter", [False, True])
 @pytest.mark.parametrize("periodic", [True, False])
 @pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
-@pytest.mark.parametrize("weighted", [False, True ])
+@pytest.mark.parametrize("weighted", [False, True])
 @pytest.mark.parametrize("hsmlfac", [0.2, 0.5, 1.0])
 def test_sph_proj_pixelave_alongaxes(
     axis: int,
@@ -283,6 +283,7 @@ def test_sph_proj_pixelave_alongaxes(
         periodz = bbox[axis][1] - bbox[axis][0]
     else:
         periodxy = (None, None)
+        periodz = None
     for i in range(buff_size[0]):
         for j in range(buff_size[1]):
             pixelxy = unyt.unyt_array(
