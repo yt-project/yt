@@ -1392,12 +1392,12 @@ def pixelize_sph_kernel_projection_pixelave(
     cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
     cdef np.int64_t nx, ny, nsubx, nsuby
     cdef int i, j, ii, jj, kk, ci, xsubi, ysubi
-    cdef int * xiter
-    cdef int * yiter
-    cdef int * ziter
-    cdef np.float64_t * xiterv
-    cdef np.float64_t * yiterv
-    cdef np.float64_t * ziterv
+    #cdef int * xiter
+    #cdef int * yiter
+    #cdef int * ziter
+    #cdef np.float64_t * xiterv
+    #cdef np.float64_t * yiterv
+    #cdef np.float64_t * ziterv
     print("pixelization_routines.pyx : function call, cdef block OK")
     print(f"check_period: {check_period}")
     if weight_field is not None:
@@ -1414,8 +1414,8 @@ def pixelize_sph_kernel_projection_pixelave(
         print("period input was None")
     for si in range(3):
         check_period[si] = <np.int8_t> _check_period[si]
-        print(f"check_period: ({check_period[0]}, {check_period[1]},"
-              f" {check_period[2]})")
+    print(f"check_period: ({check_period[0]}, {check_period[1]},"
+          f" {check_period[2]})")
     
     # we find the x and y range over which we have pixels and we find how many
     # pixels we have in each dimension
@@ -1540,7 +1540,7 @@ def pixelize_sph_kernel_projection_pixelave(
                 with gil:
                     PyErr_CheckSignals()
             with gil:
-                print("pixelization_routines.pyx :"
+                print("pixelization_routines.pyx : "
                       f"loop over particles started; at index {j}")
 
             xiter[1] = yiter[1] = ziter[1] = 999
@@ -1632,7 +1632,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                     with gil:
                                         print(f"part {j}:"
                                                " 1-cell overlap add")
-                                    local_buff[x0 * ysize + y0] += (
+                                    local_buff[x0 + y0 * xsize] += (
                                         pmass[j] / pdens[j] * ipixA * qts_j
                                         )
                                     mask[x0, y0] = 1
@@ -1670,7 +1670,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                 ci = (4 * xi * (nsmin + 1) + 4 * yi)
                                 with gil:
                                     print(f"part {j}: has 2x2-cell overlap;"
-                                          f"lower-left corner ({x0}, {y0})")
+                                          f" lower-left corner ({x0}, {y0})")
                                 for xxi in range(2):
                                     if x0 + xxi < 0 or x0 + xxi >= xsize:
                                         # catch on the next periodic
@@ -1687,9 +1687,9 @@ def pixelize_sph_kernel_projection_pixelave(
                                             continue
                                         with gil:
                                             print(f"part {j}: 2x2-cell"
-                                                  "overlap add")
-                                        local_buff[(x0 + xxi) * ysize
-                                                   + (y0 + yyi)] += (
+                                                  " overlap add")
+                                        local_buff[(x0 + xxi)
+                                                   + (y0 + yyi) * xsize] += (
                                             prefactor_j * kv
                                             )
                                         mask[xi, yi] = 1
@@ -1754,8 +1754,9 @@ def pixelize_sph_kernel_projection_pixelave(
                                                      * ih_j2)
                                             if q_ij2 >= 1.0: continue
                                             with gil:
-                                                print(f"part {j}: multi-cell overlap add")
-                                            local_buff[xi * ysize + yi] += (
+                                                print(f"part {j}: multi-cell"
+                                                      " overlap add")
+                                            local_buff[xi + yi * xsize] += (
                                                prefactor_j * insuby * insubx
                                                * itab.interpolate(q_ij2)
                                                )
@@ -1766,11 +1767,11 @@ def pixelize_sph_kernel_projection_pixelave(
                   "loop over particles done in this thread")
             for sxi in range(xsize):
                 for syi in range(ysize):
-                    buff[sxi, syi] += local_buff[sxi + syi * xsize]
-        # free memory in (hopefully) private variables assigned in
-        # each thread
+                    buff[syi, sxi] += local_buff[sxi + syi * xsize]
             print("pixelization_routines.pyx :"
                   "thread buffer added to output grid")
+        # free memory in (hopefully) private variables assigned in
+        # each thread
         free(local_buff)
         free(xiterv)
         free(yiterv)
@@ -1778,8 +1779,8 @@ def pixelize_sph_kernel_projection_pixelave(
         free(xiter)
         free(yiter)
         free(ziter)
-        with gil:
-            print("pixelization_routines.pyx : thread variables freed")
+    #with gil:
+    print("pixelization_routines.pyx : thread variables freed")
     # free memory in shared variable
     print("pixelization_routines.pyx : parallel part is over")
     free(kern2by2)
