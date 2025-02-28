@@ -1370,7 +1370,7 @@ def pixelize_sph_kernel_projection_pixelave(
     # axes x, y, and z here need not be the corresponding axes in
     # the simulation. Projections are always along the "z" axis here,
     # bounds are in this function's x, y, z order. The calling python
-    # function should ensure these line up with the line of sight 
+    # function should ensure these line up with the line of sight
     # (here z) and projection plane (x, y) coordinate orders in the
     # (possible rotated) simulation coordinates.
 
@@ -1408,7 +1408,6 @@ def pixelize_sph_kernel_projection_pixelave(
         period_z = period[2]
     for si in range(3):
         check_period[si] = <np.int8_t> _check_period[si]
-    
     # we find the x and y range over which we have pixels and we find how many
     # pixels we have in each dimension
     xsize, ysize = <np.intp_t> buff.shape[0], <np.intp_t> buff.shape[1]
