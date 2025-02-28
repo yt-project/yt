@@ -1464,30 +1464,29 @@ def pixelize_sph_kernel_projection_pixelave(
             ynorm = -1.0 + 2.0 * (sj + 0.5) * insmin
             q2 = xnorm + ynorm * ynorm
             if q2 >= 1.:
-                kern1dint[si + nsmin * sj] = 0.0
+                kern1dint[si * nsmin + sj] = 0.0
             else:
-                kern1dint[si + nsmin * sj] = itab.interpolate(q2)
+                kern1dint[si * nsmin + sj] = itab.interpolate(q2)
     print("pixelization_routines.pyx : kern1dint calculated")
     # step 2: integrate the 1D values for each grid edge position
     for si in range(nsmin + 1):
         for sj in range(nsmin + 1):
             # slowest 2 indices
-            sci = (4 * (nsmin + 1) * si
-                   + 4 * (nsmin + 1) * (nsmin + 1) * sj)
+            sci = 4 * (nsmin + 1) * si + 4 * sj
             kern2by2[sci] = 0.0
             kern2by2[sci + 1] = 0.0
             kern2by2[sci + 2] = 0.0
             kern2by2[sci + 3] = 0.0
             for sii in range(0, si):
                 for sjj in range(0, sj):
-                    kern2by2[sci] += kern1dint[sii + nsmin * sjj]
+                    kern2by2[sci] += kern1dint[sii * nsmin + sjj]
                 for sjj in range(sj, nsmin):
-                    kern2by2[sci + 1] += kern1dint[sii + nsmin * sjj]
+                    kern2by2[sci + 1] += kern1dint[sii * nsmin + sjj]
             for sii in range(si, nsmin):
                 for sjj in range(0, sj):
-                    kern2by2[sci + 2] += kern1dint[sii + nsmin * sjj]
+                    kern2by2[sci + 2] += kern1dint[sii * nsmin + sjj]
                 for sjj in range(sj, nsmin):
-                    kern2by2[sci + 3] += kern1dint[sii + nsmin * sjj]
+                    kern2by2[sci + 3] += kern1dint[sii * nsmin + sjj]
     print("pixelization_routines.pyx : kern2by2 calculated")
     free(kern1dint)
     print("pixelization_routines.pyx : kern1dint freed")
@@ -1692,7 +1691,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                                    + (y0 + yyi) * xsize] += (
                                             prefactor_j * kv
                                             )
-                                        mask[xi, yi] = 1
+                                        mask[x0 + xxi, y0 + yyi] = 1
 
                         else:
                             # subsample the kernel in each pixel
