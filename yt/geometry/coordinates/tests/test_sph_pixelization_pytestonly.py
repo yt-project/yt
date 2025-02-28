@@ -156,21 +156,21 @@ def test_sph_proj_general_alongaxes(
     if (not periodic) and shiftcenter:
         expected_out[:1, :] = 0.0
         expected_out[:, :1] = 0.0
-    #print(f"axis: {axis}, shiftcenter: {shiftcenter}, "
+    # print(f"axis: {axis}, shiftcenter: {shiftcenter}, "
     #      f"depth: {depth}, periodic: {periodic}, weighted: {weighted}")
-    #print("expected:")
-    #print(expected_out)
-    #print("got:")
-    #print(img.v)
+    # print("expected:")
+    # print(expected_out)
+    # print("got:")
+    # print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
 
 
-@pytest.mark.parametrize("axis", [0]) # , 1, 2
-@pytest.mark.parametrize("shiftcenter", [False]) #, True
-@pytest.mark.parametrize("periodic", [True]) # , False
-@pytest.mark.parametrize("depth", [None]) # , (1.0, "cm"), (5.0, "cm")
-@pytest.mark.parametrize("weighted", [False]) # , True 
-@pytest.mark.parametrize("hsmlfac", [0.2]) # , 1.0, 2.0
+@pytest.mark.parametrize("axis", [0])  # , 1, 2
+@pytest.mark.parametrize("shiftcenter", [False])  # , True
+@pytest.mark.parametrize("periodic", [True])  # , False
+@pytest.mark.parametrize("depth", [None])  # , (1.0, "cm"), (5.0, "cm")
+@pytest.mark.parametrize("weighted", [False])  # , True
+@pytest.mark.parametrize("hsmlfac", [0.2])  # , 1.0, 2.0
 def test_sph_proj_pixelave_alongaxes(
     axis: int,
     shiftcenter: bool,
@@ -312,16 +312,19 @@ def test_sph_proj_pixelave_alongaxes(
                 )
                 weightsum += kernint * mass[p].to("g").v
                 if weighted:
-                    weightedsum += (kernint * mass[p].to("g").v 
-                                    * density[p].to("g * cm**-3").v)
+                    weightedsum += (
+                        kernint * mass[p].to("g").v * density[p].to("g * cm**-3").v
+                    )
             if weighted:
                 baseline[i, j] += weightedsum[()] / weightsum[()]
             else:
                 baseline[i, j] += weightsum[()]
     baseline[np.isnan(baseline)] = 0.0
-    print(f"axis: {axis}, shiftcenter: {shiftcenter}, "
-          f"depth: {depth}, periodic: {periodic}, weighted: {weighted}, "
-          f"hsmlfac: {hsmlfac}")
+    print(
+        f"axis: {axis}, shiftcenter: {shiftcenter}, "
+        f"depth: {depth}, periodic: {periodic}, weighted: {weighted}, "
+        f"hsmlfac: {hsmlfac}"
+    )
     print("expected:")
     print(baseline)
     print("got:")
