@@ -466,7 +466,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 if weight is None:
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([field], chunk)
-                        pixelize_sph_kernel_projection_pencilbeam(
+                        pixelize_sph_kernel_projection(
                             buff,
                             mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
