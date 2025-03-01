@@ -118,7 +118,10 @@ def cubicspline_python(
 
 
 def integrate_kernel(
-    kernelfunc: Callable[[float], float], b: float, hsml: float
+    kernelfunc: Callable[[float | np.ndarray], np.ndarray],
+    b: float | np.ndarray,
+    hsml: float | np.ndarray,
+    nsample: int = 500,
 ) -> float:
     """
     integrates a kernel function over a line passing entirely
@@ -132,22 +135,92 @@ def integrate_kernel(
         impact parameter
     hsml:
         smoothing length [same units as impact parameter]
+    nsample:
+        number of points to sample for the integral
 
     Returns:
     --------
     the integral of the SPH kernel function.
-    units: 1  / units of b and hsml
+    units: 1  / (units of b and hsml)**2
     """
     pre = 1.0 / hsml**2
-    x = b / hsml
+    x = np.asarray(b / hsml)
+    x[x >= 1.0] = 1.0  # kernel is zero at 1. and > 1.
     xmax = np.sqrt(1.0 - x**2)
     xmin = -1.0 * xmax
-    xe = np.linspace(xmin, xmax, 500)  # shape: 500, x.shape
+    xe = np.linspace(xmin, xmax, nsample)  # shape: 500, x.shape
     xc = 0.5 * (xe[:-1, ...] + xe[1:, ...])
     dx = np.diff(xe, axis=0)
     spv = kernelfunc(np.sqrt(xc**2 + x**2))
     integral = np.sum(spv * dx, axis=0)
     return pre * integral
+
+
+def pixelintegrate_kernel(
+    kernelfunc: Callable[[float | np.ndarray], np.ndarray],
+    pixelxy: np.ndarray,
+    pcenxy: np.ndarray,
+    hsml: float,
+    nsample: int = 50,
+    periodxy: tuple[float | None, float | None] = (True, True),
+) -> float:
+    """
+    integrates a kernel function over a rectangular prism.
+
+    Returns (kernel_volume_fraction) / pixel area,
+    where the kernel_volume_fraction is the volume integral of the
+    kernel over the rectangular prism defined by the pixel, divided
+    by the volume integral of the kernel over its entire support.
+
+    Parameters
+    ----------
+    kernelfunc:
+        the kernel function to integrate
+    pixelxy:
+        corners of the pixel in the output grid;
+        (xmin, xmax, ymin, ymax); [length units]
+    pcenxy:
+        sph particle center in the output grid plane
+        (x, y) [same units as pixelxy]
+    hsml:
+        smoothing length [same units as pixelxy]
+    nsample:
+        number of subsamples used within the pixel
+        in each grid direction
+
+    Returns
+    --------
+    integral of the SPH kernel function / pixel area
+    units: (1  / input length units)**2
+
+    Note
+    ----
+    The calculation assumes the kernel support is entirely
+    within the rectangular prism defined by the pixel in the
+    line-of-sight direction, as the backend functions for SPH
+    projections do.
+    """
+    xedges = np.linspace(pixelxy[0], pixelxy[1], nsample + 1)
+    xcens = 0.5 * (xedges[:-1] + xedges[1:])
+    dx = np.diff(xedges, axis=0)
+    yedges = np.linspace(pixelxy[2], pixelxy[3], nsample + 1)
+    ycens = 0.5 * (yedges[:-1] + yedges[1:])
+    dy = np.diff(yedges, axis=0)
+
+    xoff = xcens - pcenxy[0]
+    if periodxy[0] is not None:
+        xoff += 0.5 * periodxy[0]
+        xoff %= periodxy[0]
+        xoff -= 0.5 * periodxy[0]
+    yoff = ycens - pcenxy[1]
+    if periodxy[1] is not None:
+        yoff += 0.5 * periodxy[1]
+        yoff %= periodxy[1]
+        yoff -= 0.5 * periodxy[1]
+    bpars = np.sqrt(xoff[:, np.newaxis, ...] ** 2 + yoff[np.newaxis, :, ...] ** 2)
+    lineints = integrate_kernel(kernelfunc, bpars, hsml, nsample=nsample)
+    volint = np.sum(lineints * dx[:, np.newaxis] * dy[np.newaxis, :])
+    return volint / (pixelxy[1] - pixelxy[0]) / (pixelxy[3] - pixelxy[2])
 
 
 _zeroperiods = np.array([0.0, 0.0, 0.0])
