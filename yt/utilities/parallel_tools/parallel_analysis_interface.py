@@ -1194,7 +1194,8 @@ class Communicator:
             else:
                 recv = YTArray(recv, send.units)
         recv[offset : offset + send.size] = send[:]
-        dtr = send.dtype.itemsize / tmp_send.dtype.itemsize  # > 1
+        dtr = send.dtype.itemsize // tmp_send.dtype.itemsize  # > 1
+        assert dtr * tmp_send.dtype.itemsize == send.dtype.itemsize
         roff = [off * dtr for off in offsets]
         rsize = [siz * dtr for siz in sizes]
         tmp_recv = recv.view(transport_dtype)
