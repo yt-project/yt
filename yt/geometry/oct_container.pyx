@@ -579,7 +579,7 @@ cdef class OctreeContainer:
         self,
         const int curdom,
         const int curlevel,
-        const np.float64_t[:, ::1] pos,
+        const np.float64_t[:, :] pos,
         int skip_boundary = 1,
         int count_boundary = 0,
         np.uint64_t[::1] levels = None,
