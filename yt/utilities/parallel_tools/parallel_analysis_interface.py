@@ -5,7 +5,7 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 import numpy as np
 from more_itertools import always_iterable
@@ -166,7 +166,7 @@ def get_mpi_type(dtype):
             return val
 
 
-def get_transport_dtype(dtype: type) -> Union[Any, str]:
+def get_transport_dtype(dtype: type) -> Any | str:
     mpi_type = get_mpi_type(dtype)
     if mpi_type is None:
         # Fallback to char
@@ -482,7 +482,7 @@ def parallel_objects(
     storage=None,
     barrier=True,
     dynamic=False,
-    method: Union[Literal["strided"], Literal["sequential"]] = "strided",
+    method: Literal["strided"] | Literal["sequential"] = "strided",
 ):
     r"""This function dispatches components of an iterable to different
     processors.
