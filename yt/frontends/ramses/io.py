@@ -209,8 +209,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         for field in fields:
             tmp = tr.pop(field, None)
             d[field] = np.concatenate(tmp) if tmp else np.empty(0, dtype="d")
-
-        return self.ds.index.comm.par_combine_object(d, op="cat")
+        return d
 
     def _read_particle_coords(self, chunks, ptf):
         pn = "particle_position_%s"
