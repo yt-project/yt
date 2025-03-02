@@ -5,6 +5,7 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
+from typing import Any, Literal
 
 import numpy as np
 from more_itertools import always_iterable
@@ -163,6 +164,15 @@ def get_mpi_type(dtype):
     for dt, val in dtype_names.items():
         if dt == dtype:
             return val
+
+
+def get_transport_dtype(dtype: type) -> Any | str:
+    mpi_type = get_mpi_type(dtype)
+    if mpi_type is None:
+        # Fallback to char
+        return MPI.CHAR, "c"
+    else:
+        return mpi_type, dtype.str
 
 
 class ObjectIterator:
@@ -466,7 +476,14 @@ class ResultsStorage:
     result_id = None
 
 
-def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False):
+def parallel_objects(
+    objects,
+    njobs=0,
+    storage=None,
+    barrier=True,
+    dynamic=False,
+    method: Literal["strided"] | Literal["sequential"] = "strided",
+):
     r"""This function dispatches components of an iterable to different
     processors.
 
@@ -503,6 +520,11 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
         This requires one dedicated processor; if this is enabled with a set of
         128 processors available, only 127 will be available to iterate over
         objects as one will be load balancing the rest.
+    method : str
+        This governs how the objects are distributed to processors.  The
+        default, "strided", will assign objects to processors in a round-robin
+        fashion. The other option, "sequential", will assign objects to
+        processors in a consecutive fashion.
 
 
     Examples
@@ -558,7 +580,20 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     to_share = {}
     # If our objects object is slice-aware, like time series data objects are,
     # this will prevent intermediate objects from being created.
-    oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
+    if method == "strided":
+        oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
+    elif method == "sequential":
+        chunk_size = len(objects) // njobs
+        remainder = len(objects) % njobs
+
+        if my_new_id < remainder:
+            istart = my_new_id * (chunk_size + 1)
+            iend = istart + chunk_size + 1
+        else:
+            istart = (chunk_size + 1) * remainder + (my_new_id - remainder) * chunk_size
+            iend = istart + chunk_size
+
+        oiter = itertools.islice(enumerate(objects), istart, iend, 1)
     for result_id, obj in oiter:
         if storage is not None:
             rstore = ResultsStorage()
@@ -723,7 +758,6 @@ class Communicator:
     comm = None
     _grids = None
     _distributed = None
-    __tocast = "c"
 
     def __init__(self, comm=None):
         self.comm = comm
@@ -1099,10 +1133,12 @@ class Communicator:
 
     def send_array(self, arr, dest, tag=0):
         if not isinstance(arr, np.ndarray):
-            self.comm.send((None, None), dest=dest, tag=tag)
+            self.comm.send((None, None, None), dest=dest, tag=tag)
             self.comm.send(arr, dest=dest, tag=tag)
             return
-        tmp = arr.view(self.__tocast)  # Cast to CHAR
+        mpi_type, transport_dtype = get_transport_dtype(arr.dtype)
+        tmp = arr.view(transport_dtype)
+
         # communicate type and shape and optionally units
         if isinstance(arr, YTArray):
             unit_metadata = (str(arr.units), arr.units.registry.lut)
@@ -1112,13 +1148,17 @@ class Communicator:
                 unit_metadata += ("YTArray",)
         else:
             unit_metadata = ()
-        self.comm.send((arr.dtype.str, arr.shape) + unit_metadata, dest=dest, tag=tag)
-        self.comm.Send([arr, MPI.CHAR], dest=dest, tag=tag)
+        self.comm.send(
+            (arr.dtype.str, arr.shape, transport_dtype) + unit_metadata,
+            dest=dest,
+            tag=tag,
+        )
+        self.comm.Send([arr, mpi_type], dest=dest, tag=tag)
         del tmp
 
     def recv_array(self, source, tag=0):
         metadata = self.comm.recv(source=source, tag=tag)
-        dt, ne = metadata[:2]
+        dt, ne, transport_dt = metadata[:3]
         if ne is None and dt is None:
             return self.comm.recv(source=source, tag=tag)
         arr = np.empty(ne, dtype=dt)
@@ -1128,8 +1168,9 @@ class Communicator:
                 arr = ImageArray(arr, units=metadata[2], registry=registry)
             else:
                 arr = YTArray(arr, metadata[2], registry=registry)
-        tmp = arr.view(self.__tocast)
-        self.comm.Recv([tmp, MPI.CHAR], source=source, tag=tag)
+        mpi_type = get_mpi_type(transport_dt)
+        tmp = arr.view(transport_dt)
+        self.comm.Recv([tmp, mpi_type], source=source, tag=tag)
         return arr
 
     def alltoallv_array(self, send, total_size, offsets, sizes):
@@ -1142,7 +1183,8 @@ class Communicator:
             recv = np.array(recv)
             return recv
         offset = offsets[self.comm.rank]
-        tmp_send = send.view(self.__tocast)
+        mpi_type, transport_dtype = get_transport_dtype(send.dtype)
+        tmp_send = send.view(transport_dtype)
         recv = np.empty(total_size, dtype=send.dtype)
         if isinstance(send, YTArray):
             # We assume send.units is consistent with the units
@@ -1152,12 +1194,13 @@ class Communicator:
             else:
                 recv = YTArray(recv, send.units)
         recv[offset : offset + send.size] = send[:]
-        dtr = send.dtype.itemsize / tmp_send.dtype.itemsize  # > 1
+        dtr = send.dtype.itemsize // tmp_send.dtype.itemsize  # > 1
+        assert dtr * tmp_send.dtype.itemsize == send.dtype.itemsize
         roff = [off * dtr for off in offsets]
         rsize = [siz * dtr for siz in sizes]
-        tmp_recv = recv.view(self.__tocast)
+        tmp_recv = recv.view(transport_dtype)
         self.comm.Allgatherv(
-            (tmp_send, tmp_send.size, MPI.CHAR), (tmp_recv, (rsize, roff), MPI.CHAR)
+            (tmp_send, tmp_send.size, mpi_type), (tmp_recv, (rsize, roff), mpi_type)
         )
         return recv
 
