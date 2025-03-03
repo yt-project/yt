@@ -6,6 +6,7 @@ import unittest
 import pytest
 
 import yt
+from yt.testing import assert_allclose_units, fake_random_ds
 from yt.visualization.api import PhasePlot
 
 
