@@ -1634,6 +1634,9 @@ def pixelize_sph_kernel_projection_pixelave(
                                      0.5 * (xn + 1.) * nsmin + 0.5)
                                 yi = <np.int64_t> math.floor(
                                      0.5 * (yn + 1.) * nsmin + 0.5)
+                                # in case the pixel edge was beyond hsml
+                                xi = iclip(xi, 0, nsmin)
+                                yi = iclip(yi, 0, nsmin)
                                 # weight for each line integral:
                                 # area of subsampling pixel in length units
                                 # divided by output grid pixel size
