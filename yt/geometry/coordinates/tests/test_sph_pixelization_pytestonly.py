@@ -334,7 +334,7 @@ def test_sph_proj_pixelave_alongaxes(
     print(baseline)
     print("got:")
     print(img.v)
-    assert_rel_equal(baseline, img.v, 5)
+    assert_rel_equal(baseline.T, img.v, 5)
 
 
 @pytest.mark.parametrize("periodic", [True, False])
