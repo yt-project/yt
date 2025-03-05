@@ -1386,7 +1386,7 @@ def pixelize_sph_kernel_projection_pixelave(
     cdef np.int8_t weighted = 0
     # (hopefully?) private variables in parallel section
     cdef np.float64_t x, y, px, py, pz
-    cdef np.float64_t h_j2, ih_j2, qts_j, prefactor_j
+    cdef np.float64_t h_j2, ih_j2, qts_j, prefactor_j, kernnorm_j
     cdef np.float64_t q_ij2, posx_diff, posy_diff
     cdef np.float64_t insubx, insuby, xn, yn, kv
     cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
@@ -1640,8 +1640,8 @@ def pixelize_sph_kernel_projection_pixelave(
                                 # weight for each line integral:
                                 # area of subsampling pixel in length units
                                 # divided by output grid pixel size
-                                prefactor_j *= (4.0 * h_j2
-                                                * insmin * insmin * ipixA)
+                                kernnorm_j = (4.0 * h_j2
+                                              * insmin * insmin * ipixA)
                                 # coarse (part. pos rel. to grid) index
                                 ci = (4 * xi * (nsmin + 1) + 4 * yi)
                                 for xxi in range(2):
@@ -1660,7 +1660,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                             continue
                                         local_buff[(x0 + xxi) * ysize
                                                    + (y0 + yyi)] += (
-                                            prefactor_j * kv
+                                            prefactor_j * kernnorm_j * kv
                                             )
                                         mask[x0 + xxi, y0 + yyi] = 1
 
