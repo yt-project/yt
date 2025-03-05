@@ -1605,7 +1605,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                     # surface density
                                     # = density * av. length
                                     # = density * volume / area
-                                    local_buff[x0 + y0 * xsize] += (
+                                    local_buff[x0 * ysize + y0] += (
                                         pmass[j] / pdens[j] * ipixA * qts_j
                                         )
                                     mask[x0, y0] = 1
@@ -1655,8 +1655,8 @@ def pixelize_sph_kernel_projection_pixelave(
                                         if kv == 0.:
                                             # don't set mask to 1
                                             continue
-                                        local_buff[(x0 + xxi)
-                                                   + (y0 + yyi) * xsize] += (
+                                        local_buff[(x0 + xxi) * ysize
+                                                   + (y0 + yyi)] += (
                                             prefactor_j * kv
                                             )
                                         mask[x0 + xxi, y0 + yyi] = 1
@@ -1716,7 +1716,7 @@ def pixelize_sph_kernel_projection_pixelave(
                                             q_ij2 = ((posx_diff + posy_diff)
                                                      * ih_j2)
                                             if q_ij2 >= 1.0: continue
-                                            local_buff[xi + yi * xsize] += (
+                                            local_buff[xi * ysize + yi] += (
                                                prefactor_j * insuby * insubx
                                                * itab.interpolate(q_ij2)
                                                )
@@ -1725,7 +1725,7 @@ def pixelize_sph_kernel_projection_pixelave(
         with gil:
             for sxi in range(xsize):
                 for syi in range(ysize):
-                    buff[syi, sxi] += local_buff[sxi + syi * xsize]
+                    buff[sxi, syi] += local_buff[sxi * ysize + syi]
         # free memory in (hopefully?) private variables assigned in
         # each thread
         free(local_buff)
