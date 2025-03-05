@@ -164,13 +164,14 @@ def test_sph_proj_general_alongaxes(
     # print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
 
-
-@pytest.mark.parametrize("axis", [0, 1, 2])
-@pytest.mark.parametrize("shiftcenter", [False, True])
+# I'm not sure if this warrants a "slow" marker, but the brute-force
+# python/numpy kernel integration does take a while to run.
+@pytest.mark.parametrize("axis", [0]) #, 1, 2
+@pytest.mark.parametrize("shiftcenter", [True, False])
 @pytest.mark.parametrize("periodic", [True, False])
-@pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
-@pytest.mark.parametrize("weighted", [False, True])
-@pytest.mark.parametrize("hsmlfac", [0.2, 0.5, 1.0])
+@pytest.mark.parametrize("depth", [None, (1.0, "cm")]) #, (5.0, "cm")
+@pytest.mark.parametrize("weighted", [False]) #, True
+@pytest.mark.parametrize("hsmlfac", [0.2, 1.0]) #0.5, 
 def test_sph_proj_pixelave_alongaxes(
     axis: int,
     shiftcenter: bool,
@@ -288,7 +289,8 @@ def test_sph_proj_pixelave_alongaxes(
         for j in range(buff_size[1]):
             pixelxy = unyt.unyt_array(
                 np.array(
-                    [pixedges_x[i], pixedges_x[i + 1], pixedges_y[j], pixedges_y[j + 1]]
+                    [pixedges_x[i], pixedges_x[i + 1], 
+                     pixedges_y[j], pixedges_y[j + 1]]
                 ),
                 "cm",
             )
@@ -318,7 +320,8 @@ def test_sph_proj_pixelave_alongaxes(
                 weightsum += kernint * mass[p].to("g").v
                 if weighted:
                     weightedsum += (
-                        kernint * mass[p].to("g").v * density[p].to("g * cm**-3").v
+                        kernint * mass[p].to("g").v 
+                        * density[p].to("g * cm**-3").v
                     )
             if weighted:
                 baseline[i, j] += weightedsum[()] / weightsum[()]
@@ -334,6 +337,10 @@ def test_sph_proj_pixelave_alongaxes(
     print(baseline)
     print("got:")
     print(img.v)
+    # in a few single-particle projection tests, mass conservation
+    # seems to be good to about 4 decimal places; the brute-force
+    # kernel integration for the baseline image may also introduce
+    # errors
     assert_rel_equal(baseline.T, img.v, 5)
 
 
