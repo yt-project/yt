@@ -314,7 +314,7 @@ def test_sph_proj_pixelave_alongaxes(
                     pixelxy.to("cm").v,
                     pcenxy[p],
                     (hsml[p].to("cm")).v,
-                    nsample=50,
+                    nsample=100,
                     periodxy=periodxy,
                 )
                 weightsum += kernint * mass[p].to("g").v
