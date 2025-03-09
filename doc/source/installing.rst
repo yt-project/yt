@@ -76,7 +76,6 @@ The latest stable release can be obtained from PyPI with pip
 
 .. code-block:: bash
 
-  $ python -m pip install --upgrade pip
   $ python -m pip install --user yt
 
 
@@ -100,7 +99,6 @@ one can specify them as, for instance
 
 .. code-block:: bash
 
-  $ python -m pip install --upgrade pip
   $ python -m pip install --user "yt[ramses]"
 
 Extra requirements can be combined, separated by commas (say ``yt[ramses,enzo_e]``).
@@ -121,7 +119,6 @@ Then run
 
   $ git clone https://github.com/yt-project/yt
   $ cd yt
-  $ python -m pip install --upgrade pip
   $ python -m pip install --user -e .
 
 
