@@ -230,5 +230,6 @@ other_tests:
      - "--ignore-file=test_offaxisprojection_pytestonly\\.py"
      - "--ignore-file=test_sph_pixelization_pytestonly\\.py"
      - "--ignore-file=test_cf_radial_pytest\\.py"
+     - "--ignore-file=test_callbacks_pytestonly\\.py"
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
