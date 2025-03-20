@@ -121,6 +121,7 @@ open-pmd = ["yt[HDF5]"]
 owls = ["yt[HDF5]"]
 owls-subfind = ["yt[HDF5]"]
 parthenon = ["yt[HDF5]"]
+quokka = ["PyYAML>=6.0.1"]
 ramses = ["yt[Fortran]", "scipy"]
 rockstar = []
 sdf = ["requests>=2.20.0"]
@@ -181,6 +182,7 @@ full = [
     "yt[owls]",
     "yt[owls_subfind]",
     "yt[parthenon]",
+    "yt[quokka]",
     "yt[ramses]",
     "yt[rockstar]",
     "yt[sdf]",
