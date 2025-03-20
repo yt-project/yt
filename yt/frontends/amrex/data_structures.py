@@ -1,5 +1,4 @@
 import yaml
-import json
 import glob
 import os
 import re
@@ -1406,6 +1405,9 @@ class QuokkaDataset(AMReXDataset):
         # Add radiation fields in fluid_types only if detected
         if self.parameters.get('radiation_field_groups', 0) > 0:
             self.fluid_types += ("rad",)
+        # Add magnetic fields in fluid_types only if detected
+        if "Bfield" in self.parameters['fields']:
+            self.fluid_types += ("mag",)
 
     def _parse_parameter_file(self):
         # Call parent method to initialize core setup by yt
@@ -1426,7 +1428,6 @@ class QuokkaDataset(AMReXDataset):
             self.parameters['fields'] = []
 
             # Metadata flags
-            bfield_present = False
             rad_group_count = 0
 
             for i in range(num_fields):
@@ -1513,7 +1514,7 @@ class QuokkaDataset(AMReXDataset):
         for pdir in particle_dirs:
             particle_type = os.path.basename(pdir)
             header_file = os.path.join(pdir, "Header")
-            fields_json_file = os.path.join(pdir, "Fields.json")
+            fields_yaml_file = os.path.join(pdir, "Fields.yaml")
 
             if os.path.exists(header_file):
                 detected_particle_types.append(particle_type)
@@ -1530,20 +1531,20 @@ class QuokkaDataset(AMReXDataset):
                 field_units = {field: "dimensionless" for field in fields}
 
                 # Initialize variables
-                json_field_names = None
+                yaml_field_names = None
 
-                # Check and parse Fields.json
-                if os.path.exists(fields_json_file):
+                # Check and parse Fields.yaml
+                if os.path.exists(fields_yaml_file):
                     try:
-                        with open(fields_json_file, 'r') as f:
-                            field_data = json.load(f)
-                            json_field_names = list(field_data.get("fields", []))
-                            raw_units = field_data.get("units", {})
+                        with open(fields_yaml_file, 'r') as f:
+                            field_data = yaml.safe_load(f)
+                            yaml_field_names = list(field_data.keys())  # Extract field names
+                            raw_units = field_data
 
                             # Validate field names count
-                            if len(json_field_names) == len(fields):
-                                # Replace the default fields (real_comp*) with those from Fields.json
-                                field_names = json_field_names
+                            if len(yaml_field_names) == len(fields):
+                                # Replace the default fields (real_comp*) with those from Fields.yaml
+                                field_names = yaml_field_names
                                 field_units = {}
 
                                 # Translate raw unit dimensions into readable strings
@@ -1562,13 +1563,13 @@ class QuokkaDataset(AMReXDataset):
 
                             else:
                                 mylog.debug(
-                                    "Field names in Fields.json do not match the number of fields in Header for '%s'. "
+                                    "Field names in Fields.yaml do not match the number of fields in Header for '%s'. "
                                     "Using names from Header.",
                                     particle_type,
                                 )
                     except Exception as e:
                         mylog.debug(
-                            "Failed to parse Fields.json for particle type '%s': %s",
+                            "Failed to parse Fields.yaml for particle type '%s': %s",
                             particle_type,
                             e,
                         )
@@ -1576,8 +1577,8 @@ class QuokkaDataset(AMReXDataset):
                     # Ensure all fields have units (handle missing units gracefully)
                     field_units = {field: "dimensionless" for field in fields}
 
-                # Explicitly remove real_comp* entries if Fields.json replaces the fields
-                if field_names == json_field_names:
+                # Explicitly remove real_comp* entries if Fields.yaml replaces the fields
+                if field_names == yaml_field_names:
                     for idx in range(len(fields)):
                         real_comp_field = f"real_comp{idx}"
                         if real_comp_field in field_units:
