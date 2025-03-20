@@ -45,9 +45,6 @@ if TYPE_CHECKING:
 
 
 BACKEND_SPECS = {
-    "gtk": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
-    "gtkagg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
-    "gtkcairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
     "macosx": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
     "qt5agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
     "qtagg": ["backend_qtagg", "FigureCanvasQTAgg", None],
