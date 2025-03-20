@@ -45,23 +45,23 @@ if TYPE_CHECKING:
 
 
 BACKEND_SPECS = {
-    "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
-    "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
-    "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
-    "MacOSX": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
-    "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
-    "QtAgg": ["backend_qtagg", "FigureCanvasQTAgg", None],
-    "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg", None],
-    "WX": ["backend_wx", "FigureCanvasWx", None],
-    "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg", None],
-    "GTK3Cairo": [
+    "gtk": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
+    "gtkagg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
+    "gtkcairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
+    "macosx": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
+    "qt5agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
+    "qtagg": ["backend_qtagg", "FigureCanvasQTAgg", None],
+    "tkagg": ["backend_tkagg", "FigureCanvasTkAgg", None],
+    "wx": ["backend_wx", "FigureCanvasWx", None],
+    "wxagg": ["backend_wxagg", "FigureCanvasWxAgg", None],
+    "gtk3cairo": [
         "backend_gtk3cairo",
         "FigureCanvasGTK3Cairo",
         "FigureManagerGTK3Cairo",
     ],
-    "GTK3Agg": ["backend_gtk3agg", "FigureCanvasGTK3Agg", "FigureManagerGTK3Agg"],
-    "WebAgg": ["backend_webagg", "FigureCanvasWebAgg", None],
-    "nbAgg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
+    "gtk3agg": ["backend_gtk3agg", "FigureCanvasGTK3Agg", "FigureManagerGTK3Agg"],
+    "webagg": ["backend_webagg", "FigureCanvasWebAgg", None],
+    "nbagg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
     "agg": ["backend_agg", "FigureCanvasAgg", None],
 }
 
@@ -151,7 +151,7 @@ class PlotMPL:
 
     def _get_canvas_classes(self):
         if self.interactivity:
-            key = str(matplotlib.get_backend())
+            key = str(matplotlib.get_backend()).lower()
         else:
             key = "agg"
 
