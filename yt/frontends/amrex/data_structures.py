@@ -1606,16 +1606,47 @@ class QuokkaDataset(AMReXDataset):
             with open(metadata_filename, 'r') as f:
                 # Load metadata using yaml
                 metadata = yaml.safe_load(f)
-                # Update dataset parameters with metadata if it exists
-                if metadata:
-                    self.parameters.update(metadata)
-                    mylog.debug("Metadata loaded successfully")
-                else:
+                
+                if not metadata:
                     mylog.debug("Warning: Metadata file is empty.")
+                    return
+                    
+                # Get quokka version, default to 0.0 if not present
+                quokka_version = metadata.get('quokka_version', '0.0')
+                
+                # Define version comparison function
+                is_newer_or_equal = lambda ver, compare_to: (
+                    tuple(map(int, str(ver).split('.'))) >= 
+                    tuple(map(int, str(compare_to).split('.')))
+                )
+                
+                # Compare with version 25.03 (year 2025, month 3)
+                if not is_newer_or_equal(quokka_version, '25.03'):
+                    # For older versions
+                    self.parameters.update(metadata)
+                    mylog.debug("Metadata loaded successfully (older versions)")
+                else:
+                    # For newer versions, process each section according to rules
+                    for key, value in metadata.items():
+                        if key == 'units':
+                            # For units section, read everything underneath
+                            for unit_name, unit_value in value.items():
+                                self.parameters[unit_name] = unit_value
+                        elif key == 'constants':
+                            # Ignore constants section
+                            continue
+                        else:
+                            # For everything else, read in directly
+                            self.parameters[key] = value
+                    
+                    mylog.debug("Metadata loaded successfully (version 25.03 or newer)")
+                
         except FileNotFoundError:
             mylog.debug(f"Error: Metadata file '{metadata_filename}' not found.")
         except yaml.YAMLError as e:
             mylog.debug(f"Error parsing metadata file: {e}")
+        except ValueError as e:
+            mylog.debug(f"Error parsing version numbers: {e}")
 
 
 def _guess_pcast(vals):
