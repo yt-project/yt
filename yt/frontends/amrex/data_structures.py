@@ -1573,16 +1573,6 @@ class QuokkaDataset(AMReXDataset):
                             particle_type,
                             e,
                         )
-                else:
-                    # Ensure all fields have units (handle missing units gracefully)
-                    field_units = {field: "dimensionless" for field in fields}
-
-                # Explicitly remove real_comp* entries if Fields.yaml replaces the fields
-                if field_names == yaml_field_names:
-                    for idx in range(len(fields)):
-                        real_comp_field = f"real_comp{idx}"
-                        if real_comp_field in field_units:
-                            del field_units[real_comp_field]
 
                 # Add particle info
                 particle_info[particle_type] = {
