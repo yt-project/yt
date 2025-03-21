@@ -45,9 +45,6 @@ if TYPE_CHECKING:
 
 
 BACKEND_SPECS = {
-    "gtk": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
-    "gtkagg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
-    "gtkcairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
     "macosx": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
     "qt5agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
     "qtagg": ["backend_qtagg", "FigureCanvasQTAgg", None],
@@ -138,6 +135,8 @@ class PlotMPL:
         figure_canvas, figure_manager = self._get_canvas_classes()
         self.canvas = figure_canvas(self.figure)
         if figure_manager is not None:
+            # with matplotlib >= 3.9, figure_manager should always be not None
+            # see _get_canvas_classes for details.
             self.manager = figure_manager(self.canvas, 1)
 
         self.axes.tick_params(
@@ -151,11 +150,20 @@ class PlotMPL:
 
     def _get_canvas_classes(self):
         if self.interactivity:
-            key = str(matplotlib.get_backend()).lower()
+            key = str(matplotlib.get_backend())
         else:
             key = "agg"
 
-        module, fig_canvas, fig_manager = BACKEND_SPECS[key]
+        if matplotlib.__version_info__ >= (3, 9):
+            # once yt has a minimum matplotlib version of 3.9, this branch
+            # can replace the rest of this function and BACKEND_SPECS can
+            # be removed. See https://github.com/yt-project/yt/issues/5138
+            from matplotlib.backends import backend_registry
+
+            mod = backend_registry.load_backend_module(key)
+            return mod.FigureCanvas, mod.FigureManager
+
+        module, fig_canvas, fig_manager = BACKEND_SPECS[key.lower()]
 
         mod = __import__(
             "matplotlib.backends",
