@@ -30,7 +30,7 @@ particle_fields = [
 ]
 
 
-@requires_module("h5py")
+@requires_module("openpmd_api")
 @requires_file(threeD)
 def test_3d_out():
     ds = data_dir_load(threeD)
@@ -53,7 +53,7 @@ def test_3d_out():
     assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge, domain_width)
 
 
-@requires_module("h5py")
+@requires_module("openpmd_api")
 @requires_file(twoD)
 def test_2d_out():
     ds = data_dir_load(twoD)
@@ -71,6 +71,7 @@ def test_2d_out():
         ("openPMD", "J_z"),
         ("openPMD", "rho"),
     ]
+
     domain_dimensions = [51, 201, 1] * np.ones_like(ds.domain_dimensions)
     domain_width = [3.06e-05, 2.01e-05, 1e0] * np.ones_like(ds.domain_left_edge)
 
@@ -87,7 +88,7 @@ def test_2d_out():
     assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge, domain_width)
 
 
-@requires_module("h5py")
+@requires_module("openpmd_api")
 @requires_file(noFields)
 def test_no_fields_out():
     ds = data_dir_load(noFields)
@@ -110,7 +111,7 @@ def test_no_fields_out():
     assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge, domain_width)
 
 
-@requires_module("h5py")
+@requires_module("openpmd_api")
 @requires_file(noParticles)
 def test_no_particles_out():
     ds = data_dir_load(noParticles)
@@ -136,7 +137,7 @@ def test_no_particles_out():
     assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge, domain_width)
 
 
-@requires_module("h5py")
+@requires_module("openpmd_api")
 @requires_file(groupBased)
 def test_groupBased_out():
     dss = load(groupBased)
