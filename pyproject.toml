@@ -89,7 +89,7 @@ Fortran = ["f90nml>=1.1"]
 # We also normalize all target names to lower case for consistency.
 adaptahop = []
 ahf = []
-amrex = []
+amrex = ["PyYAML>=6.0.1"]
 amrvac = ["yt[Fortran]"]
 art = []
 arepo = ["yt[HDF5]"]
