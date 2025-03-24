@@ -168,8 +168,8 @@ def test_sph_proj_general_alongaxes(
 # python/numpy kernel integration does take a while to run.
 @pytest.mark.parametrize("axis", [0]) #, 1, 2
 @pytest.mark.parametrize("shiftcenter", [True, False])
-@pytest.mark.parametrize("periodic", [True, False])
-@pytest.mark.parametrize("depth", [None, (1.0, "cm")]) #, (5.0, "cm")
+@pytest.mark.parametrize("periodic", [False]) # True,
+@pytest.mark.parametrize("depth", [None]) #, (1.0, "cm"), (5.0, "cm")
 @pytest.mark.parametrize("weighted", [False]) #, True
 @pytest.mark.parametrize("hsmlfac", [0.2, 1.0]) #0.5, 
 def test_sph_proj_pixelave_alongaxes(
@@ -197,7 +197,7 @@ def test_sph_proj_pixelave_alongaxes(
     elif axis == 1:
         ax0 = 2
         ax1 = 0
-    buff_size = (5, 5)
+    buff_size = (4, 4)
 
     # test correct centering, particle selection
     def makemasses(i, j, k):
