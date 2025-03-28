@@ -297,7 +297,9 @@ def test_sph_proj_pixelave_alongaxes(
     _baseimg = baseprj.frb.data[("gas", "density")]
     baseimg = resreduce(_baseimg, buff_size)
     _baseimg_wtd = baseprj_wtd.frb.data[("gas", "density")]
-    baseimg_wtd = resreduce(_baseimg * _baseimg_wtd, buff_size) / baseimg
+    _divimg = np.copy(baseimg.v)
+    _divimg[_divimg == 0.] = -1. # avoid div. by 0 test failures
+    baseimg_wtd = resreduce(_baseimg * _baseimg_wtd.v, buff_size) / _divimg
     baseimg_wtd[baseimg == 0.] = 0. # handle 0./0. NaNs
 
     print(
