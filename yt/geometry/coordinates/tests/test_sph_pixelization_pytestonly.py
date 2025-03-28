@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import unyt
+from numpy.typing import NDArray
 
 import yt
 from yt.data_objects.selection_objects.region import YTRegion
@@ -164,22 +165,31 @@ def test_sph_proj_general_alongaxes(
     # print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
 
-# I'm not sure if this warrants a "slow" marker, but the brute-force
-# python/numpy kernel integration does take a while to run.
-@pytest.mark.parametrize("axis", [0]) #, 1, 2
+def resreduce(arr: NDArray, outshape: tuple[int, int]) -> NDArray:
+    '''
+    gets an array of size outshape by averaging the pixel values in arr
+    '''
+    insize = arr.shape
+    tempi0 = insize[0] // outshape[0]
+    tempi1 = insize[1] // outshape[1]
+    temp = arr.reshape(outshape[0], tempi0, outshape[1], tempi1)
+    out = np.sum(temp, axis=(1, 3)) / (tempi0 * tempi1)
+    return out
+
+@pytest.mark.parametrize("axis", [0, 1, 2])
 @pytest.mark.parametrize("shiftcenter", [True, False])
-@pytest.mark.parametrize("periodic", [False]) # True,
-@pytest.mark.parametrize("depth", [None]) #, (1.0, "cm"), (5.0, "cm")
-@pytest.mark.parametrize("weighted", [False]) #, True
-@pytest.mark.parametrize("hsmlfac", [0.2, 1.0]) #0.5, 
+@pytest.mark.parametrize("periodic", [True, False])
+@pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
+@pytest.mark.parametrize("hsmlfac", [0.2, 0.5, 1.0]) 
 def test_sph_proj_pixelave_alongaxes(
     axis: int,
     shiftcenter: bool,
     periodic: bool,
     depth: float,
-    weighted: bool,
     hsmlfac: float,
 ) -> None:
+    # weighted and unweighted tested in one round: 
+    # need weight map to downsample the baseline weighted map
     if shiftcenter:
         center = unyt.unyt_array(np.array((0.6, 0.5, 0.4)), "cm")
     else:
@@ -187,17 +197,8 @@ def test_sph_proj_pixelave_alongaxes(
     bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]), "cm")
     hsml_factor = hsmlfac
     unitrho = 1.5
-
-    if axis == 2:
-        ax0 = 0
-        ax1 = 1
-    elif axis == 0:
-        ax0 = 1
-        ax1 = 2
-    elif axis == 1:
-        ax0 = 2
-        ax1 = 0
     buff_size = (4, 4)
+    subsample_size = (4 * 256, 4 * 256)
 
     # test correct centering, particle selection
     def makemasses(i, j, k):
@@ -235,113 +236,92 @@ def test_sph_proj_pixelave_alongaxes(
 
     # we don't actually want a plot, it's just a straightforward,
     # common way to get an frb / image array
-    if weighted:
-        toweight_field = ("gas", "density")
-    else:
-        toweight_field = None
-    prj = yt.ProjectionPlot(
+    testprj = yt.ProjectionPlot(
         ds,
         axis,
         ("gas", "density"),
         width=(2.5, "cm"),
-        weight_field=toweight_field,
+        weight_field=None,
         buff_size=buff_size,
         center=center,
         data_source=source,
         pixelmeaning="pixelave",
     )
-    print("ProjectionPlot returned")
-    img = prj.frb.data[("gas", "density")]
-    print("FRB info:")
-    print(prj.frb._get_info(("gas", "density")))
-
-    projwidth = unyt.unyt_array(np.array((2.5,)), "cm")
-    pixedges_x = np.linspace(
-        center[ax0] - 0.5 * projwidth, center[ax0] + 0.5 * projwidth, buff_size[0] + 1
+    testprj_wtd = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=("gas", "density"),
+        buff_size=buff_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pixelave",
     )
-    pixedges_y = np.linspace(
-        center[ax1] - 0.5 * projwidth, center[ax1] + 0.5 * projwidth, buff_size[1] + 1
-    )
-    _depth = depth if depth is not None else unyt.unyt_array(np.array((np.inf,)), "cm")
-    zlims = (center[axis] - 0.5 * _depth, center[axis] + 0.5 * _depth)
-    ad = ds.all_data()
-    pcenxy = np.array(
-        [
-            (ad[("gas", "xyz"[ax0])]).to("cm"),
-            (ad[("gas", "xyz"[ax1])]).to("cm"),
-        ]
-    ).T
-    projz = (ad[("gas", "xyz"[axis])]).to("cm")
-    hsml = (ad[("gas", "smoothing_length")]).to("cm")
-    mass = (ad[("gas", "mass")]).to("g")
-    density = (ad[("gas", "density")]).to("g * cm**-3")
-    baseline = np.zeros(buff_size)
-    if periodic:
-        periodxy = (
-            (bbox[ax0][1] - bbox[ax0][0]).to("cm").v,
-            (bbox[ax1][1] - bbox[ax1][0]).to("cm").v,
-        )
-        periodz = bbox[axis][1] - bbox[axis][0]
-    else:
-        periodxy = (None, None)
-        periodz = None
-    for i in range(buff_size[0]):
-        for j in range(buff_size[1]):
-            pixelxy = unyt.unyt_array(
-                np.array(
-                    [pixedges_x[i], pixedges_x[i + 1], 
-                     pixedges_y[j], pixedges_y[j + 1]]
-                ),
-                "cm",
-            )
-            weightsum = 0.0
-            weightedsum = 0.0
-            for p in range(pcenxy.shape[0]):
-                # check if the particle is excluded along z
-                if projz[p] < zlims[0] or projz[p] > zlims[1]:
-                    if periodz is None:
-                        continue
-                    else:
-                        dz = projz[p] - center[axis].to("cm")
-                        dz += 0.5 * periodz
-                        dz %= periodz
-                        dz -= periodz
-                        if np.abs(dz) > 0.5 * _depth:
-                            continue
+    testimg = testprj.frb.data[("gas", "density")]
+    testimg_wtd = testprj_wtd.frb.data[("gas", "density")]
 
-                kernint = pixelintegrate_kernel(
-                    cubicspline_python,
-                    pixelxy.to("cm").v,
-                    pcenxy[p],
-                    (hsml[p].to("cm")).v,
-                    nsample=100,
-                    periodxy=periodxy,
-                )
-                weightsum += kernint * mass[p].to("g").v
-                if weighted:
-                    weightedsum += (
-                        kernint * mass[p].to("g").v 
-                        * density[p].to("g * cm**-3").v
-                    )
-            if weighted:
-                baseline[i, j] += weightedsum[()] / weightsum[()]
-            else:
-                baseline[i, j] += weightsum[()]
-    baseline[np.isnan(baseline)] = 0.0
+    baseprj = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=None,
+        buff_size=subsample_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pencilbeam",
+    )
+    baseprj = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=None,
+        buff_size=subsample_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pencilbeam",
+    )
+    baseprj_wtd = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=("gas", "density"),
+        buff_size=subsample_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pencilbeam",
+    )
+    _baseimg = baseprj.frb.data[("gas", "density")]
+    baseimg = resreduce(_baseimg, buff_size)
+    _baseimg_wtd = baseprj_wtd.frb.data[("gas", "density")]
+    baseimg_wtd = resreduce(_baseimg * _baseimg_wtd, buff_size) / baseimg
+    baseimg_wtd[baseimg == 0.] = 0. # handle 0./0. NaNs
+
     print(
         f"axis: {axis}, shiftcenter: {shiftcenter}, "
-        f"depth: {depth}, periodic: {periodic}, weighted: {weighted}, "
+        f"depth: {depth}, periodic: {periodic}, "
         f"hsmlfac: {hsmlfac}"
     )
     print("expected:")
-    print(baseline)
+    print(baseimg.v)
     print("got:")
-    print(img.v)
+    print(testimg.v)
+    print("expected (weighted):")
+    print(baseimg_wtd.v)
+    print("got (weighted):")
+    print(testimg_wtd.v)
     # in a few single-particle projection tests, mass conservation
-    # seems to be good to about 4 decimal places; the brute-force
-    # kernel integration for the baseline image may also introduce
-    # errors
-    assert_rel_equal(baseline.T, img.v, 5)
+    # seems to be good to about 4 decimal places; agreement with
+    # subsampling with multiple particles is not quite at 4.
+    # pixel values seem to converge more slowly though, so we test
+    # mass conservation explicitly, and pixel agreement at low
+    # precision 
+    assert_rel_equal(baseimg.v, testimg.v, 1)
+    assert_rel_equal(np.sum(baseimg.v), np.sum(testimg.v), 2)
+    assert_rel_equal(baseimg_wtd.v, testimg_wtd.v, 1)
 
 
 @pytest.mark.parametrize("periodic", [True, False])
