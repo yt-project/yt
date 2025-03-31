@@ -388,7 +388,11 @@ class AMRGridPatch(YTSelectionContainer):
         if self._cache_mask and hash(selector) == self._last_selector_id:
             mask = self._last_mask
         else:
-            mask, count = selector.fill_mask_regular_grid(self)
+            if selector is None or getattr(selector, "is_all_data", False):
+                mask = self.child_mask.copy()
+                count = mask.sum()
+            else:
+                mask, count = selector.fill_mask_regular_grid(self)
             if self._cache_mask:
                 self._last_mask = mask
             self._last_selector_id = hash(selector)
@@ -406,10 +410,14 @@ class AMRGridPatch(YTSelectionContainer):
         dim = np.squeeze(self.ds.dimensionality)
         nodal_flag = source.shape[:dim] - self.ActiveDimensions[:dim]
         if sum(nodal_flag) == 0:
+            dest.resize(offset + count, refcheck=False)
+            dest.shape = (offset + count,)
             dest[offset : offset + count] = source[mask]
         else:
             slices = get_nodal_slices(source.shape, nodal_flag, dim)
             for i, sl in enumerate(slices):
+                dest.resize((offset + count, i), refcheck=False)
+                dest.shape = (offset + count, i)
                 dest[offset : offset + count, i] = source[tuple(sl)][np.squeeze(mask)]
         return count
 
