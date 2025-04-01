@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Literal
 
 import numpy as np
 
@@ -87,9 +88,16 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         size,
         antialias=True,
         periodic=False,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         return_mask=False,
     ):
+        """
+        Parameters
+        ----------
+        pixelmeaning: ignored, argument meant for cartesian SPH data
+
+        """
         # Note that above, we set periodic by default to be *false*.  This is
         # because our pixelizers, at present, do not handle periodicity
         # correctly, and if you change the "width" of a cylindrical plot, it
