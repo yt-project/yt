@@ -5,6 +5,7 @@ from numpy.typing import NDArray
 
 import yt
 from yt.data_objects.selection_objects.region import YTRegion
+from yt.loaders import load_particles
 from yt.testing import (
     assert_rel_equal,
     cubicspline_python,
@@ -305,6 +306,78 @@ def test_sph_proj_pixelave_alongaxes(
     assert_rel_equal(np.sum(baseimg.v), np.sum(testimg.v), 2)
     assert_rel_equal(baseimg_wtd.v, testimg_wtd.v, 1)
 
+
+def test_massconservation_pixave():
+    bbox = np.array([[0., 3.], [0., 3.], [0., 3.]])
+    pz = 1.5
+    periodic = True
+    periods = 3.
+    nrandom = 50
+    
+    # random centers, three pixel size + hsml sets
+    # test three cases in the backend routine
+    rng = np.random.default_rng()
+    pxs = rng.uniform(0., 3., nrandom)
+    pys = rng.uniform(0., 3., nrandom)
+    # particles < pixels: overlap 1, 2x1, or 2x2 pixels
+    hsmls1 = rng.uniform(0.01, 0.05, nrandom)
+    outsize1 = (7, 7)
+    # particles ~ pixels: typical 2x2 overlaps
+    hsmls2 = rng.uniform(0.1, 0.25, nrandom)
+    outsize2 = (7, 7)
+    # particles > pixels: 
+    hsmls3 = rng.uniform(0.07, 0.8, nrandom)
+    outsize3 = (50, 50)
+    
+    for i, (hsmls, outsize) in enumerate([(hsmls1, outsize1),
+                                          (hsmls2, outsize2),
+                                          (hsmls3, outsize3),
+                                         ]):
+
+        masses_rel = []
+        for i in range(nrandom):
+            data = {
+                "particle_position_x": (np.array([pxs[i]]), "cm"),
+                "particle_position_y": (np.array([pys[i]]), "cm"),
+                "particle_position_z": (np.array([pz]), "cm"),
+                "particle_mass": (np.array([1.]), "g"),
+                "particle_velocity_x": (np.zeros(1), "cm/s"),
+                "particle_velocity_y": (np.zeros(1), "cm/s"),
+                "particle_velocity_z": (np.zeros(1), "cm/s"),
+                "smoothing_length": (np.ones(1) * hsmls[i], "cm"),
+                "density": (np.array([1.5]), "g/cm**3"),
+            }
+            ds = load_particles(
+                data=data,
+                bbox=bbox,
+                periodicity=(periodic,) * 3,
+                length_unit=1.0,
+                mass_unit=1.0,
+                time_unit=1.0,
+                velocity_unit=1.0,
+            )
+            ds.kernel_name = "cubic"
+
+            proj = ds.proj(("gas", "density"), 2)
+            frb = proj.to_frb(
+                width=(3., "cm"),
+                resolution=outsize,
+                height=(3., "cm"),
+                center=np.array([1.5, 1.5, 1.5]),
+                periodic=True,
+                pixelmeaning="pixelave",
+            )
+            out = frb.get_image(("gas", "density"))
+            mass_in = 1.
+            mass_out = np.sum(out.v) * periods**2 / np.prod(outsize)
+            masses_rel.append(mass_out / mass_in - 1.)
+        masses_rel = np.array(masses_rel)
+        minrel = np.min(masses_rel)
+        maxrel = np.max(masses_rel)
+        print(f"Mass conservation test pixel/hsml set {i}:"
+              " mass conservation deviations fractions"
+              f" {minrel:.2e} -- {maxrel:.2e} ")
+        assert np.all(np.abs(masses_rel) < 1e-4)
 
 @pytest.mark.parametrize("periodic", [True, False])
 @pytest.mark.parametrize("shiftcenter", [False, True])
