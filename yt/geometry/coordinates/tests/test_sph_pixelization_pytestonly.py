@@ -12,7 +12,7 @@ from yt.testing import (
     fake_random_sph_ds,
     fake_sph_flexible_grid_ds,
     integrate_kernel,
-    pixelintegrate_kernel,
+    resreduce_image,
 )
 
 
@@ -165,16 +165,7 @@ def test_sph_proj_general_alongaxes(
     # print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
 
-def resreduce(arr: NDArray, outshape: tuple[int, int]) -> NDArray:
-    '''
-    gets an array of size outshape by averaging the pixel values in arr
-    '''
-    insize = arr.shape
-    tempi0 = insize[0] // outshape[0]
-    tempi1 = insize[1] // outshape[1]
-    temp = arr.reshape(outshape[0], tempi0, outshape[1], tempi1)
-    out = np.sum(temp, axis=(1, 3)) / (tempi0 * tempi1)
-    return out
+
 
 @pytest.mark.parametrize("axis", [0, 1, 2])
 @pytest.mark.parametrize("shiftcenter", [True, False])
@@ -272,17 +263,6 @@ def test_sph_proj_pixelave_alongaxes(
         data_source=source,
         pixelmeaning="pencilbeam",
     )
-    baseprj = yt.ProjectionPlot(
-        ds,
-        axis,
-        ("gas", "density"),
-        width=(2.5, "cm"),
-        weight_field=None,
-        buff_size=subsample_size,
-        center=center,
-        data_source=source,
-        pixelmeaning="pencilbeam",
-    )
     baseprj_wtd = yt.ProjectionPlot(
         ds,
         axis,
@@ -295,12 +275,12 @@ def test_sph_proj_pixelave_alongaxes(
         pixelmeaning="pencilbeam",
     )
     _baseimg = baseprj.frb.data[("gas", "density")]
-    baseimg = resreduce(_baseimg, buff_size)
+    baseimg = resreduce_image(_baseimg, buff_size)
     _baseimg_wtd = baseprj_wtd.frb.data[("gas", "density")]
     _divimg = np.copy(baseimg.v)
     _divimg[_divimg == 0.] = -1. # avoid div. by 0 test failures
-    baseimg_wtd = resreduce(_baseimg * _baseimg_wtd.v, buff_size) / _divimg
-    baseimg_wtd[baseimg == 0.] = 0. # handle 0./0. NaNs
+    baseimg_wtd = (resreduce_image(_baseimg * _baseimg_wtd.v, buff_size) 
+                   / _divimg)
 
     print(
         f"axis: {axis}, shiftcenter: {shiftcenter}, "
