@@ -18,6 +18,7 @@ import numpy as np
 import numpy.typing as npt
 from more_itertools import always_iterable
 from numpy.random import RandomState
+from numpy.typing import NDArray
 from unyt.exceptions import UnitOperationError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -158,6 +159,43 @@ def integrate_kernel(
     integral = np.sum(spv * dx, axis=0)
     return np.atleast_1d(pre * integral)
 
+
+def resreduce_image(
+    arr: NDArray[np.float32], 
+    outshape: tuple[int, int]
+) -> NDArray[np.float32]:
+    '''
+    gets an image array of size outshape by averaging the pixel values
+    in arr over contiguous blocks in each array dimension.
+
+    Parameters:
+    -----------
+    arr: 2d-array
+        the input array for averaging, size (Nx, Ny)
+    outshape:
+        the shape of the output array
+
+    Returns:
+    --------
+    an array of shape `outshape`
+
+    Notes:
+    ------
+    values in `arr` are averaged over contiguous blocks of size
+    (Nsx, Nsy), where Nsx = Nx // outshape[0],
+    and Nsy = Ny // outshape[1].
+    '''
+    insize = arr.shape
+    if insize[0] % outshape[0] != 0 or insize[1] % outshape[1] != 0:
+        raise ValueError("desired output array shape must use integer"
+                         "divisors of the input array shape. "
+                         f"desired {outshape} doesn't divide "
+                         f"input array shape {arr.shape()}")
+    tempi0 = insize[0] // outshape[0]
+    tempi1 = insize[1] // outshape[1]
+    temp = arr.reshape(outshape[0], tempi0, outshape[1], tempi1)
+    out = np.sum(temp, axis=(1, 3)) / (tempi0 * tempi1)
+    return out
 
 _zeroperiods = np.array([0.0, 0.0, 0.0])
 
