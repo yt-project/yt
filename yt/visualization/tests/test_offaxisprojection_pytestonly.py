@@ -3,7 +3,6 @@ import pytest
 import unyt
 from numpy.testing import assert_allclose
 
-from yt.data_objects.selection_objects.region import YTRegion
 from yt.testing import (
     assert_rel_equal,
     cubicspline_python,
@@ -174,12 +173,12 @@ def test_sph_proj_general_offaxis(
     assert_rel_equal(expected_out, img.v, 4)
 
 
-@pytest.mark.parametrize("axis", [(0., 1e-4, 1.), (0.2, 0., -0.8)])
+@pytest.mark.parametrize("axis", [(0.0, 1e-4, 1.0), (0.2, 0.0, -0.8)])
 @pytest.mark.parametrize("north_vector", [None, (1.0e-4, 1.0, 0.0)])
 @pytest.mark.parametrize("shiftcenter", [True, False])
 @pytest.mark.parametrize("periodic", [True, False])
 @pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
-@pytest.mark.parametrize("hsmlfac", [0.2, 0.5, 1.0]) 
+@pytest.mark.parametrize("hsmlfac", [0.2, 0.5, 1.0])
 def test_sph_proj_pixelave_offaxes(
     axis: tuple[float, float, float],
     north_vector: tuple[float, float, float] | None,
@@ -188,14 +187,13 @@ def test_sph_proj_pixelave_offaxes(
     depth: float,
     hsmlfac: float,
 ) -> None:
-    # weighted and unweighted tested in one round: 
+    # weighted and unweighted tested in one round:
     # need weight map to downsample the baseline weighted map
     if shiftcenter:
         center = unyt.unyt_array(np.array((0.6, 0.5, 0.4)), "cm")
     else:
         center = unyt.unyt_array(np.array((1.5, 1.5, 1.5)), "cm")
-    bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]),
-                           "cm")
+    bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]), "cm")
     hsml_factor = hsmlfac
     unitrho = 1.5
     buff_size = (4, 4)
@@ -283,9 +281,8 @@ def test_sph_proj_pixelave_offaxes(
     baseimg = resreduce_image(_baseimg, buff_size)
     _baseimg_wtd = baseprj_wtd.frb.data[("gas", "density")]
     _divimg = np.copy(baseimg.v)
-    _divimg[_divimg == 0.] = -1. # avoid div. by 0 test failures
-    baseimg_wtd = (resreduce_image(_baseimg * _baseimg_wtd.v, buff_size) 
-                   / _divimg)
+    _divimg[_divimg == 0.0] = -1.0  # avoid div. by 0 test failures
+    baseimg_wtd = resreduce_image(_baseimg * _baseimg_wtd.v, buff_size) / _divimg
 
     print(
         f"axis: {axis}, shiftcenter: {shiftcenter}, "
@@ -305,7 +302,7 @@ def test_sph_proj_pixelave_offaxes(
     # subsampling with multiple particles is not quite at 4.
     # pixel values seem to converge more slowly though, so we test
     # mass conservation explicitly, and pixel agreement at low
-    # precision 
+    # precision
     assert_rel_equal(baseimg.v, testimg.v, 1)
     assert_rel_equal(np.sum(baseimg.v), np.sum(testimg.v), 2)
     assert_rel_equal(baseimg_wtd.v, testimg_wtd.v, 1)
