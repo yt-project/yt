@@ -124,7 +124,7 @@ def integrate_kernel(
     ],
     b: float | npt.NDArray[np.floating],
     hsml: float | npt.NDArray[np.floating],
-) -> float | npt.NDArray[np.floating]:
+) -> npt.NDArray[np.floating]:
     """
     integrates a kernel function over a line passing entirely
     through it
@@ -152,10 +152,7 @@ def integrate_kernel(
     dx = np.diff(xe, axis=0)
     spv = kernelfunc(np.sqrt(xc**2 + x**2))
     integral = np.sum(spv * dx, axis=0)
-    result = pre * integral
-    if isinstance(result, np.floating):
-        return result.item()
-    return result
+    return np.atleast_1d(pre * integral)
 
 
 _zeroperiods = np.array([0.0, 0.0, 0.0])
