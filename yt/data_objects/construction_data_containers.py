@@ -1116,6 +1116,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
         for chunk in parallel_objects(self._data_source.chunks(fields, "io")):
+            chunk[fields[0]]
             input_fields = [chunk[field] for field in fields]
             # NOTE: This usage of "refine_by" is actually *okay*, because it's
             # being used with respect to iref, which is *already* scaled!
@@ -1512,7 +1513,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             domain_dims = domain_dims.astype("int64")
             tot = ls.current_dims.prod()
             for chunk in ls.data_source.chunks(fields, "io"):
-                chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
                 tot -= fill_region(
                     input_fields,

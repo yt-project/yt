@@ -109,10 +109,10 @@ class BaseIOHandler:
             nodal_flag = finfo.nodal_flag
             if np.any(nodal_flag):
                 num_nodes = 2 ** sum(nodal_flag)
-                rv[field] = np.empty((size, num_nodes), dtype="=f8")
+                rv[field] = np.empty((size or 0, num_nodes), dtype="=f8")
                 nodal_fields.append(field)
             else:
-                rv[field] = np.empty(size, dtype="=f8")
+                rv[field] = np.empty((size or 0,), dtype="=f8")
         ind = {field: 0 for field in fields}
         for field, obj, data in self.io_iter(chunks, fields):
             if data is None:

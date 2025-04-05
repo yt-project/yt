@@ -30,8 +30,10 @@ class IOHandlerStream(BaseIOHandler):
         if any((ftype not in self.ds.fluid_types for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
+        if size is None:
+            size = 0
         for field in fields:
-            rv[field] = self.ds.arr(np.empty(size, dtype="float64"))
+            rv[field] = np.empty(size, dtype="float64")
 
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug(
