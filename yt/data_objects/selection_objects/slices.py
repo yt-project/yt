@@ -347,7 +347,8 @@ class YTCuttingPlane(YTSelectionContainer2D):
         periodic : boolean
             This can be true or false, and governs whether the pixelization
             will span the domain boundaries.
-        pixelmeaning: ignored, arg. meant for SPH projections
+        pixelmeaning: ignored
+            argument meant for SPH projections
 
         Returns
         -------
