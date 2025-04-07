@@ -12,7 +12,7 @@ from yt.utilities.answer_testing.framework import data_dir_load
 def fake_halo_catalog(data):
     filename = "catalog.0.h5"
 
-    ftypes = {field: "." for field in data}
+    ftypes = dict.fromkeys(data, ".")
     extra_attrs = {"data_type": "halo_catalog", "num_halos": data["particle_mass"].size}
 
     ds = {

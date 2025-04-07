@@ -289,7 +289,7 @@ class Clump(TreeContainer):
             else:
                 clump_info[ci] = np.array(clump_info[ci])
 
-        ftypes = {ci: "clump" for ci in clump_info}
+        ftypes = dict.fromkeys(clump_info, "clump")
 
         # collect data fields
         if fields is not None:
