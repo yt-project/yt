@@ -1408,7 +1408,7 @@ def pixelize_sph_kernel_projection_pixelave(
         period_z = period[2]
     for si in range(3):
         check_period[si] = <np.int8_t> _check_period[si]
-    
+
     # we find the x and y range over which we have pixels and we find how many
     # pixels we have in each dimension
     xsize, ysize = <np.intp_t> buff.shape[0], <np.intp_t> buff.shape[1]

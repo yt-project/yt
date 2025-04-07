@@ -10,7 +10,7 @@ from collections.abc import Callable, Mapping
 from functools import wraps
 from importlib.util import find_spec
 from shutil import which
-from typing import Tuple, TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 from unittest import SkipTest
 
 import matplotlib
@@ -125,7 +125,7 @@ def integrate_kernel(
     ],
     b: float | npt.NDArray[np.floating],
     hsml: float | npt.NDArray[np.floating],
-    nsample: int = 500,   
+    nsample: int = 500,
 ) -> npt.NDArray[np.floating]:
     """
     integrates a kernel function over a line passing entirely
@@ -161,7 +161,7 @@ def integrate_kernel(
 
 
 def resreduce_image(
-    arr: NDArray[np.float32], outshape: Tuple[int, int]
+    arr: NDArray[np.float32], outshape: tuple[int, int]
 ) -> NDArray[np.float32]:
     """
     gets an image array of size outshape by averaging the pixel values
