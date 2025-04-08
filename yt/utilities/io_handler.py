@@ -113,7 +113,7 @@ class BaseIOHandler:
                 nodal_fields.append(field)
             else:
                 rv[field] = np.empty(size, dtype="=f8")
-        ind = {field: 0 for field in fields}
+        ind = dict.fromkeys(fields, 0)
         for field, obj, data in self.io_iter(chunks, fields):
             if data is None:
                 continue

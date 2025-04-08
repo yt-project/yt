@@ -145,7 +145,7 @@ def get_base_ds(nprocs):
     ds.parameters["EOSType"] = 1.0
     ds.parameters["EOSSoundSpeed"] = 1.0
     ds.conversion_factors["Time"] = 1.0
-    ds.conversion_factors.update({f: 1.0 for f in fields})
+    ds.conversion_factors.update(dict.fromkeys(fields, 1.0))
     ds.gamma = 5.0 / 3.0
     ds.current_redshift = 0.0001
     ds.cosmological_simulation = 1

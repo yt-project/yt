@@ -341,7 +341,7 @@ def load_uniform_grid(
                     field = ("io", key)
                     mylog.debug("Reassigning '%s' to '%s'", key, field)
                 else:
-                    key = cast(FieldKey, key)
+                    key = cast("FieldKey", key)
                     field = key
                 sfh._additional_fields += (field,)
                 pdata[field] = data.pop(key)
@@ -1912,7 +1912,7 @@ def load_hdf5_file(
     psize = get_psize(np.array(shape), nchunks)
     left_edges, right_edges, shapes, _, _ = decompose_array(shape, psize, bbox)
     for le, re, s in zip(left_edges, right_edges, shapes, strict=True):
-        data = {_: reader for _ in fields}
+        data = dict.fromkeys(fields, reader)
         data.update({"left_edge": le, "right_edge": re, "dimensions": s, "level": 0})
         grid_data.append(data)
     return load_amr_grids(grid_data, shape, bbox=bbox, **dataset_arguments)

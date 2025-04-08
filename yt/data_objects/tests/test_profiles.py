@@ -608,7 +608,7 @@ class TestBadProfiles(unittest.TestCase):
             ("gas", "mass"): mass,
         }
         fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
-        field_types = {field: "gas" for field in my_data.keys()}
+        field_types = dict.fromkeys(my_data.keys(), "gas")
         yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data, field_types=field_types)
 
         ds = yt.load("mydata.h5")
@@ -633,7 +633,7 @@ class TestBadProfiles(unittest.TestCase):
             ("gas", "mass"): mass,
         }
         fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
-        field_types = {field: "gas" for field in my_data.keys()}
+        field_types = dict.fromkeys(my_data.keys(), "gas")
         yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data, field_types=field_types)
 
         ds = yt.load("mydata.h5")

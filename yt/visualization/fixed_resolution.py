@@ -536,7 +536,7 @@ class FixedResolutionBuffer:
         else:
             data.update(self.data)
 
-        ftypes = {field: "grid" for field in data}
+        ftypes = dict.fromkeys(data, "grid")
         extra_attrs = {
             arg: getattr(self.data_source, arg, None)
             for arg in self.data_source._con_args + self.data_source._tds_attrs

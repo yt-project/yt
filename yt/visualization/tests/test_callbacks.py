@@ -1088,7 +1088,7 @@ def test_accepts_all_fields_decorator():
     plot = SlicePlot(ds, "z", fields=fields)
 
     # mocking a class method
-    plot.fake_attr = {f: "not set" for f in fields}
+    plot.fake_attr = dict.fromkeys(fields, "not set")
 
     @accepts_all_fields
     def set_fake_field_attribute(self, field, value):
