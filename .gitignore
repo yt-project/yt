@@ -39,6 +39,7 @@ yt/utilities/lib/bitarray.c
 yt/utilities/lib/bounded_priority_queue.c
 yt/utilities/lib/bounding_volume_hierarchy.c
 yt/utilities/lib/contour_finding.c
+yt/utilities/lib/coordinate_utilities.c
 yt/utilities/lib/cykdtree/kdtree.cpp
 yt/utilities/lib/cykdtree/utils.cpp
 yt/utilities/lib/cyoctree.c

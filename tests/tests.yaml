@@ -185,6 +185,8 @@ other_tests:
      - "--ignore-file=test_ambiguous_fields\\.py"
      - "--ignore-file=test_base_plot_types\\.py"
      - "--ignore-file=test_callable_grids\\.py"
+     - "--ignore-file=test_cartesian_cutting_plane\\.py"
+     - "--ignore-file=test_cartesian_cutting_plane_selector\\.py"
      - "--ignore-file=test_callbacks_geographic\\.py"
      - "--ignore-file=test_commons\\.py"
      - "--ignore-file=test_cython_fortran_utils\\.py"
