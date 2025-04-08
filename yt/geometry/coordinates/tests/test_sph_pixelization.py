@@ -66,6 +66,7 @@ def test_sph_projection_basic1():
         height=(2.5, "cm"),
         center=np.array([1.5, 1.5, 1.5]),
         periodic=False,
+        pixelmeaning="pencilbeam",
     )
     out = frb.get_image(("gas", "density"))
 
@@ -96,6 +97,7 @@ def test_sph_projection_basic2():
         height=(2.5, "cm"),
         center=np.array([1.375, 1.375, 1.5]),
         periodic=False,
+        pixelmeaning="pencilbeam",
     )
     out = frb.get_image(("gas", "density"))
 
@@ -163,6 +165,7 @@ def getdata_test_gridproj2():
             height=(2.5, "cm"),
             center=np.array([1.5, 1.5, 1.5]),
             periodic=False,
+            pixelmeaning="pencilbeam",
         )
         out = frb.get_image(("gas", "density"))
         outlist.append(out)
@@ -205,6 +208,7 @@ def test_sph_gridproj_reseffect2():
             height=(3.0 - 2.0 * margin, "cm"),
             center=np.array([1.5, 1.5, 1.5]),
             periodic=False,
+            pixelmeaning="pencilbeam",
         )
         out = frb.get_image(("gas", "density"))
         imgs[rl] = out
