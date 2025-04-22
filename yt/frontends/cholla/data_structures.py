@@ -13,18 +13,32 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 from .fields import ChollaFieldInfo
 
 
-def _split_fname_proc_suffix(filename: str):
+def _split_fname_procid_suffix(filename: str):
     """Splits ``filename`` at the '.' separating the beginning part of the
     string from the process-id suffix, and returns both parts in a 2-tuple.
 
-    When cholla is compiled with MPI and it directly writes data-files, each
-    process appends a suffix to each filename that denotes the process-id. For
-    example, the MPI-compiled version might write '0.h5.0'. If that function is
-    passed such a string, then it returns ``('0.h5', '0')``.
+    There are 2 conventions for the names of Cholla's data-files:
 
-    In cases where there is no suffix, the output is ``(filename, '')``. This
-    might come up if the user concatenated the output files, which is common
-    practice.
+    1. "root.h5.{procid}" is the standard format used when Cholla directly
+       writes out data-files. When outputting a snaphsot, each MPI-process
+       writes a separate file, named using this template (``{procid}`` is
+       replaced with MPI-rank). Modern versions of Cholla without MPI replace
+       ``{procid}`` with ``0``. When passed a name of this form, the function
+       returns ``("root.h5", "{procid}")``
+    2. "root.h5": is the standard format used by Cholla's concatenation scirpts
+       (older versions of the code compiled without MPI also used this format
+       to name outputs). When passed a name of this form, the function returns
+       ``("root.h5", "")``
+
+    Notes
+    -----
+    The following examples illustrate how the behavior differs from that of
+    ``os.path.splitext``
+
+    - For "root.h5.3": ``os.path.splitext`` returns ``("root.h5", ".3")``,
+      while this function returns ``("root.h5", "3")``
+    - For "root.h5": os.path.splitext`` returns ``("root", ".h5")``, while this
+      function returns ``("root.h5", "")``
     """
 
     # at this time, we expect the suffix to be the minimum number of characters
@@ -88,7 +102,7 @@ class ChollaHierarchy(GridIndex):
             # - have passed the file written by process 0 to ``yt.load``
             # Let's perform a sanity-check that self.index_filename has the
             # expected suffix for a file written by mpi-process 0
-            if int(_split_fname_proc_suffix(self.index_filename)[1]) != 0:
+            if int(_split_fname_procid_suffix(self.index_filename)[1]) != 0:
                 raise ValueError(
                     "the primary file associated with a "
                     "distributed cholla dataset must end in '.0'"
@@ -104,7 +118,7 @@ class ChollaHierarchy(GridIndex):
         else:
             # index_fname should has the form f'{self.directory}/<prefix>.0'
             # strip off the '.0' and determine the contents of <prefix>
-            pref, suf = _split_fname_proc_suffix(self.index_filename)
+            pref, suf = _split_fname_procid_suffix(self.index_filename)
             assert int(suf) == 0  # sanity check!
 
             ind_fname_pairs = ((i, f"{pref}.{i}") for i in range(self.num_grids))
