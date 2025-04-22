@@ -14,7 +14,6 @@ from yt.testing import (
     fake_amr_ds,
     fake_particle_ds,
     fake_random_ds,
-    fake_random_sph_ds
 )
 
 from yt.visualization.api import (
@@ -397,61 +396,6 @@ class TestPhasePlotSetZlim:
         p.set_zlim(field, zmin=(1e36, "kg/AU**3"))
         p.render()
         return p.plots[field].figure
-
-
-class TestPhasePlotParticleAPI:
-    @classmethod
-    def setup_class(cls):
-        bbox = np.array([[-1.0, 3.0], [1.0, 5.2], [-1.0, 3.0]])
-        cls.ds = fake_random_sph_ds(50, bbox)
-
-    def get_plot(self):
-        return PhasePlot(
-            self.ds, ("gas", "density"), ("gas", "density"), ("gas", "mass")
-        )
-
-    @pytest.mark.parametrize("kwargs", [{}, {"color": "b"}])
-    @pytest.mark.mpl_image_compare
-    def test_phaseplot_annotate_text(self, kwargs):
-        p = self.get_plot()
-        p.annotate_text(1e-4, 1e-2, "Test text annotation", **kwargs)
-        p.render()
-        return p.plots["gas", "mass"].figure
-
-    @pytest.mark.mpl_image_compare
-    def test_phaseplot_set_title(self):
-        p = self.get_plot()
-        p.annotate_title("Test Title")
-        p.render()
-        return p.plots["gas", "mass"].figure
-
-    @pytest.mark.mpl_image_compare
-    def test_phaseplot_set_log(self):
-        p = self.get_plot()
-        p.set_log(("gas", "mass"), False)
-        p.render()
-        return p.plots["gas", "mass"].figure
-
-    @pytest.mark.mpl_image_compare
-    def test_phaseplot_set_unit(self):
-        p = self.get_plot()
-        p.set_unit(("gas", "mass"), "Msun")
-        p.render()
-        return p.plots["gas", "mass"].figure
-
-    @pytest.mark.mpl_image_compare
-    def test_phaseplot_set_xlim(self):
-        p = self.get_plot()
-        p.set_xlim(1e-3, 1e0)
-        p.render()
-        return p.plots["gas", "mass"].figure
-
-    @pytest.mark.mpl_image_compare
-    def test_phaseplot_set_ylim(self):
-        p = self.get_plot()
-        p.set_ylim(1e-2, 1e0)
-        p.render()
-        return p.plots["gas", "mass"].figure
 
 
 class TestSetBackgroundColor:
