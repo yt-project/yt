@@ -84,42 +84,36 @@ class TestPhasePlotParticleAPI:
         p = self.get_plot()
         p.annotate_text(1e-4, 1e-2, "Test text annotation", **kwargs)
         p.render()
-        return p.plots["gas", "mass"].figure
 
     @pytest.mark.mpl_image_compare
     def test_phaseplot_set_title(self):
         p = self.get_plot()
         p.annotate_title("Test Title")
         p.render()
-        return p.plots["gas", "mass"].figure
 
     @pytest.mark.mpl_image_compare
     def test_phaseplot_set_log(self):
         p = self.get_plot()
         p.set_log(("gas", "mass"), False)
         p.render()
-        return p.plots["gas", "mass"].figure
 
     @pytest.mark.mpl_image_compare
     def test_phaseplot_set_unit(self):
         p = self.get_plot()
         p.set_unit(("gas", "mass"), "Msun")
         p.render()
-        return p.plots["gas", "mass"].figure
 
     @pytest.mark.mpl_image_compare
     def test_phaseplot_set_xlim(self):
         p = self.get_plot()
         p.set_xlim(1e-3, 1e0)
         p.render()
-        return p.plots["gas", "mass"].figure
 
     @pytest.mark.mpl_image_compare
     def test_phaseplot_set_ylim(self):
         p = self.get_plot()
         p.set_ylim(1e-2, 1e0)
         p.render()
-        return p.plots["gas", "mass"].figure
 
 
 def test_set_units():
