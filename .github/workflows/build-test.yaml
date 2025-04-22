@@ -37,7 +37,7 @@ jobs:
             tests-type: unit
             test-runner: pytest
             venv-loc: Scripts
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             python-version: '3.10.3'
             dependencies: minimal
             tests-type: unit
