@@ -10,7 +10,6 @@ from yt.testing import assert_allclose_units, fake_random_ds, fake_random_sph_ds
 from yt.visualization.api import PhasePlot
 
 
-
 class TestPhasePlotAPI:
     @classmethod
     def setup_class(cls):

@@ -9,13 +9,7 @@ from matplotlib.colors import SymLogNorm
 
 from yt.data_objects.profiles import create_profile
 from yt.loaders import load_uniform_grid
-from yt.testing import (
-    add_noise_fields,
-    fake_amr_ds,
-    fake_particle_ds,
-    fake_random_ds,
-)
-
+from yt.testing import add_noise_fields, fake_amr_ds, fake_particle_ds, fake_random_ds
 from yt.visualization.api import (
     LinePlot,
     ParticleProjectionPlot,
