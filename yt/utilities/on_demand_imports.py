@@ -1,7 +1,6 @@
 import sys
 from functools import wraps
 from importlib.util import find_spec
-from typing import Optional
 
 
 class NotAModule:
@@ -11,7 +10,7 @@ class NotAModule:
     package installed.
     """
 
-    def __init__(self, pkg_name, exc: Optional[BaseException] = None):
+    def __init__(self, pkg_name, exc: BaseException | None = None):
         self.pkg_name = pkg_name
         self._original_exception = exc
         error_note = (
@@ -172,7 +171,7 @@ class NotCartopy(NotAModule):
     for cartopy imports.
     """
 
-    def __init__(self, pkg_name, exc: Optional[BaseException] = None):
+    def __init__(self, pkg_name, exc: BaseException | None = None):
         super().__init__(pkg_name, exc)
         if any(s in sys.version for s in ("Anaconda", "Continuum")):
             # the conda-based installs of cartopy don't have issues with the
@@ -180,8 +179,8 @@ class NotCartopy(NotAModule):
             # relatively short. Discussion related to this is in
             # yt-project/yt#1966
             self.error = ImportError(
-                "This functionality requires the %s "
-                "package to be installed." % self.pkg_name
+                f"This functionality requires the {self.pkg_name} "
+                "package to be installed."
             )
         else:
             self.error = ImportError(

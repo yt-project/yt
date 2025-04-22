@@ -1,16 +1,23 @@
 import glob
 import os
+import sys
 from collections import defaultdict
 from distutils.ccompiler import get_default_compiler
 from importlib import resources as importlib_resources
 
 from setuptools import Distribution, setup
 
+# ensure enclosing directory is in PYTHON_PATH to allow importing from setupext.py
+if (script_dir := os.path.dirname(__file__)) not in sys.path:
+    sys.path.insert(0, script_dir)
+
 from setupext import (
+    NUMPY_MACROS,
     check_CPP14_flags,
     check_for_openmp,
     check_for_pyembree,
     create_build_ext,
+    get_python_include_dirs,
     install_ccompiler,
 )
 
@@ -40,6 +47,8 @@ else:
 CPP14_FLAG = CPP14_CONFIG[_COMPILER]
 CPP11_FLAG = CPP11_CONFIG[_COMPILER]
 
+FIXED_INTERP = "fixed_interpolator"
+
 cythonize_aliases = {
     "LIB_DIR": "yt/utilities/lib/",
     "LIB_DIR_GEOM": ["yt/utilities/lib/", "yt/geometry/"],
@@ -52,7 +61,7 @@ cythonize_aliases = {
     "EWAH_LIBS": std_libs
     + [os.path.abspath(importlib_resources.files("ewah_bool_utils"))],
     "OMP_ARGS": omp_args,
-    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
+    "FIXED_INTERP": FIXED_INTERP,
     "ARTIO_SOURCE": sorted(glob.glob("yt/frontends/artio/artio_headers/*.c")),
     "CPP14_FLAG": CPP14_FLAG,
     "CPP11_FLAG": CPP11_FLAG,
@@ -88,8 +97,33 @@ class BinaryDistribution(Distribution):
 
 
 if __name__ == "__main__":
+    # Avoid a race condition on fixed_interpolator.o during parallel builds by
+    # building it only once and storing it in a static library.
+    # See https://github.com/yt-project/yt/issues/4278 and
+    # https://github.com/pypa/setuptools/issues/3119#issuecomment-2076922303
+    # for the inspiration for this fix.
+
+    # build_clib doesn't add the Python include dirs (for Python.h) by default,
+    # as opposed to build_ext, so we need to add them manually.
+    clib_include_dirs = get_python_include_dirs()
+
+    # fixed_interpolator.cpp uses Numpy types
+    import numpy
+
+    clib_include_dirs.append(numpy.get_include())
+
+    fixed_interp_lib = (
+        FIXED_INTERP,
+        {
+            "sources": ["yt/utilities/lib/fixed_interpolator.cpp"],
+            "include_dirs": clib_include_dirs,
+            "define_macros": NUMPY_MACROS,
+        },
+    )
+
     setup(
         cmdclass={"sdist": sdist, "build_ext": build_ext},
         distclass=BinaryDistribution,
+        libraries=[fixed_interp_lib],
         ext_modules=[],  # !!! We override this inside build_ext above
     )

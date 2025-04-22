@@ -20,9 +20,7 @@ from yt.utilities.answer_testing.testing_utilities import (
     data_dir_load,
 )
 
-MPL_VERSION = Version(version("matplotlib"))
 NUMPY_VERSION = Version(version("numpy"))
-PILLOW_VERSION = Version(version("pillow"))
 
 # setuptools does not ship with the standard lib starting in Python 3.12, so we need to
 # be resilient if it's not available at runtime
@@ -30,6 +28,11 @@ if find_spec("setuptools") is not None:
     SETUPTOOLS_VERSION = Version(version("setuptools"))
 else:
     SETUPTOOLS_VERSION = None
+
+if find_spec("pandas") is not None:
+    PANDAS_VERSION = Version(version("pandas"))
+else:
+    PANDAS_VERSION = None
 
 
 def pytest_addoption(parser):
@@ -80,7 +83,6 @@ def pytest_configure(config):
     Reads in the tests/tests.yaml file. This file contains a list of
     each answer test's answer file (including the changeset number).
     """
-    ytcfg["yt", "internals", "within_pytest"] = True
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
     config.addinivalue_line(
@@ -132,19 +134,6 @@ def pytest_configure(config):
             "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
         )
 
-    if MPL_VERSION < Version("3.5.2") and PILLOW_VERSION >= Version("9.1"):
-        # see https://github.com/matplotlib/matplotlib/pull/22766
-        config.addinivalue_line(
-            "filterwarnings",
-            r"ignore:NONE is deprecated and will be removed in Pillow 10 \(2023-07-01\)\. "
-            r"Use Resampling\.NEAREST or Dither\.NONE instead\.:DeprecationWarning",
-        )
-        config.addinivalue_line(
-            "filterwarnings",
-            r"ignore:ADAPTIVE is deprecated and will be removed in Pillow 10 \(2023-07-01\)\. "
-            r"Use Palette\.ADAPTIVE instead\.:DeprecationWarning",
-        )
-
     if NUMPY_VERSION >= Version("1.25"):
         if find_spec("h5py") is not None and (
             Version(version("h5py")) < Version("3.9")
@@ -152,21 +141,13 @@ def pytest_configure(config):
             # https://github.com/h5py/h5py/pull/2242
             config.addinivalue_line(
                 "filterwarnings",
-                "ignore:`product` is deprecated as of NumPy 1.25.0"
-                ":DeprecationWarning",
+                "ignore:`product` is deprecated as of NumPy 1.25.0:DeprecationWarning",
             )
 
-    if find_spec("astropy") is not None:
-        # at the time of writing, astropy's wheels are behind numpy's latest
-        # version but this doesn't cause actual problems in our test suite
-        # last updated with astropy 5.0 + numpy 1.22 + pytest 6.2.5
+    if PANDAS_VERSION is not None and PANDAS_VERSION >= Version("2.2.0"):
         config.addinivalue_line(
             "filterwarnings",
-            (
-                "ignore:numpy.ndarray size changed, may indicate binary incompatibility. Expected "
-                r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
-                " from PyObject:RuntimeWarning"
-            ),
+            r"ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning",
         )
 
     if sys.version_info >= (3, 12):
@@ -175,6 +156,26 @@ def pytest_configure(config):
         config.addinivalue_line(
             "filterwarnings",
             r"ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning",
+        )
+
+        if find_spec("ratarmount"):
+            # On Python 3.12+, there is a deprecation warning when calling os.fork()
+            # in a multi-threaded process. We use this mechanism to mount archives.
+            config.addinivalue_line(
+                "filterwarnings",
+                r"ignore:This process \(pid=\d+\) is multi-threaded, use of fork\(\) "
+                r"may lead to deadlocks in the child\."
+                ":DeprecationWarning",
+            )
+
+    if find_spec("datatree"):
+        # the cf_radial dependency arm-pyart<=1.9.2 installs the now deprecated
+        # xarray-datatree package (which imports as datatree), which triggers
+        # a bunch of runtimewarnings when importing xarray.
+        # https://github.com/yt-project/yt/pull/5042#issuecomment-2457797694
+        config.addinivalue_line(
+            "filterwarnings",
+            "ignore:" r"Engine.*loading failed.*" ":RuntimeWarning",
         )
 
 

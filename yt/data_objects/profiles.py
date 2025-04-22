@@ -131,9 +131,9 @@ class ProfileND(ParallelAnalysisInterface):
 
         for i, _field in enumerate(fields):
             # q values are returned as q * weight but we want just q
-            temp_storage.qvalues[..., i][
-                temp_storage.used
-            ] /= temp_storage.weight_values[temp_storage.used]
+            temp_storage.qvalues[..., i][temp_storage.used] /= (
+                temp_storage.weight_values[temp_storage.used]
+            )
 
         # get the profile data from all procs
         all_store = {self.comm.rank: temp_storage}
@@ -217,7 +217,7 @@ class ProfileND(ParallelAnalysisInterface):
         # cut_points is set to be everything initially, but
         # we also want to apply a filtering based on min/max
         pfilter = np.ones(bin_fields[0].shape, dtype="bool")
-        for (mi, ma), data in zip(self.bounds, bin_fields):
+        for (mi, ma), data in zip(self.bounds, bin_fields, strict=True):
             pfilter &= data > mi
             pfilter &= data < ma
         return pfilter, [data[pfilter] for data in bin_fields]
@@ -341,11 +341,11 @@ class ProfileND(ParallelAnalysisInterface):
         ... )
         >>> fn = profile.save_as_dataset()
         >>> prof_ds = yt.load(fn)
-        >>> print(prof_ds.data[("gas", "mass")])
+        >>> print(prof_ds.data["gas", "mass"])
         (128, 128)
-        >>> print(prof_ds.data[("index", "x")].shape)  # x bins as 1D array
+        >>> print(prof_ds.data["index", "x"].shape)  # x bins as 1D array
         (128,)
-        >>> print(prof_ds.data[("gas", "density")])  # x bins as 2D array
+        >>> print(prof_ds.data["gas", "density"])  # x bins as 2D array
         (128, 128)
         >>> p = yt.PhasePlot(
         ...     prof_ds.data,
@@ -420,18 +420,18 @@ class ProfileNDFromDataset(ProfileND):
         self.accumulation = ds.parameters.get("accumulation", False)
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[: ds.dimensionality]:
-            setattr(self, ax, ds.data[("data", ax)])
+            setattr(self, ax, ds.data["data", ax])
             ax_bins = f"{ax}_bins"
             ax_field = f"{ax}_field"
             ax_log = f"{ax}_log"
-            setattr(self, ax_bins, ds.data[("data", ax_bins)])
+            setattr(self, ax_bins, ds.data["data", ax_bins])
             field_name = tuple(ds.parameters.get(ax_field, (None, None)))
             setattr(self, ax_field, field_name)
             self.field_info[field_name] = ds.field_info[field_name]
             setattr(self, ax_log, ds.parameters.get(ax_log, False))
             exclude_fields.extend([ax, ax_bins, field_name[1]])
-        self.weight = ds.data[("data", "weight")]
-        self.used = ds.data[("data", "used")].d.astype(bool)
+        self.weight = ds.data["data", "weight"]
+        self.used = ds.data["data", "used"].d.astype(bool)
         profile_fields = [
             f
             for f in ds.field_list
@@ -1263,7 +1263,7 @@ def create_profile(
     deposition : strings
         Controls the type of deposition used for ParticlePhasePlots.
         Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
-        ignored the if the input fields are not of particle type.
+        ignored if the input fields are not of particle type.
     override_bins : dict of bins to profile plot with
         If set, ignores n_bins and extrema settings and uses the
         supplied bins to profile the field. If a units dict is provided,
@@ -1313,7 +1313,11 @@ def create_profile(
                 data_source.ds.field_info[f].sampling_type == "local"
                 for f in bin_fields + fields
             ]
-            is_local_or_pfield = [pf or lf for (pf, lf) in zip(is_pfield, is_local)]
+            if wf is not None:
+                is_local.append(data_source.ds.field_info[wf].sampling_type == "local")
+            is_local_or_pfield = [
+                pf or lf for (pf, lf) in zip(is_pfield, is_local, strict=True)
+            ]
             if not all(is_local_or_pfield):
                 raise YTIllDefinedProfile(
                     bin_fields, data_source._determine_fields(fields), wf, is_pfield
@@ -1370,7 +1374,7 @@ def create_profile(
     if extrema is None or not any(collapse(extrema.values())):
         ex = [
             data_source.quantities["Extrema"](f, non_zero=l)
-            for f, l in zip(bin_fields, logs)
+            for f, l in zip(bin_fields, logs, strict=True)
         ]
         # pad extrema by epsilon so cells at bin edges are not excluded
         for i, (mi, ma) in enumerate(ex):
@@ -1388,9 +1392,7 @@ def create_profile(
                     field_ex = list(extrema[bin_field])
                 except KeyError:
                     raise RuntimeError(
-                        "Could not find field {} or {} in extrema".format(
-                            bin_field[-1], bin_field
-                        )
+                        f"Could not find field {bin_field[-1]} or {bin_field} in extrema"
                     ) from e
 
             if isinstance(field_ex[0], tuple):
@@ -1458,7 +1460,7 @@ def create_profile(
             o_bins.append(field_obin)
 
     args = [data_source]
-    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
+    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs, strict=True):
         if mi <= 0 and l:
             raise YTIllDefinedBounds(mi, ma)
         args += [f, n, mi, ma, l]
@@ -1466,7 +1468,7 @@ def create_profile(
     if cls is ParticleProfile:
         kwargs["deposition"] = deposition
     if override_bins is not None:
-        for o_bin, ax in zip(o_bins, ["x", "y", "z"]):
+        for o_bin, ax in zip(o_bins, ["x", "y", "z"], strict=False):
             kwargs[f"override_bins_{ax}"] = o_bin
     obj = cls(*args, **kwargs)
     obj.accumulation = accumulation

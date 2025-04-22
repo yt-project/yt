@@ -1,17 +1,17 @@
 import abc
 import base64
-import builtins
 import os
 import warnings
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Final, Literal, Optional, Union
+from typing import Any, Final, Literal
 
 import matplotlib
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from unyt.dimensions import length
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt._typing import FieldKey, Quantity
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
@@ -114,13 +114,13 @@ class PlotContainer(abc.ABC):
     """A container for generic plots"""
 
     _plot_dict_type: type[PlotDictionary] = PlotDictionary
-    _plot_type: Optional[str] = None
+    _plot_type: str | None = None
     _plot_valid = False
 
     _default_figure_size = tuple(matplotlib.rcParams["figure.figsize"])
     _default_font_size = 14.0
 
-    def __init__(self, data_source, figure_size=None, fontsize: Optional[float] = None):
+    def __init__(self, data_source, figure_size=None, fontsize: float | None = None):
         from matplotlib.font_manager import FontProperties
 
         self.data_source = data_source
@@ -145,10 +145,10 @@ class PlotContainer(abc.ABC):
     def set_log(
         self,
         field,
-        log: Optional[bool] = None,
+        log: bool | None = None,
         *,
-        linthresh: Optional[Union[float, Quantity, Literal["auto"]]] = None,
-        symlog_auto: Optional[bool] = None,  # deprecated
+        linthresh: float | Quantity | Literal["auto"] | None = None,
+        symlog_auto: bool | None = None,  # deprecated
     ):
         """set a field to log, linear, or symlog.
 
@@ -351,8 +351,7 @@ class PlotContainer(abc.ABC):
         if data_source is not None:
             if name != "proj":
                 raise RuntimeError(
-                    "The data_source keyword argument "
-                    "is only defined for projections."
+                    "The data_source keyword argument is only defined for projections."
                 )
             kwargs["data_source"] = data_source
 
@@ -501,9 +500,9 @@ class PlotContainer(abc.ABC):
     @validate_plot
     def save(
         self,
-        name: Optional[Union[str, list[str], tuple[str, ...]]] = None,
-        suffix: Optional[str] = None,
-        mpl_kwargs: Optional[dict[str, Any]] = None,
+        name: str | list[str] | tuple[str, ...] | None = None,
+        suffix: str | None = None,
+        mpl_kwargs: dict[str, Any] | None = None,
     ):
         """saves the plot to disk.
 
@@ -634,7 +633,7 @@ class PlotContainer(abc.ABC):
             for v in sorted(self.plots.values()):
                 v.show()
         else:
-            if "__IPYTHON__" in dir(builtins):
+            if IS_IPYTHON:
                 from IPython.display import display
 
                 display(self)
@@ -980,9 +979,9 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
     def set_zlim(
         self,
         field,
-        zmin: Union[float, Quantity, Literal["min"], Unset] = UNSET,
-        zmax: Union[float, Quantity, Literal["max"], Unset] = UNSET,
-        dynamic_range: Optional[float] = None,
+        zmin: float | Quantity | Literal["min"] | Unset = UNSET,
+        zmax: float | Quantity | Literal["max"] | Unset = UNSET,
+        dynamic_range: float | None = None,
     ):
         """set the scale of the colormap
 
@@ -1033,7 +1032,7 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
             issue_deprecation_warning(
                 "Passing `zmax=None` explicitly is deprecated. "
                 "If you wish to explicitly set zmax to the maximal "
-                "data value, pass `zmin='max'` instead. "
+                "data value, pass `zmax='max'` instead. "
                 "Otherwise leave this argument unset.",
                 since="4.1",
                 stacklevel=5,

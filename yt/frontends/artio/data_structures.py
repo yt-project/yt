@@ -1,7 +1,6 @@
 import os
 import weakref
 from collections import defaultdict
-from typing import Optional
 
 import numpy as np
 
@@ -34,7 +33,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.field_parameters = {}
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
-        self.oct_handler = oct_handler
+        self._oct_handler = oct_handler
         self.ds = ds
         self._last_mask = None
         self._last_selector_id = None
@@ -42,6 +41,10 @@ class ARTIOOctreeSubset(OctreeSubset):
         self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
+
+    @property
+    def oct_handler(self):
+        return self._oct_handler
 
     @property
     def min_ind(self):
@@ -68,7 +71,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.oct_handler.fill_sfc(
             levels, cell_inds, file_inds, domain_counts, field_indices, tr
         )
-        tr = dict(zip(fields, tr))
+        tr = dict(zip(fields, tr, strict=True))
         return tr
 
     def fill_particles(self, fields):
@@ -114,7 +117,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         ]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
         self.data_size = tr[0].size
-        tr = dict(zip(fields, tr))
+        tr = dict(zip(fields, tr, strict=True))
         return tr
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
@@ -192,9 +195,9 @@ class ARTIOIndex(Index):
         Returns (value, center) of location of maximum for a given field.
         """
         if (field, finest_levels) in self._max_locations:
-            return self._max_locations[(field, finest_levels)]
+            return self._max_locations[field, finest_levels]
         mv, pos = self.find_max_cell_location(field, finest_levels)
-        self._max_locations[(field, finest_levels)] = (mv, pos)
+        self._max_locations[field, finest_levels] = (mv, pos)
         return mv, pos
 
     def find_max_cell_location(self, field, finest_levels=3):
@@ -256,7 +259,7 @@ class ARTIOIndex(Index):
             # list_sfc_ranges = [ (v.min(), v.max()) ]
             for start, end in list_sfc_ranges:
                 if (start, end) in self.range_handlers.keys():
-                    range_handler = self.range_handlers[(start, end)]
+                    range_handler = self.range_handlers[start, end]
                 else:
                     range_handler = ARTIOSFCRangeHandler(
                         self.ds.domain_dimensions,
@@ -267,7 +270,7 @@ class ARTIOIndex(Index):
                         end,
                     )
                     range_handler.construct_mesh()
-                    self.range_handlers[(start, end)] = range_handler
+                    self.range_handlers[start, end] = range_handler
                 if nz != 2:
                     ci.append(
                         ARTIORootMeshSubset(
@@ -338,14 +341,14 @@ class ARTIOIndex(Index):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[tuple[int, ...]] = None,
+        axes: tuple[int, ...] | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured
         grids.
         """
-        dds = self.ds.domain_width[(axes,)] / (
+        dds = self.ds.domain_width[axes,] / (
             self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
         pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]
@@ -440,13 +443,13 @@ class ARTIODataset(Dataset):
                 if self.artio_parameters["num_primary_variables"][species] > 0:
                     self.particle_variables[species].extend(
                         self.artio_parameters[
-                            "species_%02d_primary_variable_labels" % (species,)
+                            f"species_{species:02}_primary_variable_labels"
                         ]
                     )
                 if self.artio_parameters["num_secondary_variables"][species] > 0:
                     self.particle_variables[species].extend(
                         self.artio_parameters[
-                            "species_%02d_secondary_variable_labels" % (species,)
+                            f"species_{species:02}_secondary_variable_labels"
                         ]
                     )
 
@@ -479,9 +482,7 @@ class ARTIODataset(Dataset):
             ]
 
             self.parameters["unit_m"] = self.artio_parameters["mass_unit"][0]
-            self.parameters["unit_t"] = (
-                self.artio_parameters["time_unit"][0] * abox**2
-            )
+            self.parameters["unit_t"] = self.artio_parameters["time_unit"][0] * abox**2
             self.parameters["unit_l"] = self.artio_parameters["length_unit"][0] * abox
 
             if self.artio_parameters["DeltaDC"][0] != 0:

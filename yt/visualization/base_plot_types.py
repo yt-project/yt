@@ -2,7 +2,7 @@ import sys
 import warnings
 from abc import ABC
 from io import BytesIO
-from typing import TYPE_CHECKING, Optional, TypedDict, Union
+from typing import TYPE_CHECKING, Optional, TypedDict
 
 import matplotlib
 import numpy as np
@@ -45,23 +45,20 @@ if TYPE_CHECKING:
 
 
 BACKEND_SPECS = {
-    "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
-    "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
-    "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
-    "MacOSX": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
-    "Qt4Agg": ["backend_qt4agg", "FigureCanvasQTAgg", None],
-    "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
-    "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg", None],
-    "WX": ["backend_wx", "FigureCanvasWx", None],
-    "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg", None],
-    "GTK3Cairo": [
+    "macosx": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
+    "qt5agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
+    "qtagg": ["backend_qtagg", "FigureCanvasQTAgg", None],
+    "tkagg": ["backend_tkagg", "FigureCanvasTkAgg", None],
+    "wx": ["backend_wx", "FigureCanvasWx", None],
+    "wxagg": ["backend_wxagg", "FigureCanvasWxAgg", None],
+    "gtk3cairo": [
         "backend_gtk3cairo",
         "FigureCanvasGTK3Cairo",
         "FigureManagerGTK3Cairo",
     ],
-    "GTK3Agg": ["backend_gtk3agg", "FigureCanvasGTK3Agg", "FigureManagerGTK3Agg"],
-    "WebAgg": ["backend_webagg", "FigureCanvasWebAgg", None],
-    "nbAgg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
+    "gtk3agg": ["backend_gtk3agg", "FigureCanvasGTK3Agg", "FigureManagerGTK3Agg"],
+    "webagg": ["backend_webagg", "FigureCanvasWebAgg", None],
+    "nbagg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
     "agg": ["backend_agg", "FigureCanvasAgg", None],
 }
 
@@ -101,6 +98,7 @@ class CallbackWrapper:
         self.font_properties = font_properties
         self.font_color = font_color
         self.field = field
+        self._transform = viewer._transform
 
 
 class PlotMPL:
@@ -137,6 +135,8 @@ class PlotMPL:
         figure_canvas, figure_manager = self._get_canvas_classes()
         self.canvas = figure_canvas(self.figure)
         if figure_manager is not None:
+            # with matplotlib >= 3.9, figure_manager should always be not None
+            # see _get_canvas_classes for details.
             self.manager = figure_manager(self.canvas, 1)
 
         self.axes.tick_params(
@@ -154,10 +154,16 @@ class PlotMPL:
         else:
             key = "agg"
 
-        try:
-            module, fig_canvas, fig_manager = BACKEND_SPECS[key]
-        except KeyError:
-            return
+        if matplotlib.__version_info__ >= (3, 9):
+            # once yt has a minimum matplotlib version of 3.9, this branch
+            # can replace the rest of this function and BACKEND_SPECS can
+            # be removed. See https://github.com/yt-project/yt/issues/5138
+            from matplotlib.backends import backend_registry
+
+            mod = backend_registry.load_backend_module(key)
+            return mod.FigureCanvas, mod.FigureManager
+
+        module, fig_canvas, fig_manager = BACKEND_SPECS[key.lower()]
 
         mod = __import__(
             "matplotlib.backends",
@@ -249,7 +255,7 @@ class ImagePlotMPL(PlotMPL, ABC):
     ):
         """Initialize ImagePlotMPL class object"""
 
-        self._transform: Optional["Transform"]
+        self._transform: Transform | None
         setdefaultattr(self, "_transform", None)
 
         self.colorbar_handler = colorbar_handler
@@ -274,7 +280,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             self.cax = cax
 
     def _setup_layout_constraints(
-        self, figure_size: Union[tuple[float, float], float], fontsize: float
+        self, figure_size: tuple[float, float] | float, fontsize: float
     ):
         # Setup base layout attributes
         # derived classes need to call this before super().__init__
@@ -328,13 +334,14 @@ class ImagePlotMPL(PlotMPL, ABC):
             aspect=aspect,
             cmap=self.colorbar_handler.cmap,
             interpolation="nearest",
+            interpolation_stage="data",
             transform=transform,
             alpha=alpha,
         )
         self._set_axes()
 
     def _set_axes(self) -> None:
-        fmt_kwargs: "FormatKwargs" = {
+        fmt_kwargs: FormatKwargs = {
             "style": "scientific",
             "scilimits": (-2, 3),
             "useMathText": True,
@@ -343,9 +350,22 @@ class ImagePlotMPL(PlotMPL, ABC):
         self.image.axes.set_facecolor(self.colorbar_handler.background_color)
 
         self.cax.tick_params(which="both", direction="in")
-        self.cb = self.figure.colorbar(self.image, self.cax)
 
-        cb_axis: "Axis"
+        # For creating a multipanel plot by ImageGrid
+        # we may need the location keyword, which requires Matplotlib >= 3.7.0
+        cb_location = getattr(self.cax, "orientation", None)
+        if matplotlib.__version_info__ >= (3, 7):
+            self.cb = self.figure.colorbar(self.image, self.cax, location=cb_location)
+        else:
+            if cb_location in ["top", "bottom"]:
+                warnings.warn(
+                    "Cannot properly set the orientation of colorbar. "
+                    "Consider upgrading matplotlib to version 3.7 or newer",
+                    stacklevel=6,
+                )
+            self.cb = self.figure.colorbar(self.image, self.cax)
+
+        cb_axis: Axis
         if self.cb.orientation == "vertical":
             cb_axis = self.cb.ax.yaxis
         else:
@@ -528,9 +548,12 @@ class ImagePlotMPL(PlotMPL, ABC):
 
     def _get_labels(self):
         labels = super()._get_labels()
-        cbax = self.cb.ax
-        labels += cbax.yaxis.get_ticklabels()
-        labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
+        if getattr(self.cb, "orientation", "vertical") == "horizontal":
+            cbaxis = self.cb.ax.xaxis
+        else:
+            cbaxis = self.cb.ax.yaxis
+        labels += cbaxis.get_ticklabels()
+        labels += [cbaxis.label, cbaxis.get_offset_text()]
         return labels
 
     def hide_axes(self, *, draw_frame=None):

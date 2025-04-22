@@ -293,8 +293,8 @@ argument. Optionally, a ``north_vector`` can be specified to fix the orientation
 of the image plane.
 
 .. note:: Not every data types have support for off-axis slices yet.
-   Currently, this operation is supported for grid based data with cartesian geometry.
-   In some cases (like SPH data) an off-axis projection over a thin region might be used instead.
+   Currently, this operation is supported for grid based and SPH data with cartesian geometry.
+   In some cases an off-axis projection over a thin region might be used instead.
 
 .. _projection-plots:
 
@@ -433,6 +433,8 @@ by applying the
 In this use case, the volume renderer casts a set of plane parallel rays, one
 for each pixel in the image.  The data values along each ray are summed,
 creating the final image buffer.
+For SPH datsets, the coordinates are instead simply rotated before the axis-aligned
+projection function is applied.
 
 .. _off-axis-projection-function:
 
@@ -452,7 +454,6 @@ projection through a simulation.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1, 1, 0]  # vector normal to cutting plane
-   north_vector = [-1, 1, 0]
    W = [0.02, 0.02, 0.02]
    c = [0.5, 0.5, 0.5]
    N = 512
@@ -651,10 +652,6 @@ simply pass ``all`` as the first argument of the field tuple:
 
 Additional Notes for Plotting Particle Data
 -------------------------------------------
-
-An important caveat when visualizing particle data is that off-axis slice plotting is
-not available for any particle data. However, axis-aligned slice plots (as described in
-:ref:`slice-plots`) will work.
 
 Since version 4.2.0, off-axis projections ares supported for non-SPH particle data.
 Previous to that, this operation was only supported for SPH particles. Two historical
@@ -2136,7 +2133,7 @@ type:
 
 .. code-block:: bash
 
-   yt notebook
+   jupyter lab
 
 at the command line.  This will prompt you for a password (so that if you're on
 a shared user machine no one else can pretend to be you!) and then spawn an

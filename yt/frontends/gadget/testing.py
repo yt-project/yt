@@ -27,7 +27,7 @@ def write_record(fp, data, endian):
 
 def write_block(fp, data, endian, fmt, block_id):
     assert fmt in [1, 2]
-    block_id = "%-4s" % block_id
+    block_id = f"{block_id:<4}"
     if fmt == 2:
         block_id_dtype = np.dtype([("id", "S", 4), ("offset", endian + "i4")])
         block_id_data = np.zeros(1, dtype=block_id_dtype)
@@ -72,7 +72,7 @@ def fake_gadget_binary(
                 header["HubbleParam"] = 1
             write_block(fp, header, endian, fmt, "HEAD")
 
-        npart = dict(zip(ptype_spec, npart))
+        npart = dict(zip(ptype_spec, npart, strict=True))
         for fs in field_spec:
             # Parse field name and particle type
             if isinstance(fs, str):
@@ -95,8 +95,9 @@ def fake_gadget_binary(
             dtype = endian + dtype
             # Generate and write field block
             data = []
+            rng = np.random.default_rng()
             for pt in ptype:
-                data += [np.random.rand(npart[pt], dim)]
+                data += [rng.random((npart[pt], dim))]
             data = np.concatenate(data).astype(dtype)
             if field in block_ids:
                 block_id = block_ids[field]

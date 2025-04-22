@@ -229,8 +229,8 @@ Clump Finder Callback
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    data_source = ds.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], (8.0, "kpc"), (1.0, "kpc"))
 
-   c_min = 10 ** np.floor(np.log10(data_source[("gas", "density")]).min())
-   c_max = 10 ** np.floor(np.log10(data_source[("gas", "density")]).max() + 1)
+   c_min = 10 ** np.floor(np.log10(data_source["gas", "density"]).min())
+   c_max = 10 ** np.floor(np.log10(data_source["gas", "density"]).max() + 1)
 
    master_clump = Clump(data_source, ("gas", "density"))
    master_clump.add_validator("min_cells", 20)
@@ -257,7 +257,7 @@ Overplot Contours
    Add contours in ``field`` to the plot.  ``levels`` governs the number of
    contours generated, ``factor`` governs the number of points used in the
    interpolation, ``take_log`` governs how it is contoured and ``clim`` gives
-   the (upper, lower) limits for contouring.
+   the (lower, upper) limits for contouring.
 
 .. python-script::
 

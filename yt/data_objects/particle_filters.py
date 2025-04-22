@@ -102,7 +102,7 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     >>> import yt
 
     >>> def _stars(pfilter, data):
-    ...     return data[(pfilter.filtered_type, "particle_type")] == 2
+    ...     return data[pfilter.filtered_type, "particle_type"] == 2
 
     >>> yt.add_particle_filter(
     ...     "stars", function=_stars, filtered_type="all", requires=["particle_type"]
@@ -156,7 +156,7 @@ def particle_filter(name=None, requires=None, filtered_type="all"):
     >>> # define a filter named "stars"
     >>> @yt.particle_filter(requires=["particle_type"], filtered_type="all")
     ... def stars(pfilter, data):
-    ...     return data[(pfilter.filtered_type, "particle_type")] == 2
+    ...     return data[pfilter.filtered_type, "particle_type"] == 2
 
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ds.add_particle_filter("stars")

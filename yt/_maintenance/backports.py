@@ -52,7 +52,7 @@ else:
             if len(values) == 3:
                 # check that errors argument is a string
                 if not isinstance(values[2], str):
-                    raise TypeError("errors must be a string, not %r" % (values[2]))
+                    raise TypeError("errors must be a string, not %r" % (values[2]))  # noqa: UP031
             value = str(*values)
             member = str.__new__(cls, value)
             member._value_ = value
@@ -63,18 +63,3 @@ else:
             Return the lower-cased version of the member name.
             """
             return name.lower()
-
-
-builtin_zip = zip
-if sys.version_info >= (3, 10):
-    zip = builtin_zip
-else:
-    # this function is deprecated in more_itertools
-    # because it is superseded by the standard library
-    from more_itertools import zip_equal
-
-    def zip(*args, strict=False):
-        if strict:
-            return zip_equal(*args)
-        else:
-            return builtin_zip(*args)

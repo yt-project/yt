@@ -115,7 +115,7 @@ class RegionExpression:
         dim = self.ds.dimensionality
         if dim < 2:
             raise ValueError(
-                "Can not create a slice from data with dimensionality '%d'" % dim
+                f"Can not create a slice from data with dimensionality '{dim}'"
             )
         if dim == 2:
             coord = self.ds.domain_center[2]
@@ -138,7 +138,11 @@ class RegionExpression:
             height = source.right_edge[yax] - source.left_edge[yax]
             # Make a resolution tuple with
             resolution = (int(new_slice[xax].step.imag), int(new_slice[yax].step.imag))
-            sl = sl.to_frb(width=width, resolution=resolution, height=height)
+            # Use the center of the slice, not the entire domain
+            center = source.center
+            sl = sl.to_frb(
+                width=width, resolution=resolution, height=height, center=center
+            )
         return sl
 
     def _slice_to_edges(self, ax, val):
@@ -166,7 +170,7 @@ class RegionExpression:
             if d is not None:
                 d = int(d)
             dims[ax] = d
-        center = [(cl + cr) / 2.0 for cl, cr in zip(left_edge, right_edge)]
+        center = (left_edge + right_edge) / 2.0
         if None not in dims:
             return self.ds.arbitrary_grid(left_edge, right_edge, dims)
         return self.ds.region(center, left_edge, right_edge)

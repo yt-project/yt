@@ -1,8 +1,9 @@
-import os
 from collections import defaultdict
-from typing import Union
+from functools import lru_cache
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
+from unyt import unyt_array
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.frontends.ramses.definitions import VAR_DESC_RE, VERSION_RE
@@ -14,7 +15,9 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
+
+if TYPE_CHECKING:
+    import os
 
 
 def convert_ramses_ages(ds, conformal_ages):
@@ -26,14 +29,14 @@ def convert_ramses_ages(ds, conformal_ages):
         stacklevel=3,
         since="4.0.3",
     )
-    return convert_ramses_conformal_time_to_physical_age(ds, conformal_ages)
+    return convert_ramses_conformal_time_to_physical_time(ds, conformal_ages)
 
 
-def convert_ramses_conformal_time_to_physical_age(
+def convert_ramses_conformal_time_to_physical_time(
     ds, conformal_time: np.ndarray
-) -> np.ndarray:
+) -> unyt_array:
     """
-    Convert conformal times (as defined in RAMSES) to physical age.
+    Convert conformal times (as defined in RAMSES) to physical times.
 
     Arguments
     ---------
@@ -47,32 +50,30 @@ def convert_ramses_conformal_time_to_physical_age(
     physical_age : np.ndarray
         The physical age in code units
     """
-    tf = ds.t_frw
-    dtau = ds.dtau
-    tauf = ds.tau_frw
-    h100 = ds.hubble_constant
-    nOver2 = ds.n_frw / 2
-    unit_t = ds.parameters["unit_t"]
-    tsim = ds.time_simu
+    h0 = ds.hubble_constant
+    tau_bins = ds.tau_frw * h0
+    t_bins = ds.t_frw
 
-    t_scale = 1.0 / (h100 * 100 * cm_per_km / cm_per_mpc) / unit_t
+    min_time = 0
+    max_time = ds.current_time.to(t_bins.units)
 
-    # calculate index into lookup table (n_frw elements in
-    # lookup table)
-    dage = 1 + (10 * conformal_time / dtau)
-    dage = np.minimum(dage, nOver2 + (dage - nOver2) / 10.0)
-    iage = np.array(dage, dtype=np.int32)
-
-    # linearly interpolate physical times from tf and tauf lookup
-    # tables.
-    t = tf[iage] * (conformal_time - tauf[iage - 1]) / (tauf[iage] - tauf[iage - 1])
-    t = t + (
-        tf[iage - 1] * (conformal_time - tauf[iage]) / (tauf[iage - 1] - tauf[iage])
+    return ds.arr(
+        np.clip(
+            np.interp(
+                conformal_time,
+                tau_bins,
+                t_bins.value,
+                right=max_time,
+                left=min_time,
+            ),
+            min_time,
+            max_time.value,
+        ),
+        t_bins.units,
     )
-    return (tsim - t) * t_scale
 
 
-def _ramses_particle_binary_file_handler(particle, subset, fields, count):
+def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count):
     """General file handler for binary file, called by _read_particle_subset
 
     Parameters
@@ -88,10 +89,9 @@ def _ramses_particle_binary_file_handler(particle, subset, fields, count):
     """
     tr = {}
     ds = subset.domain.ds
-    current_time = ds.current_time.in_units("code_time").v
-    foffsets = particle.field_offsets
-    fname = particle.fname
-    data_types = particle.field_types
+    foffsets = particle_handler.field_offsets
+    fname = particle_handler.fname
+    data_types = particle_handler.field_types
     with FortranFile(fname) as fd:
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
@@ -100,24 +100,23 @@ def _ramses_particle_binary_file_handler(particle, subset, fields, count):
             if count == 0:
                 tr[field] = np.empty(0, dtype=data_types[field])
                 continue
-            fd.seek(foffsets[field])
-            dt = data_types[field]
-            tr[field] = fd.read_vector(dt)
+            # Sentinel value: -1 means we don't have this field
+            if foffsets[field] == -1:
+                tr[field] = np.empty(count, dtype=data_types[field])
+            else:
+                fd.seek(foffsets[field])
+                dt = data_types[field]
+                tr[field] = fd.read_vector(dt)
             if field[1].startswith("particle_position"):
                 np.divide(tr[field], ds["boxlen"], tr[field])
-            if ds.cosmological_simulation and field[1] == "particle_birth_time":
-                conformal_time = tr[field]
-                physical_age = convert_ramses_conformal_time_to_physical_age(
-                    ds, conformal_time
-                )
-                tr[field] = current_time - physical_age
-                # arbitrarily set particles with zero conformal_age to zero
-                # particle_age. This corresponds to DM particles.
-                tr[field][conformal_time == 0] = 0
+
+            # Hand over to field handler for special cases, like particle_birth_times
+            particle_handler.handle_field(field, tr)
+
     return tr
 
 
-def _ramses_particle_csv_file_handler(particle, subset, fields, count):
+def _ramses_particle_csv_file_handler(particle_handler, subset, fields, count):
     """General file handler for csv file, called by _read_particle_subset
 
     Parameters
@@ -135,9 +134,8 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
 
     tr = {}
     ds = subset.domain.ds
-    current_time = ds.current_time.in_units("code_time").v
-    foffsets = particle.field_offsets
-    fname = particle.fname
+    foffsets = particle_handler.field_offsets
+    fname = particle_handler.fname
 
     list_field_ind = [
         (field, foffsets[field]) for field in sorted(fields, key=lambda a: foffsets[a])
@@ -156,15 +154,9 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
         tr[field] = dat[ind].to_numpy()
         if field[1].startswith("particle_position"):
             np.divide(tr[field], ds["boxlen"], tr[field])
-        if ds.cosmological_simulation and field[1] == "particle_birth_time":
-            conformal_time = tr[field]
-            physical_age = convert_ramses_conformal_time_to_physical_age(
-                ds, conformal_time
-            )
-            tr[field] = current_time - physical_age
-            # arbitrarily set particles with zero conformal_age to zero
-            # particle_age. This corresponds to DM particles.
-            tr[field][conformal_time == 0] = 0
+
+        particle_handler.handle_field(field, tr)
+
     return tr
 
 
@@ -201,6 +193,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                         rv = subset.fill(fd, field_subs, selector, file_handler)
                     for ft, f in field_subs:
                         d = rv.pop(f)
+                        if d.size == 0:
+                            continue
                         mylog.debug(
                             "Filling %s with %s (%0.3e %0.3e) (%s zones)",
                             f,
@@ -209,10 +203,11 @@ class IOHandlerRAMSES(BaseIOHandler):
                             d.max(),
                             d.size,
                         )
-                        tr[(ft, f)].append(d)
+                        tr[ft, f].append(d)
         d = {}
         for field in fields:
-            d[field] = np.concatenate(tr.pop(field))
+            tmp = tr.pop(field, None)
+            d[field] = np.concatenate(tmp) if tmp else np.empty(0, dtype="d")
 
         return d
 
@@ -227,11 +222,15 @@ class IOHandlerRAMSES(BaseIOHandler):
             for subset in chunk.objs:
                 rv = self._read_particle_subset(subset, fields)
                 for ptype in sorted(ptf):
-                    yield ptype, (
-                        rv[ptype, pn % "x"],
-                        rv[ptype, pn % "y"],
-                        rv[ptype, pn % "z"],
-                    ), 0.0
+                    yield (
+                        ptype,
+                        (
+                            rv[ptype, pn % "x"],
+                            rv[ptype, pn % "y"],
+                            rv[ptype, pn % "z"],
+                        ),
+                        0.0,
+                    )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         pn = "particle_position_%s"
@@ -284,28 +283,18 @@ class IOHandlerRAMSES(BaseIOHandler):
             ok = False
             for ph in subset.domain.particle_handlers:
                 if ph.ptype == ptype:
-                    foffsets = ph.field_offsets
-                    data_types = ph.field_types
                     ok = True
                     count = ph.local_particle_count
                     break
             if not ok:
                 raise YTFieldTypeNotFound(ptype)
 
-            cosmo = self.ds.cosmological_simulation
-            if (ptype, "particle_birth_time") in foffsets and cosmo:
-                foffsets[ptype, "conformal_birth_time"] = foffsets[
-                    ptype, "particle_birth_time"
-                ]
-                data_types[ptype, "conformal_birth_time"] = data_types[
-                    ptype, "particle_birth_time"
-                ]
-
             tr.update(ph.reader(subset, subs_fields, count))
 
         return tr
 
 
+@lru_cache
 def _read_part_binary_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read a file descriptor and returns the array of the fields found.
@@ -362,6 +351,7 @@ def _read_part_binary_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     return fields
 
 
+@lru_cache
 def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read the file from the csv sink particles output.
@@ -382,7 +372,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
         "ly": "particle_angular_momentum_y",
         "lz": "particle_angular_momentum_z",
         "tform": "particle_formation_time",
-        "acc_Rate": "particle_accretion_Rate",
+        "acc_rate": "particle_accretion_rate",
         "del_mass": "particle_delta_mass",
         "rho_gas": "particle_rho_gas",
         "cs**2": "particle_sound_speed",
@@ -411,6 +401,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     return fields, local_particle_count
 
 
+@lru_cache
 def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"], *, prefix: str):
     """
     Read a file descriptor and returns the array of the fields found.

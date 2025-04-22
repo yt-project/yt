@@ -62,17 +62,16 @@ class IOHandlerExodusII(BaseIOHandler):
                     objs = chunk.objs
                 if fname in self.node_fields:
                     field_ind = self.node_fields.index(fname)
-                    fdata = ds.variables["vals_nod_var%d" % (field_ind + 1)]
+                    fdata = ds.variables[f"vals_nod_var{field_ind + 1}"]
                     for g in objs:
                         ci = g.connectivity_indices - self._INDEX_OFFSET
                         data = fdata[self.ds.step][ci]
                         ind += g.select(selector, data, rv[field], ind)  # caches
                 if fname in self.elem_fields:
                     field_ind = self.elem_fields.index(fname)
-                    for g, mesh_id in zip(objs, mesh_ids):
-                        fdata = ds.variables[
-                            "vals_elem_var%deb%s" % (field_ind + 1, mesh_id)
-                        ][:]
+                    for g, mesh_id in zip(objs, mesh_ids, strict=True):
+                        varname = f"vals_elem_var{field_ind + 1}eb{mesh_id}"
+                        fdata = ds.variables[varname][:]
                         data = fdata[self.ds.step, :]
                         ind += g.select(selector, data, rv[field], ind)  # caches
                 rv[field] = rv[field][:ind]

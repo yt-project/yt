@@ -1,7 +1,7 @@
 import abc
 import glob
 import os
-from typing import Optional
+from functools import cached_property
 
 from yt.config import ytcfg
 from yt.funcs import mylog
@@ -141,15 +141,14 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
     _file_type = "field"
 
     # These properties are static properties
-    ftype: Optional[str] = None  # The name to give to the field type
-    fname: Optional[str] = None  # The name of the file(s)
-    attrs: Optional[
-        tuple[tuple[str, int, str], ...]
-    ] = None  # The attributes of the header
+    ftype: str | None = None  # The name to give to the field type
+    fname: str | None = None  # The name of the file(s)
+    # The attributes of the header
+    attrs: tuple[tuple[str, int, str], ...] | None = None
     known_fields = None  # A list of tuple containing the field name and its type
-    config_field: Optional[str] = None  # Name of the config section (if any)
+    config_field: str | None = None  # Name of the config section (if any)
 
-    file_descriptor: Optional[str] = None  # The name of the file descriptor (if any)
+    file_descriptor: str | None = None  # The name of the file descriptor (if any)
 
     # These properties are computed dynamically
     field_offsets = None  # Mapping from field to offset in file
@@ -232,7 +231,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
 
         return self._level_count
 
-    @property
+    @cached_property
     def offset(self):
         """
         Compute the offsets of the fields.
@@ -243,10 +242,6 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         It should be generic enough for most of the cases, but if the
         *structure* of your fluid file is non-canonical, change this.
         """
-
-        if getattr(self, "_offset", None) is not None:
-            return self._offset
-
         nvars = len(self.field_list)
         with FortranFile(self.fname) as fd:
             # Skip headers
@@ -272,12 +267,11 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 self.domain.domain_id,
                 self.parameters["nvar"],
                 self.domain.amr_header,
-                skip_len=nvars * 8,
+                Nskip=nvars * 8,
             )
 
-        self._offset = offset
         self._level_count = level_count
-        return self._offset
+        return offset
 
     @classmethod
     def load_fields_from_yt_config(cls) -> list[str]:
@@ -313,10 +307,9 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         num = os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1]
         testdomain = 1  # Just pick the first domain file to read
-        basepath = os.path.abspath(os.path.dirname(ds.parameter_filename))
-        basename = "%s/%%s_%s.out%05i" % (basepath, num, testdomain)
+        basename = os.path.join(ds.directory, f"%s_{num}.out{testdomain:05}")
         fname = basename % "hydro"
-        fname_desc = os.path.join(basepath, cls.file_descriptor)
+        fname_desc = os.path.join(ds.directory, cls.file_descriptor)
 
         attrs = cls.attrs
         with FortranFile(fname) as fd:
@@ -473,6 +466,11 @@ class GravFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
+        # Try to get the detected fields
+        detected_fields = cls.get_detected_fields(ds)
+        if detected_fields:
+            return detected_fields
+
         ndim = ds.dimensionality
         iout = int(str(ds).split("_")[1])
         basedir = os.path.split(ds.parameter_filename)[0]
@@ -500,6 +498,8 @@ class GravFieldFileHandler(FieldFileHandler):
                     fields.append(f"var{i}")
 
         cls.field_list = [(cls.ftype, e) for e in fields]
+
+        cls.set_detected_fields(ds, fields)
 
         return fields
 

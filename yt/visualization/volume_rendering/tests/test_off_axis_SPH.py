@@ -24,12 +24,13 @@ def test_no_rotation():
     right_edge = ds.domain_right_edge
     center = (left_edge + right_edge) / 2
     width = right_edge - left_edge
-    px = ad[("all", "particle_position_x")]
-    py = ad[("all", "particle_position_y")]
-    hsml = ad[("all", "smoothing_length")]
-    quantity_to_smooth = ad[("gas", "density")]
-    density = ad[("io", "density")]
-    mass = ad[("io", "particle_mass")]
+    px = ad["all", "particle_position_x"]
+    py = ad["all", "particle_position_y"]
+    pz = ad["all", "particle_position_y"]
+    hsml = ad["all", "smoothing_length"]
+    quantity_to_smooth = ad["gas", "density"]
+    density = ad["io", "density"]
+    mass = ad["io", "particle_mass"]
     bounds = [-4, 4, -4, 4, -4, 4]
 
     buf2 = np.zeros(resolution)
@@ -38,7 +39,7 @@ def test_no_rotation():
         ds, center, normal_vector, width, resolution, ("gas", "density")
     )
     pixelize_sph_kernel_projection(
-        buf2, mask, px, py, hsml, mass, density, quantity_to_smooth, bounds
+        buf2, mask, px, py, pz, hsml, mass, density, quantity_to_smooth, bounds
     )
     assert_almost_equal(buf1.ndarray_view(), buf2)
 

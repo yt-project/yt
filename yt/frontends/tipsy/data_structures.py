@@ -118,11 +118,13 @@ class TipsyDataset(SPHDataset):
         # the snapshot time and particle counts.
 
         f = open(self.parameter_filename, "rb")
-        hh = self.endian + "".join("%s" % (b) for a, b in self._header_spec)
+        hh = self.endian + "".join(str(b) for a, b in self._header_spec)
         hvals = {
             a: c
             for (a, b), c in zip(
-                self._header_spec, struct.unpack(hh, f.read(struct.calcsize(hh)))
+                self._header_spec,
+                struct.unpack(hh, f.read(struct.calcsize(hh))),
+                strict=True,
             )
         }
         self.parameters.update(hvals)

@@ -2,7 +2,7 @@ import abc
 import weakref
 from functools import cached_property
 from numbers import Number
-from typing import Any, Literal, Optional, overload
+from typing import Any, Literal, overload
 
 import numpy as np
 
@@ -134,7 +134,7 @@ class CoordinateHandler(abc.ABC):
     name: str
     _default_axis_order: AxisOrder
 
-    def __init__(self, ds, ordering: Optional[AxisOrder] = None):
+    def __init__(self, ds, ordering: AxisOrder | None = None):
         self.ds = weakref.proxy(ds)
         if ordering is not None:
             self.axis_order = ordering
@@ -158,8 +158,7 @@ class CoordinateHandler(abc.ABC):
         periodic=True,
         *,
         return_mask: Literal[False],
-    ) -> "np.ndarray[Any, np.dtype[np.float64]]":
-        ...
+    ) -> "np.ndarray[Any, np.dtype[np.float64]]": ...
 
     @overload
     def pixelize(
@@ -175,8 +174,7 @@ class CoordinateHandler(abc.ABC):
         return_mask: Literal[True],
     ) -> tuple[
         "np.ndarray[Any, np.dtype[np.float64]]", "np.ndarray[Any, np.dtype[np.bool_]]"
-    ]:
-        ...
+    ]: ...
 
     @abc.abstractmethod
     def pixelize(
@@ -230,11 +228,11 @@ class CoordinateHandler(abc.ABC):
 
     @cached_property
     def data_projection(self):
-        return {ax: None for ax in self.axis_order}
+        return dict.fromkeys(self.axis_order)
 
     @cached_property
     def data_transform(self):
-        return {ax: None for ax in self.axis_order}
+        return dict.fromkeys(self.axis_order)
 
     @cached_property
     def axis_name(self):

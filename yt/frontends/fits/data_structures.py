@@ -7,7 +7,6 @@ from collections import defaultdict
 from functools import cached_property
 
 import numpy as np
-import numpy.core.defchararray as np_char
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
@@ -101,7 +100,7 @@ class FITSHierarchy(GridIndex):
         ds = self.dataset
         conditions = [hdu.header["naxis"] != ds.primary_header["naxis"]]
         for i in range(ds.naxis):
-            nax = "naxis%d" % (i + 1)
+            nax = f"naxis{i + 1}"
             conditions.append(hdu.header[nax] != ds.primary_header[nax])
         if np.any(conditions):
             return False
@@ -144,9 +143,9 @@ class FITSHierarchy(GridIndex):
                         fname = self._guess_name_from_units(units)
                         # When all else fails
                         if fname is None:
-                            fname = "image_%d" % (j)
+                            fname = f"image_{j}"
                     if self.ds.num_files > 1 and fname.startswith("image"):
-                        fname += "_file_%d" % (i)
+                        fname += f"_file_{i}"
                     if ("fits", fname) in self.field_list:
                         if fname in dup_field_index:
                             dup_field_index[fname] += 1
@@ -160,10 +159,10 @@ class FITSHierarchy(GridIndex):
                             fname,
                             dup_field_index[fname],
                         )
-                        fname += "_%d" % (dup_field_index[fname])
+                        fname += f"_{dup_field_index[fname]}"
                     for k in range(naxis4):
                         if naxis4 > 1:
-                            fname += "_%s_%d" % (hdu.header["CTYPE4"], k + 1)
+                            fname += f"_{hdu.header['CTYPE4']}_{k + 1}"
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -213,7 +212,7 @@ class FITSHierarchy(GridIndex):
         ).transpose()
         dims = self.ds.domain_dimensions
         psize = get_psize(dims, self.num_grids)
-        gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
+        gle, gre, shapes, slices, _ = decompose_array(dims, psize, bbox)
         self.grid_left_edge = self.ds.arr(gle, "code_length")
         self.grid_right_edge = self.ds.arr(gre, "code_length")
         self.grid_dimensions = np.array(shapes, dtype="int32")
@@ -301,7 +300,7 @@ def check_sky_coords(filename, ndim):
                 if header["naxis"] < ndim:
                     return False
                 axis_names = [
-                    header.get("ctype%d" % (i + 1), "") for i in range(header["naxis"])
+                    header.get(f"ctype{i + 1}", "") for i in range(header["naxis"])
                 ]
                 if len(axis_names) == 3 and axis_names.count("LINEAR") == 2:
                     return any(a[0] in spec_prefixes for a in axis_names)
@@ -501,12 +500,10 @@ class FITSDataset(Dataset):
         self.primary_header, self.first_image = find_primary_header(self._handle)
         self.naxis = self.primary_header["naxis"]
         self.axis_names = [
-            self.primary_header.get("ctype%d" % (i + 1), "LINEAR")
+            self.primary_header.get(f"ctype{i + 1}", "LINEAR")
             for i in range(self.naxis)
         ]
-        self.dims = [
-            self.primary_header["naxis%d" % (i + 1)] for i in range(self.naxis)
-        ]
+        self.dims = [self.primary_header[f"naxis{i + 1}"] for i in range(self.naxis)]
 
     def _determine_wcs(self):
         wcs = _astropy.pywcs.WCS(header=self.primary_header)
@@ -575,7 +572,7 @@ class FITSDataset(Dataset):
 def find_axes(axis_names, prefixes):
     x = 0
     for p in prefixes:
-        y = np_char.startswith(axis_names, p)
+        y = np.char.startswith(axis_names, p)
         x += np.any(y)
     return x
 
@@ -674,7 +671,7 @@ class SkyDataFITSDataset(FITSDataset):
         super()._determine_wcs()
         end = min(self.dimensionality + 1, 4)
         self.ctypes = np.array(
-            [self.primary_header["CTYPE%d" % (i)] for i in range(1, end)]
+            [self.primary_header[f"CTYPE{i}"] for i in range(1, end)]
         )
         self.wcs_2d = self.wcs
 
@@ -690,13 +687,13 @@ class SkyDataFITSDataset(FITSDataset):
 
         self.lat_axis = np.zeros((end - 1), dtype="bool")
         for p in lat_prefixes:
-            self.lat_axis += np_char.startswith(self.ctypes, p)
+            self.lat_axis += np.char.startswith(self.ctypes, p)
         self.lat_axis = np.where(self.lat_axis)[0][0]
         self.lat_name = self.ctypes[self.lat_axis].split("-")[0].lower()
 
         self.lon_axis = np.zeros((end - 1), dtype="bool")
         for p in lon_prefixes:
-            self.lon_axis += np_char.startswith(self.ctypes, p)
+            self.lon_axis += np.char.startswith(self.ctypes, p)
         self.lon_axis = np.where(self.lon_axis)[0][0]
         self.lon_name = self.ctypes[self.lon_axis].split("-")[0].lower()
 
@@ -797,7 +794,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
 
         self.spec_axis = np.zeros(end - 1, dtype="bool")
         for p in spec_names.keys():
-            self.spec_axis += np_char.startswith(self.ctypes, p)
+            self.spec_axis += np.char.startswith(self.ctypes, p)
         self.spec_axis = np.where(self.spec_axis)[0][0]
         self.spec_name = spec_names[self.ctypes[self.spec_axis].split("-")[0][0]]
 
@@ -866,7 +863,7 @@ class EventsFITSHierarchy(FITSHierarchy):
                 field_unit = "code_length"
             else:
                 field_unit = v
-            self.dataset.field_units[("io", fname)] = field_unit
+            self.dataset.field_units["io", fname] = field_unit
         return
 
     def _parse_index(self):

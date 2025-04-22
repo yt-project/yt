@@ -108,11 +108,15 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
             f = self.fields[data_file.filename]
             # This double-reads
             for ptype in sorted(ptf):
-                yield ptype, (
-                    f[ptype, "particle_position_x"],
-                    f[ptype, "particle_position_y"],
-                    f[ptype, "particle_position_z"],
-                ), 0.0
+                yield (
+                    ptype,
+                    (
+                        f[ptype, "particle_position_x"],
+                        f[ptype, "particle_position_y"],
+                        f[ptype, "particle_position_z"],
+                    ),
+                    0.0,
+                )
 
     def _read_smoothing_length(self, chunks, ptf, ptype):
         for data_file in self._sorted_chunk_iterator(chunks):
@@ -144,7 +148,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
                 if selector:
                     data = data[mask]
 
-                return_data[(ptype, field)] = data
+                return_data[ptype, field] = data
 
         return return_data
 
@@ -157,7 +161,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
                 pos = np.column_stack(
                     [
                         self.fields[data_file.filename][
-                            (ptype, f"particle_position_{ax}")
+                            ptype, f"particle_position_{ax}"
                         ]
                         for ax in "xyz"
                     ]
@@ -296,7 +300,7 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
             for g in objs:
                 ds = self.fields[g.mesh_id].get(field, None)
                 if ds is None:
-                    f = ("connect%d" % (g.mesh_id + 1), fname)
+                    f = (f"connect{(g.mesh_id + 1)}", fname)
                     ds = self.fields[g.mesh_id][f]
                 ind += g.select(selector, ds, rv[field], ind)  # caches
             rv[field] = rv[field][:ind]

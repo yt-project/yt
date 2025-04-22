@@ -96,7 +96,7 @@ def test_invalid_sanitizing(valid_path_tuples, invalid_path_tuples):
 
     for path in chain(*(pt.paths_to_try for pt in valid_path_tuples)):
         expected_error_message = re.escape(
-            f"No such file or directory '{str(path/'does_not_exist.txt')}'"
+            f"No such file or directory '{str(path / 'does_not_exist.txt')}'"
         )
         sanitizer = RAMSESFileSanitizer(path / "does_not_exist.txt")
         with pytest.raises(FileNotFoundError, match=expected_error_message):

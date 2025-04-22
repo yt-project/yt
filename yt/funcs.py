@@ -1,5 +1,4 @@
 import base64
-import builtins
 import contextlib
 import copy
 import errno
@@ -13,18 +12,18 @@ import subprocess
 import sys
 import time
 import traceback
-import urllib
 from collections import UserDict
 from collections.abc import Callable
 from copy import deepcopy
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from more_itertools import always_iterable, collapse, first
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt.config import ytcfg
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTFieldNotFound, YTInvalidWidthError
@@ -138,7 +137,7 @@ def humanize_time(secs):
     """
     mins, secs = divmod(secs, 60)
     hours, mins = divmod(mins, 60)
-    return "%02d:%02d:%02d" % (hours, mins, secs)
+    return ":".join(f"{int(t):02}" for t in (hours, mins, secs))
 
 
 #
@@ -221,8 +220,7 @@ def rootonly(func):
     .. code-block:: python
 
        @rootonly
-       def some_root_only_function(*args, **kwargs):
-           ...
+       def some_root_only_function(*args, **kwargs): ...
     """
 
     @wraps(func)
@@ -517,7 +515,7 @@ def update_git(path):
 def rebuild_modules(path, f):
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen(
-        [sys.executable, "setup.py", "build_ext", "-i"],
+        [sys.executable, "setup.py", "build_clib", "build_ext", "-i"],
         cwd=path,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -619,19 +617,24 @@ def fancy_download_file(url, filename, requests=None):
 
 
 def simple_download_file(url, filename):
-    class MyURLopener(urllib.request.FancyURLopener):
-        def http_error_default(self, url, fp, errcode, errmsg, headers):
-            raise RuntimeError(
-                f"Attempt to download file from {url} failed with error {errcode}: {errmsg}."
-            )
+    import urllib.error
+    import urllib.request
 
-    fn, h = MyURLopener().retrieve(url, filename)
+    try:
+        fn, h = urllib.request.urlretrieve(url, filename)
+    except urllib.error.HTTPError as err:
+        raise RuntimeError(
+            f"Attempt to download file from {url} failed with error {err.code}: {err.msg}."
+        ) from None
+
     return fn
 
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass=True):
     import getpass
+    import urllib.parse
+    import urllib.request
 
     uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
     # since bitbucket doesn't return the required WWW-Authenticate header when
@@ -692,11 +695,9 @@ def parallel_profile(prefix):
     """
     import cProfile
 
-    fn = "%s_%04i_%04i.cprof" % (
-        prefix,
-        ytcfg.get("yt", "internals", "topcomm_parallel_size"),
-        ytcfg.get("yt", "internals", "topcomm_parallel_rank"),
-    )
+    topcomm_parallel_size = ytcfg.get("yt", "internals", "topcomm_parallel_size")
+    topcomm_parallel_rank = ytcfg.get("yt", "internals", "topcomm_parallel_rank")
+    fn = f"{prefix}_{topcomm_parallel_size:04}_{topcomm_parallel_rank}.cprof"
     p = cProfile.Profile()
     p.enable()
     yield fn
@@ -1021,7 +1022,7 @@ def toggle_interactivity():
     global interactivity
     interactivity = not interactivity
     if interactivity:
-        if "__IPYTHON__" in dir(builtins):
+        if IS_IPYTHON:
             import IPython
 
             shell = IPython.get_ipython()
@@ -1084,18 +1085,27 @@ def array_like_field(data, x, field):
         return data.ds.quan(x, units)
 
 
+def _full_type_name(obj: object = None, /, *, cls: type | None = None) -> str:
+    if cls is not None and obj is not None:
+        raise TypeError("_full_type_name takes an object or a class, but not both")
+    if cls is None:
+        cls = obj.__class__
+    prefix = f"{cls.__module__}." if cls.__module__ != "builtins" else ""
+    return f"{prefix}{cls.__name__}"
+
+
 def validate_3d_array(obj):
     if not is_sequence(obj) or len(obj) != 3:
         raise TypeError(
-            "Expected an array of size (3,), received '{}' of "
-            "length {}".format(str(type(obj)).split("'")[1], len(obj))
+            f"Expected an array of size (3,), "
+            f"received {_full_type_name(obj)!r} of length {len(obj)}"
         )
 
 
 def validate_float(obj):
     """Validates if the passed argument is a float value.
 
-    Raises an exception if `obj` is a single float value
+    Raises an exception if `obj` is not a single float value
     or a YTQuantity of size 1.
 
     Parameters
@@ -1132,23 +1142,21 @@ def validate_float(obj):
         ):
             raise TypeError(
                 "Expected a numeric value (or tuple of format "
-                "(float, String)), received an inconsistent tuple "
-                "'%s'." % str(obj)
+                f"(float, String)), received an inconsistent tuple {str(obj)!r}."
             )
         else:
             return
     if is_sequence(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
-            "received '{}' of length {}".format(str(type(obj)).split("'")[1], len(obj))
+            f"received {_full_type_name(obj)!r} of length {len(obj)}"
         )
 
 
 def validate_sequence(obj):
     if obj is not None and not is_sequence(obj):
         raise TypeError(
-            "Expected an iterable object, "
-            "received '%s'" % str(type(obj)).split("'")[1]
+            f"Expected an iterable object, received {_full_type_name(obj)!r}"
         )
 
 
@@ -1178,9 +1186,8 @@ def is_valid_field_key(key):
 def validate_object(obj, data_type):
     if obj is not None and not isinstance(obj, data_type):
         raise TypeError(
-            "Expected an object of '{}' type, received '{}'".format(
-                str(data_type).split("'")[1], str(type(obj)).split("'")[1]
-            )
+            f"Expected an object of {_full_type_name(cls=data_type)!r} type, "
+            f"received {_full_type_name(obj)!r}"
         )
 
 
@@ -1206,17 +1213,17 @@ def validate_center(center):
             raise TypeError(
                 "Expected 'center' to be in ['c', 'center', "
                 "'m', 'max', 'min'] or the prefix to be "
-                "'max_'/'min_', received '%s'." % center
+                f"'max_'/'min_', received {center!r}."
             )
     elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sequence(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "
-            "received '%s'." % str(type(center)).split("'")[1]
+            f"received {_full_type_name(center)}."
         )
 
 
-def parse_center_array(center, ds, axis: Optional[int] = None):
+def parse_center_array(center, ds, axis: int | None = None):
     known_shortnames = {"m": "max", "c": "center", "l": "left", "r": "right"}
     valid_single_str_values = ("center", "left", "right")
     valid_field_loc_str_values = ("min", "max")

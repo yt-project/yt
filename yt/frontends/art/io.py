@@ -58,7 +58,7 @@ class IOHandlerART(BaseIOHandler):
                         cp,
                         cp + d.size,
                     )
-                    tr[(ft, f)].append(d)
+                    tr[ft, f].append(d)
                 cp += d.size
         d = {}
         for field in fields:
@@ -125,7 +125,7 @@ class IOHandlerART(BaseIOHandler):
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
-            for ptb, size, m in zip(pbool, sizes, self.ws):
+            for ptb, size, m in zip(pbool, sizes, self.ws, strict=True):
                 if ptb:
                     data[a : a + size] = m
                     a += size
@@ -135,7 +135,7 @@ class IOHandlerART(BaseIOHandler):
         elif fname == "particle_type":
             a = 0
             data = np.zeros(npa, dtype="int64")
-            for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+            for i, (ptb, size) in enumerate(zip(pbool, sizes, strict=True)):
                 if ptb:
                     data[a : a + size] = i
                     a += size
@@ -218,7 +218,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
-            for ptb, size, m in zip(pbool, sizes, self.ws):
+            for ptb, size, m in zip(pbool, sizes, self.ws, strict=True):
                 if ptb:
                     data[a : a + size] = m
                     a += size
@@ -228,7 +228,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
         elif fname == "particle_type":
             a = 0
             data = np.zeros(npa, dtype="int64")
-            for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+            for i, (ptb, size) in enumerate(zip(pbool, sizes, strict=True)):
                 if ptb:
                     data[a : a + size] = i
                     a += size
@@ -635,7 +635,7 @@ def b2t(tb, n=1e2, logger=None, **kwargs):
         return a2t(b2a(tb))
     if len(tb) < n:
         n = len(tb)
-    tbs = -1.0 * np.logspace(np.log10(-tb.min()), np.log10(-tb.max()), n)
+    tbs = -1.0 * np.logspace(np.log10(-tb.min()), np.log10(-tb.max()), int(n))
     ages = []
     for i, tbi in enumerate(tbs):
         ages += (a2t(b2a(tbi)),)

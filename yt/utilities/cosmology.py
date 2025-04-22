@@ -95,7 +95,7 @@ class Cosmology:
                     new_unit,
                     my_u.base_value,
                     dimensions.length,
-                    "\\rm{%s}/(1+z)" % my_unit,
+                    f"\\rm{{{my_unit}}}/(1+z)",
                     prefixable=True,
                 )
         self.unit_registry = unit_registry

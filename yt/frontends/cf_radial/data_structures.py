@@ -4,10 +4,10 @@ CF Radial data structures
 
 
 """
+
 import contextlib
 import os
 import weakref
-from typing import Optional
 
 import numpy as np
 from unyt import unyt_array
@@ -90,10 +90,10 @@ class CFRadialDataset(Dataset):
         dataset_type="cf_radial",
         storage_filename=None,
         storage_overwrite: bool = False,
-        grid_shape: Optional[tuple[int, int, int]] = None,
-        grid_limit_x: Optional[tuple[float, float]] = None,
-        grid_limit_y: Optional[tuple[float, float]] = None,
-        grid_limit_z: Optional[tuple[float, float]] = None,
+        grid_shape: tuple[int, int, int] | None = None,
+        grid_limit_x: tuple[float, float] | None = None,
+        grid_limit_y: tuple[float, float] | None = None,
+        grid_limit_z: tuple[float, float] | None = None,
         units_override=None,
     ):
         """
@@ -194,7 +194,7 @@ class CFRadialDataset(Dataset):
         self.refine_by = 2  # refinement factor between a grid and its subgrid
 
     @contextlib.contextmanager
-    def _handle(self, filename: Optional[str] = None):
+    def _handle(self, filename: str | None = None):
         if filename is None:
             if hasattr(self, "filename"):
                 filename = self.filename
@@ -205,7 +205,7 @@ class CFRadialDataset(Dataset):
             yield xrds
 
     def _validate_grid_dim(
-        self, radar, dim: str, grid_limit: Optional[tuple[float, float]] = None
+        self, radar, dim: str, grid_limit: tuple[float, float] | None = None
     ) -> tuple[float, float]:
         if grid_limit is None:
             if dim.lower() == "z":
@@ -235,7 +235,7 @@ class CFRadialDataset(Dataset):
         return grid_limit
 
     def _validate_grid_shape(
-        self, grid_shape: Optional[tuple[int, int, int]] = None
+        self, grid_shape: tuple[int, int, int] | None = None
     ) -> tuple[int, int, int]:
         if grid_shape is None:
             grid_shape = (100, 100, 100)
@@ -272,16 +272,20 @@ class CFRadialDataset(Dataset):
         with self._handle() as xr_ds_handle:
             x, y, z = (xr_ds_handle.coords[d] for d in "xyz")
 
-            self.origin_latitude = xr_ds_handle.origin_latitude[0]
-            self.origin_longitude = xr_ds_handle.origin_longitude[0]
-
             self.domain_left_edge = np.array([x.min(), y.min(), z.min()])
             self.domain_right_edge = np.array([x.max(), y.max(), z.max()])
             self.dimensionality = 3
-            dims = [xr_ds_handle.dims[d] for d in "xyz"]
+            dims = [xr_ds_handle.sizes[d] for d in "xyz"]
             self.domain_dimensions = np.array(dims, dtype="int64")
             self._periodicity = (False, False, False)
-            self.current_time = float(xr_ds_handle.time.values)
+
+            # note: origin_latitude and origin_longitude arrays will have time
+            # as a dimension and the initial implementation here only handles
+            # the first index. Also, the time array may have a datetime dtype,
+            # so cast to float.
+            self.origin_latitude = xr_ds_handle.origin_latitude[0]
+            self.origin_longitude = xr_ds_handle.origin_longitude[0]
+            self.current_time = float(xr_ds_handle.time.values[0])
 
         # Cosmological information set to zero (not in space).
         self.cosmological_simulation = 0
@@ -309,11 +313,14 @@ class CFRadialDataset(Dataset):
             nc4_file = NetCDF4FileHandler(filename)
             with nc4_file.open_ds(keepweakref=True) as ds:
                 con = "Conventions"  # the attribute to check for file conventions
+                # note that the attributes here are potentially space- or
+                # comma-delimited strings, so we concatenate a single string
+                # to search for a substring.
                 cons = ""  # the value of the Conventions attribute
-                for c in [con, con.lower()]:
+                for c in [con, con.lower(), "Sub_" + con.lower()]:
                     if hasattr(ds, c):
                         cons += getattr(ds, c)
-                is_cfrad = "CF/Radial" in cons
+                is_cfrad = "CF/Radial" in cons or "CF-Radial" in cons
         except (OSError, AttributeError, ImportError):
             return False
 

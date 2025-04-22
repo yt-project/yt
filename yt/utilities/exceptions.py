@@ -196,7 +196,12 @@ class YTSimulationNotIdentified(YTException):
         self.sim_type = sim_type
 
     def __str__(self):
-        return f"Simulation time-series type {self.sim_type!r} not defined."
+        from yt.utilities.object_registries import simulation_time_series_registry
+
+        return (
+            f"Simulation time-series type {self.sim_type!r} not defined. "
+            f"Supported types are {list(simulation_time_series_registry)}"
+        )
 
 
 class YTCannotParseFieldDisplayName(YTException):
@@ -627,9 +632,8 @@ class YTGDFUnknownGeometry(YTException):
 
     def __str__(self):
         return (
-            """Unknown geometry %i. Please refer to GDF standard
-                  for more information"""
-            % self.geometry
+            f"Unknown geometry {self.geometry} . "
+            "Please refer to GDF standard for more information"
         )
 
 

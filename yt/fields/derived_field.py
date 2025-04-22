@@ -2,7 +2,7 @@ import contextlib
 import inspect
 import re
 from collections.abc import Iterable
-from typing import Optional, Union
+from typing import Optional
 
 from more_itertools import always_iterable
 
@@ -115,7 +115,7 @@ class DerivedField:
         name: FieldKey,
         sampling_type,
         function,
-        units: Optional[Union[str, bytes, Unit]] = None,
+        units: str | bytes | Unit | None = None,
         take_log=True,
         validators=None,
         vector_field=False,
@@ -154,7 +154,7 @@ class DerivedField:
         self.validators = list(always_iterable(validators))
 
         # handle units
-        self.units: Optional[Union[str, bytes, Unit]]
+        self.units: str | bytes | Unit | None
         if units in (None, "auto"):
             self.units = None
         elif isinstance(units, str):
@@ -255,7 +255,7 @@ class DerivedField:
             else:
                 params.extend(val.parameters)
                 values.extend([fd.get_field_parameter(fp) for fp in val.parameters])
-        return dict(zip(params, values)), permute_params
+        return dict(zip(params, values, strict=True)), permute_params
 
     _unit_registry = None
 
@@ -303,7 +303,7 @@ class DerivedField:
             name = self.display_name
 
         # Start with the field name
-        data_label = r"$\rm{%s}" % name
+        data_label = rf"$\rm{{{name}}}"
 
         # Grab the correct units
         if projected:
@@ -337,7 +337,7 @@ class DerivedField:
         return self._shared_aliases_list is other._shared_aliases_list
 
     @property
-    def alias_name(self) -> Optional[FieldKey]:
+    def alias_name(self) -> FieldKey | None:
         if self.is_alias:
             return self._shared_aliases_list[0].name
         return None
@@ -528,8 +528,8 @@ class ValidateParameter(FieldValidator):
 
     def __init__(
         self,
-        parameters: Union[str, Iterable[str]],
-        parameter_values: Optional[dict] = None,
+        parameters: str | Iterable[str],
+        parameter_values: dict | None = None,
     ):
         FieldValidator.__init__(self)
         self.parameters = list(always_iterable(parameters))
@@ -582,7 +582,7 @@ class ValidateProperty(FieldValidator):
         the required property or properties to require
     """
 
-    def __init__(self, prop: Union[str, Iterable[str]]):
+    def __init__(self, prop: str | Iterable[str]):
         FieldValidator.__init__(self)
         self.prop = list(always_iterable(prop))
 
@@ -608,7 +608,7 @@ class ValidateSpatial(FieldValidator):
 
     """
 
-    def __init__(self, ghost_zones: Optional[int] = 0, fields=None):
+    def __init__(self, ghost_zones: int | None = 0, fields=None):
         FieldValidator.__init__(self)
         self.ghost_zones = ghost_zones
         self.fields = fields

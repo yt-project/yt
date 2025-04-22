@@ -450,7 +450,7 @@ For all types of contributions, it is required that all tests pass, or that all 
     future. (See :ref:`testing`)
   * At a minimum, a minimal, self-contained example demonstrating the bug should
     because included in the body of the Pull Request, or as part of an
-    indepedent issue.
+    independent issue.
 
 When submitting, you will be asked to make sure that your changes meet all of
 these requirements.  They are pretty easy to meet, and we're also happy to help

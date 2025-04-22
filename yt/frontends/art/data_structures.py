@@ -236,7 +236,7 @@ class ARTDataset(Dataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        setdefaultattr(self, "mass_unit", self.quan(mass, f"g*{ng ** 3}"))
+        setdefaultattr(self, "mass_unit", self.quan(mass, f"g*{ng**3}"))
         setdefaultattr(self, "length_unit", self.quan(box_proper, "Mpc"))
         setdefaultattr(self, "velocity_unit", self.quan(velocity, "cm/s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
@@ -320,7 +320,7 @@ class ARTDataset(Dataset):
             self.parameters["wspecies"] = wspecies[:n]
             self.parameters["lspecies"] = lspecies[:n]
             for specie in range(n):
-                self.particle_types.append("specie%i" % specie)
+                self.particle_types.append(f"specie{specie}")
             self.particle_types_raw = tuple(self.particle_types)
             ls_nonzero = np.diff(lspecies)[: n - 1]
             ls_nonzero = np.append(lspecies[0], ls_nonzero)
@@ -328,7 +328,9 @@ class ARTDataset(Dataset):
             mylog.info("Discovered %i species of particles", len(ls_nonzero))
             info_str = "Particle populations: " + "%9i " * len(ls_nonzero)
             mylog.info(info_str, *ls_nonzero)
-            self._particle_type_counts = dict(zip(self.particle_types_raw, ls_nonzero))
+            self._particle_type_counts = dict(
+                zip(self.particle_types_raw, ls_nonzero, strict=True)
+            )
             for k, v in particle_header_vals.items():
                 if k in self.parameters.keys():
                     if not self.parameters[k] == v:
@@ -396,7 +398,9 @@ class ARTParticleFile(ParticleFile):
         super().__init__(ds, io, filename, file_id, range=None)
         self.total_particles = {}
         for ptype, count in zip(
-            ds.particle_types_raw, ds.parameters["total_particles"]
+            ds.particle_types_raw,
+            ds.parameters["total_particles"],
+            strict=True,
         ):
             self.total_particles[ptype] = count
         with open(filename, "rb") as f:
@@ -515,7 +519,7 @@ class DarkMatterARTDataset(ARTDataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        self.mass_unit = self.quan(mass, f"g*{ng ** 3}")
+        self.mass_unit = self.quan(mass, f"g*{ng**3}")
         self.length_unit = self.quan(box_proper, "Mpc")
         self.velocity_unit = self.quan(velocity, "cm/s")
         self.time_unit = self.length_unit / self.velocity_unit
@@ -607,7 +611,7 @@ class DarkMatterARTDataset(ARTDataset):
             else:
                 particle_header_vals[a1] = arr[:a2]
         for specie in range(n):
-            self.particle_types.append("specie%i" % specie)
+            self.particle_types.append(f"specie{specie}")
         self.particle_types_raw = tuple(self.particle_types)
         ls_nonzero = np.diff(lspecies)[: n - 1]
         ls_nonzero = np.append(lspecies[0], ls_nonzero)
@@ -727,6 +731,10 @@ class DarkMatterARTDataset(ARTDataset):
 
 
 class ARTDomainSubset(OctreeSubset):
+    @property
+    def oct_handler(self):
+        return self.domain.oct_handler
+
     def fill(self, content, ftfields, selector):
         """
         This is called from IOHandler. It takes content
@@ -750,7 +758,7 @@ class ARTDomainSubset(OctreeSubset):
             content, self.domain.level_child_offsets, self.domain.level_count
         )
         ns = (self.domain.ds.domain_dimensions.prod() // 8, 8)
-        for field, fi in zip(fields, field_idxs):
+        for field, fi in zip(fields, field_idxs, strict=True):
             source[field] = np.empty(ns, dtype="float64", order="C")
             dt = data[fi, :].reshape(self.domain.ds.domain_dimensions, order="F")
             for i in range(2):
@@ -798,7 +806,11 @@ class ARTDomainFile:
         self._level_count = None
         self._level_oct_offsets = None
         self._level_child_offsets = None
-        self.oct_handler = oct_handler
+        self._oct_handler = oct_handler
+
+    @property
+    def oct_handler(self):
+        return self._oct_handler
 
     @property
     def level_count(self):

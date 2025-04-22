@@ -102,7 +102,7 @@ def test_find_points():
 
     grid_inds = np.zeros((num_points), dtype="int64")
 
-    for ind, ixx, iyy, izz in zip(range(num_points), randx, randy, randz):
+    for ind, ixx, iyy, izz in zip(range(num_points), randx, randy, randz, strict=True):
         pos = np.array([ixx, iyy, izz])
         pt_level = -1
 

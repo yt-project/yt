@@ -143,60 +143,48 @@ class GAMERHierarchy(GridIndex):
         for grid in self.grids:
             # parent->children == itself
             if grid.Parent is not None:
-                assert (
-                    grid in grid.Parent.Children
-                ), "Grid %d, Parent %d, Parent->Children[0] %d" % (
-                    grid.id,
-                    grid.Parent.id,
-                    grid.Parent.Children[0].id,
+                assert grid in grid.Parent.Children, (
+                    f"Grid {grid.id}, Parent {grid.Parent.id}, "
+                    f"Parent->Children[0] {grid.Parent.Children[0].id}"
                 )
 
             # children->parent == itself
             for c in grid.Children:
-                assert c.Parent is grid, "Grid %d, Children %d, Children->Parent %d" % (
-                    grid.id,
-                    c.id,
-                    c.Parent.id,
+                assert c.Parent is grid, (
+                    f"Grid {grid.id}, Children {c.id}, Children->Parent {c.Parent.id}"
                 )
 
             # all refinement grids should have parent
             if grid.Level > 0:
-                assert (
-                    grid.Parent is not None and grid.Parent.id >= 0
-                ), "Grid %d, Level %d, Parent %d" % (
-                    grid.id,
-                    grid.Level,
-                    grid.Parent.id if grid.Parent is not None else -999,
+                assert grid.Parent is not None and grid.Parent.id >= 0, (
+                    f"Grid {grid.id}, Level {grid.Level}, "
+                    f"Parent {grid.Parent.id if grid.Parent is not None else -999}"
                 )
 
             # parent index is consistent with the loaded dataset
             if grid.Level > 0:
                 father_gid = father_list[grid.id * self.pgroup] // self.pgroup
-                assert (
-                    father_gid == grid.Parent.id
-                ), "Grid %d, Level %d, Parent_Found %d, Parent_Expect %d" % (
-                    grid.id,
-                    grid.Level,
-                    grid.Parent.id,
-                    father_gid,
+                assert father_gid == grid.Parent.id, (
+                    f"Grid {grid.id}, Level {grid.Level}, "
+                    f"Parent_Found {grid.Parent.id}, Parent_Expect {father_gid}"
                 )
 
             # edges between children and parent
             for c in grid.Children:
                 for d in range(0, 3):
-                    msgL = (
-                        "Grid %d, Child %d, Grid->EdgeL %14.7e, Children->EdgeL %14.7e"
-                        % (grid.id, c.id, grid.LeftEdge[d], c.LeftEdge[d])
-                    )
-                    msgR = (
-                        "Grid %d, Child %d, Grid->EdgeR %14.7e, Children->EdgeR %14.7e"
-                        % (grid.id, c.id, grid.RightEdge[d], c.RightEdge[d])
-                    )
                     if not grid.LeftEdge[d] <= c.LeftEdge[d]:
-                        raise ValueError(msgL)
+                        raise ValueError(
+                            f"Grid {grid.id}, Child {c.id}, "
+                            f"Grid->EdgeL {grid.LeftEdge[d]:14.7e}, "
+                            f"Children->EdgeL {c.LeftEdge[d]:14.7e}"
+                        )
 
                     if not grid.RightEdge[d] >= c.RightEdge[d]:
-                        raise ValueError(msgR)
+                        raise ValueError(
+                            f"Grid {grid.id}, Child {c.id}, "
+                            f"Grid->EdgeR {grid.RightEdge[d]:14.7e}, "
+                            f"Children->EdgeR {c.RightEdge[d]:14.7e}"
+                        )
 
         mylog.info("Check passed")
 
@@ -255,7 +243,7 @@ class GAMERDataset(Dataset):
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
-        if self.parameters["Opt__Unit"]:
+        if self.opt_unit:
             # GAMER units are always in CGS
             setdefaultattr(
                 self, "length_unit", self.quan(self.parameters["Unit_L"], "cm")
@@ -356,6 +344,7 @@ class GAMERDataset(Dataset):
         # make aliases to some frequently used variables
         if parameters["Model"] == "Hydro":
             self.gamma = parameters["Gamma"]
+            self.gamma_cr = self.parameters.get("CR_Gamma", None)
             self.eos = parameters.get("EoS", 1)  # Assume gamma-law by default
             # default to 0.6 for old data format
             self.mu = parameters.get(
@@ -366,10 +355,11 @@ class GAMERDataset(Dataset):
         else:
             self.mhd = 0
             self.srhd = 0
+            # set dummy value of mu here to avoid more complicated workarounds later
+            self.mu = 1.0
 
         # old data format (version < 2210) did not contain any information of code units
-        self.parameters.setdefault("Opt__Unit", 0)
-
+        self.opt_unit = self.parameters.get("Opt__Unit", 0)
         self.geometry = Geometry(geometry_parameters[parameters.get("Coordinate", 1)])
 
     @classmethod

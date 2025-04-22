@@ -4,7 +4,6 @@ on cloud platforms like Travis
 
 """
 
-
 import argparse
 import base64
 import collections
@@ -403,7 +402,7 @@ if __name__ == "__main__":
     COLOR_PURPLE = "\x1b[35;1m"
     COLOR_CYAN = "\x1b[36;1m"
     COLOR_RESET = "\x1b[0m"
-    FLAG_EMOJI = " \U0001F6A9 "
+    FLAG_EMOJI = " \U0001f6a9 "
 
     failed_answers = missing_answers = None
     if args.upload_failed_tests or args.upload_missing_answers:

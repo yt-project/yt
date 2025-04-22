@@ -2,18 +2,15 @@
 # keep in sync with .github/workflows/wheels.yaml
 requires = [
   "setuptools>=61.2",
-
-  # for the upper pin in Cython
-  # see https://github.com/yt-project/yt/issues/4044
-  "Cython>=3.0.3, <3.1",
-  "numpy>=1.25, <2.0",
-  "ewah-bool-utils>=1.0.2",
+  "Cython>=3.0.3",
+  "numpy>=2.0.0",
+  "ewah-bool-utils>=1.2.0",
 ]
-build-backend = "setuptools.build_meta:__legacy__"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "yt"
-version = "4.3.dev0"
+version = "4.5.dev0"
 description = "An analysis and visualization toolkit for volumetric data"
 authors = [
     { name = "The yt project", email = "yt-dev@python.org" },
@@ -30,10 +27,10 @@ classifiers = [
     "Programming Language :: C",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Visualization",
@@ -41,19 +38,22 @@ classifiers = [
 keywords = [
     "astronomy astrophysics visualization amr adaptivemeshrefinement",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10.3"
+
+# keep in sync with minimal_requirements.txt
 dependencies = [
     "cmyt>=1.1.2",
-    "ewah-bool-utils>=1.0.2",
-    "ipywidgets>=8.0.0",
-    "matplotlib>=3.5",
+    "ewah-bool-utils>=1.2.0",
+    "matplotlib>=3.6.0",
     "more-itertools>=8.4",
-    "numpy>=1.19.3", # keep minimal requirement in sync with NPY_TARGET_VERSION
+    "numpy>=1.21.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
+    # https://github.com/numpy/numpy/issues/27037
+    "numpy!=2.0.1 ; platform_machine=='arm64' and platform_system=='Darwin'",
     "packaging>=20.9",
-    "pillow>=8.0.0",
+    "pillow>=8.3.2",
     "tomli-w>=0.4.0",
     "tqdm>=3.4.0",
-    "unyt>=2.9.2,<3.0", # see https://github.com/yt-project/yt/issues/4162
+    "unyt>=2.9.2",
     "tomli>=1.2.3;python_version < '3.11'",
     "typing-extensions>=4.4.0;python_version < '3.12'",
 ]
@@ -77,7 +77,7 @@ answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 
 [project.optional-dependencies]
 # some generic, reusable constraints on optional-deps
-HDF5 = ["h5py>=3.1.0"]
+HDF5 = ["h5py>=3.1.0,!=3.12.0; platform_system=='Windows'"]  # see https://github.com/h5py/h5py/issues/2505
 netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
 Fortran = ["f90nml>=1.1"]
 
@@ -89,6 +89,7 @@ Fortran = ["f90nml>=1.1"]
 # We also normalize all target names to lower case for consistency.
 adaptahop = []
 ahf = []
+amrex = []
 amrvac = ["yt[Fortran]"]
 art = []
 arepo = ["yt[HDF5]"]
@@ -96,7 +97,7 @@ artio = []
 athena = []
 athena-pp = []
 boxlib = []
-cf-radial = ["xarray>=0.16.1", "arm-pyart!=1.12.5,>=1.11.4"]
+cf-radial = ["xarray>=0.16.1", "arm-pyart>=1.19.2",]
 chimera = ["yt[HDF5]"]
 chombo = ["yt[HDF5]"]
 cholla = ["yt[HDF5]"]
@@ -113,12 +114,14 @@ gdf = ["yt[HDF5]"]
 gizmo = ["yt[HDF5]"]
 halo-catalog = ["yt[HDF5]"]
 http-stream = ["requests>=2.20.0"]
+idefix = ["yt_idefix[HDF5]>=2.3.0"] # externally packaged frontend
 moab = ["yt[HDF5]"]
 nc4-cm1 = ["yt[netCDF4]"]
 open-pmd = ["yt[HDF5]"]
 owls = ["yt[HDF5]"]
 owls-subfind = ["yt[HDF5]"]
-ramses = ["yt[Fortran]"]
+parthenon = ["yt[HDF5]"]
+ramses = ["yt[Fortran]", "scipy"]
 rockstar = []
 sdf = ["requests>=2.20.0"]
 stream = []
@@ -132,7 +135,8 @@ full = [
     "cartopy>=0.22.0",
     "firefly>=3.2.0",
     "glueviz>=0.13.3",
-    "ipython>=2.0.0",
+    "ipython>=7.16.2",
+    "ipywidgets>=8.0.0",
     "miniballcpp>=0.2.1",
     "mpi4py>=3.0.3",
     "pandas>=1.1.2",
@@ -145,6 +149,7 @@ full = [
     "ratarmount~=0.8.1;platform_system!='Windows' and platform_system!='Darwin'",
     "yt[adaptahop]",
     "yt[ahf]",
+    "yt[amrex]",
     "yt[amrvac]",
     "yt[art]",
     "yt[arepo]",
@@ -169,11 +174,13 @@ full = [
     "yt[gizmo]",
     "yt[halo_catalog]",
     "yt[http_stream]",
+    "yt[idefix]",
     "yt[moab]",
     "yt[nc4_cm1]",
     "yt[open_pmd]",
     "yt[owls]",
     "yt[owls_subfind]",
+    "yt[parthenon]",
     "yt[ramses]",
     "yt[rockstar]",
     "yt[sdf]",
@@ -184,52 +191,15 @@ full = [
 ]
 
 # dev-only extra targets
-doc = [
-    "alabaster>=0.7.13",
-    "bottle>=0.12.25",
-    "jinja2<3.1.0", # see https://github.com/readthedocs/readthedocs.org/issues/9037
-    "jupyter-client>=8.3.1",
-    "nbsphinx>=0.9.3",
-    "nose~=1.3.7; python_version < '3.10'",
-    "pytest>=6.1",
-    "pyx>=0.15",
-    "sphinx>=7.2.5",
-    "sphinx-bootstrap-theme>=0.8.1",
-    "sphinx-rtd-theme>=1.3.0",
-]
 mapserver = [
     "bottle",
-]
-minimal = [
-    "cmyt==1.1.2",
-    "ewah-bool-utils==1.0.2",
-    "ipywidgets==8.0.0",
-    "matplotlib==3.5",
-    "more-itertools==8.4",
-    "numpy==1.19.3",
-    "packaging==20.9",
-    "pillow==8.0.0",
-    "tomli-w==0.4.0",
-    "tqdm==3.4.0",
-    "unyt==2.9.2",
-    "tomli==1.2.3;python_version < '3.11'",
-    "typing-extensions==4.4.0;python_version < '3.12'",
 ]
 test = [
     "pyaml>=17.10.0",
     "pytest>=6.1",
     "pytest-mpl>=0.16.1",
     "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
-    "nose~=1.3.7; python_version < '3.10'",
-    "nose-exclude; python_version < '3.10'",
-    "nose-timer~=1.0.0; python_version < '3.10'",
-]
-typecheck = [
-    "mypy==1.5.1",
-    "types-PyYAML==6.0.12.2",
-    "types-chardet==5.0.4",
-    "types-requests==2.28.11.5",
-    "typing-extensions==4.4.0; python_version < '3.12'",
+    "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
 ]
 
 [project.scripts]
@@ -242,10 +212,9 @@ zip-safe = false
 [tool.setuptools.packages.find]
 namespaces = false
 
-
 [tool.black]
-line-length = 88
-target-version = ['py39']
+# TODO: drop this section when ruff supports embedded python blocks
+# see https://github.com/astral-sh/ruff/issues/8237
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -277,7 +246,10 @@ exclude = [
     "yt/utilities/lodgeit.py",
     "yt/mods.py",
     "yt/visualization/_colormap_data.py",
+    "yt/exthook.py",
 ]
+
+[tool.ruff.lint]
 select = [
     "E",
     "F",
@@ -285,18 +257,24 @@ select = [
     "C4",   # flake8-comprehensions
     "B",    # flake8-bugbear
     "G",    # flake8-logging-format
+    "TCH",  # flake8-type-checking
     "YTT",  # flake8-2020
     "UP",   # pyupgrade
     "I",    # isort
+    "NPY",  # numpy specific rules
+    "RUF031"# incorrectly-parenthesized-tuple-in-subscript
 ]
 ignore = [
     "E501",  # line too long
     "E741",  # Do not use variables named 'I', 'O', or 'l'
     "B018",  # Found useless expression. # disabled because ds.index is idiomatic
+    "UP038", # non-pep604-isinstance
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"test_*" = ["NPY002"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 known-third-party = [
   "IPython",
@@ -325,87 +303,87 @@ addopts = '''
     -s
     -v
     -rsfE
-    --ignore-glob='*_nose.py'
-    --ignore='yt/data_objects/level_sets/tests/test_clump_finding.py'
-    --ignore='yt/data_objects/tests/test_connected_sets.py'
-    --ignore='yt/data_objects/tests/test_data_containers.py'
-    --ignore='yt/data_objects/tests/test_dataset_access.py'
-    --ignore='yt/data_objects/tests/test_disks.py'
-    --ignore='yt/data_objects/tests/test_particle_filter.py'
-    --ignore='yt/data_objects/tests/test_particle_trajectories.py'
-    --ignore='yt/data_objects/tests/test_pickling.py'
-    --ignore='yt/data_objects/tests/test_regions.py'
-    --ignore='yt/fields/tests/test_particle_fields.py'
-    --ignore='yt/fields/tests/test_vector_fields.py'
-    --ignore='yt/fields/tests/test_xray_fields.py'
-    --ignore='yt/frontends/adaptahop/tests/test_outputs.py'
-    --ignore='yt/frontends/ahf/tests/test_outputs.py'
-    --ignore='yt/frontends/amrvac/tests/test_outputs.py'
-    --ignore='yt/frontends/amrvac/tests/test_units_override.py'
-    --ignore='yt/frontends/arepo/tests/test_outputs.py'
-    --ignore='yt/frontends/art/tests/test_outputs.py'
-    --ignore='yt/frontends/artio/tests/test_outputs.py'
-    --ignore='yt/frontends/athena/tests/test_outputs.py'
-    --ignore='yt/frontends/athena_pp/tests/test_outputs.py'
-    --ignore='yt/frontends/boxlib/tests/test_outputs.py'
-    --ignore='yt/frontends/cf_radial/tests/test_outputs.py'
-    --ignore='yt/frontends/chimera/tests/test_outputs.py'
-    --ignore='yt/frontends/cholla/tests/test_outputs.py'
-    --ignore='yt/frontends/chombo/tests/test_outputs.py'
-    --ignore='yt/frontends/eagle/tests/test_outputs.py'
-    --ignore='yt/frontends/enzo/tests/test_outputs.py'
-    --ignore='yt/frontends/enzo_e/tests/test_outputs.py'
-    --ignore='yt/frontends/exodus_ii/tests/test_outputs.py'
-    --ignore='yt/frontends/fits/tests/test_outputs.py'
-    --ignore='yt/frontends/flash/tests/test_outputs.py'
-    --ignore='yt/frontends/gadget/tests/test_outputs.py'
-    --ignore='yt/frontends/gadget_fof/tests/test_outputs.py'
-    --ignore='yt/frontends/gamer/tests/test_outputs.py'
-    --ignore='yt/frontends/gdf/tests/test_outputs.py'
-    --ignore='yt/frontends/gdf/tests/test_outputs_nose.py'
-    --ignore='yt/frontends/gizmo/tests/test_outputs.py'
-    --ignore='yt/frontends/halo_catalog/tests/test_outputs.py'
-    --ignore='yt/frontends/moab/tests/test_c5.py'
-    --ignore='yt/frontends/nc4_cm1/tests/test_outputs.py'
-    --ignore='yt/frontends/open_pmd/tests/test_outputs.py'
-    --ignore='yt/frontends/owls/tests/test_outputs.py'
-    --ignore='yt/frontends/owls_subfind/tests/test_outputs.py'
-    --ignore='yt/frontends/ramses/tests/test_outputs.py'
-    --ignore='yt/frontends/rockstar/tests/test_outputs.py'
-    --ignore='yt/frontends/tipsy/tests/test_outputs.py'
-    --ignore='yt/frontends/ytdata/tests/test_old_outputs.py'
-    --ignore='yt/frontends/ytdata/tests/test_outputs.py'
-    --ignore='yt/frontends/ytdata/tests/test_unit.py'
-    --ignore='yt/geometry/coordinates/tests/test_axial_pixelization.py'
-    --ignore='yt/geometry/coordinates/tests/test_cylindrical_coordinates.py'
-    --ignore='yt/geometry/coordinates/tests/test_spherical_coordinates.py'
-    --ignore='yt/tests/test_funcs.py'
-    --ignore='yt/utilities/lib/cykdtree/tests/__init__.py'
-    --ignore='yt/utilities/lib/cykdtree/tests/test_kdtree.py'
-    --ignore='yt/utilities/lib/cykdtree/tests/test_plot.py'
-    --ignore='yt/utilities/lib/cykdtree/tests/test_utils.py'
-    --ignore='yt/utilities/tests/test_cosmology.py'
-    --ignore='yt/visualization/tests/test_callbacks.py'
-    --ignore='yt/visualization/tests/test_color_maps.py'
-    --ignore='yt/visualization/tests/test_geo_projections.py'
-    --ignore='yt/visualization/tests/test_image_writer.py'
-    --ignore='yt/visualization/tests/test_line_plots.py'
-    --ignore='yt/visualization/tests/test_mesh_slices.py'
-    --ignore='yt/visualization/tests/test_norm_api_custom_norm.py'
-    --ignore='yt/visualization/tests/test_norm_api_inf_zlim.py'
-    --ignore='yt/visualization/tests/test_norm_api_lineplot.py'
-    --ignore='yt/visualization/tests/test_norm_api_particleplot.py'
-    --ignore='yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_explicit.py'
-    --ignore='yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_implicit.py'
-    --ignore='yt/visualization/tests/test_norm_api_profileplot.py'
-    --ignore='yt/visualization/tests/test_norm_api_set_background_color.py'
-    --ignore='yt/visualization/tests/test_particle_plot.py'
-    --ignore='yt/visualization/tests/test_plot_modifications.py'
-    --ignore='yt/visualization/tests/test_plotwindow.py'
-    --ignore='yt/visualization/tests/test_profile_plots.py'
-    --ignore='yt/visualization/tests/test_raw_field_slices.py'
-    --ignore='yt/visualization/volume_rendering/tests/test_mesh_render.py'
-    --ignore='yt/visualization/volume_rendering/tests/test_vr_orientation.py'
+    --ignore-glob='/*_nose.py'
+    --ignore-glob='/*/yt/data_objects/level_sets/tests/test_clump_finding.py'
+    --ignore-glob='/*/yt/data_objects/tests/test_connected_sets.py'
+    --ignore-glob='/*/yt/data_objects/tests/test_data_containers.py'
+    --ignore-glob='/*/yt/data_objects/tests/test_dataset_access.py'
+    --ignore-glob='/*/yt/data_objects/tests/test_particle_filter.py'
+    --ignore-glob='/*/yt/data_objects/tests/test_particle_trajectories.py'
+    --ignore-glob='/*/yt/data_objects/tests/test_pickling.py'
+    --ignore-glob='/*/yt/data_objects/tests/test_regions.py'
+    --ignore-glob='/*/yt/fields/tests/test_particle_fields.py'
+    --ignore-glob='/*/yt/fields/tests/test_vector_fields.py'
+    --ignore-glob='/*/yt/fields/tests/test_xray_fields.py'
+    --ignore-glob='/*/yt/frontends/adaptahop/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/ahf/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/amrex/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/amrvac/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/amrvac/tests/test_units_override.py'
+    --ignore-glob='/*/yt/frontends/arepo/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/art/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/artio/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/athena/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/athena_pp/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/boxlib/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/cf_radial/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/chimera/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/cholla/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/chombo/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/eagle/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/enzo/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/enzo_e/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/exodus_ii/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/fits/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/flash/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/gadget/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/gadget_fof/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/gamer/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/gdf/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/gdf/tests/test_outputs_nose.py'
+    --ignore-glob='/*/yt/frontends/gizmo/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/halo_catalog/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/moab/tests/test_c5.py'
+    --ignore-glob='/*/yt/frontends/nc4_cm1/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/open_pmd/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/owls/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/owls_subfind/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/parthenon/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/ramses/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/rockstar/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/tipsy/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/ytdata/tests/test_old_outputs.py'
+    --ignore-glob='/*/yt/frontends/ytdata/tests/test_outputs.py'
+    --ignore-glob='/*/yt/frontends/ytdata/tests/test_unit.py'
+    --ignore-glob='/*/yt/geometry/coordinates/tests/test_axial_pixelization.py'
+    --ignore-glob='/*/yt/geometry/coordinates/tests/test_cylindrical_coordinates.py'
+    --ignore-glob='/*/yt/geometry/coordinates/tests/test_spherical_coordinates.py'
+    --ignore-glob='/*/yt/tests/test_funcs.py'
+    --ignore-glob='/*/yt/utilities/lib/cykdtree/tests/__init__.py'
+    --ignore-glob='/*/yt/utilities/lib/cykdtree/tests/test_kdtree.py'
+    --ignore-glob='/*/yt/utilities/lib/cykdtree/tests/test_plot.py'
+    --ignore-glob='/*/yt/utilities/lib/cykdtree/tests/test_utils.py'
+    --ignore-glob='/*/yt/utilities/tests/test_cosmology.py'
+    --ignore-glob='/*/yt/visualization/tests/test_callbacks.py'
+    --ignore-glob='/*/yt/visualization/tests/test_color_maps.py'
+    --ignore-glob='/*/yt/visualization/tests/test_geo_projections.py'
+    --ignore-glob='/*/yt/visualization/tests/test_image_writer.py'
+    --ignore-glob='/*/yt/visualization/tests/test_line_plots.py'
+    --ignore-glob='/*/yt/visualization/tests/test_mesh_slices.py'
+    --ignore-glob='/*/yt/visualization/tests/test_norm_api_custom_norm.py'
+    --ignore-glob='/*/yt/visualization/tests/test_norm_api_inf_zlim.py'
+    --ignore-glob='/*/yt/visualization/tests/test_norm_api_lineplot.py'
+    --ignore-glob='/*/yt/visualization/tests/test_norm_api_particleplot.py'
+    --ignore-glob='/*/yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_explicit.py'
+    --ignore-glob='/*/yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_implicit.py'
+    --ignore-glob='/*/yt/visualization/tests/test_norm_api_profileplot.py'
+    --ignore-glob='/*/yt/visualization/tests/test_norm_api_set_background_color.py'
+    --ignore-glob='/*/yt/visualization/tests/test_particle_plot.py'
+    --ignore-glob='/*/yt/visualization/tests/test_plot_modifications.py'
+    --ignore-glob='/*/yt/visualization/tests/test_plotwindow.py'
+    --ignore-glob='/*/yt/visualization/tests/test_raw_field_slices.py'
+    --ignore-glob='/*/yt/visualization/volume_rendering/tests/test_mesh_render.py'
+    --ignore-glob='/*/yt/visualization/volume_rendering/tests/test_vr_orientation.py'
 
 '''
 
@@ -473,7 +451,7 @@ ignore = [
 
 
 [tool.mypy]
-python_version = 3.9
+python_version = '3.10'
 show_error_codes = true
 ignore_missing_imports = true
 warn_unused_configs = true
@@ -481,3 +459,21 @@ warn_unused_ignores = true
 warn_unreachable = true
 show_error_context = true
 exclude = "(test_*|lodgeit)"
+
+[tool.cibuildwheel]
+build = "cp310-* cp311-* cp312-* cp313-*"
+build-verbosity = 1
+test-skip = "*-musllinux*"
+test-extras = "test"
+test-command = [
+    "pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
+]
+
+[tool.cibuildwheel.linux]
+archs = "x86_64"
+
+[tool.cibuildwheel.macos]
+archs = "auto"
+
+[tool.cibuildwheel.windows]
+archs = "auto64"

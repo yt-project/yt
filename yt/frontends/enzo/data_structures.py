@@ -342,7 +342,7 @@ class EnzoHierarchy(GridIndex):
         mylog.info("Finished rebuilding")
 
     def _populate_grid_objects(self):
-        for g, f in zip(self.grids, self.filenames):
+        for g, f in zip(self.grids, self.filenames, strict=True):
             g._prepare_grid()
             g._setup_dx()
             g.set_filename(f[0])
@@ -441,14 +441,15 @@ class EnzoHierarchy(GridIndex):
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
-            starter = np.random.randint(0, 20)
+            rng = np.random.default_rng()
+            starter = rng.integers(0, 20)
             random_sample = np.mgrid[starter : len(self.grids) - 1 : 20j].astype(
                 "int32"
             )
             # We also add in a bit to make sure that some of the grids have
             # particles
             gwp = self.grid_particle_count > 0
-            if np.any(gwp) and not np.any(gwp[(random_sample,)]):
+            if np.any(gwp) and not np.any(gwp[random_sample,]):
                 # We just add one grid.  This is not terribly efficient.
                 first_grid = np.where(gwp)[0][0]
                 random_sample.resize((21,))
@@ -457,7 +458,7 @@ class EnzoHierarchy(GridIndex):
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
             random_sample = np.mgrid[0 : max(len(self.grids), 1)].astype("int32")
-        return self.grids[(random_sample,)]
+        return self.grids[random_sample,]
 
     def _get_particle_type_counts(self):
         try:
@@ -574,7 +575,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         for i, grid in enumerate(grids):
             if (i % 1e4) == 0:
                 mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
-            grid.filename = "Inline_processor_%07i" % (self.grid_procs[i, 0])
+            grid.filename = f"Inline_processor_{self.grid_procs[i, 0]:07}"
             grid._prepare_grid()
             grid._setup_dx()
             grid.proc_num = self.grid_procs[i, 0]
@@ -608,12 +609,13 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         my_rank = self.comm.rank
         my_grids = self.grids[self.grid_procs.ravel() == my_rank]
         if len(my_grids) > 40:
-            starter = np.random.randint(0, 20)
+            rng = np.random.default_rng()
+            starter = rng.integers(0, 20)
             random_sample = np.mgrid[starter : len(my_grids) - 1 : 20j].astype("int32")
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
             random_sample = np.mgrid[0 : max(len(my_grids) - 1, 1)].astype("int32")
-        return my_grids[(random_sample,)]
+        return my_grids[random_sample,]
 
     def _chunk_io(self, dobj, cache=True, local_only=False):
         gfiles = defaultdict(list)
@@ -664,7 +666,7 @@ class EnzoDataset(Dataset):
     Enzo-specific output, set at a fixed time.
     """
 
-    _load_requirements = ["h5py", "libconf"]
+    _load_requirements = ["h5py"]
     _index_class = EnzoHierarchy
     _field_info_class = EnzoFieldInfo
 
@@ -1015,9 +1017,8 @@ class EnzoDatasetInMemory(EnzoDataset):
 
     def _parse_parameter_file(self):
         enzo = self._obtain_enzo()
-        self._input_filename = "cycle%08i" % (
-            enzo.yt_parameter_file["NumberOfPythonCalls"]
-        )
+        ncalls = enzo.yt_parameter_file["NumberOfPythonCalls"]
+        self._input_filename = f"cycle{ncalls:08d}"
         self.parameters["CurrentTimeIdentifier"] = time.time()
         self.parameters.update(enzo.yt_parameter_file)
         self.conversion_factors.update(enzo.conversion_factors)

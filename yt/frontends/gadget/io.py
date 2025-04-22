@@ -230,7 +230,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 else:
                     data = g[field][si:ei][mask, ...]
 
-                data_return[(ptype, field)] = data
+                data_return[ptype, field] = data
 
         f.close()
         return data_return
@@ -292,10 +292,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     # Vector of metallicity or passive scalar
                     for i in range(g[k].shape[1]):
                         key = "MetalMasses" if k == "Mass of Metals" else k
-                        fields.append((ptype, "%s_%02i" % (key, i)))
+                        fields.append((ptype, f"{key}_{i:02}"))
                 elif k == "ChemistryAbundances" and len(g[k].shape) > 1:
                     for i in range(g[k].shape[1]):
-                        fields.append((ptype, "Chemistry_%03i" % i))
+                        fields.append((ptype, f"Chemistry_{i:03}"))
                 else:
                     kk = k
                     if not hasattr(g[kk], "shape"):
@@ -424,7 +424,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     f.seek(poff[ptype, field], os.SEEK_SET)
                     data = self._read_field_from_file(f, tp[ptype], field)
                     data = data[mask, ...]
-                return_data[(ptype, field)] = data
+                return_data[ptype, field] = data
         f.close()
         return return_data
 
@@ -509,7 +509,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             pos = offset
         fs = self._field_size
         offsets = {}
-        pcount = dict(zip(self._ptypes, pcount))
+        pcount = dict(zip(self._ptypes, pcount, strict=True))
 
         for field in self._fields:
             if field == "ParticleIDs" and self.ds.long_ids:
@@ -536,7 +536,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 if field in self._vector_fields:
                     start_offset *= self._vector_fields[field]
                 pos += start_offset
-                offsets[(ptype, field)] = pos
+                offsets[ptype, field] = pos
                 any_ptypes = True
                 remain_offset = (pcount[ptype] - df_start) * fs
                 if field in self._vector_fields:

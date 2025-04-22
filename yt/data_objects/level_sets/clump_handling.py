@@ -167,7 +167,7 @@ class Clump(TreeContainer):
                 [f"obj['contours_{contour_key}'] == {cid}"],
                 {(f"contour_slices_{contour_key}"): cids},
             )
-            if new_clump[("index", "ones")].size == 0:
+            if new_clump["index", "ones"].size == 0:
                 # This is to skip possibly duplicate clumps.
                 # Using "ones" here will speed things up.
                 continue
@@ -253,7 +253,7 @@ class Clump(TreeContainer):
         """
 
         ds = self.data.ds
-        keyword = "%s_clump_%d" % (str(ds), self.clump_id)
+        keyword = f"{ds}_clump_{self.clump_id}"
         filename = get_output_filename(filename, keyword, ".h5")
 
         # collect clump info fields
@@ -289,7 +289,7 @@ class Clump(TreeContainer):
             else:
                 clump_info[ci] = np.array(clump_info[ci])
 
-        ftypes = {ci: "clump" for ci in clump_info}
+        ftypes = dict.fromkeys(clump_info, "clump")
 
         # collect data fields
         if fields is not None:
@@ -334,9 +334,9 @@ class Clump(TreeContainer):
                                 np.int64
                             )
                             ftypes[cfield] = ptype
-                        field_data[cfield][
-                            clump.data._part_ind(ptype)
-                        ] = clump.contour_id
+                        field_data[cfield][clump.data._part_ind(ptype)] = (
+                            clump.contour_id
+                        )
 
             if need_grid_positions:
                 for ax in "xyz":
@@ -430,7 +430,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
             else:
                 mylog.info(
                     "Eliminating invalid, childless clump with %d cells.",
-                    len(child.data[("index", "ones")]),
+                    len(child.data["index", "ones"]),
                 )
         if len(these_children) > 1:
             mylog.info(

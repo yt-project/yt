@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import Optional
 
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
@@ -40,7 +39,7 @@ class LineBuffer:
     Examples
     --------
     >>> lb = yt.LineBuffer(ds, (0.25, 0, 0), (0.25, 1, 0), 100)
-    >>> lb[("all", "u")].max()
+    >>> lb["all", "u"].max()
     0.11562424257143075 dimensionless
 
     """
@@ -148,6 +147,7 @@ class LinePlot(BaseLinePlot):
     >>> plot.save()
 
     """
+
     _plot_dict_type = LinePlotDictionary
     _plot_type = "line_plot"
 
@@ -162,7 +162,7 @@ class LinePlot(BaseLinePlot):
         end_point,
         npoints,
         figure_size=None,
-        fontsize: Optional[float] = None,
+        fontsize: float | None = None,
         field_labels=None,
     ):
         """

@@ -433,7 +433,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-9.0, 0.01, [1.0, 0.0, 0.0, 1.0])
         """
-        for tf, v in zip(self.funcs, height):
+        for tf, v in zip(self.funcs, height, strict=True):
             tf.add_gaussian(location, width, v)
         self.features.append(
             (
@@ -474,7 +474,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_step(-6.0, -5.0, [1.0, 1.0, 1.0, 1.0])
         """
-        for tf, v in zip(self.funcs, value):
+        for tf, v in zip(self.funcs, value, strict=True):
             tf.add_step(start, stop, v)
         self.features.append(
             (
@@ -890,7 +890,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             alpha = np.ones(N, dtype="float64")
         elif alpha is None and not self.grey_opacity:
             alpha = np.logspace(-3, 0, N)
-        for v, a in zip(np.mgrid[mi : ma : N * 1j], alpha):
+        for v, a in zip(np.mgrid[mi : ma : N * 1j], alpha, strict=True):
             self.sample_colormap(v, w, a, colormap=colormap, col_bounds=col_bounds)
 
     def get_colormap_image(self, height, width):
@@ -910,8 +910,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     def __repr__(self):
         disp = (
             "<Color Transfer Function Object>:\n"
-            + "x_bounds:[%3.2g, %3.2g] nbins:%i features:\n"
-            % (self.x_bounds[0], self.x_bounds[1], self.nbins)
+            f"x_bounds:[{self.x_bounds[0]:3.2g}, {self.x_bounds[1]:3.2g}] "
+            f"nbins:{self.nbins} features:\n"
         )
         for f in self.features:
             disp += f"\t{str(f)}\n"

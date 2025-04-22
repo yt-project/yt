@@ -1,14 +1,13 @@
 import base64
-import builtins
 import os
-from collections.abc import Iterable
 from functools import wraps
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import matplotlib
 import numpy as np
 from more_itertools.more import always_iterable, unzip
 
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt._typing import FieldKey
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
@@ -27,6 +26,11 @@ from .plot_container import (
     invalidate_plot,
     validate_plot,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from yt._typing import FieldKey
 
 
 def invalidate_profile(f):
@@ -178,6 +182,7 @@ class ProfilePlot(BaseLinePlot):
     Use set_line_property to change line properties of one or all profiles.
 
     """
+
     _default_figure_size = (10.0, 8.0)
     _default_font_size = 18.0
 
@@ -205,7 +210,7 @@ class ProfilePlot(BaseLinePlot):
         y_fields = list(iter_fields(y_fields))
         logs = {x_field: bool(x_log)}
         if isinstance(y_log, bool):
-            y_log = {y_field: y_log for y_field in y_fields}
+            y_log = dict.fromkeys(y_fields, y_log)
 
         if isinstance(data_source.ds, YTProfileDataset):
             profiles = [data_source.ds.profile]
@@ -269,9 +274,9 @@ class ProfilePlot(BaseLinePlot):
     @validate_plot
     def save(
         self,
-        name: Optional[str] = None,
-        suffix: Optional[str] = None,
-        mpl_kwargs: Optional[dict[str, Any]] = None,
+        name: str | None = None,
+        suffix: str | None = None,
+        mpl_kwargs: dict[str, Any] | None = None,
     ):
         r"""
         Saves a 1d profile plot.
@@ -292,7 +297,7 @@ class ProfilePlot(BaseLinePlot):
         # Mypy is hardly convinced that we have a `profiles` attribute
         # at this stage, so we're lasily going to deactivate it locally
         unique = set(self.plots.values())
-        iters: Iterable[tuple[Union[int, FieldKey], PlotMPL]]
+        iters: Iterable[tuple[int | FieldKey, PlotMPL]]
         if len(unique) < len(self.plots):
             iters = enumerate(sorted(unique))
         else:
@@ -341,7 +346,7 @@ class ProfilePlot(BaseLinePlot):
         >>> pp.show()
 
         """
-        if "__IPYTHON__" in dir(builtins):
+        if IS_IPYTHON:
             from IPython.display import display
 
             display(self)
@@ -911,6 +916,7 @@ class PhasePlot(ImagePlotContainer):
     >>> plot.annotate_title("This is a phase plot")
 
     """
+
     x_log = None
     y_log = None
     plot_title = None
@@ -1220,9 +1226,7 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @validate_plot
-    def save(
-        self, name: Optional[str] = None, suffix: Optional[str] = None, mpl_kwargs=None
-    ):
+    def save(self, name: str | None = None, suffix: str | None = None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
 

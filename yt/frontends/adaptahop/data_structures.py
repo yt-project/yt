@@ -6,11 +6,9 @@ Data structures for AdaptaHOP frontend.
 
 """
 
-
 import os
 import re
 from itertools import product
-from typing import Optional
 
 import numpy as np
 
@@ -57,8 +55,8 @@ class AdaptaHOPDataset(Dataset):
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm
     _code_length_to_Mpc = (1.0 * Mpc).to_value("cm") / 3.08e24
-    _header_attributes: Optional[ATTR_T] = None
-    _halo_attributes: Optional[ATTR_T] = None
+    _header_attributes: ATTR_T | None = None
+    _halo_attributes: ATTR_T | None = None
 
     def __init__(
         self,
@@ -108,7 +106,7 @@ class AdaptaHOPDataset(Dataset):
                     pass
 
             if not ok:
-                raise OSError("Could not read headers from file %s" % filename)
+                raise OSError(f"Could not read headers from file {filename}")
 
             istart = fpu.tell()
             fpu.seek(0, 2)
@@ -131,7 +129,7 @@ class AdaptaHOPDataset(Dataset):
                     continue
 
         if not ok:
-            raise OSError("Could not guess fields from file %s" % filename)
+            raise OSError(f"Could not guess fields from file {filename}")
 
         self._header_attributes = header_attributes
         self._halo_attributes = attributes
@@ -296,7 +294,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         super().__init__(parent_ds, {})
 
     def __repr__(self):
-        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+        return f"{self.ds}_{self.ptype}_{self.particle_identifier:09}"
 
     def __getitem__(self, key):
         return self.region[key]
@@ -348,7 +346,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
         # Build subregion that only contains halo particles
         reg = sph.cut_region(
-            ['np.in1d(obj[("io", "particle_identity")].astype("int64"), members)'],
+            ['np.isin(obj["io", "particle_identity"].astype("int64"), members)'],
             locals={"members": members, "np": np},
         )
 

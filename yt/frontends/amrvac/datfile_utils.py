@@ -98,7 +98,7 @@ def get_header(istream):
     ]
 
     # Store the values corresponding to the names
-    for val, name in zip(vals, names):
+    for val, name in zip(vals, names, strict=True):
         h[name] = val
     return h
 

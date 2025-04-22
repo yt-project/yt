@@ -100,7 +100,9 @@ def enable_parallelism(suppress_logging: bool = False, communicator=None) -> boo
 
     # if no communicator specified, set to COMM_WORLD
     if communicator is None:
-        communicator = MPI.COMM_WORLD
+        communicator = MPI.COMM_WORLD.Dup()
+    else:
+        communicator = communicator.Dup()
 
     parallel_capable = communicator.size > 1
     if not parallel_capable:
@@ -125,14 +127,12 @@ def enable_parallelism(suppress_logging: bool = False, communicator=None) -> boo
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.
-    f = logging.Formatter(
-        "P%03i %s" % (communicator.rank, yt.utilities.logger.ufstring)
-    )
+    f = logging.Formatter(f"P{communicator.rank:03} {yt.utilities.logger.ufstring}")
     if len(yt.utilities.logger.ytLogger.handlers) > 0:
         yt.utilities.logger.ytLogger.handlers[0].setFormatter(f)
 
     if ytcfg.get("yt", "parallel_traceback"):
-        sys.excepthook = traceback_writer_hook("_%03i" % communicator.rank)
+        sys.excepthook = traceback_writer_hook(f"_{communicator.rank:03}")
     else:
         sys.excepthook = default_mpi_excepthook
 
@@ -446,7 +446,7 @@ class ProcessorPool:
             if is_sequence(size):
                 size, name = size
             else:
-                name = "workgroup_%02i" % i
+                name = f"workgroup_{i:02}"
             pool.add_workgroup(size, name=name)
         for wg in pool.workgroups:
             if rank in wg.ranks:
@@ -1013,10 +1013,8 @@ class Communicator:
     def get_filename(self, prefix, rank=None):
         if not self._distributed:
             return prefix
-        if rank is None:
-            return "%s_%04i" % (prefix, self.comm.rank)
         else:
-            return "%s_%04i" % (prefix, rank)
+            return f"{prefix}_{rank or self.comm.rank:04}"
 
     def is_mine(self, obj):
         if not obj._distributed:

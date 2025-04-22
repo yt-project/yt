@@ -250,7 +250,7 @@ class FITSImageData:
                     self.fields[i] = f"{ftype}_{fname}"
 
         for is_first, _is_last, (i, (name, field)) in mark_ends(
-            enumerate(zip(self.fields, fields))
+            enumerate(zip(self.fields, fields, strict=True))
         ):
             if name not in exclude_fields:
                 this_img = img_data[field]
@@ -345,10 +345,13 @@ class FITSImageData:
                     width = [width] * self.dimensionality
                 if isinstance(width[0], YTQuantity):
                     cdelt = [
-                        wh.to_value(wcs_unit) / n for wh, n in zip(width, self.shape)
+                        wh.to_value(wcs_unit) / n
+                        for wh, n in zip(width, self.shape, strict=True)
                     ]
                 else:
-                    cdelt = [float(wh) / n for wh, n in zip(width, self.shape)]
+                    cdelt = [
+                        float(wh) / n for wh, n in zip(width, self.shape, strict=True)
+                    ]
                 center = img_ctr[: self.dimensionality]
             w.wcs.crpix = 0.5 * (np.array(self.shape) + 1)
             w.wcs.crval = center
@@ -390,7 +393,7 @@ class FITSImageData:
             "magnetic_unit",
         )
         cgs_units = ("cm", "g", "s", "cm/s", "gauss")
-        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
+        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units, strict=True):
             if unit is None:
                 if ds is not None:
                     u = getattr(ds, attr, None)
@@ -1648,6 +1651,7 @@ class FITSOffAxisProjection(FITSImageData):
                 north_vector=north_vector,
                 method=method,
                 weight=weight_field,
+                depth=depth,
             ).swapaxes(0, 1)
 
             if moment == 2:
@@ -1675,6 +1679,7 @@ class FITSOffAxisProjection(FITSImageData):
                     north_vector=north_vector,
                     method=method,
                     weight=weight_field,
+                    depth=depth,
                 ).swapaxes(0, 1)
 
                 buf[key] = compute_stddev_image(buff2, buf[key])

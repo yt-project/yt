@@ -1,7 +1,6 @@
-import builtins
-
 import numpy as np
 
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.yt_array import YTQuantity
@@ -83,8 +82,8 @@ def multi_image_composite(
     Examples
     --------
 
-        >>> red_channel = np.log10(frb[("gas", "temperature")])
-        >>> blue_channel = np.log10(frb[("gas", "density")])
+        >>> red_channel = np.log10(frb["gas", "temperature"])
+        >>> blue_channel = np.log10(frb["gas", "density"])
         >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
     """
@@ -137,7 +136,7 @@ def write_bitmap(bitmap_array, filename, max_val=None, transpose=False):
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3, 4):
         raise RuntimeError(
             "Expecting image array of shape (N,M,3) or "
-            "(N,M,4), received %s" % str(bitmap_array.shape)
+            f"(N,M,4), received {str(bitmap_array.shape)}"
         )
 
     if bitmap_array.dtype != np.uint8:
@@ -198,7 +197,7 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
 
     >>> sl = ds.slice(0, 0.5, "Density")
     >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
-    >>> write_image(frb1[("gas", "density")], "saved.png")
+    >>> write_image(frb1["gas", "density"], "saved.png")
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
@@ -418,7 +417,7 @@ def display_in_notebook(image, max_val=None):
         three channels.
     """
 
-    if "__IPYTHON__" in dir(builtins):
+    if IS_IPYTHON:
         from IPython.core.displaypub import publish_display_data
 
         data = write_bitmap(image, None, max_val=max_val)

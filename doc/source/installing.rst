@@ -32,7 +32,9 @@ Here's a summary for most recent releases
 +------------+------------+----------------+-----------------+
 | yt release | Python 2.7 | Python3 min    | Python3 max     |
 +============+============+================+=================+
-| 4.3.x      | no         | 3.9            | 3.12 (expected) |
+| 4.4.x      | no         | 3.10.3         | 3.13 (expected) |
++------------+------------+----------------|-----------------|
+| 4.3.x      | no         | 3.9.2          | 3.12            |
 +------------+------------+----------------+-----------------+
 | 4.2.x      | no         | 3.8            | 3.11            |
 +------------+------------+----------------+-----------------+
@@ -74,7 +76,6 @@ The latest stable release can be obtained from PyPI with pip
 
 .. code-block:: bash
 
-  $ python -m pip install --upgrade pip
   $ python -m pip install --user yt
 
 
@@ -98,7 +99,6 @@ one can specify them as, for instance
 
 .. code-block:: bash
 
-  $ python -m pip install --upgrade pip
   $ python -m pip install --user "yt[ramses]"
 
 Extra requirements can be combined, separated by commas (say ``yt[ramses,enzo_e]``).
@@ -119,7 +119,6 @@ Then run
 
   $ git clone https://github.com/yt-project/yt
   $ cd yt
-  $ python -m pip install --upgrade pip
   $ python -m pip install --user -e .
 
 

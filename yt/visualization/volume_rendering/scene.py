@@ -1,10 +1,9 @@
-import builtins
 import functools
 from collections import OrderedDict
-from typing import Optional, Union
 
 import numpy as np
 
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.dimensions import length  # type: ignore
@@ -29,7 +28,6 @@ from .zbuffer_array import ZBuffer
 
 
 class Scene:
-
     """A virtual landscape for a volume rendering.
 
     The Scene class is meant to be the primary container for the
@@ -129,7 +127,7 @@ class Scene:
             dictionary.
         """
         if keyname is None:
-            keyname = "source_%02i" % len(self.sources)
+            keyname = f"source_{len(self.sources):02}"
 
         data_sources = (VolumeSource, MeshSource, GridSource)
 
@@ -142,8 +140,8 @@ class Scene:
             lens_str = str(self.camera.lens)
             if "fisheye" in lens_str or "spherical" in lens_str:
                 raise NotImplementedError(
-                    "Line annotation sources are not supported for %s."
-                    % (type(self.camera.lens).__name__),
+                    "Line annotation sources are not supported "
+                    f"for {type(self.camera.lens).__name__}."
                 )
 
         if isinstance(render_source, (LineSource, PointSource)):
@@ -272,8 +270,8 @@ class Scene:
 
     def save(
         self,
-        fname: Optional[str] = None,
-        sigma_clip: Optional[float] = None,
+        fname: str | None = None,
+        sigma_clip: float | None = None,
         render: bool = True,
     ):
         r"""Saves a rendered image of the Scene to disk.
@@ -362,15 +360,15 @@ class Scene:
 
     def save_annotated(
         self,
-        fname: Optional[str] = None,
-        label_fmt: Optional[str] = None,
+        fname: str | None = None,
+        label_fmt: str | None = None,
         text_annotate=None,
         dpi: int = 100,
-        sigma_clip: Optional[float] = None,
+        sigma_clip: float | None = None,
         render: bool = True,
-        tf_rect: Optional[list[float]] = None,
+        tf_rect: list[float] | None = None,
         *,
-        label_fontsize: Union[float, str] = 10,
+        label_fontsize: float | str = 10,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
@@ -526,7 +524,9 @@ class Scene:
         from matplotlib.figure import Figure
 
         s = im.shape
-        self._render_figure = Figure(figsize=(s[1] / float(dpi), s[0] / float(dpi)))
+        self._render_figure = Figure(
+            figsize=(s[1] / float(dpi), s[0] / float(dpi)), dpi=dpi
+        )
         self._render_figure.clf()
         ax = self._render_figure.add_subplot(111)
         ax.set_position([0, 0, 1, 1])
@@ -908,7 +908,7 @@ class Scene:
         >>> sc.show()
 
         """
-        if "__IPYTHON__" in dir(builtins):
+        if IS_IPYTHON:
             from IPython.display import display
 
             self._sigma_clip = sigma_clip

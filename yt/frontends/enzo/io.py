@@ -20,7 +20,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             return []
         f = h5py.File(grid.filename, mode="r")
         try:
-            group = f["/Grid%08i" % grid.id]
+            group = f[f"/Grid{grid.id:08}"]
         except KeyError:
             group = f
         fields = []
@@ -78,7 +78,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
-                ds = f.get("/Grid%08i" % g.id)
+                ds = f.get(f"/Grid{g.id:08}")
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype == "io":
                         if g.NumberOfParticles == 0:
@@ -159,7 +159,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             data = np.empty(obj.ActiveDimensions[::-1], dtype=self._field_dtype)
         ftype, fname = field
         try:
-            node = "/Grid%08i/%s" % (obj.id, fname)
+            node = f"/Grid{obj.id:08}/{fname}"
             dg = h5py.h5d.open(fid, node.encode("latin-1"))
         except KeyError:
             if fname == "Dark_Matter_Density":
@@ -229,7 +229,7 @@ class IOHandlerInMemory(BaseIOHandler):
                 raise RuntimeError
             g = chunks[0].objs[0]
             for ftype, fname in fields:
-                rv[(ftype, fname)] = self.grids_in_memory[g.id][fname].swapaxes(0, 2)
+                rv[ftype, fname] = self.grids_in_memory[g.id][fname].swapaxes(0, 2)
             return rv
         if size is None:
             size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
@@ -308,7 +308,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
 
     def _read_data_set(self, grid, field):
         f = h5py.File(grid.filename, mode="r")
-        ds = f["/Grid%08i/%s" % (grid.id, field)][:]
+        ds = f[f"/Grid{grid.id:08}/{field}"][:]
         f.close()
         return ds.transpose()[:, :, None]
 
@@ -321,9 +321,9 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
                 raise RuntimeError
             g = chunks[0].objs[0]
             f = h5py.File(g.filename, mode="r")
-            gds = f.get("/Grid%08i" % g.id)
+            gds = f.get(f"/Grid{g.id:08}")
             for ftype, fname in fields:
-                rv[(ftype, fname)] = np.atleast_3d(gds.get(fname)[()].transpose())
+                rv[ftype, fname] = np.atleast_3d(gds.get(fname)[()].transpose())
             f.close()
             return rv
         if size is None:
@@ -346,7 +346,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
                 if f is None:
                     # print("Opening (count) %s" % g.filename)
                     f = h5py.File(g.filename, mode="r")
-                gds = f.get("/Grid%08i" % g.id)
+                gds = f.get(f"/Grid{g.id:08}")
                 if gds is None:
                     gds = f
                 for field in fields:
@@ -364,6 +364,6 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
 
     def _read_data_set(self, grid, field):
         f = h5py.File(grid.filename, mode="r")
-        ds = f["/Grid%08i/%s" % (grid.id, field)][:]
+        ds = f[f"/Grid{grid.id:08}/{field}"][:]
         f.close()
         return ds.transpose()[:, None, None]

@@ -13,7 +13,11 @@ from yt.testing import (
     fake_octree_ds,
     fake_random_ds,
 )
-from yt.visualization.api import OffAxisProjectionPlot, OffAxisSlicePlot
+from yt.visualization.api import (
+    OffAxisProjectionPlot,
+    OffAxisSlicePlot,
+    ProjectionPlot,
+)
 from yt.visualization.image_writer import write_projection
 from yt.visualization.volume_rendering.api import off_axis_projection
 
@@ -85,7 +89,7 @@ def expand_keywords(keywords, full=False):
         keys = sorted(keywords)
         list_of_kwarg_dicts = np.array(
             [
-                dict(zip(keys, prod))
+                dict(zip(keys, prod, strict=True))
                 for prod in it.product(*(keywords[key] for key in keys))
             ]
         )
@@ -195,20 +199,53 @@ class TestOffAxisProjection(unittest.TestCase):
 
 def test_field_cut_off_axis_octree():
     ds = fake_octree_ds()
-    cut = ds.all_data().cut_region('obj[("gas", "density")]>0.5')
+    cut = ds.all_data().cut_region('obj["gas", "density"]>0.5')
     p1 = OffAxisProjectionPlot(ds, [1, 0, 0], ("gas", "density"))
     p2 = OffAxisProjectionPlot(ds, [1, 0, 0], ("gas", "density"), data_source=cut)
-    assert_equal(p2.frb[("gas", "density")].min() == 0.0, True)  # Lots of zeros
-    assert_equal(
-        (p1.frb[("gas", "density")] == p2.frb[("gas", "density")]).all(), False
-    )
+    assert_equal(p2.frb["gas", "density"].min() == 0.0, True)  # Lots of zeros
+    assert_equal((p1.frb["gas", "density"] == p2.frb["gas", "density"]).all(), False)
     p3 = OffAxisSlicePlot(ds, [1, 0, 0], ("gas", "density"))
     p4 = OffAxisSlicePlot(ds, [1, 0, 0], ("gas", "density"), data_source=cut)
-    assert_equal(
-        (p3.frb[("gas", "density")] == p4.frb[("gas", "density")]).all(), False
-    )
-    p4rho = p4.frb[("gas", "density")]
+    assert_equal((p3.frb["gas", "density"] == p4.frb["gas", "density"]).all(), False)
+    p4rho = p4.frb["gas", "density"]
     assert_equal(np.nanmin(p4rho[p4rho > 0.0]) >= 0.5, True)
+
+
+def test_off_axis_octree():
+    np.random.seed(12345)
+    ds = fake_octree_ds()
+    center = [0.4, 0.4, 0.4]
+
+    for weight in [("gas", "cell_mass"), None, ("index", "dx")]:
+        p1 = ProjectionPlot(
+            ds,
+            "x",
+            ("gas", "density"),
+            center=center,
+            width=0.8,
+            weight_field=weight,
+        )
+        p2 = OffAxisProjectionPlot(
+            ds,
+            [1, 0, 0],
+            ("gas", "density"),
+            center=center,
+            width=0.8,
+            weight_field=weight,
+        )
+
+        # Note: due to our implementation, the off-axis projection will have a
+        # slightly blurred cell edges so we can't do an exact comparison
+        v1, v2 = p1.frb["gas", "density"], p2.frb["gas", "density"]
+        diff = (v1 - v2) / (v1 + v2) * 2
+
+        # Make sure the difference has a small bias
+        assert np.mean(diff).max() < 1e-3  # 0.1%
+
+        # Compute 10-90% percentile
+        q10, q90 = np.percentile(diff, q=(10, 90))
+        assert q10 > -0.02  # 2%: little up/down deviations
+        assert q90 < +0.02  # 2%: little up/down deviations
 
 
 def test_offaxis_moment():
@@ -239,10 +276,34 @@ def test_offaxis_moment():
         moment=2,
         buff_size=(400, 400),
     )
-    assert_rel_equal(
-        np.sqrt(
-            p1.frb["gas", "velocity_los_squared"] - p1.frb["gas", "velocity_los"] ** 2
-        ),
-        p2.frb["gas", "velocity_los"],
-        10,
+    ## this failed because some <v**2> - <v>**2 values come out
+    ## marginally < 0, resulting in unmatched NaN values in the
+    ## first assert_rel_equal argument. The compute_stddev_image
+    ## function used in OffAxisProjectionPlot checks for and deals
+    ## with these cases.
+    # assert_rel_equal(
+    #    np.sqrt(
+    #        p1.frb["gas", "velocity_los_squared"] - p1.frb["gas", "velocity_los"] ** 2
+    #    ),
+    #    p2.frb["gas", "velocity_los"],
+    #    10,
+    # )
+    p1_expsq = p1.frb["gas", "velocity_los_squared"]
+    p1_sqexp = p1.frb["gas", "velocity_los"] ** 2
+    # set values to zero that have <v>**2 - <v>**2 < 0, but
+    # the absolute values are much smaller than the smallest
+    # postive values of <v>**2 and <v>**2
+    # (i.e., the difference is pretty much zero)
+    mindiff = 1e-10 * min(
+        np.min(p1_expsq[p1_expsq > 0]), np.min(p1_sqexp[p1_sqexp > 0])
     )
+    # print(mindiff)
+    safeorbad = np.logical_not(
+        np.logical_and(p1_expsq - p1_sqexp < 0, p1_expsq - p1_sqexp > -1.0 * mindiff)
+    )
+    # avoid errors from sqrt(negative)
+    # sqrt in zeros_like insures correct units
+    p1res = np.zeros_like(np.sqrt(p1_expsq))
+    p1res[safeorbad] = np.sqrt(p1_expsq[safeorbad] - p1_sqexp[safeorbad])
+    p2res = p2.frb["gas", "velocity_los"]
+    assert_rel_equal(p1res, p2res, 10)

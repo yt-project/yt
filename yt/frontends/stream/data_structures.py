@@ -6,7 +6,6 @@ from collections import UserDict
 from functools import cached_property
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Optional
 
 import numpy as np
 from more_itertools import always_iterable
@@ -240,7 +239,7 @@ class StreamHierarchy(GridIndex):
             get_box_grids_level(
                 self.grid_left_edge[i, :],
                 self.grid_right_edge[i, :],
-                self.grid_levels[i] + 1,
+                self.grid_levels[i].item() + 1,
                 self.grid_left_edge,
                 self.grid_right_edge,
                 self.grid_levels,
@@ -333,7 +332,7 @@ class StreamDataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
         *,
-        axis_order: Optional[AxisOrder] = None,
+        axis_order: AxisOrder | None = None,
     ):
         self.fluid_types += ("stream",)
         self.geometry = Geometry(geometry)
@@ -422,7 +421,7 @@ class StreamDataset(Dataset):
             "magnetic_unit",
         )
         cgs_units = ("cm", "g", "s", "cm/s", "gauss")
-        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
+        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units, strict=True):
             if isinstance(unit, str):
                 if unit == "code_magnetic":
                     # If no magnetic unit was explicitly specified
@@ -549,7 +548,7 @@ class StreamParticlesDataset(StreamDataset):
         unit_system="cgs",
         default_species_fields=None,
         *,
-        axis_order: Optional[AxisOrder] = None,
+        axis_order: AxisOrder | None = None,
     ):
         super().__init__(
             stream_handler,
@@ -560,10 +559,14 @@ class StreamParticlesDataset(StreamDataset):
             axis_order=axis_order,
         )
         fields = list(stream_handler.fields["stream_file"].keys())
-        # This is the current method of detecting SPH data.
-        # This should be made more flexible in the future.
-        if ("io", "density") in fields and ("io", "smoothing_length") in fields:
-            self._sph_ptypes = ("io",)
+        sph_ptypes = []
+        for ptype in self.particle_types:
+            if (ptype, "density") in fields and (ptype, "smoothing_length") in fields:
+                sph_ptypes.append(ptype)
+        if len(sph_ptypes) == 1:
+            self._sph_ptypes = tuple(sph_ptypes)
+        elif len(sph_ptypes) > 1:
+            raise ValueError("Multiple SPH particle types are currently not supported!")
 
     def add_sph_fields(self, n_neighbors=32, kernel="cubic", sph_ptype="io"):
         """Add SPH fields for the specified particle type.
@@ -624,7 +627,7 @@ class StreamParticlesDataset(StreamDataset):
         if not exists(fname):
             hsml = generate_smoothing_length(pos[kdtree.idx], kdtree, n_neighbors)
             hsml = hsml[order]
-            data[(sph_ptype, "smoothing_length")] = (hsml, l_unit)
+            data[sph_ptype, "smoothing_length"] = (hsml, l_unit)
         else:
             hsml = ad[sph_ptype, fname].to(l_unit).d
 
@@ -639,7 +642,7 @@ class StreamParticlesDataset(StreamDataset):
                 kernel_name=kernel,
             )
             dens = dens[order]
-            data[(sph_ptype, "density")] = (dens, d_unit)
+            data[sph_ptype, "density"] = (dens, d_unit)
 
         # Add fields
         self._sph_ptypes = (sph_ptype,)
@@ -762,7 +765,7 @@ class StreamOctreeSubset(OctreeSubset):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
-        self.oct_handler = oct_handler
+        self._oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = "io"
@@ -779,6 +782,10 @@ class StreamOctreeSubset(OctreeSubset):
                 )
             base_grid = StreamOctreeSubset(base_region, ds, oct_handler, num_zones)
             self._base_grid = base_grid
+
+    @property
+    def oct_handler(self):
+        return self._oct_handler
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         try:

@@ -89,7 +89,7 @@ def get_root_block_id(block, min_dim=3):
 
 def get_child_index(anc_id, desc_id):
     cid = ""
-    for aind, dind in zip(anc_id.split("_"), desc_id.split("_")):
+    for aind, dind in zip(anc_id.split("_"), desc_id.split("_"), strict=True):
         cid += dind[len(aind)]
     cid = int(cid, 2)
     return cid
@@ -100,7 +100,7 @@ def is_parent(anc_block, desc_block):
     if (len(desc_block.replace(":", "")) - len(anc_block.replace(":", ""))) / dim != 1:
         return False
 
-    for aind, dind in zip(anc_block.split("_"), desc_block.split("_")):
+    for aind, dind in zip(anc_block.split("_"), desc_block.split("_"), strict=True):
         if not dind.startswith(aind):
             return False
     return True

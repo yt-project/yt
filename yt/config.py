@@ -26,7 +26,6 @@ ytcfg_defaults["yt"] = {
     "test_storage_dir": "/does/not/exist",
     "test_data_dir": "/does/not/exist",
     "enzo_db": "",
-    "notebook_password": "",
     "answer_testing_tolerance": 3,
     "answer_testing_bitwise": False,
     "gold_standard_filename": "gold311",
@@ -46,7 +45,6 @@ ytcfg_defaults["yt"] = {
     "ray_tracing_engine": "yt",
     "internals": {
         "within_testing": False,
-        "within_pytest": False,
         "parallel": False,
         "strict_requires": False,
         "global_parallel_rank": 0,

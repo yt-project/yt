@@ -165,9 +165,9 @@ class ChimeraUNSIndex(UnstructuredIndex):
                 for i in f["abundance"]
                 if np.shape(f["abundance"][i]) == np.shape(f["fluid"]["rho_c"])
             ]
-            e_rms = [("chimera", f"e_rms_{i+1}") for i in range(4)]
-            lumin = [("chimera", f"lumin_{i+1}") for i in range(4)]
-            num_lumin = [("chimera", f"num_lumin_{i+1}") for i in range(4)]
+            e_rms = [("chimera", f"e_rms_{i + 1}") for i in range(4)]
+            lumin = [("chimera", f"lumin_{i + 1}") for i in range(4)]
+            num_lumin = [("chimera", f"num_lumin_{i + 1}") for i in range(4)]
             a_name = [
                 ("chimera", i.decode("utf-8").strip()) for i in f["abundance"]["a_name"]
             ]

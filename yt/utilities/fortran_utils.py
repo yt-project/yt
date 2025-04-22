@@ -73,11 +73,9 @@ def read_attrs(f, attrs, endian="="):
                 raise OSError(
                     "An error occurred while reading a Fortran "
                     "record. Record length is not equal to expected "
-                    "length: %s %s",
-                    len(a),
-                    len(v),
+                    f"length: {len(a)} {len(v)}"
                 )
-            for k, val in zip(a, v):
+            for k, val in zip(a, v, strict=True):
                 vv[k] = val
         else:
             vv[a] = v
@@ -140,12 +138,9 @@ def read_cattrs(f, attrs, endian="="):
                 raise OSError(
                     "An error occurred while reading a Fortran "
                     "record. Record length is not equal to expected "
-                    "length: %s %s",
-                    len(a),
-                    len(v),
+                    f"length: {len(a)} {len(v)}"
                 )
-
-            for k, val in zip(a, v):
+            for k, val in zip(a, v, strict=True):
                 vv[k] = val
         else:
             vv[a] = v

@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import assert_equal
 
 import yt
-from yt.frontends.ramses.hilbert import get_cpu_list, hilbert3d
+from yt.frontends.ramses.hilbert import get_cpu_list_cuboid, hilbert3d
 from yt.testing import requires_file
 
 
@@ -20,7 +20,7 @@ def test_hilbert3d():
     ]
     outputs = [0, 1, 7, 6, 3, 2, 4, 5]
 
-    for i, o in zip(inputs, outputs):
+    for i, o in zip(inputs, outputs, strict=True):
         assert_equal(hilbert3d(i, 3).item(), o)
 
 
@@ -42,8 +42,14 @@ def test_get_cpu_list():
     )
     outputs = ([0, 15], [0, 15], [0, 1, 15], [0, 13, 14, 15], [0])
 
-    for i, o in zip(inputs, outputs):
+    ncpu = ds.parameters["ncpu"]
+    bound_keys = np.array(
+        [ds.hilbert_indices[icpu][0] for icpu in range(1, ncpu + 1)]
+        + [ds.hilbert_indices[ds.parameters["ncpu"]][1]],
+        dtype="float64",
+    )
+    for i, o in zip(inputs, outputs, strict=True):
         bbox = i
-        ls = get_cpu_list(ds, bbox)
+        ls = list(get_cpu_list_cuboid(ds, bbox, bound_keys=bound_keys))
         assert len(ls) > 0
         assert all(np.array(o) == np.array(ls))

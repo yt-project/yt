@@ -1,6 +1,5 @@
 # distutils: include_dirs = LIB_DIR
 # distutils: libraries = STD_LIBS
-# distutils: sources = FIXED_INTERP
 # distutils: language = c++
 # distutils: extra_compile_args = CPP14_FLAG
 # distutils: extra_link_args = CPP14_FLAG
@@ -19,8 +18,6 @@ cimport numpy as np
 from libc.math cimport atan2, cos, fabs, floor, sin, sqrt
 
 from yt.utilities.lib.fp_utils cimport fmin
-
-from .fixed_interpolator cimport *
 
 
 @cython.boundscheck(False)

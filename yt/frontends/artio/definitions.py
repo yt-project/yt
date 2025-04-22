@@ -27,7 +27,7 @@ yt_to_art = {
     "stars": "STAR",
     "nbody": "N-BODY",
 }
-art_to_yt = dict(zip(yt_to_art.values(), yt_to_art.keys()))
+art_to_yt = dict(zip(yt_to_art.values(), yt_to_art.keys(), strict=True))
 
 
 class ARTIOconstants:

@@ -404,6 +404,23 @@ def test_sphere_callback():
         assert_fname(p.save(prefix)[0])
 
 
+def test_invalidated_annotations():
+    # check that annotate_sphere and annotate_arrow succeed on re-running after
+    # an operation that invalidates the plot (set_font_size), see
+    # https://github.com/yt-project/yt/issues/4698
+
+    ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
+    p = SlicePlot(ds, "z", ("gas", "density"))
+    p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
+    p.set_font_size(24)
+    p.render()
+
+    p = SlicePlot(ds, "z", ("gas", "density"))
+    p.annotate_arrow([0.5, 0.5, 0.5])
+    p.set_font_size(24)
+    p.render()
+
+
 def test_text_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
@@ -1071,7 +1088,7 @@ def test_accepts_all_fields_decorator():
     plot = SlicePlot(ds, "z", fields=fields)
 
     # mocking a class method
-    plot.fake_attr = {f: "not set" for f in fields}
+    plot.fake_attr = dict.fromkeys(fields, "not set")
 
     @accepts_all_fields
     def set_fake_field_attribute(self, field, value):

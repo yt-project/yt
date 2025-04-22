@@ -2,7 +2,7 @@ import abc
 import sys
 from collections import defaultdict
 from numbers import Number
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import matplotlib
 import numpy as np
@@ -12,6 +12,8 @@ from unyt.exceptions import UnitConversionError
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import AlphaT
 from yt.data_objects.image_array import ImageArray
+from yt.frontends.sph.data_structures import ParticleDataset
+from yt.frontends.stream.data_structures import StreamParticlesDataset
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import (
     fix_axis,
@@ -20,9 +22,11 @@ from yt.funcs import (
     iter_fields,
     mylog,
     obj_length,
+    parse_center_array,
     validate_moment,
 )
 from yt.geometry.api import Geometry
+from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -55,10 +59,8 @@ from .plot_container import (
     invalidate_plot,
 )
 
-if sys.version_info >= (3, 10):
-    pass
-else:
-    from yt._maintenance.backports import zip
+if TYPE_CHECKING:
+    from yt.visualization.plot_modifications import PlotCallback
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
@@ -80,21 +82,30 @@ def get_window_parameters(axis, center, width, ds):
     return (bounds, center, display_center)
 
 
-def get_oblique_window_parameters(normal, center, width, ds, depth=None):
+def get_oblique_window_parameters(
+    normal,
+    center,
+    width,
+    ds,
+    depth=None,
+):
     center, display_center = ds.coordinates.sanitize_center(center, axis=None)
     width = ds.coordinates.sanitize_width(normal, width, depth)
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
-        center = (center - ds.domain_left_edge) / ds.domain_width - 0.5
+        # the original dimensionless center messes up off-axis
+        # SPH projections though -> don't use this center there
+        center = (
+            (center - ds.domain_left_edge) / ds.domain_width - 0.5
+        ) * ds.domain_width
         (normal, perp1, perp2) = ortho_find(normal)
         mat = np.transpose(np.column_stack((perp1, perp2, normal)))
         center = np.dot(mat, center)
 
     w = tuple(el.in_units("code_length") for el in width)
     bounds = tuple(((2 * (i % 2)) - 1) * w[i // 2] / 2 for i in range(len(w) * 2))
-
-    return (bounds, center)
+    return bounds, center
 
 
 def get_axes_unit(width, ds):
@@ -212,25 +223,26 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
-        self._frb: Optional[FixedResolutionBuffer] = None
+        self._frb: FixedResolutionBuffer | None = None
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
 
         if origin != "native":
-            if geometry is Geometry.CARTESIAN or geometry is Geometry.SPECTRAL_CUBE:
-                pass
-            elif (
-                geometry is Geometry.CYLINDRICAL
-                or geometry is Geometry.POLAR
-                or geometry is Geometry.SPHERICAL
-                or geometry is Geometry.GEOGRAPHIC
-                or geometry is Geometry.INTERNAL_GEOGRAPHIC
-            ):
-                mylog.info("Setting origin='native' for %s geometry.", geometry)
-                origin = "native"
-            else:
-                assert_never(geometry)
+            match geometry:
+                case Geometry.CARTESIAN | Geometry.SPECTRAL_CUBE:
+                    pass
+                case (
+                    Geometry.CYLINDRICAL
+                    | Geometry.POLAR
+                    | Geometry.SPHERICAL
+                    | Geometry.GEOGRAPHIC
+                    | Geometry.INTERNAL_GEOGRAPHIC
+                ):
+                    mylog.info("Setting origin='native' for %s geometry.", geometry)
+                    origin = "native"
+                case _:
+                    assert_never(geometry)
 
         self.origin = origin
         if self.data_source.center is not None and not oblique:
@@ -329,7 +341,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         # At this point the frb has the valid bounds, size, aliasing, etc.
         if old_fields is not None:
             # Restore the old fields
-            for key, units in zip(old_fields, old_units):
+            for key, units in zip(old_fields, old_units, strict=False):
                 self._frb.render(key)
                 equiv = self._equivalencies[key]
                 if equiv[0] is None:
@@ -852,8 +864,8 @@ class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
-    _frb_generator: Optional[type[FixedResolutionBuffer]] = None
-    _plot_type: Optional[str] = None
+    _frb_generator: type[FixedResolutionBuffer] | None = None
+    _plot_type: str | None = None
 
     def __init__(self, *args, **kwargs) -> None:
         if self._frb_generator is None:
@@ -868,7 +880,6 @@ class PWViewerMPL(PlotWindow):
         # the filter methods for the present class are defined only when
         # fixed_resolution_filters is imported, so we need to guarantee
         # that it happens no later than instantiation
-        from yt.visualization.plot_modifications import PlotCallback
 
         self._callbacks: list[PlotCallback] = []
 
@@ -1195,9 +1206,9 @@ class PWViewerMPL(PlotWindow):
             if colorbar_label is None:
                 colorbar_label = image.info["label"]
                 if getattr(self, "moment", 1) == 2:
-                    colorbar_label = "%s \\rm{Standard Deviation}" % colorbar_label
+                    colorbar_label = f"{colorbar_label} \\rm{{Standard Deviation}}"
                 if hasattr(self, "projected"):
-                    colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
+                    colorbar_label = f"$\\rm{{Projected }}$ {colorbar_label}"
                 if units is not None and units != "":
                     colorbar_label += _get_units_label(units)
 
@@ -1247,7 +1258,7 @@ class PWViewerMPL(PlotWindow):
         )
 
     @invalidate_plot
-    def clear_annotations(self, index: Optional[int] = None):
+    def clear_annotations(self, index: int | None = None):
         """
         Clear callbacks from the plot.  If index is not set, clear all
         callbacks.  If index is set, clear that index (ie 0 is the first one
@@ -1382,7 +1393,7 @@ class NormalPlot:
     """
 
     @staticmethod
-    def sanitize_normal_vector(ds, normal) -> Union[str, np.ndarray]:
+    def sanitize_normal_vector(ds, normal) -> str | np.ndarray:
         """Return the name of a cartesian axis whener possible,
         or a 3-element 1D ndarray of float64 in any other valid case.
         Fail with a descriptive error message otherwise.
@@ -1785,6 +1796,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     >>> p.save("sliceplot")
 
     """
+
     _plot_type = "Slice"
     _frb_generator = FixedResolutionBuffer
 
@@ -1817,9 +1829,12 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
         axis = fix_axis(normal, ds)
+        # print('center at SlicePlot init: ', center)
+        # print('current domain left edge: ', ds.domain_left_edge)
         (bounds, center, display_center) = get_window_parameters(
             axis, center, width, ds
         )
+        # print('center after get_window_parameters: ', center)
         if field_parameters is None:
             field_parameters = {}
 
@@ -2011,6 +2026,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     >>> p = AxisAlignedProjectionPlot(ds, "z", ("gas", "density"), width=(20, "kpc"))
 
     """
+
     _plot_type = "Projection"
     _frb_generator = FixedResolutionBuffer
 
@@ -2216,7 +2232,9 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
                 f"off-axis slices are not supported for {ds.geometry!r} geometry\n"
                 f"currently supported geometries: {self._supported_geometries!r}"
             )
-
+        # bounds are in cutting plane coordinates, centered on 0:
+        # [xmin, xmax, ymin, ymax]. Can derive width/height back
+        # from these. unit is code_length
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, ds)
         if field_parameters is None:
             field_parameters = {}
@@ -2271,6 +2289,7 @@ class OffAxisProjectionDummyDataSource:
         le=None,
         re=None,
         north_vector=None,
+        depth=None,
         method="integrate",
         data_source=None,
         *,
@@ -2282,6 +2301,7 @@ class OffAxisProjectionDummyDataSource:
         self.axis = None  # always true for oblique data objects
         self.normal_vector = normal_vector
         self.width = width
+        self.depth = depth
         if data_source is None:
             self.dd = ds.all_data()
         else:
@@ -2365,7 +2385,8 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
     depth : A tuple or a float
         A tuple containing the depth to project through and the string
         key of the unit: (width, 'unit'). If set to a float, code units
-        are assumed
+        are assumed. In not set, then a depth equal to the diagonal of
+        the domain width plus a small margin will be used.
     weight_field : string
         The name of the weighting field.  Set to None for no weight.
     max_level: int
@@ -2407,6 +2428,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         used. Effectively sets a resolution limit to the image if buff_size is
         smaller than the finest gridding.
     """
+
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
     _supported_geometries = ("cartesian", "spectral_cube")
@@ -2418,7 +2440,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         fields,
         center="center",
         width=None,
-        depth=(1, "1"),
+        depth=None,
         axes_unit=None,
         weight_field=None,
         max_level=None,
@@ -2436,22 +2458,65 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
     ):
         if ds.geometry not in self._supported_geometries:
             raise NotImplementedError(
-                f"off-axis slices are not supported for {ds.geometry!r} geometry\n"
-                f"currently supported geometries: {self._supported_geometries!r}"
+                "off-axis slices are not supported"
+                f" for {ds.geometry!r} geometry\n"
+                "currently supported geometries:"
+                f" {self._supported_geometries!r}"
             )
 
+        if depth is None:
+            # off-axis projection, depth not specified
+            # -> set 'large enough' depth using half the box diagonal + margin
+            depth = np.linalg.norm(ds.domain_width.in_units("code_length")) * 1.0001
+        depth = ds.coordinates.sanitize_depth(depth)[0]
+
+        # center_rot normalizes the center to (0,0),
+        # units match bounds
+        # for SPH data, we want to input the original center
+        # the cython backend handles centering to this point and
+        # rotation.
+        # get3bounds gets a depth 0.5 * diagonal + margin in the
+        # depth=None case.
         (bounds, center_rot) = get_oblique_window_parameters(
-            normal, center, width, ds, depth=depth
+            normal,
+            center,
+            width,
+            ds,
+            depth=depth,
         )
+        # will probably fail if you try to project an SPH and non-SPH
+        # field in a single call
+        # checks for SPH fields copied from the
+        # _ortho_pixelize method in cartesian_coordinates.py
+
+        ## data_source might be None here
+        ## (OffAxisProjectionDummyDataSource gets used later)
+        if data_source is None:
+            data_source = ds.all_data()
+        field = data_source._determine_fields(fields)[0]
+        finfo = data_source.ds.field_info[field]
+        is_sph_field = finfo.is_sph_field
+        particle_datasets = (ParticleDataset, StreamParticlesDataset)
+
+        dom_width = data_source.ds.domain_width
+        cubic_domain = dom_width.max() == dom_width.min()
+
+        if (isinstance(data_source.ds, particle_datasets) and is_sph_field) or (
+            isinstance(data_source.ds.index, OctreeIndex) and cubic_domain
+        ):
+            center_use = parse_center_array(center, ds=data_source.ds, axis=None)
+        else:
+            center_use = center_rot
         fields = list(iter_fields(fields))[:]
-        oap_width = ds.arr(
-            (bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
-        )
+        # oap_width = ds.arr(
+        #    (bounds[1] - bounds[0],
+        #     bounds[3] - bounds[2])
+        # )
         OffAxisProj = OffAxisProjectionDummyDataSource(
-            center_rot,
+            center_use,
             ds,
             normal,
-            oap_width,
+            width,
             fields,
             interpolated,
             weight=weight_field,
@@ -2460,6 +2525,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             le=le,
             re=re,
             north_vector=north_vector,
+            depth=depth,
             method=method,
             data_source=data_source,
             moment=moment,
@@ -2668,25 +2734,20 @@ def plot_2d(
     """
     if ds.dimensionality != 2:
         raise RuntimeError("plot_2d only plots 2D datasets!")
-    if (
-        ds.geometry is Geometry.CARTESIAN
-        or ds.geometry is Geometry.POLAR
-        or ds.geometry is Geometry.SPECTRAL_CUBE
-    ):
-        axis = "z"
-    elif ds.geometry is Geometry.CYLINDRICAL:
-        axis = "theta"
-    elif ds.geometry is Geometry.SPHERICAL:
-        axis = "phi"
-    elif (
-        ds.geometry is Geometry.GEOGRAPHIC
-        or ds.geometry is Geometry.INTERNAL_GEOGRAPHIC
-    ):
-        raise NotImplementedError(
-            f"plot_2d does not yet support datasets with {ds.geometry} geometries"
-        )
-    else:
-        assert_never(ds.geometry)
+    match ds.geometry:
+        case Geometry.CARTESIAN | Geometry.POLAR | Geometry.SPECTRAL_CUBE:
+            axis = "z"
+        case Geometry.CYLINDRICAL:
+            axis = "theta"
+        case Geometry.SPHERICAL:
+            axis = "phi"
+        case Geometry.GEOGRAPHIC | Geometry.INTERNAL_GEOGRAPHIC:
+            raise NotImplementedError(
+                f"plot_2d does not yet support datasets with {ds.geometry} geometries"
+            )
+        case _:
+            assert_never(ds.geometry)
+
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
     if not isinstance(center, str) and obj_length(center) == 2:

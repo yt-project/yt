@@ -7,7 +7,8 @@ on:
   pull_request:
     paths:
       - yt/**/*.py
-      - setup.cfg
+      - pyproject.toml
+      - requirements/typecheck.txt
       - .github/workflows/type-checking.yaml
   workflow_dispatch:
 
@@ -27,17 +28,17 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         # run with oldest supported python version
         # so that we always get compatible versions of
         # core dependencies at type-check time
-        python-version: '3.9'
+        python-version: '3.10'
 
     - name: Build
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install -e .[typecheck]
+        python3 -m pip install -e . -r requirements/typecheck.txt
 
     - run: python -m pip list
 

@@ -1,8 +1,7 @@
 # distutils: include_dirs = LIB_DIR
 # distutils: extra_compile_args = CPP14_FLAG OMP_ARGS
 # distutils: extra_link_args = CPP14_FLAG OMP_ARGS
-# distutils: libraries = STD_LIBS
-# distutils: sources = FIXED_INTERP
+# distutils: libraries = STD_LIBS FIXED_INTERP
 # distutils: language = c++
 """
 Image sampler definitions
@@ -37,8 +36,6 @@ from ._octree_raytracing cimport RayInfo, _OctreeRayTracing
 
 cdef extern from "platform_dep.h":
     long int lrint(double x) noexcept nogil
-
-DEF Nch = 4
 
 from cython.parallel import parallel, prange
 

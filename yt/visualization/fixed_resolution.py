@@ -1,7 +1,7 @@
 import sys
 import weakref
 from functools import partial
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -17,7 +17,7 @@ from yt.utilities.lib.api import (  # type: ignore
 )
 from yt.utilities.lib.pixelization_routines import (
     pixelize_cylinder,
-    rotate_particle_coord,
+    rotate_particle_coord_pib,
 )
 from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -77,11 +77,12 @@ class FixedResolutionBuffer:
 
     >>> proj = ds.proj(0, ("gas", "density"))
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
-    >>> print(frb1[("gas", "density")].max())
+    >>> print(frb1["gas", "density"].max())
     1.0914e-9 g/cm**3
-    >>> print(frb1[("gas", "temperature")].max())
+    >>> print(frb1["gas", "temperature"].max())
     104923.1 K
     """
+
     _exclude_fields = (
         "pz",
         "pdz",
@@ -115,7 +116,7 @@ class FixedResolutionBuffer:
         antialias=True,
         periodic=False,
         *,
-        filters: Optional[list["FixedResolutionBufferFilter"]] = None,
+        filters: list["FixedResolutionBufferFilter"] | None = None,
     ):
         self.data_source = data_source
         self.ds = data_source.ds
@@ -133,7 +134,7 @@ class FixedResolutionBuffer:
         # the filter methods for the present class are defined only when
         # fixed_resolution_filters is imported, so we need to guarantee
         # that it happens no later than instantiation
-        from yt.visualization.fixed_resolution_filters import (
+        from yt.visualization.fixed_resolution_filters import (  # noqa
             FixedResolutionBufferFilter,
         )
 
@@ -508,7 +509,7 @@ class FixedResolutionBuffer:
         >>> frb = proj.to_frb(1.0, (800, 800))
         >>> fn = frb.save_as_dataset(fields=[("gas", "density")])
         >>> ds2 = yt.load(fn)
-        >>> print(ds2.data[("gas", "density")])
+        >>> print(ds2.data["gas", "density"])
         [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
             7.90820691e-31   7.90820691e-31]
          [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
@@ -535,7 +536,7 @@ class FixedResolutionBuffer:
         else:
             data.update(self.data)
 
-        ftypes = {field: "grid" for field in data}
+        ftypes = dict.fromkeys(data, "grid")
         extra_attrs = {
             arg: getattr(self.data_source, arg, None)
             for arg in self.data_source._con_args + self.data_source._tds_attrs
@@ -629,6 +630,8 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             self.buff_size[1],
         )
         dd = self.data_source
+        # only need the first two for SPH,
+        # but need the third one for other data formats.
         width = self.ds.arr(
             (
                 self.bounds[1] - self.bounds[0],
@@ -648,6 +651,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             no_ghost=dd.no_ghost,
             interpolated=dd.interpolated,
             north_vector=dd.north_vector,
+            depth=dd.depth,
             method=dd.method,
         )
         if self.data_source.moment == 2:
@@ -678,6 +682,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 no_ghost=dd.no_ghost,
                 interpolated=dd.interpolated,
                 north_vector=dd.north_vector,
+                depth=dd.depth,
                 method=dd.method,
             )
             buff = compute_stddev_image(buff2, buff)
@@ -744,7 +749,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 if hasattr(w, "to_value"):
                     w = w.to_value("code_length")
                 wd.append(w)
-            x_data, y_data, *bounds = rotate_particle_coord(
+            x_data, y_data, *bounds = rotate_particle_coord_pib(
                 dd[ftype, "particle_position_x"].to_value("code_length"),
                 dd[ftype, "particle_position_y"].to_value("code_length"),
                 dd[ftype, "particle_position_z"].to_value("code_length"),
@@ -824,7 +829,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             norm = self.ds.quan(dpx * dpy, "code_length**2").in_base()
             buff /= norm.v
             units = data.units / norm.units
-            info["label"] = "%s $\\rm{Density}$" % info["label"]
+            info["label"] += " $\\rm{Density}$"
         else:
             units = data.units
 

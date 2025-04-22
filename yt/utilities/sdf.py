@@ -340,7 +340,7 @@ class SDFRead(UserDict):
                 k, v = var[0], _rev_types[var[1]]
                 to_write.append(k)
                 f.write(f"\t{v} {k};\n")
-            f.write("}[%i];\n" % s.size)
+            f.write(f"}}[{s.size}];\n")
             struct_order.append(to_write)
         f.write("#\x0c\n")
         f.write("# SDF-EOH\n")
@@ -557,7 +557,6 @@ def _shift_periodic(pos, left, right, domain_width):
 
 
 class SDFIndex:
-
     """docstring for SDFIndex
 
     This provides an index mechanism into the full SDF Dataset.
@@ -1142,7 +1141,7 @@ class SDFIndex:
         lbase = 0
         if left_key > self._max_key:
             raise RuntimeError(
-                "Left key is too large. Key: %i Max Key: %i" % (left_key, self._max_key)
+                f"Left key is too large. Key: {left_key} Max Key: {self._max_key}"
             )
         right_key = min(right_key, self._max_key)
 
@@ -1164,7 +1163,7 @@ class SDFIndex:
     def get_key_data(self, key, fields):
         if key > self._max_key:
             raise RuntimeError(
-                "Left key is too large. Key: %i Max Key: %i" % (key, self._max_key)
+                f"Left key is too large. Key: {key} Max Key: {self._max_key}"
             )
         base = self.indexdata["base"][key]
         length = self.indexdata["len"][key] - base
@@ -1176,7 +1175,7 @@ class SDFIndex:
 
     def iter_slice_data(self, slice_dim, slice_index, fields):
         mask, offsets, lengths = self.get_slice_chunks(slice_dim, slice_index)
-        for off, l in zip(offsets, lengths):
+        for off, l in zip(offsets, lengths, strict=True):
             data = {}
             chunk = slice(off, off + l)
             for field in fields:

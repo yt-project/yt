@@ -22,7 +22,7 @@ from yt.visualization.api import ParticlePhasePlot, ParticlePlot, ParticleProjec
 from yt.visualization.tests.test_plotwindow import ATTR_ARGS, WIDTH_SPECS
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 
@@ -267,12 +267,10 @@ class TestParticlePhasePlotSave(unittest.TestCase):
                 particle_phases.append(ParticlePhasePlot.from_profile(pp))
         particle_phases[0]._repr_html_()
 
-        with mock.patch(
-            "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
-        ), mock.patch(
-            "matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"
-        ), mock.patch(
-            "matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"
+        with (
+            mock.patch("matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"),
+            mock.patch("matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"),
+            mock.patch("matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"),
         ):
             for p in particle_phases:
                 for fname in TEST_FLNMS:
@@ -384,12 +382,10 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                 ),
             ]
         particle_projs[0]._repr_html_()
-        with mock.patch(
-            "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
-        ), mock.patch(
-            "matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"
-        ), mock.patch(
-            "matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"
+        with (
+            mock.patch("matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"),
+            mock.patch("matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"),
+            mock.patch("matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"),
         ):
             for p in particle_projs:
                 for fname in TEST_FLNMS:
@@ -435,7 +431,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         test_ds = fake_particle_ds()
         Ls = [[1, 1, 1], [0, 1, -0.5]]
         Ns = [None, [1, 1, 1]]
-        for L, N in zip(Ls, Ns):
+        for L, N in zip(Ls, Ns, strict=True):
             for weight_field in WEIGHT_FIELDS:
                 pplot_off = ParticleProjectionPlot(
                     test_ds,
@@ -460,9 +456,12 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
             ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
             pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
 
-            [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
-            [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
-            [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+            for px, x in zip(plot.xlim, xlim, strict=True):
+                assert_array_almost_equal(px, x, 14)
+            for py, y in zip(plot.ylim, ylim, strict=True):
+                assert_array_almost_equal(py, y, 14)
+            for pw, w in zip(plot.width, pwidth, strict=True):
+                assert_array_almost_equal(pw, w, 14)
 
 
 def test_particle_plot_instance():

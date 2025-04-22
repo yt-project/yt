@@ -69,19 +69,19 @@ def test_clump_finding():
     assert_equal(len(leaf_clumps), 2)
 
     # check some clump fields
-    assert_equal(master_clump.children[0][("gas", "density")][0].size, 1)
+    assert_equal(master_clump.children[0]["gas", "density"][0].size, 1)
     assert_equal(
-        master_clump.children[0][("gas", "density")][0], ad[("gas", "density")].max()
+        master_clump.children[0]["gas", "density"][0], ad["gas", "density"].max()
     )
-    assert_equal(master_clump.children[0][("all", "particle_mass")].size, 1)
+    assert_equal(master_clump.children[0]["all", "particle_mass"].size, 1)
     assert_array_equal(
-        master_clump.children[0][("all", "particle_mass")], ad[("all", "particle_mass")]
+        master_clump.children[0]["all", "particle_mass"], ad["all", "particle_mass"]
     )
-    assert_equal(master_clump.children[1][("gas", "density")][0].size, 1)
+    assert_equal(master_clump.children[1]["gas", "density"][0].size, 1)
     assert_equal(
-        master_clump.children[1][("gas", "density")][0], ad[("gas", "density")].max()
+        master_clump.children[1]["gas", "density"][0], ad["gas", "density"].max()
     )
-    assert_equal(master_clump.children[1][("all", "particle_mass")].size, 0)
+    assert_equal(master_clump.children[1]["all", "particle_mass"].size, 0)
 
     # clean up global registry to avoid polluting other tests
     del clump_info_registry["total_volume"]
@@ -132,7 +132,7 @@ def test_clump_tree_save():
     it2 = np.argsort(mt2).astype("int64")
     assert_array_equal(mt1[it1], mt2[it2])
 
-    for i1, i2 in zip(it1, it2):
+    for i1, i2 in zip(it1, it2, strict=True):
         ct1 = t1[i1]
         ct2 = t2[i2]
         assert_array_equal(ct1["gas", "density"], ct2["grid", "density"])
@@ -163,7 +163,7 @@ def test_clump_field_parameters():
 
     def _also_density(field, data):
         factor = data.get_field_parameter("factor")
-        return factor * data[("gas", "density")]
+        return factor * data["gas", "density"]
 
     ds = data_dir_load(i30)
     ds.add_field(
@@ -191,5 +191,5 @@ def test_clump_field_parameters():
     leaf_clumps_1 = master_clump_1.leaves
     leaf_clumps_2 = master_clump_2.leaves
 
-    for c1, c2 in zip(leaf_clumps_1, leaf_clumps_2):
+    for c1, c2 in zip(leaf_clumps_1, leaf_clumps_2, strict=True):
         assert_array_equal(c1["gas", "density"], c2["gas", "density"])

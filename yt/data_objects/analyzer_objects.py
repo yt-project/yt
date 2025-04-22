@@ -14,7 +14,7 @@ class AnalysisTask:
         # does not override
         if len(args) + len(kwargs) != len(self._params):
             raise RuntimeError
-        self.__dict__.update(zip(self._params, args))
+        self.__dict__.update(zip(self._params, args, strict=False))
         self.__dict__.update(kwargs)
 
     def __repr__(self):
@@ -67,7 +67,7 @@ class QuantityProxy(AnalysisTask):
     def __repr__(self):
         # Stolen from YTDataContainer.__repr__
         s = f"{self.__class__.__name__}: "
-        s += ", ".join(["%s" % list(self.args)])
+        s += ", ".join([str(list(self.args))])
         s += ", ".join(f"{k}={v}" for k, v in self.kwargs.items())
         return s
 

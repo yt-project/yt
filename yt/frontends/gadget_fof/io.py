@@ -215,7 +215,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                             findex = int(field[field.rfind("_") + 1 :])
                             field_data = field_data[:, findex]
                     data = np.array([field_data[dobj.scalar_index]])
-                    all_data[(ptype, field)] = data
+                    all_data[ptype, field] = data
         return all_data
 
     def _read_member_fields(self, dobj, member_fields):
@@ -233,7 +233,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
-                        field_data = all_data[(ptype, field)]
+                        field_data = all_data[ptype, field]
                         if field in f["IDs"]:
                             my_data = f["IDs"][field][start_index:end_index].astype(
                                 "float64"
@@ -303,7 +303,7 @@ def subfind_field_list(fh, ptype, pcount):
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1 :]
                 if my_div > 1:
                     for i in range(int(my_div)):
-                        fields.append((ptype, "%s_%d" % (fname, i)))
+                        fields.append((ptype, f"{fname}_{i}"))
                 else:
                     fields.append((ptype, fname))
             elif (
@@ -317,7 +317,7 @@ def subfind_field_list(fh, ptype, pcount):
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1 :]
                 if my_div > 1:
                     for i in range(int(my_div)):
-                        fields.append(("Group", "%s_%d" % (fname, i)))
+                        fields.append(("Group", f"{fname}_{i}"))
                 else:
                     fields.append(("Group", fname))
                 offset_fields.append(fname)

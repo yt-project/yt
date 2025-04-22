@@ -1,7 +1,6 @@
 import abc
 import os
 import weakref
-from typing import Optional
 
 import numpy as np
 
@@ -54,7 +53,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[tuple[int, ...]] = None,
+        axes: tuple[int, ...] | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         # What's the use of raising NotImplementedError for this, when it's an
         # abstract base class?  Well, only *some* of the subclasses have it --
@@ -310,6 +309,10 @@ class YTDataChunk:
             arrs = [arr[0] for arr in arrs]
         elif method == "tcoords":
             arrs = [arr[1] for arr in arrs]
+        if len(arrs) == 0:
+            self.data_size = 0
+            return np.empty((0, 3), dtype="float64")
+
         arrs = uconcatenate(arrs)
         self.data_size = arrs.shape[0]
         return arrs

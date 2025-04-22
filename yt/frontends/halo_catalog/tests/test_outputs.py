@@ -12,7 +12,7 @@ from yt.utilities.answer_testing.framework import data_dir_load
 def fake_halo_catalog(data):
     filename = "catalog.0.h5"
 
-    ftypes = {field: "." for field in data}
+    ftypes = dict.fromkeys(data, ".")
     extra_attrs = {"data_type": "halo_catalog", "num_halos": data["particle_mass"].size}
 
     ds = {
@@ -38,7 +38,7 @@ class HaloCatalogTest(TempDirTest):
         units = ["g"] + ["cm"] * 3
         data = {
             field: YTArray(rs.random_sample(n_halos), unit)
-            for field, unit in zip(fields, units)
+            for field, unit in zip(fields, units, strict=True)
         }
 
         fn = fake_halo_catalog(data)
@@ -49,7 +49,7 @@ class HaloCatalogTest(TempDirTest):
         for field in fields:
             f1 = data[field].in_base()
             f1.sort()
-            f2 = ds.r[("all", field)].in_base()
+            f2 = ds.r["all", field].in_base()
             f2.sort()
             assert_array_equal(f1, f2)
 
@@ -61,7 +61,7 @@ class HaloCatalogTest(TempDirTest):
         units = ["g"] + ["cm"] * 3
         data = {
             field: YTArray(rs.random_sample(n_halos), unit)
-            for field, unit in zip(fields, units)
+            for field, unit in zip(fields, units, strict=True)
         }
 
         data["particle_position_x"][0] = 1.0
@@ -79,7 +79,7 @@ class HaloCatalogTest(TempDirTest):
         for field in fields:
             f1 = data[field].in_base()
             f1.sort()
-            f2 = ds.r[("all", field)].in_base()
+            f2 = ds.r["all", field].in_base()
             f2.sort()
             assert_array_equal(f1, f2)
 

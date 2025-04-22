@@ -4,11 +4,10 @@ Data structures for AdaptaHOP
 
 
 """
-from typing import Union
 
 from yt.funcs import mylog
 
-ATTR_T = tuple[tuple[Union[tuple[str, ...], str], int, str], ...]
+ATTR_T = tuple[tuple[tuple[str, ...] | str, int, str], ...]
 
 
 def HEADER_ATTRIBUTES(*, double: bool, longint: bool) -> ATTR_T:

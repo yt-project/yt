@@ -260,7 +260,7 @@
     "url": "https://yt-project.org/data/IsothermalSphere.tar.gz"
   },
   "JetICMWall.tar.gz": {
-    "hash": "d0f75569c743836a2d9d140e4bc88f039d6788d3dc53284e8a081cf76b2edbd9",
+    "hash": "4f156be55eb96d994001b64965017abf55728ce406bdbdbf5b0de3b3238b905a",
     "load_kwargs": {},
     "load_name": "Data_000060",
     "url": "https://yt-project.org/data/JetICMWall.tar.gz"
@@ -544,6 +544,18 @@
     "load_name": "snap_N64L16_068.parameter",
     "url": "https://yt-project.org/data/ahf_halos.tar.gz"
   },
+  "athenapk_cluster.tar.gz": {
+    "hash": "95f641b31cca00a39fa728be367861db9abc75ec3e3adcd9103325f675d3e9c1",
+    "load_kwargs": {},
+    "load_name": "athenapk_cluster.restart.00000.rhdf",
+    "url": "https://yt-project.org/data/athenapk_cluster.tar.gz"
+  },
+  "athenapk_disk.tar.gz": {
+    "hash": "3bd59a494a10b28cd691d1f69700f9e100a6a3a32541b0e16348d81163404cd0",
+    "load_kwargs": {},
+    "load_name": "athenapk_disk.prim.00000.phdf",
+    "url": "https://yt-project.org/data/athenapk_disk.tar.gz"
+  },
   "bw_cartesian_3d.tar.gz": {
     "hash": "de8b3b4c2a8c93f857c6729a118960eb1bcf244e1de07aee231d6fcc589c5628",
     "load_kwargs": {},
@@ -622,11 +634,23 @@
     "load_name": "c5.h5m",
     "url": "https://yt-project.org/data/c5.tar.gz"
   },
+  "castro_sedov_1d_cyl_plt00150.tar.gz": {
+    "hash": "c96a8fdf3cd43563a88e34569a6b37e57a0349692a9100ea65252506a167f08f",
+    "load_kwargs": {},
+    "load_name": "",
+    "url": "https://yt-project.org/data/castro_sedov_1d_cyl_plt00150.tar.gz"
+  },
   "castro_sedov_2d_cyl_in_cart_plt00150.tar.gz": {
     "hash": "8b73a37a0503dba593af65f8bf16dfcc11ac825d671f11e5a364a2dee63c9047",
     "load_kwargs": {},
     "load_name": null,
     "url": "https://yt-project.org/data/castro_sedov_2d_cyl_in_cart_plt00150.tar.gz"
+  },
+  "castro_sedov_2d_sph_in_cyl_plt00130.tar.gz": {
+    "hash": "ef4d081a2a2f8e10afe132768725c573631b82021e91f07782f1c1fbe043e2b5",
+    "load_kwargs": {},
+    "load_name": null,
+    "url": "https://yt-project.org/data/castro_sedov_2d_sph_in_cyl_plt00130.tar.gz"
   },
   "castro_sod_x_plt00036.tar.gz": {
     "hash": "3f0a586b41e7b54fa2b3cddd50f9384feb2efe1fe1a815e7348965ae7bf88f78",
@@ -808,6 +832,12 @@
     "load_name": "groups_008/group_008.0.hdf5",
     "url": "https://yt-project.org/data/owls_fof_halos.tar.gz"
   },
+  "parthenon_advection.tar.gz": {
+    "hash": "93e9e747cc9c0f230f87ea960a116c7e8c117b348f1488d72402aaaa906e4e89",
+    "load_kwargs": {},
+    "load_name": "advection_2d.out0.final.phdf",
+    "url": "https://yt-project.org/data/parthenon_advection.tar.gz"
+  },
   "ramses_empty_record.tar.gz": {
     "hash": "1d119d8afa144abce5b980e5ba47c45bdfe5c851de8c7a43823b62524b0bd6e0",
     "load_kwargs": {},
@@ -921,6 +951,12 @@
     "load_kwargs": {},
     "load_name": "DD0045/DD0045.0.h5",
     "url": "https://yt-project.org/data/tiny_fof_halos.tar.gz"
+  },
+  "xrb_spherical_smallplt00010.tar.gz": {
+    "hash": "27ede5ed03f7c89b2afac03a368beb56d5f25f0c7c95b81f14f071a54a795783",
+    "load_kwargs": {},
+    "load_name": null,
+    "url": "https://yt-project.org/data/xrb_spherical_smallplt00010.tar.gz"
   },
   "ytdata_test.tar.gz": {
     "hash": "cafb2b06ab3190ba17909585b58a4724e25f27ac72f11d6dff1a482146eb8958",
