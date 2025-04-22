@@ -1,6 +1,5 @@
 import os
 import weakref
-from contextlib import suppress
 
 import numpy as np
 
@@ -112,7 +111,7 @@ class ChollaDataset(Dataset):
             self.current_time = attrs["t"][:]
             self._periodicity = tuple(attrs.get("periodicity", (False, False, False)))
             self.gamma = attrs.get("gamma", 5.0 / 3.0)
-            with suppress(KeyError):
+            if "mu" in attrs:
                 # other yt-machinery can't handle ds.mu == None, so we simply
                 # avoid defining the mu attribute if we don't know its value
                 self.mu = attrs["mu"]
