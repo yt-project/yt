@@ -38,13 +38,13 @@ classifiers = [
 keywords = [
     "astronomy astrophysics visualization amr adaptivemeshrefinement",
 ]
-requires-python = ">=3.10.3"
+requires-python = ">=3.10.4"
 
 # keep in sync with minimal_requirements.txt
 dependencies = [
     "cmyt>=1.1.2",
     "ewah-bool-utils>=1.2.0",
-    "matplotlib>=3.5",
+    "matplotlib>=3.6.0",
     "more-itertools>=8.4",
     "numpy>=1.21.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
     # https://github.com/numpy/numpy/issues/27037
@@ -381,7 +381,6 @@ addopts = '''
     --ignore-glob='/*/yt/visualization/tests/test_particle_plot.py'
     --ignore-glob='/*/yt/visualization/tests/test_plot_modifications.py'
     --ignore-glob='/*/yt/visualization/tests/test_plotwindow.py'
-    --ignore-glob='/*/yt/visualization/tests/test_profile_plots.py'
     --ignore-glob='/*/yt/visualization/tests/test_raw_field_slices.py'
     --ignore-glob='/*/yt/visualization/volume_rendering/tests/test_mesh_render.py'
     --ignore-glob='/*/yt/visualization/volume_rendering/tests/test_vr_orientation.py'

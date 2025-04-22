@@ -48,7 +48,7 @@ class UnstructuredMesh(YTSelectionContainer):
         mylog.debug("Connectivity is consistent.")
 
     def __repr__(self):
-        return "UnstructuredMesh_%04i" % (self.mesh_id)
+        return f"UnstructuredMesh_{self.mesh_id:04}"
 
     def get_global_startindex(self):
         """
@@ -151,7 +151,7 @@ class SemiStructuredMesh(UnstructuredMesh):
     _container_fields = ("dx", "dy", "dz")
 
     def __repr__(self):
-        return "SemiStructuredMesh_%04i" % (self.mesh_id)
+        return f"SemiStructuredMesh_{self.mesh_id:04}"
 
     def _generate_container_field(self, field):
         if self._current_chunk is None:

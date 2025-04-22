@@ -129,9 +129,9 @@ def test_default_field_tuple(particle_trajectories_test_dataset, ptype):
     ptype = ptype if ptype else "all"  # ptype defaults to "all"
     for k in trajs.field_data.keys():
         assert isinstance(k, tuple), f"Expected key to be tuple, received {type(k)}"
-        assert (
-            k[0] == ptype
-        ), f"Default field type ({k[0]}) does not match expected ({ptype})"
+        assert k[0] == ptype, (
+            f"Default field type ({k[0]}) does not match expected ({ptype})"
+        )
         assert ("all", k[1]) in pfields, f"Unexpected field: {k[1]}"
 
 

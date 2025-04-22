@@ -228,11 +228,11 @@ class CoordinateHandler(abc.ABC):
 
     @cached_property
     def data_projection(self):
-        return {ax: None for ax in self.axis_order}
+        return dict.fromkeys(self.axis_order)
 
     @cached_property
     def data_transform(self):
-        return {ax: None for ax in self.axis_order}
+        return dict.fromkeys(self.axis_order)
 
     @cached_property
     def axis_name(self):

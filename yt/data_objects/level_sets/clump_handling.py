@@ -253,7 +253,7 @@ class Clump(TreeContainer):
         """
 
         ds = self.data.ds
-        keyword = "%s_clump_%d" % (str(ds), self.clump_id)
+        keyword = f"{ds}_clump_{self.clump_id}"
         filename = get_output_filename(filename, keyword, ".h5")
 
         # collect clump info fields
@@ -289,7 +289,7 @@ class Clump(TreeContainer):
             else:
                 clump_info[ci] = np.array(clump_info[ci])
 
-        ftypes = {ci: "clump" for ci in clump_info}
+        ftypes = dict.fromkeys(clump_info, "clump")
 
         # collect data fields
         if fields is not None:

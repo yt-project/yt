@@ -942,7 +942,7 @@ class YTClumpContainer(TreeContainer):
         child.parent = self
 
     def __repr__(self):
-        return "Clump[%d]" % self.clump_id
+        return f"Clump[{self.clump_id}]"
 
     def __getitem__(self, field):
         g = self.ds.data

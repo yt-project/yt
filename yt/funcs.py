@@ -137,7 +137,7 @@ def humanize_time(secs):
     """
     mins, secs = divmod(secs, 60)
     hours, mins = divmod(mins, 60)
-    return "%02d:%02d:%02d" % (hours, mins, secs)
+    return ":".join(f"{int(t):02}" for t in (hours, mins, secs))
 
 
 #
@@ -695,11 +695,9 @@ def parallel_profile(prefix):
     """
     import cProfile
 
-    fn = "%s_%04i_%04i.cprof" % (
-        prefix,
-        ytcfg.get("yt", "internals", "topcomm_parallel_size"),
-        ytcfg.get("yt", "internals", "topcomm_parallel_rank"),
-    )
+    topcomm_parallel_size = ytcfg.get("yt", "internals", "topcomm_parallel_size")
+    topcomm_parallel_rank = ytcfg.get("yt", "internals", "topcomm_parallel_rank")
+    fn = f"{prefix}_{topcomm_parallel_size:04}_{topcomm_parallel_rank}.cprof"
     p = cProfile.Profile()
     p.enable()
     yield fn
@@ -1158,7 +1156,7 @@ def validate_float(obj):
 def validate_sequence(obj):
     if obj is not None and not is_sequence(obj):
         raise TypeError(
-            "Expected an iterable object, " f"received {_full_type_name(obj)!r}"
+            f"Expected an iterable object, received {_full_type_name(obj)!r}"
         )
 
 

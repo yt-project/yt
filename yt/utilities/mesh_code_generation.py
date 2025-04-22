@@ -98,11 +98,11 @@ class MeshCodeGenerator:
         self.scol = MatrixSymbol("scol", self.num_dim, 1)
         self.tcol = MatrixSymbol("tcol", self.num_dim, 1)
 
-        self.function_name = "%sFunction%dD" % (self.mesh_type, self.num_dim)
+        self.function_name = f"{self.mesh_type}Function{self.num_dim}D"
         self.function_header = fun_def_template % self.function_name
         self.function_declaration = fun_dec_template % self.function_name
 
-        self.jacobian_name = "%sJacobian%dD" % (self.mesh_type, self.num_dim)
+        self.jacobian_name = f"{self.mesh_type}Jacobian{self.num_dim}D"
 
         if self.num_dim == 3:
             self.jacobian_header = jac_def_template_3D % self.jacobian_name

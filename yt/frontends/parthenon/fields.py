@@ -84,7 +84,7 @@ class ParthenonFieldInfo(FieldInfoContainer):
         for i, comp in enumerate(self.ds.coordinates.axis_order):
             # Support both current and legacy scheme
             for mom_field_name in ["MomentumDensity", "cons_momentum_density_"]:
-                mom_field = ("parthenon", f"{mom_field_name}{i+1}")
+                mom_field = ("parthenon", f"{mom_field_name}{i + 1}")
                 if mom_field in self.field_list:
                     self.add_field(
                         ("gas", f"velocity_{comp}"),
@@ -161,11 +161,11 @@ class ParthenonFieldInfo(FieldInfoContainer):
 
         # We can simply all all variants as only fields present will be added
         setup_magnetic_field_aliases(
-            self, "parthenon", ["MagneticField%d" % ax for ax in (1, 2, 3)]
+            self, "parthenon", [f"MagneticField{ax}" for ax in (1, 2, 3)]
         )
         setup_magnetic_field_aliases(
-            self, "parthenon", ["prim_magnetic_field_%d" % ax for ax in (1, 2, 3)]
+            self, "parthenon", [f"prim_magnetic_field_{ax}" for ax in (1, 2, 3)]
         )
         setup_magnetic_field_aliases(
-            self, "parthenon", ["cons_magnetic_field_%d" % ax for ax in (1, 2, 3)]
+            self, "parthenon", [f"cons_magnetic_field_{ax}" for ax in (1, 2, 3)]
         )

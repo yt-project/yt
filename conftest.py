@@ -20,9 +20,7 @@ from yt.utilities.answer_testing.testing_utilities import (
     data_dir_load,
 )
 
-MPL_VERSION = Version(version("matplotlib"))
 NUMPY_VERSION = Version(version("numpy"))
-PILLOW_VERSION = Version(version("pillow"))
 
 # setuptools does not ship with the standard lib starting in Python 3.12, so we need to
 # be resilient if it's not available at runtime
@@ -136,19 +134,6 @@ def pytest_configure(config):
             "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
         )
 
-    if MPL_VERSION < Version("3.5.2") and PILLOW_VERSION >= Version("9.1"):
-        # see https://github.com/matplotlib/matplotlib/pull/22766
-        config.addinivalue_line(
-            "filterwarnings",
-            r"ignore:NONE is deprecated and will be removed in Pillow 10 \(2023-07-01\)\. "
-            r"Use Resampling\.NEAREST or Dither\.NONE instead\.:DeprecationWarning",
-        )
-        config.addinivalue_line(
-            "filterwarnings",
-            r"ignore:ADAPTIVE is deprecated and will be removed in Pillow 10 \(2023-07-01\)\. "
-            r"Use Palette\.ADAPTIVE instead\.:DeprecationWarning",
-        )
-
     if NUMPY_VERSION >= Version("1.25"):
         if find_spec("h5py") is not None and (
             Version(version("h5py")) < Version("3.9")
@@ -156,8 +141,7 @@ def pytest_configure(config):
             # https://github.com/h5py/h5py/pull/2242
             config.addinivalue_line(
                 "filterwarnings",
-                "ignore:`product` is deprecated as of NumPy 1.25.0"
-                ":DeprecationWarning",
+                "ignore:`product` is deprecated as of NumPy 1.25.0:DeprecationWarning",
             )
 
     if PANDAS_VERSION is not None and PANDAS_VERSION >= Version("2.2.0"):
