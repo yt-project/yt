@@ -254,7 +254,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         
         first_field = self.field_list[0][1]
         # Get the size of the data, single precision if RT field, double otherwise
-        field_size = "single" if first_field.startswith("Photon") else "double"
+        is_single = True if first_field.startswith("Photon") else False
         
         with FortranFile(self.fname) as fd:
             # Skip headers
@@ -282,7 +282,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 self.parameters[self.ds.unique_identifier]["nvar"],
                 self.domain.amr_header,
                 Nskip=nvars * 8,
-                size=field_size,
+                single=is_single,
             )
 
         self._level_count = level_count
