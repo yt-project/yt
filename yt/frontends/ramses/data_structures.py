@@ -429,6 +429,9 @@ class RAMSESDomainSubset(OctreeSubset):
         # Initializing data container
         for field in fields:
             data[field] = np.zeros(cell_count, "float64")
+        
+        # Get the size of the data, single precision if RT field, double otherwise
+        field_size = "single" if any(field.startswith("Photon") for field in fields) else "double"
 
         # Do an early exit if the cell count is null
         if cell_count == 0:
@@ -452,6 +455,7 @@ class RAMSESDomainSubset(OctreeSubset):
             fields,
             data,
             oct_handler,
+            field_size # Hardcoded for now
         )
         return data
 

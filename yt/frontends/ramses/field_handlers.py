@@ -251,6 +251,11 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         *structure* of your fluid file is non-canonical, change this.
         """
         nvars = len(self._detected_field_list[self.ds.unique_identifier])
+        
+        first_field = self.field_list[0][1]
+        # Get the size of the data, single precision if RT field, double otherwise
+        field_size = "single" if first_field.startswith("Photon") else "double"
+        
         with FortranFile(self.fname) as fd:
             # Skip headers
             nskip = len(self.attrs)
@@ -269,6 +274,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
             #
             # So there are 8 * nvars records each with length (nocts, )
             # at each (level, cpus)
+            
             offset, level_count = read_offset(
                 fd,
                 min_level,
@@ -276,6 +282,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 self.parameters[self.ds.unique_identifier]["nvar"],
                 self.domain.amr_header,
                 Nskip=nvars * 8,
+                size=field_size,
             )
 
         self._level_count = level_count
