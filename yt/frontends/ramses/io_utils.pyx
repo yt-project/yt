@@ -19,9 +19,13 @@ ctypedef np.float64_t DOUBLE_t
 cdef INT64_t INT32_SIZE = sizeof(np.int32_t)
 cdef INT64_t INT64_SIZE = sizeof(np.int64_t)
 cdef INT64_t DOUBLE_SIZE = sizeof(np.float64_t)
+cdef INT64_t SINGLE_SIZE = sizeof(np.float32_t)
 
 
-cdef inline INT64_t skip_len(INT64_t Nskip, INT64_t record_len) noexcept nogil:
+cdef inline int skip_len(int Nskip, int record_len, str size="double") noexcept nogil:
+    # If the data is single precision, we need to skip 4 bytes
+    if size == "single":
+        return Nskip * (record_len * SINGLE_SIZE + INT64_SIZE)
     return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
 
 
@@ -111,7 +115,7 @@ def read_amr(FortranFile f, dict headers,
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.nonecheck(False)
-cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers, int Nskip):
+cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers, int Nskip, str size="double"):
 
     cdef np.ndarray[np.int64_t, ndim=2] offset, level_count
     cdef INT64_t ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
@@ -153,7 +157,7 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
             if ilevel >= min_level:
                 offset_view[icpu, ilevel - min_level] = f.tell()
                 level_count_view[icpu, ilevel - min_level] = <INT64_t> file_ncache
-            f.seek(skip_len(Nskip, file_ncache), SEEK_CUR)
+            f.seek(skip_len(Nskip, file_ncache, size), SEEK_CUR)
 
     return offset, level_count
 
@@ -172,7 +176,9 @@ def fill_hydro(FortranFile f,
                INT64_t ndim, list all_fields, list fields,
                dict tr,
                RAMSESOctreeContainer oct_handler,
-               np.ndarray[np.int32_t, ndim=1] domain_inds=np.array([], dtype='int32')):
+               str size,
+               np.ndarray[np.int32_t, ndim=1] domain_inds=np.array([], dtype='int32'),
+               ):
     cdef INT64_t offset
     cdef dict tmp
     cdef str field
@@ -197,7 +203,8 @@ def fill_hydro(FortranFile f,
 
     # The ordering is very important here, as we'll write directly into the memory
     # address the content of the files.
-    cdef np.float64_t[::1, :, :] buffer
+    cdef np.float32_t[::1, :, :] buffer_single
+    cdef np.float64_t[::1, :, :] buffer_double
 
     jump_len = 0
     j = 0
@@ -211,7 +218,11 @@ def fill_hydro(FortranFile f,
     jumps[j] = jump_len
     cdef int first_field_index = jumps[0]
 
-    buffer = np.empty((level_count.max(), twotondim, nfields_selected), dtype="float64", order='F')
+    # The buffer is different depending on the size of the data
+    if size == "single":
+        buffer_single = np.empty((level_count.max(), twotondim, nfields_selected), dtype="float32", order='F')
+    else:
+        buffer_double = np.empty((level_count.max(), twotondim, nfields_selected), dtype="float64", order='F')
 
     # Precompute which levels we need to read
     Ncells = len(level_inds)
@@ -231,7 +242,7 @@ def fill_hydro(FortranFile f,
             offset = offsets[icpu, ilevel]
             if offset == -1:
                 continue
-            f.seek(offset + skip_len(first_field_index, nc), SEEK_SET)
+            f.seek(offset + skip_len(first_field_index, nc, size), SEEK_SET)
 
             # We have already skipped the first fields (if any)
             # so we "rewind" (this will cancel the first seek)
@@ -241,9 +252,12 @@ def fill_hydro(FortranFile f,
                 for j in range(nfields_selected):
                     jump_len += jumps[j]
                     if jump_len > 0:
-                        f.seek(skip_len(jump_len, nc), SEEK_CUR)
+                        f.seek(skip_len(jump_len, nc, size), SEEK_CUR)
                         jump_len = 0
-                    f.read_vector_inplace('d', <void*> &buffer[0, i, j])
+                    if size == "single":
+                        f.read_vector_inplace('f', <void*> &buffer_single[0, i, j])
+                    else:
+                        f.read_vector_inplace('d', <void*> &buffer_double[0, i, j])
 
                 jump_len += jumps[nfields_selected]
 
@@ -251,12 +265,15 @@ def fill_hydro(FortranFile f,
             # but since we're doing an absolute seek at the beginning of
             # the loop on CPUs, we can spare one seek here
             ## if jump_len > 0:
-            ##     f.seek(skip_len(jump_len, nc), SEEK_CUR)
+            ##     f.seek(skip_len(jump_len, nc, size), SEEK_CUR)
 
             # Alias buffer into dictionary
             tmp = {}
             for i, field in enumerate(fields):
-                tmp[field] = buffer[:, :, i]
+                if size == "single":
+                    tmp[field] = np.asarray(buffer_single[:, :, i], dtype="float64")
+                else:
+                    tmp[field] = buffer_double[:, :, i]
 
             if ncpu_selected > 1:
                 oct_handler.fill_level_with_domain(
