@@ -153,9 +153,9 @@ class ChollaHierarchy(GridIndex):
                 filename=fname,
             )
 
-            self.grid_left_edge[i,:] = left_frac
-            self.grid_right_edge[i,:] = right_frac
-            self.grid_dimensions[i,:] = dims_local
+            self.grid_left_edge[i, :] = left_frac
+            self.grid_right_edge[i, :] = right_frac
+            self.grid_dimensions[i, :] = dims_local
             self.grid_levels[i, 0] = level
             self.grid_particle_count[i, 0] = 0
 
