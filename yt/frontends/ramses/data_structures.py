@@ -18,6 +18,7 @@ from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.cython_fortran_utils import FortranFile as fpu
 from yt.utilities.lib.cosmology_time import t_frw, tau_frw
 from yt.utilities.on_demand_imports import _f90nml as f90nml
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 from yt.utilities.physical_constants import kb, mp
 
 from .definitions import (
@@ -607,9 +608,23 @@ class RAMSESIndex(OctreeIndex):
         if self.ds._bbox is not None:
             cpu_list = get_intersecting_cpus(self.dataset, self.dataset._bbox)
         else:
-            cpu_list = range(self.dataset["ncpu"])
+            cpu_list = list(range(self.dataset["ncpu"]))
 
-        self.domains = [RAMSESDomainFile(self.dataset, i + 1) for i in cpu_list]
+        if len(cpu_list) < self.comm.size:
+            mylog.error(
+                "The number of MPI tasks is larger than the number of files to read "
+                "on disk. This is not supported. Try running with at most "
+                f"{len(cpu_list)} MPI tasks."
+            )
+            self.comm.comm.Abort(2)
+
+        # Important note: we need to use the method="sequential"
+        # so that the first MPI task gets domains 1, 2, ..., n
+        # and the second task gets domains n+1, n+2, ..., 2n, etc.
+        self.domains = [
+            RAMSESDomainFile(self.dataset, i + 1)
+            for i in parallel_objects(cpu_list, method="sequential")
+        ]
 
     @cached_property
     def max_level(self):
@@ -620,10 +635,11 @@ class RAMSESIndex(OctreeIndex):
 
     @cached_property
     def num_grids(self):
-        return sum(
+        total_octs = sum(
             dom.local_oct_count
             for dom in self.domains  # + dom.ngridbound.sum()
         )
+        return self.comm.mpi_allreduce(total_octs, op="sum")
 
     def _detect_output_fields(self):
         dsl = set()
@@ -710,6 +726,7 @@ class RAMSESIndex(OctreeIndex):
 
     def _initialize_level_stats(self):
         levels = sum(dom.level_count for dom in self.domains)
+        levels = self.comm.mpi_allreduce(levels, op="sum")
         desc = {"names": ["numcells", "level"], "formats": ["int64"] * 2}
         max_level = self.dataset.min_level + self.dataset.max_level + 2
         self.level_stats = blankRecordArray(desc, max_level)
@@ -730,6 +747,8 @@ class RAMSESIndex(OctreeIndex):
             for fh in dom.particle_handlers:
                 count = fh.local_particle_count
                 npart[fh.ptype] += count
+
+        npart = self.comm.par_combine_object(npart, op="sum")
 
         return npart
 
