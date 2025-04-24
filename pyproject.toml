@@ -38,7 +38,7 @@ classifiers = [
 keywords = [
     "astronomy astrophysics visualization amr adaptivemeshrefinement",
 ]
-requires-python = ">=3.10.3"
+requires-python = ">=3.10.4"
 
 # keep in sync with minimal_requirements.txt
 dependencies = [
