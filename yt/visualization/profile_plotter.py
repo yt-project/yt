@@ -1319,8 +1319,6 @@ class PhasePlot(ImagePlotContainer):
 
         """
         for f in self._profile.field_data:
-            if isinstance(f, tuple):
-                f = f[1]
             self.plot_title[self.data_source._determine_fields(f)[0]] = title
         return self
 
