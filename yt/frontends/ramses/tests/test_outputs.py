@@ -794,3 +794,21 @@ def test_self_shielding_loading():
 
     # Also make sure the difference is large for some cells
     assert (np.abs(diff) > 0.1).any()
+
+
+@requires_file(output_00080)
+@requires_file(ramses_mhd_128)
+def test_order_does_not_matter():
+    for order in (1, 2):
+        ds0 = yt.load(output_00080)
+        ds1 = yt.load(ramses_mhd_128)
+
+        # This should not raise any exception
+        if order == 1:
+            _sp1 = ds1.all_data()
+            sp0 = ds0.all_data()
+        else:
+            sp0 = ds0.all_data()
+            _sp1 = ds1.all_data()
+
+        sp0["gas", "velocity_x"].max().to("km/s")
