@@ -8,6 +8,7 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import ChollaFieldInfo
@@ -111,10 +112,19 @@ class ChollaDataset(Dataset):
             self.current_time = attrs["t"][:]
             self._periodicity = tuple(attrs.get("periodicity", (False, False, False)))
             self.gamma = attrs.get("gamma", 5.0 / 3.0)
-            if "mu" in attrs:
+            if (self.default_species_fields is not None) and "mu" in attrs:
+                raise ValueError(
+                    'default_species_fields must be None when "mu" is an hdf5 attribute'
+                )
+            elif "mu" in attrs:
+                self.mu = attrs["mu"]
+            elif self.default_species_fields is None:
                 # other yt-machinery can't handle ds.mu == None, so we simply
                 # avoid defining the mu attribute if we don't know its value
-                self.mu = attrs["mu"]
+                mylog.info(
+                    'add the "mu" hdf5 attribute OR use the default_species_fields kwarg '
+                    "to compute temperature"
+                )
             self.refine_by = 1
 
             # If header specifies code units, default to those (in CGS)
