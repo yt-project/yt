@@ -87,21 +87,23 @@ class ChollaFieldInfo(FieldInfoContainer):
         )
 
         # Add temperature field
-        def _temperature(field, data):
-            return (
-                data.ds.mu
-                * data["gas", "pressure"]
-                / data["gas", "density"]
-                * mh
-                / kboltz
-            )
+        if hasattr(self.ds, "mu"):
 
-        self.add_field(
-            ("gas", "temperature"),
-            sampling_type="cell",
-            function=_temperature,
-            units=unit_system["temperature"],
-        )
+            def _temperature(field, data):
+                return (
+                    data.ds.mu
+                    * data["gas", "pressure"]
+                    / data["gas", "density"]
+                    * mh
+                    / kboltz
+                )
+
+            self.add_field(
+                ("gas", "temperature"),
+                sampling_type="cell",
+                function=_temperature,
+                units=unit_system["temperature"],
+            )
 
         # Add color field if present (scalar0 / density)
         if ("cholla", "scalar0") in self.field_list:
