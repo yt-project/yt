@@ -1,4 +1,3 @@
-
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -18,6 +17,7 @@ class ChollaIOHandler(BaseIOHandler):
         # - those other options use the lower-level hdf5 interface. Unclear
         #   whether that affords any advantages...
         fh, filename = None, None
+        mapper = self.ds.index._block_mapping
         for chunk in chunks:
             for obj in chunk.objs:
                 if obj.filename is None:  # unclear when this case arises...
@@ -26,9 +26,11 @@ class ChollaIOHandler(BaseIOHandler):
                     if fh is not None:
                         fh.close()
                     fh, filename = h5py.File(obj.filename, "r"), obj.filename
+                idx = mapper.field_idx_map[obj.id]
+                grp = fh if mapper.field_group == "" else fh[mapper.field_group]
                 for field in fields:
                     ftype, fname = field
-                    yield field, obj, fh[fname][:].astype("=f8")
+                    yield field, obj, grp[fname][idx].astype("=f8")
         if fh is not None:
             fh.close()
 

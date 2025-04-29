@@ -1,16 +1,141 @@
 import os
 import weakref
+from collections import defaultdict
+from dataclasses import dataclass
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import get_pbar, setdefaultattr
+from yt.funcs import setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import ChollaFieldInfo
+
+
+@dataclass(kw_only=True, slots=True)
+class _BlockDiskMapping:
+    """Contains info for mapping blockids to locations in hdf5 files"""
+
+    # ``fname_template.format(blockid=...)`` produces the file containing blockid (this
+    # can properly handle cases where all blocks are stored in a single file)
+    fname_template: str
+    # group containing field data (empty string denotes the root group)
+    field_group: str
+    # maps blockid to an index that select all associated data from a field-dataset
+    field_idx_map: dict[int, tuple[int | slice, ...]]
+
+    # in the future, we will add particle_group and particle_idx_map
+
+
+def _infer_blockid_location_arr(fname_template, global_dims, arr_shape):
+    # used when hdf5 files don't have an explicit "domain" group
+    blockid_location_arr = np.empty(shape=tuple(int(e) for e in arr_shape), dtype="i8")
+    if blockid_location_arr.size == 1:
+        # primarily intended to handle the result of older concatenation scripts (it
+        # also handles the case when only a single block is used, which is okay)
+        blockid_location_arr[0, 0, 0] = 0
+    else:  # handle distributed cholla datasets
+        local_dims, rem = np.divmod(global_dims, blockid_location_arr.shape)
+        assert np.all(rem == 0) and np.all(local_dims > 0)
+        for blockid in range(0, blockid_location_arr.size):
+            with h5py.File(fname_template.format(blockid=blockid), "r") as f:
+                tmp, rem = np.divmod(f.attrs["offset"][:], local_dims)
+            assert np.all(rem == 0)  # sanity check
+            idx3D = tuple(int(e) for e in tmp)
+            blockid_location_arr[idx3D] = blockid
+    return blockid_location_arr
+
+
+def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]:
+    """Determine the data layout of the snapshot
+
+    The premise is that the basic different data formats shouldn't
+    matter outside of this function."""
+    filename = f.filename
+
+    # STEP 1: infer the template for all Cholla data-files by inspecting filename
+    # ===========================================================================
+    # There are 2 conventions for the names of Cholla's data-files:
+    #  1. "root.h5.{blockid}" is the standard format Cholla uses when writing files
+    #     storing a single snapshot. Each MPI-rank will write a separate file and
+    #     replace ``{blockid}`` with MPI-rank (Modern Cholla versions without MPI
+    #     replace ``{blockid}`` with ``0``)
+    #  2. "root.h5": is the standard format used by Cholla's concatenation scripts
+    #     (older versions of Cholla without MPI also used this format to name outputs)
+    _dir, _base = os.path.split(filename)
+    _sep_i = _base.rfind(".")
+    no_suffix = (_sep_i == -1) or (_base[_sep_i:] == "") or (_base[:_sep_i] == "")
+    if no_suffix or not _base[_sep_i + 1 :].isdecimal():
+        inferred_fname_template = filename  # filename doesn't change based on blockid
+        cur_filename_suffix = None
+    else:
+        inferred_fname_template = os.path.join(_dir, _base[:_sep_i]) + ".{blockid}"
+        cur_filename_suffix = int(_base[_sep_i + 1 :])
+
+    # STEP 2: Check whether the hdf5 file has a flat structure
+    # ========================================================
+    # Historically, we would always store datasets directly in the root group of the
+    # data file. More recent concatenation scripts store no data in groups.
+    flat_structure = any(not isinstance(elem, h5py.Group) for elem in f.values())
+
+    # STEP 3: Extract basic domain info information from the file(s)
+    # ==============================================================
+    has_explicit_domain_info = "domain" in f
+    if has_explicit_domain_info:
+        # this branch primarily handles concatenated files made with newer logic
+        blockid_location_arr = f["domain/blockid_location_arr"][...]
+        field_idx_map = {
+            blockid: (i, slice(None), slice(None), slice(None))
+            for i, blockid in enumerate(f["domain/stored_blockid_list"][...])
+        }
+        consolidated_data = len(field_idx_map) == blockid_location_arr.size
+        if not consolidated_data:
+            # in the near future, we will support one of the 2 cases:
+            # > if (flat_structure):
+            # >     _common_idx = (slice(None), slice(None), slice(None))
+            # > else:
+            # >     _common_idx = (0, slice(None), slice(None), slice(None))
+            # > field_idx_map = defaultdict(lambda arg=_common_idx: arg)
+            raise ValueError(
+                "no support for reading Cholla datasets where data is distributed "
+                "among files that explicitly encode domain info."
+            )
+    else:  # (not has_explicit_domain_info)
+        # this branch covers distributed datasets (directly written by Cholla) and
+        # older concatenated files.
+        #
+        # historically, when the dataset is concatenated (in post-processing),
+        # the "nprocs" hdf5 attribute has been dropped
+        blockid_location_arr = _infer_blockid_location_arr(
+            fname_template=inferred_fname_template,
+            global_dims=f.attrs["dims"].astype("=i8"),
+            arr_shape=f.attrs.get("nprocs", np.array([1, 1, 1])).astype("=i8"),
+        )
+        consolidated_data = blockid_location_arr.size == 1
+        _common_idx = (slice(None), slice(None), slice(None))
+        field_idx_map = defaultdict(lambda arg=_common_idx: arg)
+
+    # STEP 4: Finalize the fname template
+    # ===================================
+    if consolidated_data:
+        fname_template = filename
+    elif cur_filename_suffix != 0:
+        raise ValueError(  # mostly just a sanity check!
+            "filename passed to yt.load for a distributed cholla dataset must "
+            "end in '.0'"
+        )
+    else:
+        fname_template = inferred_fname_template
+
+    mapping = _BlockDiskMapping(
+        fname_template=fname_template,
+        field_group="" if flat_structure else "field",
+        field_idx_map=field_idx_map,
+    )
+    return blockid_location_arr, mapping
 
 
 def _split_fname_procid_suffix(filename: str):
@@ -84,83 +209,40 @@ class ChollaHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         with h5py.File(self.index_filename, mode="r") as h5f:
-            self.field_list = [("cholla", k) for k in h5f.keys()]
+            grp = h5f.get("field", h5f)
+            self.field_list = [("cholla", k) for k in grp.keys()]
 
     def _count_grids(self):
-        # the number of grids is equal to the number of processes, unless the
-        # dataset has been concatenated. But, when the dataset is concatenated
-        # (a common post-processing step), the "nprocs" hdf5 attribute is
-        # usually dropped.
-
-        with h5py.File(self.index_filename, mode="r") as h5f:
-            nprocs = h5f.attrs.get("nprocs", np.array([1, 1, 1]))[:].astype("=i8")
-        self.num_grids = np.prod(nprocs)
-
-        if self.num_grids > 1:
-            # When there's more than 1 grid, we expect the user to
-            # - have not changed the names of the output files
-            # - have passed the file written by process 0 to ``yt.load``
-            # Let's perform a sanity-check that self.index_filename has the
-            # expected suffix for a file written by mpi-process 0
-            if int(_split_fname_procid_suffix(self.index_filename)[1]) != 0:
-                raise ValueError(
-                    "the primary file associated with a "
-                    "distributed cholla dataset must end in '.0'"
-                )
+        with h5py.File(self.index_filename, "r") as f:
+            self._blockid_location_arr, self._block_mapping = _determine_data_layout(f)
+        self.num_grids = self._blockid_location_arr.size
 
     def _parse_index(self):
         self.grids = np.empty(self.num_grids, dtype="object")
 
-        # construct an iterable over the pairs of grid-index and corresponding
-        # filename
-        if self.num_grids == 1:
-            ind_fname_pairs = [(0, self.index_filename)]
-        else:
-            # index_fname should has the form f'{self.directory}/<prefix>.0'
-            # strip off the '.0' and determine the contents of <prefix>
-            pref, suf = _split_fname_procid_suffix(self.index_filename)
-            assert int(suf) == 0  # sanity check!
+        shape_arr = np.array(self._blockid_location_arr.shape)
+        dims_local = (self.ds.domain_dimensions[:] / shape_arr).astype("=i8")
 
-            ind_fname_pairs = ((i, f"{pref}.{i}") for i in range(self.num_grids))
-
-        dims_global = self.ds.domain_dimensions[:]
-        pbar = get_pbar("Parsing Hierarchy", self.num_grids)
-
-        # It would be nice if we could avoid reading in every hdf5 file during
-        # this step... (to do this, Cholla could probably encode how the blocks
-        # are sorted in an hdf5 attribute)
-
-        for i, fname in ind_fname_pairs:
-            if self.num_grids == 1:
-                # if the file was concatenated, we might be missing attributes
-                # that are accessed in the other branch. To avoid issues, we use
-                # hardcoded values
-                left_frac, right_frac, dims_local = 0.0, 1.0, dims_global
-            else:
-                with h5py.File(fname, "r") as f:
-                    offset = f.attrs["offset"][:].astype("=i8")
-                    dims_local = f.attrs["dims_local"][:].astype("=i8")
-                left_frac = offset / dims_global
-                right_frac = (offset + dims_local) / dims_global
+        for idx3D, blockid in np.ndenumerate(self._blockid_location_arr):
+            idx3D_arr = np.array(idx3D)
+            left_frac = idx3D_arr / shape_arr
+            right_frac = (1 + idx3D_arr) / shape_arr
 
             level = 0
 
-            self.grids[i] = self.grid(
-                i,
+            self.grids[blockid] = self.grid(
+                blockid,
                 index=self,
                 level=level,
                 dims=dims_local,
-                filename=fname,
+                filename=self._block_mapping.fname_template.format(blockid=blockid),
             )
 
-            self.grid_left_edge[i,:] = left_frac
-            self.grid_right_edge[i,:] = right_frac
-            self.grid_dimensions[i,:] = dims_local
-            self.grid_levels[i, 0] = level
-            self.grid_particle_count[i, 0] = 0
-
-            pbar.update(i + 1)
-        pbar.finish()
+            self.grid_left_edge[blockid, :] = left_frac
+            self.grid_right_edge[blockid, :] = right_frac
+            self.grid_dimensions[blockid, :] = dims_local
+            self.grid_levels[blockid, 0] = level
+            self.grid_particle_count[blockid, 0] = 0
 
         slope = self.ds.domain_width / self.ds.arr(np.ones(3), "code_length")
         self.grid_left_edge = self.grid_left_edge * slope + self.ds.domain_left_edge
