@@ -42,6 +42,7 @@ class HandlerMixin:
         self.ds = ds = domain.ds
         self.domain = domain
         self.domain_id = domain.domain_id
+
         basename = os.path.abspath(ds.root_folder)
         iout = int(os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1])
 
@@ -166,6 +167,9 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
             register_field_handler(cls)
 
         cls._unique_registry = {}
+        cls.parameters = {}
+        cls.rt_parameters = {}
+        cls._detected_field_list = {}
         return cls
 
     def __init__(self, domain):
@@ -231,6 +235,10 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
 
         return self._level_count
 
+    @property
+    def field_list(self):
+        return self._detected_field_list[self.ds.unique_identifier]
+
     @cached_property
     def offset(self):
         """
@@ -242,7 +250,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         It should be generic enough for most of the cases, but if the
         *structure* of your fluid file is non-canonical, change this.
         """
-        nvars = len(self.field_list)
+        nvars = len(self._detected_field_list[self.ds.unique_identifier])
         with FortranFile(self.fname) as fd:
             # Skip headers
             nskip = len(self.attrs)
@@ -265,7 +273,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 fd,
                 min_level,
                 self.domain.domain_id,
-                self.parameters["nvar"],
+                self.parameters[self.ds.unique_identifier]["nvar"],
                 self.domain.amr_header,
                 Nskip=nvars * 8,
             )
@@ -315,7 +323,7 @@ class HydroFieldFileHandler(FieldFileHandler):
         attrs = cls.attrs
         with FortranFile(fname) as fd:
             hvals = fd.read_attrs(attrs)
-        cls.parameters = hvals
+        cls.parameters[ds.unique_identifier] = hvals
 
         # Store some metadata
         ds.gamma = hvals["gamma"]
@@ -446,7 +454,9 @@ class HydroFieldFileHandler(FieldFileHandler):
             count_extra += 1
         if count_extra > 0:
             mylog.debug("Detected %s extra fluid fields.", count_extra)
-        cls.field_list = [(cls.ftype, e) for e in fields]
+        cls._detected_field_list[ds.unique_identifier] = [
+            (cls.ftype, e) for e in fields
+        ]
 
         cls.set_detected_fields(ds, fields)
 
@@ -477,9 +487,9 @@ class GravFieldFileHandler(FieldFileHandler):
         basedir = os.path.split(ds.parameter_filename)[0]
         fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
         with FortranFile(fname) as fd:
-            cls.parameters = fd.read_attrs(cls.attrs)
+            cls.parameters[ds.unique_identifier] = fd.read_attrs(cls.attrs)
 
-        nvar = cls.parameters["nvar"]
+        nvar = cls.parameters[ds.unique_identifier]["nvar"]
         ndim = ds.dimensionality
 
         fields = cls.load_fields_from_yt_config()
@@ -498,7 +508,9 @@ class GravFieldFileHandler(FieldFileHandler):
                 for i in range(nvar - ndetected):
                     fields.append(f"var{i}")
 
-        cls.field_list = [(cls.ftype, e) for e in fields]
+        cls._detected_field_list[ds.unique_identifier] = [
+            (cls.ftype, e) for e in fields
+        ]
 
         cls.set_detected_fields(ds, fields)
 
@@ -573,7 +585,7 @@ class RTFieldFileHandler(FieldFileHandler):
             # Touchy part, we have to read the photon group properties
             mylog.debug("Not reading photon group properties")
 
-            cls.rt_parameters = rheader
+            cls.rt_parameters[ds.unique_identifier] = rheader
 
         ngroups = rheader["nGroups"]
 
@@ -582,7 +594,7 @@ class RTFieldFileHandler(FieldFileHandler):
         fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
         fname_desc = os.path.join(basedir, cls.file_descriptor)
         with FortranFile(fname) as fd:
-            cls.parameters = fd.read_attrs(cls.attrs)
+            cls.parameters[ds.unique_identifier] = fd.read_attrs(cls.attrs)
 
         ok = False
 
@@ -616,16 +628,18 @@ class RTFieldFileHandler(FieldFileHandler):
             for ng in range(ngroups):
                 fields.extend([t % (ng + 1) for t in tmp])
 
-        cls.field_list = [(cls.ftype, e) for e in fields]
+        cls._detected_field_list[ds.unique_identifier] = [
+            (cls.ftype, e) for e in fields
+        ]
 
         cls.set_detected_fields(ds, fields)
         return fields
 
     @classmethod
     def get_rt_parameters(cls, ds):
-        if cls.rt_parameters:
-            return cls.rt_parameters
+        if cls.rt_parameters[ds.unique_identifier]:
+            return cls.rt_parameters[ds.unique_identifier]
 
         # Call detect fields to get the rt_parameters
         cls.detect_fields(ds)
-        return cls.rt_parameters
+        return cls.rt_parameters[ds.unique_identifier]

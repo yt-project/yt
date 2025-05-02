@@ -390,8 +390,8 @@ def test_ramses_field_detection():
     fields_1 = set(DETECTED_FIELDS[ds1.unique_identifier]["ramses"])
 
     # Check the right number of variables has been loaded
-    assert P1["nvar"] == 10
-    assert len(fields_1) == P1["nvar"]
+    assert P1[ds1.unique_identifier]["nvar"] == 10
+    assert len(fields_1) == P1[ds1.unique_identifier]["nvar"]
 
     # Now load another dataset
     ds2 = yt.load(output_00080)
@@ -400,8 +400,8 @@ def test_ramses_field_detection():
     fields_2 = set(DETECTED_FIELDS[ds2.unique_identifier]["ramses"])
 
     # Check the right number of variables has been loaded
-    assert P2["nvar"] == 6
-    assert len(fields_2) == P2["nvar"]
+    assert P2[ds2.unique_identifier]["nvar"] == 6
+    assert len(fields_2) == P2[ds2.unique_identifier]["nvar"]
 
 
 @requires_file(ramses_new_format)
@@ -794,3 +794,21 @@ def test_self_shielding_loading():
 
     # Also make sure the difference is large for some cells
     assert (np.abs(diff) > 0.1).any()
+
+
+@requires_file(output_00080)
+@requires_file(ramses_mhd_128)
+def test_order_does_not_matter():
+    for order in (1, 2):
+        ds0 = yt.load(output_00080)
+        ds1 = yt.load(ramses_mhd_128)
+
+        # This should not raise any exception
+        if order == 1:
+            _sp1 = ds1.all_data()
+            sp0 = ds0.all_data()
+        else:
+            sp0 = ds0.all_data()
+            _sp1 = ds1.all_data()
+
+        sp0["gas", "velocity_x"].max().to("km/s")
