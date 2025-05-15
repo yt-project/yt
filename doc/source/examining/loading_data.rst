@@ -2271,6 +2271,11 @@ To annotate particles in a plot, use the ``annotate_particles`` method:
     yt.SlicePlot(ds, 'z', ('gas', 'density')).annotate_particles(
       1, p_size=400., col='blue', marker='*', ptype='Rad_particles')
 
+Face-Centered Variables
+^^^^^^^^^^^^^^^^^^^^^^^
+
+QUOKKA datasets can also include face-centered variables. These are stored in the `fc_vars` directory which is inside the plotfile directory. When loading a Quokka dataset, YT automatically detects and loads any face-centered variables from the `fc_vars/x*****`, `fc_vars/y*****`, and `fc_vars/z*****` subdirectories. These are made available as attributes of the main dataset (`ds.ds_fc_x`, `ds.ds_fc_y`, `ds.ds_fc_z`). Each face-centered dataset is a full YT dataset object with its own fields and mesh structure, and includes a reference back to the parent dataset, `ds.ds_fc_x.parent_ds`. This allows for easy access to both cell-centered and face-centered data in the same analysis workflow.
+
 Support for Legacy Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

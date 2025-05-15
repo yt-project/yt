@@ -17,6 +17,7 @@ from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
+from yt.loaders import load
 
 from .fields import (
     BoxlibFieldInfo,
@@ -1408,6 +1409,53 @@ class QuokkaDataset(AMReXDataset):
         # Add magnetic fields in fluid_types only if detected
         if "Bfield" in self.parameters['fields']:
             self.fluid_types += ("mag",)
+            
+        # Check for face-centered variables directories
+        self._load_face_centered_datasets()
+
+    def _load_face_centered_datasets(self):
+        """
+        Check for face-centered variables directories (fc_vars/x, fc_vars/y, fc_vars/z)
+        and load them as additional datasets if they exist.
+        """
+
+        fc_dir = os.path.join(self.output_dir, "fc_vars")
+        if not os.path.isdir(fc_dir):
+            mylog.debug(f"No face-centered variables directory found at {fc_dir}. Skipping face-centered datasets.")
+            return
+
+        try:
+            out_id = int(os.path.basename(self.output_dir)[-5:])
+        except ValueError:
+            raise ValueError(f"Output directory {self.output_dir} does not end with at least 5 digits. Cannot infer output index. Cannot load face-centered datasets.")
+        
+        # Define the possible face-centered directories
+        fc_dirs = {
+            'x': os.path.join(fc_dir, f"x{out_id:05d}"),
+            'y': os.path.join(fc_dir, f"y{out_id:05d}"),
+            'z': os.path.join(fc_dir, f"z{out_id:05d}"),
+        }
+        
+        # For each direction, check if the directory exists and load it
+        for direction, fc_dir in fc_dirs.items():
+            if os.path.isdir(fc_dir):
+                try:
+                    # Load the face-centered dataset
+                    mylog.info(f"Loading face-centered {direction} dataset from {fc_dir}")
+                    fc_ds = load(fc_dir)
+                    
+                    # Store the dataset as an attribute
+                    setattr(self, f"ds_fc_{direction}", fc_ds)
+                    
+                    # Add a reference back to the parent dataset
+                    fc_ds.parent_ds = self
+                    
+                    # Add information about this being a face-centered dataset
+                    fc_ds.fc_direction = direction
+                except Exception as e:
+                    mylog.warning(f"Failed to load face-centered {direction} dataset: {e}")
+            else:
+                mylog.debug(f"No face-centered {direction} dataset found at {fc_dir}")
 
     def _parse_parameter_file(self):
         # Call parent method to initialize core setup by yt
