@@ -584,7 +584,6 @@ class QuokkaFieldInfo(FieldInfoContainer):
             return
 
         for axis in "xyz":
-            bfield_name = f"BField_{axis}"
             boxlib_bfield = f"{axis}-BField"
 
             if ("boxlib", boxlib_bfield) in self.field_list:
@@ -606,7 +605,7 @@ class QuokkaFieldInfo(FieldInfoContainer):
                 self.add_field(
                     ("rad", f"energy_density_{group}"),
                     sampling_type="cell",
-                    function=lambda field, data: data["boxlib", energy_field] * self.ds.unit_system["energy"] / self.ds.unit_system["length"]**3,
+                    function=lambda _, data: data["boxlib", energy_field] * self.ds.unit_system["energy"] / self.ds.unit_system["length"]**3,
                     units=self.ds.unit_system["energy"] / self.ds.unit_system["length"]**3,
                     display_name=f"Radiation Energy Density Group {group}",
                 )

@@ -1425,8 +1425,8 @@ class QuokkaDataset(AMReXDataset):
 
         try:
             out_id = int(os.path.basename(self.output_dir)[-5:])
-        except ValueError:
-            raise ValueError(f"Output directory {self.output_dir} does not end with at least 5 digits. Cannot infer output index. Cannot load face-centered datasets.")
+        except ValueError as err:
+            raise ValueError(f"Output directory {self.output_dir} does not end with at least 5 digits. Cannot infer output index. Cannot load face-centered datasets.") from err
         
         # Define the possible face-centered directories
         fc_dirs = {
@@ -1477,7 +1477,7 @@ class QuokkaDataset(AMReXDataset):
             # Metadata flags
             rad_group_count = 0
 
-            for i in range(num_fields):
+            for _i in range(num_fields):
                 current_field = f.readline().strip()
                 if current_field.startswith("radEnergy-Group"):
                     rad_group_count += 1
@@ -1662,10 +1662,8 @@ class QuokkaDataset(AMReXDataset):
                 quokka_version = metadata.get('quokka_version', '0.0')
                 
                 # Define version comparison function
-                is_newer_or_equal = lambda ver, compare_to: (
-                    tuple(map(int, str(ver).split('.'))) >= 
-                    tuple(map(int, str(compare_to).split('.')))
-                )
+                def is_newer_or_equal(ver, compare_to):
+                    return tuple(map(int, str(ver).split('.'))) >= tuple(map(int, str(compare_to).split('.')))
                 
                 # Compare with version 25.03 (year 2025, month 3)
                 if not is_newer_or_equal(quokka_version, '25.03'):
