@@ -1336,7 +1336,7 @@ class QuokkaHierarchy(BoxlibHierarchy):
 
         # Dynamically detect particle types by searching for "*_particles" directories
         particle_dirs = glob.glob(os.path.join(self.ds.output_dir, "*_particles"))
-        
+
         for pdir in particle_dirs:
             ptype = os.path.basename(pdir)
             header_file = os.path.join(pdir, "Header")
@@ -1408,7 +1408,7 @@ class QuokkaDataset(AMReXDataset):
         # Add magnetic fields in fluid_types only if detected
         if "Bfield" in self.parameters['fields']:
             self.fluid_types += ("mag",)
-            
+
         # Check for face-centered variables directories
         self._load_face_centered_datasets()
 
@@ -1427,14 +1427,14 @@ class QuokkaDataset(AMReXDataset):
             out_id = int(os.path.basename(self.output_dir)[-5:])
         except ValueError as err:
             raise ValueError(f"Output directory {self.output_dir} does not end with at least 5 digits. Cannot infer output index. Cannot load face-centered datasets.") from err
-        
+
         # Define the possible face-centered directories
         fc_dirs = {
             'x': os.path.join(fc_dir, f"x{out_id:05d}"),
             'y': os.path.join(fc_dir, f"y{out_id:05d}"),
             'z': os.path.join(fc_dir, f"z{out_id:05d}"),
         }
-        
+
         # For each direction, check if the directory exists and load it
         for direction, fc_dir in fc_dirs.items():
             if os.path.isdir(fc_dir):
@@ -1442,13 +1442,13 @@ class QuokkaDataset(AMReXDataset):
                     # Load the face-centered dataset
                     mylog.info(f"Loading face-centered {direction} dataset from {fc_dir}")
                     fc_ds = load(fc_dir)
-                    
+
                     # Store the dataset as an attribute
                     setattr(self, f"ds_fc_{direction}", fc_ds)
-                    
+
                     # Add a reference back to the parent dataset
                     fc_ds.parent_ds = self
-                    
+
                     # Add information about this being a face-centered dataset
                     fc_ds.fc_direction = direction
                 except Exception as e:
@@ -1653,18 +1653,18 @@ class QuokkaDataset(AMReXDataset):
             with open(metadata_filename, 'r') as f:
                 # Load metadata using yaml
                 metadata = yaml.safe_load(f)
-                
+
                 if not metadata:
                     mylog.debug("Warning: Metadata file is empty.")
                     return
-                    
+
                 # Get quokka version, default to 0.0 if not present
                 quokka_version = metadata.get('quokka_version', '0.0')
-                
+
                 # Define version comparison function
                 def is_newer_or_equal(ver, compare_to):
                     return tuple(map(int, str(ver).split('.'))) >= tuple(map(int, str(compare_to).split('.')))
-                
+
                 # Compare with version 25.03 (year 2025, month 3)
                 if not is_newer_or_equal(quokka_version, '25.03'):
                     # For older versions
@@ -1683,9 +1683,9 @@ class QuokkaDataset(AMReXDataset):
                         else:
                             # For everything else, read in directly
                             self.parameters[key] = value
-                    
+
                     mylog.debug("Metadata loaded successfully (version 25.03 or newer)")
-                
+
         except FileNotFoundError:
             mylog.debug(f"Error: Metadata file '{metadata_filename}' not found.")
         except yaml.YAMLError as e:

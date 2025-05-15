@@ -512,7 +512,7 @@ class QuokkaFieldInfo(FieldInfoContainer):
         ("y-GasMomentum", ("code_mass / (code_length**2 * code_time)", ["momentum_density_y"], r"\rho v")),
         ("z-GasMomentum", ("code_mass / (code_length**2 * code_time)", ["momentum_density_z"], r"\rho w")),
         # Temperature field is not present in early Quokka datasets
-        ("gasTemperature", ("K", ["temperature"], r"T")), 
+        ("gasTemperature", ("K", ["temperature"], r"T")),
         # Scalar fields are not always present
         ("scalar_0", ("", ["scalar_0"], "Scalar 0")),
         ("scalar_1", ("", ["scalar_1"], "Scalar 1")),
@@ -621,14 +621,14 @@ class QuokkaFieldInfo(FieldInfoContainer):
                         units=self.ds.unit_system["energy"] / self.ds.unit_system["length"]**2 / self.ds.unit_system["time"],
                         display_name=f"Radiation Flux Density {axis.upper()} Group {group}",
                     )
-        
+
         # Dynamically set up custom particle fields (convert `real_comp` to physics) for all particle types
         for ptype in self.ds.particle_types:
             self.setup_custom_particle_fields(ptype)
 
     def setup_custom_particle_fields(self, ptype):
         """
-        Dynamically set up custom particle fields (real_comp) for the given particle type, 
+        Dynamically set up custom particle fields (real_comp) for the given particle type,
         interpreting dimensional expressions and applying appropriate unit conversions.
 
         Parameters:
