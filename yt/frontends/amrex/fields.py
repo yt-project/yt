@@ -605,7 +605,7 @@ class QuokkaFieldInfo(FieldInfoContainer):
                 self.add_field(
                     ("rad", f"energy_density_{group}"),
                     sampling_type="cell",
-                    function=lambda _, data: data["boxlib", energy_field] * self.ds.unit_system["energy"] / self.ds.unit_system["length"]**3,
+                    function=lambda _, data, ef=energy_field: data["boxlib", ef] * self.ds.unit_system["energy"] / self.ds.unit_system["length"]**3,
                     units=self.ds.unit_system["energy"] / self.ds.unit_system["length"]**3,
                     display_name=f"Radiation Energy Density Group {group}",
                 )
