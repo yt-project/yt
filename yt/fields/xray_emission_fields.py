@@ -20,7 +20,7 @@ data_url = "http://yt-project.org/data"
 
 
 def _get_data_file(table_type, data_dir=None):
-    data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
+    data_file = f"{table_type}_emissivity_v{data_version[table_type]}.h5"
     if data_dir is None:
         supp_data_dir = ytcfg.get("yt", "supp_data_dir")
         data_dir = supp_data_dir if os.path.exists(supp_data_dir) else "."
@@ -43,7 +43,7 @@ class EnergyBoundsException(YTException):
 
 class ObsoleteDataException(YTException):
     def __init__(self, table_type):
-        data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
+        data_file = f"{table_type}_emissivity_v{data_version[table_type]}.h5"
         self.msg = "X-ray emissivity data is out of date.\n"
         self.msg += f"Download the latest data from {data_url}/{data_file}."
 

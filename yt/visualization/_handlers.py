@@ -240,8 +240,7 @@ class NormHandler:
             return dvmax / self.dynamic_range, dvmax
         else:
             raise TypeError(
-                "Cannot set dynamic range with both "
-                "vmin and vmax already constrained."
+                "Cannot set dynamic range with both vmin and vmax already constrained."
             )
 
     @property

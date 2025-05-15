@@ -45,23 +45,20 @@ if TYPE_CHECKING:
 
 
 BACKEND_SPECS = {
-    "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
-    "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
-    "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
-    "MacOSX": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
-    "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
-    "QtAgg": ["backend_qtagg", "FigureCanvasQTAgg", None],
-    "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg", None],
-    "WX": ["backend_wx", "FigureCanvasWx", None],
-    "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg", None],
-    "GTK3Cairo": [
+    "macosx": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
+    "qt5agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
+    "qtagg": ["backend_qtagg", "FigureCanvasQTAgg", None],
+    "tkagg": ["backend_tkagg", "FigureCanvasTkAgg", None],
+    "wx": ["backend_wx", "FigureCanvasWx", None],
+    "wxagg": ["backend_wxagg", "FigureCanvasWxAgg", None],
+    "gtk3cairo": [
         "backend_gtk3cairo",
         "FigureCanvasGTK3Cairo",
         "FigureManagerGTK3Cairo",
     ],
-    "GTK3Agg": ["backend_gtk3agg", "FigureCanvasGTK3Agg", "FigureManagerGTK3Agg"],
-    "WebAgg": ["backend_webagg", "FigureCanvasWebAgg", None],
-    "nbAgg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
+    "gtk3agg": ["backend_gtk3agg", "FigureCanvasGTK3Agg", "FigureManagerGTK3Agg"],
+    "webagg": ["backend_webagg", "FigureCanvasWebAgg", None],
+    "nbagg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
     "agg": ["backend_agg", "FigureCanvasAgg", None],
 }
 
@@ -138,6 +135,8 @@ class PlotMPL:
         figure_canvas, figure_manager = self._get_canvas_classes()
         self.canvas = figure_canvas(self.figure)
         if figure_manager is not None:
+            # with matplotlib >= 3.9, figure_manager should always be not None
+            # see _get_canvas_classes for details.
             self.manager = figure_manager(self.canvas, 1)
 
         self.axes.tick_params(
@@ -155,7 +154,16 @@ class PlotMPL:
         else:
             key = "agg"
 
-        module, fig_canvas, fig_manager = BACKEND_SPECS[key]
+        if matplotlib.__version_info__ >= (3, 9):
+            # once yt has a minimum matplotlib version of 3.9, this branch
+            # can replace the rest of this function and BACKEND_SPECS can
+            # be removed. See https://github.com/yt-project/yt/issues/5138
+            from matplotlib.backends import backend_registry
+
+            mod = backend_registry.load_backend_module(key)
+            return mod.FigureCanvas, mod.FigureManager
+
+        module, fig_canvas, fig_manager = BACKEND_SPECS[key.lower()]
 
         mod = __import__(
             "matplotlib.backends",

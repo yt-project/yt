@@ -10,11 +10,12 @@ from collections.abc import Callable, Mapping
 from functools import wraps
 from importlib.util import find_spec
 from shutil import which
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 from unittest import SkipTest
 
 import matplotlib
 import numpy as np
+import numpy.typing as npt
 from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
@@ -91,8 +92,8 @@ def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
 
 # tested: volume integral is 1.
 def cubicspline_python(
-    x: float | np.ndarray,
-) -> np.ndarray:
+    x: float | npt.NDArray[np.floating],
+) -> npt.NDArray[np.floating]:
     """
     cubic spline SPH kernel function for testing against more
     effiecient cython methods
@@ -118,8 +119,12 @@ def cubicspline_python(
 
 
 def integrate_kernel(
-    kernelfunc: Callable[[float], float], b: float, hsml: float
-) -> float:
+    kernelfunc: Callable[
+        [float | npt.NDArray[np.floating]], float | npt.NDArray[np.floating]
+    ],
+    b: float | npt.NDArray[np.floating],
+    hsml: float | npt.NDArray[np.floating],
+) -> npt.NDArray[np.floating]:
     """
     integrates a kernel function over a line passing entirely
     through it
@@ -147,18 +152,21 @@ def integrate_kernel(
     dx = np.diff(xe, axis=0)
     spv = kernelfunc(np.sqrt(xc**2 + x**2))
     integral = np.sum(spv * dx, axis=0)
-    return pre * integral
+    return np.atleast_1d(pre * integral)
 
 
 _zeroperiods = np.array([0.0, 0.0, 0.0])
 
 
+_FloatingT = TypeVar("_FloatingT", bound=np.floating)
+
+
 def distancematrix(
-    pos3_i0: np.ndarray,
-    pos3_i1: np.ndarray,
+    pos3_i0: npt.NDArray[_FloatingT],
+    pos3_i1: npt.NDArray[_FloatingT],
     periodic: tuple[bool, bool, bool] = (True,) * 3,
-    periods: np.ndarray = _zeroperiods,
-) -> np.ndarray:
+    periods: npt.NDArray[_FloatingT] = _zeroperiods,
+) -> npt.NDArray[_FloatingT]:
     """
     Calculates the distances between two arrays of points.
 

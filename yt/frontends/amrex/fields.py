@@ -740,7 +740,7 @@ class Substance:
 
     def _to_tex_molecule(self) -> str:
         return "".join(
-            rf"{element}_{{{count if count>1 else ''}}}"
+            rf"{element}_{{{count if count > 1 else ''}}}"
             for element, count in self._spec
         )
 

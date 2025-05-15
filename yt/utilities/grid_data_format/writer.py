@@ -163,7 +163,7 @@ def _write_fields_to_gdf(
             fi = ds._get_field_info(field)
             ftype, fname = fi.name
 
-            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+            grid_group = g[f"grid_{grid.id - grid._id_offset:010}"]
             particles_group = grid_group["particles"]
             pt_group = particles_group[particle_type_name]
 
@@ -190,7 +190,7 @@ def _write_fields_to_gdf(
                         for k, v in field_parameters.items():
                             grid.set_field_parameter(k, v)
 
-                    grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+                    grid_group = g[f"grid_{grid.id - grid._id_offset:010}"]
                     particles_group = grid_group["particles"]
                     pt_group = particles_group[particle_type_name]
                     # add the field data to the grid group
@@ -345,7 +345,7 @@ def _create_new_gdf(
     g = f.create_group("data")
     for grid in ds.index.grids:
         # add group for this grid
-        grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
+        grid_group = g.create_group(f"grid_{grid.id - grid._id_offset:010}")
         # add group for the particles on this grid
         particles_group = grid_group.create_group("particles")
         particles_group.create_group(particle_type_name)

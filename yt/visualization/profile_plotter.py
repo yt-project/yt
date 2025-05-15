@@ -210,7 +210,7 @@ class ProfilePlot(BaseLinePlot):
         y_fields = list(iter_fields(y_fields))
         logs = {x_field: bool(x_log)}
         if isinstance(y_log, bool):
-            y_log = {y_field: y_log for y_field in y_fields}
+            y_log = dict.fromkeys(y_fields, y_log)
 
         if isinstance(data_source.ds, YTProfileDataset):
             profiles = [data_source.ds.profile]
@@ -1319,8 +1319,6 @@ class PhasePlot(ImagePlotContainer):
 
         """
         for f in self._profile.field_data:
-            if isinstance(f, tuple):
-                f = f[1]
             self.plot_title[self.data_source._determine_fields(f)[0]] = title
         return self
 

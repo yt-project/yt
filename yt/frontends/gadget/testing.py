@@ -27,7 +27,7 @@ def write_record(fp, data, endian):
 
 def write_block(fp, data, endian, fmt, block_id):
     assert fmt in [1, 2]
-    block_id = "%-4s" % block_id
+    block_id = f"{block_id:<4}"
     if fmt == 2:
         block_id_dtype = np.dtype([("id", "S", 4), ("offset", endian + "i4")])
         block_id_data = np.zeros(1, dtype=block_id_dtype)

@@ -506,4 +506,60 @@ def test_quokka():
     assert particle_info["units"]["luminosity"] == "M^1 L^2 T^-3"
     assert particle_info["units"]["birth_time"] == "T^1"
     assert particle_info["units"]["end_time"] == "T^1"
-        
+
+
+# test loading non-Cartesian coordinate systems in different dimensionalities
+
+
+def check_coordsys_data(ds):
+    # check that level_dds is consistent with domain_width
+    assert_allclose(
+        ds.index.level_dds[0] * ds.domain_dimensions,
+        ds.domain_width.to_value("code_length"),
+        rtol=1e-12,
+        atol=0.0,
+    )
+
+    # check that we get the expected number of data points when selecting the
+    # entire domain
+    expected_size = sum(np.count_nonzero(g.child_mask) for g in ds.index.grids)
+    ad = ds.all_data()
+    assert ad["boxlib", "Temp"].size == expected_size
+
+
+cyl_1d = "castro_sedov_1d_cyl_plt00150"
+cyl_2d = "castro_sedov_2d_sph_in_cyl_plt00130"
+sph_1d = "sedov_1d_sph_plt00120"
+sph_2d = "xrb_spherical_smallplt00010"
+
+
+@requires_file(cyl_1d)
+def test_coordsys_1d_cylindrical():
+    ds = data_dir_load(cyl_1d)
+    assert ds.geometry == "cylindrical"
+    assert ds.dimensionality == 1
+    check_coordsys_data(ds)
+
+
+@requires_file(cyl_2d)
+def test_coordsys_2d_cylindrical():
+    ds = data_dir_load(cyl_2d)
+    assert ds.geometry == "cylindrical"
+    assert ds.dimensionality == 2
+    check_coordsys_data(ds)
+
+
+@requires_file(sph_1d)
+def test_coordsys_1d_spherical():
+    ds = data_dir_load(sph_1d)
+    assert ds.geometry == "spherical"
+    assert ds.dimensionality == 1
+    check_coordsys_data(ds)
+
+
+@requires_file(sph_2d)
+def test_coordsys_2d_spherical():
+    ds = data_dir_load(sph_2d)
+    assert ds.geometry == "spherical"
+    assert ds.dimensionality == 2
+    check_coordsys_data(ds)

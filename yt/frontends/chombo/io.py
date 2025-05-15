@@ -33,7 +33,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         num_comp = self._handle.attrs["num_components"]
         level = 0
         while True:
-            lname = "level_%i" % level
+            lname = f"level_{level}"
             if lname not in self._handle:
                 break
             boxes = self._handle["level_0"]["boxes"][()]
@@ -87,7 +87,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         return self._particle_field_index
 
     def _read_data(self, grid, field):
-        lstring = "level_%i" % grid.Level
+        lstring = f"level_{grid.Level}"
         lev = self._handle[lstring]
         dims = grid.ActiveDimensions
         shape = dims + 2 * self.ghost

@@ -183,6 +183,7 @@ other_tests:
      - "--ignore=test_outputs_pytest"
      - "--ignore-file=test_add_field\\.py"
      - "--ignore-file=test_ambiguous_fields\\.py"
+     - "--ignore-file=test_base_plot_types\\.py"
      - "--ignore-file=test_callable_grids\\.py"
      - "--ignore-file=test_callbacks_geographic\\.py"
      - "--ignore-file=test_commons\\.py"

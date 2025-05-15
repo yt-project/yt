@@ -2233,7 +2233,7 @@ class YTSurface(YTSelectionContainer3D):
             fobj.write(
                 f"usemtl {omname}\n"
             )  # which material to use for this face (color)
-            fobj.write(f"f {cc} {cc+1} {cc+2}\n\n")  # vertices to color
+            fobj.write(f"f {cc} {cc + 1} {cc + 2}\n\n")  # vertices to color
             cc = cc + 3
         fmtl.close()
         fobj.close()
@@ -2591,7 +2591,7 @@ class YTSurface(YTSelectionContainer3D):
         ]
         f.write(b"ply\n")
         f.write(b"format binary_little_endian 1.0\n")
-        line = "element vertex %i\n" % (nv)
+        line = f"element vertex {nv}\n"
         f.write(line.encode("latin-1"))
         f.write(b"property float x\n")
         f.write(b"property float y\n")
@@ -2612,7 +2612,7 @@ class YTSurface(YTSelectionContainer3D):
             )
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
-        line = "element face %i\n" % (nv / 3)
+        line = f"element face {int(nv / 3)}\n"
         f.write(line.encode("latin-1"))
         f.write(b"property list uchar int vertex_indices\n")
         if color_field is not None and sample_type == "face":
@@ -2751,9 +2751,9 @@ class YTSurface(YTSelectionContainer3D):
         # to a file.
         if self.vertices.shape[1] > 1e7:
             tfi = 0
-            fn = "temp_model_%03i.ply" % tfi
+            fn = f"temp_model_{tfi:03}.ply"
             while os.path.exists(fn):
-                fn = "temp_model_%03i.ply" % tfi
+                fn = f"temp_model_{tfi:03}.ply"
                 tfi += 1
             open(fn, "wb").write(ply_file.read())
             raise YTTooManyVertices(self.vertices.shape[1], fn)

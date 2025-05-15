@@ -443,13 +443,13 @@ class ARTIODataset(Dataset):
                 if self.artio_parameters["num_primary_variables"][species] > 0:
                     self.particle_variables[species].extend(
                         self.artio_parameters[
-                            "species_%02d_primary_variable_labels" % (species,)
+                            f"species_{species:02}_primary_variable_labels"
                         ]
                     )
                 if self.artio_parameters["num_secondary_variables"][species] > 0:
                     self.particle_variables[species].extend(
                         self.artio_parameters[
-                            "species_%02d_secondary_variable_labels" % (species,)
+                            f"species_{species:02}_secondary_variable_labels"
                         ]
                     )
 

@@ -4,6 +4,8 @@ cmyt==1.1.2
     # via yt (pyproject.toml)
 colorspacious==1.1.2
     # via cmyt
+contourpy==1.0.5
+    # via matplotlib
 cycler==0.12.1
     # via matplotlib
 ewah-bool-utils==1.2.0
@@ -12,7 +14,7 @@ fonttools==4.53.1
     # via matplotlib
 kiwisolver==1.4.7
     # via matplotlib
-matplotlib==3.5.0
+matplotlib==3.6.0
     # via
     #   yt (pyproject.toml)
     #   cmyt
@@ -27,6 +29,7 @@ numpy==1.21.3
     #   yt (pyproject.toml)
     #   cmyt
     #   colorspacious
+    #   contourpy
     #   ewah-bool-utils
     #   matplotlib
     #   unyt
@@ -34,7 +37,6 @@ packaging==20.9
     # via
     #   yt (pyproject.toml)
     #   matplotlib
-    #   setuptools-scm
 pillow==8.3.2
     # via
     #   yt (pyproject.toml)
@@ -44,10 +46,6 @@ pyparsing==3.1.4
     #   matplotlib
     #   packaging
 python-dateutil==2.9.0.post0
-    # via matplotlib
-setuptools==74.1.2
-    # via setuptools-scm
-setuptools-scm==8.1.0
     # via matplotlib
 six==1.16.0
     # via python-dateutil

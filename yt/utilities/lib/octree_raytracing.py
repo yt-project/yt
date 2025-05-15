@@ -50,7 +50,7 @@ class OctreeRayTracing:
             np.zeros((2, 2, 2, data_source.ires.size), dtype="float64"), units
         )
         binary_3D_index_iter = product(*[range(2)] * 3)
-        ind = {(i, j, k): 0 for i, j, k in binary_3D_index_iter}
+        ind = dict.fromkeys(binary_3D_index_iter, 0)
         for chunk in chunks:
             with data_source._chunked_read(chunk):
                 gz = data_source._current_chunk.objs[0]

@@ -536,7 +536,7 @@ class FixedResolutionBuffer:
         else:
             data.update(self.data)
 
-        ftypes = {field: "grid" for field in data}
+        ftypes = dict.fromkeys(data, "grid")
         extra_attrs = {
             arg: getattr(self.data_source, arg, None)
             for arg in self.data_source._con_args + self.data_source._tds_attrs
@@ -639,7 +639,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 self.bounds[5] - self.bounds[4],
             )
         )
-        depth = dd.depth[0] if dd.depth is not None else None
         buff = off_axis_projection(
             dd.dd,
             dd.center,
@@ -652,7 +651,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             no_ghost=dd.no_ghost,
             interpolated=dd.interpolated,
             north_vector=dd.north_vector,
-            depth=depth,
+            depth=dd.depth,
             method=dd.method,
         )
         if self.data_source.moment == 2:

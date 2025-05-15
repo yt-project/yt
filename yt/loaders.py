@@ -191,8 +191,7 @@ def _sanitize_axis_order_args(
     geometry_str: str
     if isinstance(geometry, tuple):
         issue_deprecation_warning(
-            f"Received a tuple as {geometry=}\n"
-            "Use the `axis_order` argument instead.",
+            f"Received a tuple as {geometry=}\nUse the `axis_order` argument instead.",
             since="4.2",
             stacklevel=4,
         )
@@ -342,7 +341,7 @@ def load_uniform_grid(
                     field = ("io", key)
                     mylog.debug("Reassigning '%s' to '%s'", key, field)
                 else:
-                    key = cast(FieldKey, key)
+                    key = cast("FieldKey", key)
                     field = key
                 sfh._additional_fields += (field,)
                 pdata[field] = data.pop(key)
@@ -1467,7 +1466,7 @@ def load_unstructured_mesh(
 
     fluid_types = ["all"]
     for i in range(1, num_meshes + 1):
-        fluid_types += ["connect%d" % i]
+        fluid_types += [f"connect{i}"]
     sds.fluid_types = tuple(fluid_types)
 
     def flatten(l):
@@ -1913,7 +1912,7 @@ def load_hdf5_file(
     psize = get_psize(np.array(shape), nchunks)
     left_edges, right_edges, shapes, _, _ = decompose_array(shape, psize, bbox)
     for le, re, s in zip(left_edges, right_edges, shapes, strict=True):
-        data = {_: reader for _ in fields}
+        data = dict.fromkeys(fields, reader)
         data.update({"left_edge": le, "right_edge": re, "dimensions": s, "level": 0})
         grid_data.append(data)
     return load_amr_grids(grid_data, shape, bbox=bbox, **dataset_arguments)
