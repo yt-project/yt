@@ -22,7 +22,7 @@ cdef INT64_t DOUBLE_SIZE = sizeof(np.float64_t)
 cdef INT64_t SINGLE_SIZE = sizeof(np.float32_t)
 
 
-cdef inline int skip_len(int Nskip, int record_len, bint single) noexcept nogil:
+cdef inline int skip_len(int Nskip, int record_len, np.npy_bool single) noexcept nogil:
     # If the data is single precision, we need to skip 4 bytes
     if single:
         return Nskip * (record_len * SINGLE_SIZE + INT64_SIZE)
@@ -115,7 +115,7 @@ def read_amr(FortranFile f, dict headers,
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.nonecheck(False)
-cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers, int Nskip, bint single):
+cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers, int Nskip, np.npy_bool single):
 
     cdef np.ndarray[np.int64_t, ndim=2] offset, level_count
     cdef INT64_t ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
@@ -176,7 +176,7 @@ def fill_hydro(FortranFile f,
                INT64_t ndim, list all_fields, list fields,
                dict tr,
                RAMSESOctreeContainer oct_handler,
-               bint single,
+               np.npy_bool single,
                np.ndarray[np.int32_t, ndim=1] domain_inds=np.array([], dtype='int32'),
                ):
     cdef INT64_t offset
