@@ -549,10 +549,13 @@ class RTFieldFileHandler(FieldFileHandler):
 
         rheader = {}
 
-        def read_rhs(cast):
+        def read_rhs(cast, group=None):
             line = f.readline()
             p, v = line.split("=")
-            rheader[p.strip()] = cast(v)
+            if group is not None:
+                rheader[f"Group {group} {p.strip()}"] = cast(v)
+            else:
+                rheader[p.strip()] = cast(v)
 
         with open(fname) as f:
             # Read nRTvar, nions, ngroups, iions
@@ -574,7 +577,7 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(float)
             f.readline()
 
-            # Reat unit_np, unit_pfd
+            # Read unit_np, unit_pf
             for _ in range(2):
                 read_rhs(float)
 
@@ -587,9 +590,20 @@ class RTFieldFileHandler(FieldFileHandler):
             # Read n star, t2star, g_star
             for _ in range(3):
                 read_rhs(float)
-
-            # Touchy part, we have to read the photon group properties
-            mylog.debug("Not reading photon group properties")
+            
+            f.readline()
+            f.readline()
+            
+            # Get global group properties (groupL0, groupL1, spec2group)
+            for _ in range(3):
+                read_rhs(lambda line: [float(e) for e in line.split()])
+            
+            # get egy for each group (to get proper energy densities)
+            for _ in range(4):
+                group = int(f.readline().split()[1])
+                read_rhs(lambda line: [float(e) for e in line.split()], group)
+                f.readline()
+                f.readline()
 
             cls.rt_parameters[ds.unique_identifier] = rheader
 
