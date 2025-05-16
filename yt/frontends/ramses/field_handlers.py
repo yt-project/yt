@@ -599,7 +599,7 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(lambda line: [float(e) for e in line.split()])
             
             # get egy for each group (to get proper energy densities)
-            for _ in range(4):
+            for _ in range(8):
                 group = int(f.readline().split()[1])
                 read_rhs(lambda line: [float(e) for e in line.split()], group)
                 f.readline()
