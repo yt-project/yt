@@ -21,7 +21,7 @@ from .fields import (
     CastroFieldInfo,
     MaestroFieldInfo,
     NyxFieldInfo,
-    QuokkaFieldInfo,    
+    QuokkaFieldInfo,
     WarpXFieldInfo,
 )
 from .io import IOHandlerBoxlib

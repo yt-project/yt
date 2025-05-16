@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
@@ -455,49 +454,52 @@ def test_quokka():
     # Test QuokkaDataset instance type
     ds = data_dir_load(quokka)
     assert isinstance(ds, QuokkaDataset)
-        
-    # Test basic parameters 
+
+    # Test basic parameters
     assert ds.parameters["HydroMethod"] == "Quokka"
     assert ds.parameters["quokka_version"] == 25.03
     assert ds.parameters["dimensionality"] == 2
-    assert_equal(ds.parameters["fields"], [
-        'gasDensity',
-        'x-GasMomentum',
-        'y-GasMomentum',
-        'z-GasMomentum',
-        'gasEnergy',
-        'gasInternalEnergy',
-        'radEnergy-Group0',
-        'x-RadFlux-Group0',
-        'y-RadFlux-Group0',
-        'z-RadFlux-Group0'
-    ])
-        
+    assert_equal(
+        ds.parameters["fields"],
+        [
+            "gasDensity",
+            "x-GasMomentum",
+            "y-GasMomentum",
+            "z-GasMomentum",
+            "gasEnergy",
+            "gasInternalEnergy",
+            "radEnergy-Group0",
+            "x-RadFlux-Group0",
+            "y-RadFlux-Group0",
+            "z-RadFlux-Group0",
+        ],
+    )
+
     # Check domain dimensions and boundaries
     assert_equal(ds.domain_dimensions, [64, 64, 1])
     assert_equal(ds.domain_left_edge, [0.0, 0.0, 0.0])
     assert_equal(ds.domain_right_edge, [1.0, 1.0, 1.0])
-        
+
     # Test derived fields and unit conversions
     ad = ds.all_data()
     assert ("gas", "density") in ds.derived_field_list
     density = ad["gas", "density"]
     assert str(density.units) == "g/cm**3"
-        
+
     # Check momentum/velocity relationship which confirms velocity is correctly derived
     momentum_x = ad["boxlib", "x-GasMomentum"]
     gas_density = ad["boxlib", "gasDensity"]
     velocity_x = ad["gas", "velocity_x"]
     assert_allclose(momentum_x / gas_density, velocity_x)
-        
+
     # Test radiation fields specifically
     assert ds.parameters["radiation_field_groups"] == 1
     assert "rad" in ds.fluid_types
     assert ("rad", "energy_density_0") in ds.derived_field_list
-        
+
     # Test particle IO with specific expectations
     assert ds.parameters["particle_types"] == ("Rad_particles",)
-        
+
     # Verify particle fields and units
     particle_info = ds.parameters["particle_info"]["Rad_particles"]
     assert particle_info["num_particles"] == 2

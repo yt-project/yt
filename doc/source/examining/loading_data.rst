@@ -2162,6 +2162,7 @@ Loading QUOKKA data is straightforward with the ``load`` command:
 .. code-block:: python
 
     import yt
+
     ds = yt.load("sample/RadBeam/plt00007")
 
 Boxlib Fields and Units
@@ -2178,27 +2179,30 @@ QUOKKA datasets include six mandatory gas fields:
 
 .. code-block:: python
 
-    [('boxlib', 'gasDensity'),
-     ('boxlib', 'gasEnergy'),
-     ('boxlib', 'gasInternalEnergy'),
-     ('boxlib', 'x-GasMomentum'),
-     ('boxlib', 'y-GasMomentum'),
-     ('boxlib', 'z-GasMomentum')]
+    [
+        ("boxlib", "gasDensity"),
+        ("boxlib", "gasEnergy"),
+        ("boxlib", "gasInternalEnergy"),
+        ("boxlib", "x-GasMomentum"),
+        ("boxlib", "y-GasMomentum"),
+        ("boxlib", "z-GasMomentum"),
+    ]
 
 For simulations with radiative transfer, the following fields are also available:
 
 .. code-block:: python
 
-    [('boxlib', 'radEnergy-Group0'),
-     ('boxlib', 'x-RadFlux-Group0'),
-     ('boxlib', 'y-RadFlux-Group0'),
-     ('boxlib', 'z-RadFlux-Group0'),
-     ('boxlib', 'radEnergy-Group1'),
-     ('boxlib', 'x-RadFlux-Group1'),
-     ('boxlib', 'y-RadFlux-Group1'),
-     ('boxlib', 'z-RadFlux-Group1'),
-     ...
-     ]
+    [
+        ("boxlib", "radEnergy-Group0"),
+        ("boxlib", "x-RadFlux-Group0"),
+        ("boxlib", "y-RadFlux-Group0"),
+        ("boxlib", "z-RadFlux-Group0"),
+        ("boxlib", "radEnergy-Group1"),
+        ("boxlib", "x-RadFlux-Group1"),
+        ("boxlib", "y-RadFlux-Group1"),
+        ("boxlib", "z-RadFlux-Group1"),
+        ...,
+    ]
 
 To see all available native fields in your dataset, do ``print(ds.field_list)``.
 
@@ -2218,13 +2222,13 @@ For example, the native ('boxlib', 'gasDensity') field is mapped to ('gas',
 .. code-block:: python
 
     # Accessing density with units
-    print(ds.r[('boxlib', 'gasDensity')])
-    print(ds.r[('gas', 'density')])
+    print(ds.r[("boxlib", "gasDensity")])
+    print(ds.r[("gas", "density")])
 
 .. code-block:: python
 
-    unyt_array([1., 1., 1., ..., 1., 1., 1.], 'code_mass/code_length**3')
-    unyt_array([1., 1., 1., ..., 1., 1., 1.], 'g/cm**3')
+    unyt_array([1.0, 1.0, 1.0, ..., 1.0, 1.0, 1.0], "code_mass/code_length**3")
+    unyt_array([1.0, 1.0, 1.0, ..., 1.0, 1.0, 1.0], "g/cm**3")
 
 Particle Data
 ^^^^^^^^^^^^
@@ -2255,7 +2259,7 @@ To access particle data in your analysis:
     ad = ds.all_data()
 
     # print particle info
-    print(ds.parameters['particle_info'])
+    print(ds.parameters["particle_info"])
 
     # List particle fields available for the selected particle type
     print(ad["Rad_particles", "particle_position_x"])
@@ -2268,8 +2272,9 @@ To annotate particles in a plot, use the ``annotate_particles`` method:
 
 .. code-block:: python
 
-    yt.SlicePlot(ds, 'z', ('gas', 'density')).annotate_particles(
-      1, p_size=400., col='blue', marker='*', ptype='Rad_particles')
+    yt.SlicePlot(ds, "z", ("gas", "density")).annotate_particles(
+        1, p_size=400.0, col="blue", marker="*", ptype="Rad_particles"
+    )
 
 Face-Centered Variables
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -2296,9 +2301,11 @@ missing this file, you can bypass metadata parsing:
 
     from yt.frontends.amrex.data_structures import QuokkaDataset
 
+
     class OldQuokkaDataset(QuokkaDataset):
         def _parse_metadata_file(self):
             pass
+
 
     ds_old = OldQuokkaDataset("sample/RadBeam/plt007")
 
