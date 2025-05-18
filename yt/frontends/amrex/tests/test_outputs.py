@@ -526,12 +526,12 @@ def test_quokka_face_centered():
     assert ds.ds_fc_x.fc_direction == "x"
     assert ds.ds_fc_y.fc_direction == "y"
     assert ds.ds_fc_z.fc_direction == "z"
-    
+
     # Check that the face-centered datasets have a reference to the parent dataset
     assert ds.ds_fc_x.parent_ds is ds
     assert ds.ds_fc_y.parent_ds is ds
     assert ds.ds_fc_z.parent_ds is ds
-    
+
     assert isinstance(ds, QuokkaDataset)
     assert isinstance(ds.ds_fc_x, QuokkaDataset)
 
