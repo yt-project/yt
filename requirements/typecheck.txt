@@ -2,4 +2,4 @@ mypy==1.15.0
 types-PyYAML==6.0.12.20250402
 types-chardet==5.0.4.6
 types-requests==2.32.0.20250328
-typing-extensions==4.13.1; python_version < '3.12'
+typing-extensions==4.13.2; python_version < '3.12'
