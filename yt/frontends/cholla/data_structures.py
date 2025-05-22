@@ -50,7 +50,7 @@ def _infer_blockid_location_arr(fname_template, global_dims, arr_shape):
     return blockid_location_arr
 
 
-def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]:
+def _determine_data_layout(f: "h5py.File") -> tuple[np.ndarray, _BlockDiskMapping]:
     """Determine the data layout of the snapshot
 
     The premise is that the basic different data formats shouldn't
@@ -116,8 +116,11 @@ def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]
             arr_shape=f.attrs.get("nprocs", np.array([1, 1, 1])).astype("=i8"),
         )
         consolidated_data = blockid_location_arr.size == 1
-        _common_idx = (slice(None), slice(None), slice(None))
-        field_idx_map = defaultdict(lambda arg=_common_idx: arg)
+
+        def _get_common_idx():
+            return (slice(None), slice(None), slice(None))
+
+        field_idx_map = defaultdict(_get_common_idx)
 
     # STEP 4: Finalize the fname template
     # ===================================
