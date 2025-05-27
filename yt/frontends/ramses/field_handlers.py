@@ -590,7 +590,6 @@ class RTFieldFileHandler(FieldFileHandler):
             # Read n star, t2star, g_star
             for _ in range(3):
                 read_rhs(float)
-            
             f.readline()
             f.readline()
             
@@ -598,7 +597,8 @@ class RTFieldFileHandler(FieldFileHandler):
             for _ in range(3):
                 read_rhs(lambda line: [float(e) for e in line.split()])
             
-            # get egy for each group (to get proper energy densities)
+            # get egy for each group (used to get proper energy densities)
+            # NOTE: this assumes there are 8 energy groups
             for _ in range(8):
                 group = int(f.readline().split()[1])
                 read_rhs(lambda line: [float(e) for e in line.split()], group)
