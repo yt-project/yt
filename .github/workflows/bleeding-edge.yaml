@@ -54,7 +54,8 @@ jobs:
          --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
         python -m pip install --pre ewah-bool-utils
         python -m pip install git+https://github.com/yt-project/unyt.git
-        python -m pip install --pre pytest PyYAML
+        python -m pip install git+https://github.com/pytest-dev/pytest.git
+        python -m pip install --pre PyYAML
 
     - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
