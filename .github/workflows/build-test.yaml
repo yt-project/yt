@@ -114,7 +114,7 @@ jobs:
       if: matrix.test-runner == 'pytest'
       run: |
         source .venv/${{matrix.venv-loc}}/activate
-        pytest --color=yes
+        pytest yt --color=yes
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
       run: |
@@ -152,7 +152,7 @@ jobs:
 
     - name: Run Image Tests
       run: |
-        pytest --color=yes --mpl -m mpl_image_compare \
+        pytest yt --color=yes --mpl -m mpl_image_compare \
                --mpl-generate-summary=html \
                --mpl-results-path=pytest_mpl_results \
                --mpl-baseline-path=tests/pytest_mpl_baseline \
