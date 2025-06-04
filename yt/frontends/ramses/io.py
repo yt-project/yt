@@ -19,6 +19,9 @@ from yt.utilities.logger import ytLogger as mylog
 if TYPE_CHECKING:
     import os
 
+    from yt.frontends.ramses.data_structures import RAMSESDomainSubset
+    from yt.frontends.ramses.particle_file_handler import ParticleFileHandler
+
 
 def convert_ramses_ages(ds, conformal_ages):
     issue_deprecation_warning(
@@ -73,12 +76,17 @@ def convert_ramses_conformal_time_to_physical_time(
     )
 
 
-def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count):
+def _ramses_particle_binary_file_handler(
+    particle_handler: "ParticleFileHandler",
+    subset: "RAMSESDomainSubset",
+    fields: list[tuple[str, str]],
+    count: int,
+) -> dict[tuple[str, str], np.ndarray]:
     """General file handler for binary file, called by _read_particle_subset
 
     Parameters
     ----------
-    particle : ``ParticleFileHandler``
+    particle_handler : ``ParticleFileHandler``
         the particle class we want to read
     subset: ``RAMSESDomainSubset``
         A RAMSES domain subset object
@@ -116,12 +124,17 @@ def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count
     return tr
 
 
-def _ramses_particle_csv_file_handler(particle_handler, subset, fields, count):
+def _ramses_particle_csv_file_handler(
+    particle_handler: "ParticleFileHandler",
+    subset: "RAMSESDomainSubset",
+    fields: list[tuple[str, str]],
+    count: int,
+) -> dict[tuple[str, str], np.ndarray]:
     """General file handler for csv file, called by _read_particle_subset
 
     Parameters
     ----------
-    particle: ``ParticleFileHandler``
+    particle_handler: ``ParticleFileHandler``
         the particle class we want to read
     subset: ``RAMSESDomainSubset``
         A RAMSES domain subset object
