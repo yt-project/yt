@@ -19,8 +19,18 @@ from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
 from setuptools.errors import CompileError, LinkError
 import importlib.resources as importlib_resources
+from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
 log = logging.getLogger("setupext")
+
+USE_PY_LIMITED_API = (
+    os.getenv('YT_LIMITED_API', '0') == '1'
+    and sys.version_info >= (3, 11)
+    and not sysconfig.get_config_var("Py_GIL_DISABLED")
+)
+ABI3_TARGET_VERSION = "".join(str(_) for _ in sys.version_info[:2])
+ABI3_TARGET_HEX = hex(sys.hexversion & 0xFFFF00F0)
+
 
 @contextlib.contextmanager
 def stdchannel_redirected(stdchannel, dest_filename):
@@ -433,6 +443,10 @@ def create_build_ext(lib_exts, cythonize_aliases):
             self.include_dirs.append(ewah_bool_utils.get_include())
 
             define_macros = NUMPY_MACROS
+            if USE_PY_LIMITED_API:
+                define_macros.append(("Py_LIMITED_API", ABI3_TARGET_HEX))
+                for ext in self.extensions:
+                    ext.py_limited_api = True
 
             if self.define is None:
                 self.define = define_macros
@@ -477,4 +491,13 @@ def create_build_ext(lib_exts, cythonize_aliases):
             )
             _sdist.run(self)
 
-    return build_ext, sdist
+    class bdist_wheel(_bdist_wheel):
+        def get_tag(self):
+            python, abi, plat = super().get_tag()
+
+            if python.startswith("cp") and USE_PY_LIMITED_API:
+                return f"cp{ABI3_TARGET_VERSION}", "abi3", plat
+
+            return python, abi, plat
+
+    return build_ext, sdist, bdist_wheel
