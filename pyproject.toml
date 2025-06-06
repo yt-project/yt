@@ -469,6 +469,7 @@ test-extras = "test"
 test-command = [
     "pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
+environment = {"YT_LIMITED_API" = "1"}
 
 [tool.cibuildwheel.linux]
 archs = "x86_64"
