@@ -274,11 +274,7 @@ def insert_ipython(num_up=1):
     """
     import IPython
     from IPython.terminal.embed import InteractiveShellEmbed
-
-    try:
-        from traitlets.config.loader import Config
-    except ImportError:
-        from IPython.config.loader import Config
+    from traitlets.config.loader import Config
 
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
