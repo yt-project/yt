@@ -99,8 +99,13 @@ def read_amr(FortranFile f, dict headers,
 
             # Note that we're adding *grids*, not individual cells.
             if ilevel >= min_level:
-                n = oct_handler.add(icpu + 1, ilevel - min_level, pos[:ng, :],
-                                    count_boundary = 1)
+                n = oct_handler.add(
+                    icpu + 1,
+                    ilevel - min_level,
+                    pos[:ng, :],
+                    skip_boundary = 1,
+                    count_boundary = 1,
+                )
                 if n > 0:
                     max_level = max(ilevel - min_level, max_level)
 
