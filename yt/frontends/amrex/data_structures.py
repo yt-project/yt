@@ -6,7 +6,6 @@ from functools import cached_property
 from stat import ST_CTIME
 
 import numpy as np
-import yaml
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
@@ -1373,6 +1372,7 @@ class QuokkaDataset(AMReXDataset):
     _field_info_class = QuokkaFieldInfo
     _subtype_keyword = ""
     _default_cparam_filename = "metadata.yaml"
+    _load_requirements = ["yaml"]
 
     def __init__(
         self,
@@ -1465,6 +1465,8 @@ class QuokkaDataset(AMReXDataset):
                 mylog.debug(f"No face-centered {direction} dataset found at {fc_dir}")
 
     def _parse_parameter_file(self):
+        import yaml
+
         # Call parent method to initialize core setup by yt
         super()._parse_parameter_file()
 
@@ -1686,6 +1688,8 @@ class QuokkaDataset(AMReXDataset):
         mylog.debug("Parsed header parameters: %s", self.parameters)
 
     def _parse_metadata_file(self):
+        import yaml
+
         # Construct the full path to the metadata file
         metadata_filename = os.path.join(self.output_dir, self.cparam_filename)
         try:
