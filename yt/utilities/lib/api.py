@@ -5,7 +5,6 @@ from .fortran_reader import *
 from .grid_traversal import *
 from .image_utilities import *
 from .interpolators import *
-from .line_integral_convolution import *
 from .marching_cubes import *
 from .mesh_utilities import *
 from .misc_utilities import *
