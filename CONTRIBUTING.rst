@@ -65,7 +65,7 @@ Gallery Images and Videos
 -------------------------
 
 If you have an image or video you'd like to display in the image or video
-galleries, getting it included it easy!  You can either fork the `yt homepage
+galleries, getting it included is easy!  You can either fork the `yt homepage
 repository <https://github.com/yt-project/website>`_ and add it there, or
 email it to us and we'll add it to the `Gallery
 <https://yt-project.org/gallery.html>`_.
