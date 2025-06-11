@@ -16,6 +16,8 @@ from yt.funcs import (
     validate_object,
     validate_width_tuple,
 )
+from yt.geometry import selection_routines
+from yt.geometry.geometry_enum import Geometry
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.minimal_representation import MinimalSliceData
 from yt.utilities.orientation import Orientation
@@ -170,7 +172,6 @@ class YTCuttingPlane(YTSelectionContainer2D):
     data_source: optional
         Draw the selection from the provided data source rather than
         all data associated with the dataset
-
     Notes
     -----
 
@@ -234,13 +235,20 @@ class YTCuttingPlane(YTSelectionContainer2D):
     def normal(self):
         return self._norm_vec
 
+    def _current_chunk_xyz(self):
+        x = self._current_chunk.fcoords[:, 0]
+        y = self._current_chunk.fcoords[:, 1]
+        z = self._current_chunk.fcoords[:, 2]
+        return x, y, z
+
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if field == "px":
-            x = self._current_chunk.fcoords[:, 0] - self.center[0]
-            y = self._current_chunk.fcoords[:, 1] - self.center[1]
-            z = self._current_chunk.fcoords[:, 2] - self.center[2]
+            x, y, z = self._current_chunk_xyz()
+            x = x - self.center[0]
+            y = y - self.center[1]
+            z = z - self.center[2]
             tr = np.zeros(x.size, dtype="float64")
             tr = self.ds.arr(tr, "code_length")
             tr += x * self._x_vec[0]
@@ -248,9 +256,10 @@ class YTCuttingPlane(YTSelectionContainer2D):
             tr += z * self._x_vec[2]
             return tr
         elif field == "py":
-            x = self._current_chunk.fcoords[:, 0] - self.center[0]
-            y = self._current_chunk.fcoords[:, 1] - self.center[1]
-            z = self._current_chunk.fcoords[:, 2] - self.center[2]
+            x, y, z = self._current_chunk_xyz()
+            x = x - self.center[0]
+            y = y - self.center[1]
+            z = z - self.center[2]
             tr = np.zeros(x.size, dtype="float64")
             tr = self.ds.arr(tr, "code_length")
             tr += x * self._y_vec[0]
@@ -258,9 +267,10 @@ class YTCuttingPlane(YTSelectionContainer2D):
             tr += z * self._y_vec[2]
             return tr
         elif field == "pz":
-            x = self._current_chunk.fcoords[:, 0] - self.center[0]
-            y = self._current_chunk.fcoords[:, 1] - self.center[1]
-            z = self._current_chunk.fcoords[:, 2] - self.center[2]
+            x, y, z = self._current_chunk_xyz()
+            x = x - self.center[0]
+            y = y - self.center[1]
+            z = z - self.center[2]
             tr = np.zeros(x.size, dtype="float64")
             tr = self.ds.arr(tr, "code_length")
             tr += x * self._norm_vec[0]
@@ -354,6 +364,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         >>> frb = cutting.to_frb((1.0, "pc"), 1024)
         >>> write_image(np.log10(frb["gas", "density"]), "density_1pc.png")
         """
+
         if is_sequence(width):
             validate_width_tuple(width)
             width = self.ds.quan(width[0], width[1])
@@ -364,8 +375,150 @@ class YTCuttingPlane(YTSelectionContainer2D):
             height = self.ds.quan(height[0], height[1])
         if not is_sequence(resolution):
             resolution = (resolution, resolution)
+
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
 
         bounds = (-width / 2.0, width / 2.0, -height / 2.0, height / 2.0)
         frb = FixedResolutionBuffer(self, bounds, resolution, periodic=periodic)
         return frb
+
+
+class YTCartesianCuttingPlane(YTCuttingPlane):
+    """
+    A YTCartesianCuttingPlane (ds.cartesian_cutting) is similar to YTCuttingPlane (ds.cutting)
+    but the cutting plane is always defined in cartesian coordinates, allowing arbitrary slices
+    through datasets defined in non-cartesian geometries.
+
+    Parameters
+    ----------
+    normal : array_like
+        The vector that defines the desired plane in cartesian coordinates.
+    center : array_like
+        The center of the cutting plane, where the normal vector is anchored, in
+        cartesian coordinates.
+    north_vector: array_like, optional
+        An optional vector to describe the north-facing direction in the resulting
+        plane, in cartesian coordinates.
+    ds: ~yt.data_objects.static_output.Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the dataset
+    edge_tol: float
+        Optional edge tolerance (default 1e-12). This controls the fuzziness
+        of element-plane intersection to account for floating point errors
+        in coordinate transformations. If your slice is missing elements,
+        try increasing this number a bit.
+    """
+
+    _type_name = "cartesian_cutting"
+    _con_args = ("normal", "center")
+    _tds_attrs = ("_inv_mat",)
+    _tds_fields = ("x", "y", "z", "dx")
+    _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
+    _supported_geometries = (Geometry.SPHERICAL,)
+
+    def __init__(
+        self,
+        normal,
+        center,
+        north_vector=None,
+        ds=None,
+        field_parameters=None,
+        data_source=None,
+        edge_tol=1e-12,
+    ):
+        super().__init__(
+            normal,
+            center,
+            north_vector=north_vector,
+            ds=ds,
+            field_parameters=field_parameters,
+            data_source=data_source,
+        )
+        self._ds_geom = self.ds.geometry
+        self._validate_geometry()
+        self.edge_tol = edge_tol
+
+    def _validate_geometry(self):
+        if self._ds_geom not in self._supported_geometries:
+            if self._ds_geom is Geometry.CARTESIAN:
+                msg = (
+                    "YTCuttingPlaneMixedCoords is not supported for cartesian "
+                    "coordinates: use YTCuttingPlane instead (i.e., ds.cutting)."
+                )
+                raise NotImplementedError(msg)
+            else:
+                self._raise_unsupported_geometry()
+
+    def _raise_unsupported_geometry(self):
+        msg = (
+            "YTCuttingPlaneMixedCoords only supports the following "
+            f"geometries: {self._supported_geometries}. The current"
+            f" geometry is {self._ds_geom}."
+        )
+        raise NotImplementedError(msg)
+
+    @property
+    def _index_fields(self):
+        # note: using the default axis order here because the index fields
+        # will are accessed by-chunk and passed down to the pixelizer
+        # with an expected ordering matching the default ordering.
+        ax_order = self.ds.coordinates._default_axis_order
+        fields = [("index", fld) for fld in ax_order]
+        fields += [("index", f"d{fld}") for fld in ax_order]
+        return fields
+
+    @property
+    def _cartesian_to_native(self):
+        if self._ds_geom is Geometry.SPHERICAL:
+            from yt.utilities.lib.coordinate_utilities import cartesian_to_spherical
+
+            return cartesian_to_spherical
+        self._raise_unsupported_geometry()
+
+    @property
+    def _native_to_cartesian(self):
+        if self._ds_geom is Geometry.SPHERICAL:
+            from yt.utilities.lib.coordinate_utilities import spherical_to_cartesian
+
+            return spherical_to_cartesian
+        self._raise_unsupported_geometry()
+
+    def _plane_coords(self, in_plane_x, in_plane_y):
+        # calculates the 3d coordinates of points on the plane in the
+        # native coordinate system of the dataset.
+
+        # actual x, y, z locations of each point in the plane
+        c = self.center.d
+        x_global = in_plane_x * self._x_vec[0] + in_plane_y * self._y_vec[0] + c[0]
+        y_global = in_plane_x * self._x_vec[1] + in_plane_y * self._y_vec[1] + c[1]
+        z_global = in_plane_x * self._x_vec[2] + in_plane_y * self._y_vec[2] + c[2]
+
+        # now transform to the native coordinates
+        return self._cartesian_to_native(x_global, y_global, z_global)
+
+    def to_pw(self, fields=None, center="center", width=None, axes_unit=None):
+        msg = (
+            "to_pw is not implemented for mixed coordinate slices. You can create"
+            " plots manually using to_frb() to generate a fixed resolution array."
+        )
+        raise NotImplementedError(msg)
+
+    def _get_selector_class(self):
+        s_module = getattr(self, "_selector_module", selection_routines)
+        if self.ds.geometry is Geometry.SPHERICAL:
+            type_name = self._type_name + "_spherical"
+        else:
+            self._raise_unsupported_geometry()
+        sclass = getattr(s_module, f"{type_name}_selector", None)
+        return sclass
+
+    def _current_chunk_xyz(self):
+        x = self._current_chunk.fcoords[:, 0]
+        y = self._current_chunk.fcoords[:, 1]
+        z = self._current_chunk.fcoords[:, 2]
+        return self._native_to_cartesian(x, y, z)
