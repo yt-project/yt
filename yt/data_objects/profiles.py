@@ -1356,13 +1356,13 @@ def create_profile(
         #
         # In the future, it may be better to replace `not any(...)` with either:
         #   `all(v is None for v in collapse(extrema.values()))` OR
-        #   `all((v is None) or v == (None, None) for v in collapse(extrema.values))`
+        #   `all(v is None or v == (None, None) for v in collapse(extrema.values))`
         #
         # Be aware that doing this changes behavior, when extrema has the value:
         #   `{<bin_field>: (0., None)}` or `{<bin_field>: (None, 0.)}`
         # I happen to think think that the existing behavior is a bug (i.e. the
         # behavior changes if we replaced 0. with **ANY** other number)
-        extrema = None
+        extrema = dict.fromkeys(bin_fields, (None, None))
     else:
         extrema = _sanitize_dictarg_required_bin_fields(
             extrema, data_source, bin_fields, arg_name="extrema"
@@ -1431,7 +1431,9 @@ def create_profile(
             logs_list.append(data_source.ds.field_info[bin_field].take_log)
     logs = logs_list
 
-    if override_bins is not None:
+    if override_bins is None:
+        o_bins = [None for _ in bin_fields]
+    else:
         o_bins = []
         for bin_field in bin_fields:
             bf_units = data_source.ds.field_info[bin_field].output_units
@@ -1455,27 +1457,27 @@ def create_profile(
             field_obin = fe.d
             o_bins.append(field_obin)
 
-    if extrema is None:
-        ex = [
-            data_source.quantities["Extrema"](f, non_zero=l)
-            for f, l in zip(bin_fields, logs, strict=True)
-        ]
-        # pad extrema by epsilon so cells at bin edges are not excluded
-        for i, (mi, ma) in enumerate(ex):
-            mi = mi - np.spacing(mi)
-            ma = ma + np.spacing(ma)
-            ex[i][0], ex[i][1] = mi, ma
-    else:
-        ex = []
-        for bin_field in bin_fields:
+    # infer the extrema for each bin_field
+    ex = []
+    for bin_field, log, field_obin in zip(bin_fields, logs, o_bins, strict=True):
+        if field_obin is not None:
+            # extrema are **only** used to infer bins. When override_bins are provided,
+            # the inferred bins are ignored. Thus, it's ok to set the bin_field's
+            # extrema to any arbitrary pair of values that produce valid bins
+            ex.append([1, 2])  # we use a positive minimum in case ``log == True``
+            continue
+        else:
             bf_units = data_source.ds.field_info[bin_field].output_units
-            field_ex = list(extrema[bin_field])
 
+            # get (& sanitize) the extrema specified for field_ex
+            field_ex = list(extrema[bin_field])
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
-            if any(exi is None for exi in field_ex):
+
+            # compute any missing extrema and use the result to update field_ex
+            if None in field_ex:
                 try:
-                    ds_extrema = data_source.quantities.extrema(bin_field)
+                    ds_extrema = data_source.quantities.extrema(bin_field, non_zero=log)
                 except AttributeError:
                     # ytdata profile datasets don't have data_source.quantities
                     bf_vals = data_source[bin_field]
@@ -1486,6 +1488,8 @@ def create_profile(
                         # pad extrema by epsilon so cells at bin edges are
                         # not excluded
                         field_ex[i] -= (-1) ** i * np.spacing(field_ex[i])
+
+            # handle units
             if units is not None and bin_field in units:
                 for i, exi in enumerate(field_ex):
                     if hasattr(exi, "units"):
@@ -1500,12 +1504,14 @@ def create_profile(
                     fe = data_source.ds.arr(field_ex, bf_units)
             fe.convert_to_units(bf_units)
             field_ex = [fe[0].v, fe[1].v]
+            # can we remove the next 6 lines?
             if is_sequence(field_ex[0]):
                 field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
             if is_sequence(field_ex[1]):
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
+            # record the extrema
             ex.append(field_ex)
 
     args = [data_source]
