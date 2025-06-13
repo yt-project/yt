@@ -1431,6 +1431,30 @@ def create_profile(
             logs_list.append(data_source.ds.field_info[bin_field].take_log)
     logs = logs_list
 
+    if override_bins is not None:
+        o_bins = []
+        for bin_field in bin_fields:
+            bf_units = data_source.ds.field_info[bin_field].output_units
+            field_obin = override_bins[bin_field]
+
+            if field_obin is None:
+                o_bins.append(None)
+                continue
+
+            if isinstance(field_obin, tuple):
+                field_obin = data_source.ds.arr(*field_obin)
+
+            if units is not None and bin_field in units:
+                fe = data_source.ds.arr(field_obin, units[bin_field])
+            else:
+                if hasattr(field_obin, "units"):
+                    fe = field_obin.to(bf_units)
+                else:
+                    fe = data_source.ds.arr(field_obin, bf_units)
+            fe.convert_to_units(bf_units)
+            field_obin = fe.d
+            o_bins.append(field_obin)
+
     if extrema is None:
         ex = [
             data_source.quantities["Extrema"](f, non_zero=l)
@@ -1483,30 +1507,6 @@ def create_profile(
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
-
-    if override_bins is not None:
-        o_bins = []
-        for bin_field in bin_fields:
-            bf_units = data_source.ds.field_info[bin_field].output_units
-            field_obin = override_bins[bin_field]
-
-            if field_obin is None:
-                o_bins.append(None)
-                continue
-
-            if isinstance(field_obin, tuple):
-                field_obin = data_source.ds.arr(*field_obin)
-
-            if units is not None and bin_field in units:
-                fe = data_source.ds.arr(field_obin, units[bin_field])
-            else:
-                if hasattr(field_obin, "units"):
-                    fe = field_obin.to(bf_units)
-                else:
-                    fe = data_source.ds.arr(field_obin, bf_units)
-            fe.convert_to_units(bf_units)
-            field_obin = fe.d
-            o_bins.append(field_obin)
 
     args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs, strict=True):
