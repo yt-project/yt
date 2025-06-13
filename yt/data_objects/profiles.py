@@ -1202,6 +1202,43 @@ def sanitize_field_tuple_keys(input_dict, data_source):
         return input_dict
 
 
+def _sanitize_dictarg_required_bin_fields(
+    input_dict, data_source, bin_fields, arg_name
+):
+    """
+    Helper function for create_profile to coerce and check arguments
+    that expect None or expect Mappings with keys for each bin_field
+    to a standardized format.
+
+    While it would be more efficient to avoid explicitly checking for
+    the presence of bin_field keys in this function, the cost is
+    worthwhile for a few reasons:
+    1. len(bin_fields) is always a small and the calculation this
+       function accompanies is commonly substantially more expensive
+    2. it helps us simplify the implementation of create_profile
+    3. it lets us explicitly document slightly idiosyncratic behavior
+       (that was poorly documented historically).
+    """
+    if input_dict is None:
+        return input_dict
+
+    tmp = sanitize_field_tuple_keys(input_dict, data_source)
+    out = {}
+    for bin_field in bin_fields:
+        try:
+            out[bin_field] = tmp[bin_field[-1]]
+        except KeyError:
+            try:
+                out[bin_field] = tmp[bin_field]
+            except KeyError:
+                raise ValueError(
+                    f"The {arg_name} argument must be None or a dict with keys for "
+                    f"each bin_field. {arg_name} is missing an entry for {bin_field} "
+                    f"(or equivalently, for {bin_field[-1]})"
+                ) from None
+    return out
+
+
 def create_profile(
     data_source,
     bin_fields,
@@ -1300,12 +1337,35 @@ def create_profile(
     if len(bin_fields) > 1 and isinstance(accumulation, bool):
         accumulation = [accumulation for _ in range(len(bin_fields))]
 
+    # handle sanitization/sanitization
     bin_fields = data_source._determine_fields(bin_fields)
     fields = data_source._determine_fields(fields)
     units = sanitize_field_tuple_keys(units, data_source)
-    extrema = sanitize_field_tuple_keys(extrema, data_source)
     logs = sanitize_field_tuple_keys(logs, data_source)
-    override_bins = sanitize_field_tuple_keys(override_bins, data_source)
+    override_bins = _sanitize_dictarg_required_bin_fields(
+        override_bins, data_source, bin_fields, arg_name="override_bins"
+    )
+
+    # extrema historically has had a very weird set of implicit requirements
+    # -> to preserve backwards compatibility, (technically, its undocumented behavior),
+    #    we explicitly accept an extrema dict where a subset of the values are None as
+    #    long as none of the bin_fields are associated with None
+    if extrema is None or not any(collapse(extrema.values())):
+        # when extrema are all Nones, treat them as though extrema was set as None
+        # - In the future, it may be better to:
+        #   - explicitly check that all values are None or (None,None)
+        #   - report an error if we are missing a key for a bin_field
+        extrema = None
+    else:
+        extrema = _sanitize_dictarg_required_bin_fields(
+            extrema, data_source, bin_fields, arg_name="extrema"
+        )
+        for bin_field, val in extrema:
+            if val is None or None in val:
+                raise ValueError(
+                    f"extrema can't associate `None` with the key for {bin_field} "
+                    "unless all contained keys are associated with None"
+                )
 
     if any(is_pfield) and not all(is_pfield):
         if hasattr(data_source.ds, "_sph_ptypes"):
@@ -1370,30 +1430,53 @@ def create_profile(
             logs_list.append(data_source.ds.field_info[bin_field].take_log)
     logs = logs_list
 
-    # Are the extrema all Nones? Then treat them as though extrema was set as None
-    if extrema is None or not any(collapse(extrema.values())):
-        ex = [
-            data_source.quantities["Extrema"](f, non_zero=l)
-            for f, l in zip(bin_fields, logs, strict=True)
-        ]
-        # pad extrema by epsilon so cells at bin edges are not excluded
-        for i, (mi, ma) in enumerate(ex):
-            mi = mi - np.spacing(mi)
-            ma = ma + np.spacing(ma)
-            ex[i][0], ex[i][1] = mi, ma
+    if override_bins is None:
+        o_bins = [None for _ in bin_fields]
+    else:
+        o_bins = []
+        for bin_field in bin_fields:
+            bf_units = data_source.ds.field_info[bin_field].output_units
+            field_obin = override_bins[bin_field]
+
+            if field_obin is None:
+                o_bins.append(None)
+                continue
+
+            if isinstance(field_obin, tuple):
+                field_obin = data_source.ds.arr(*field_obin)
+
+            if units is not None and bin_field in units:
+                fe = data_source.ds.arr(field_obin, units[bin_field])
+            else:
+                if hasattr(field_obin, "units"):
+                    fe = field_obin.to(bf_units)
+                else:
+                    fe = data_source.ds.arr(field_obin, bf_units)
+            fe.convert_to_units(bf_units)
+            field_obin = fe.d
+            o_bins.append(field_obin)
+
+    if extrema is None:
+        ex = []
+        for field, log, field_obin in zip(bin_fields, logs, o_bins, strict=True):
+            if field_obin is None:
+                ex.append(data_source.quantities["Extrema"](field, non_zero=log))
+                # pad extrema by epsilon so cells at bin edges are not excluded
+                mi, ma = ex[-1]
+                mi = mi - np.spacing(mi)
+                ma = ma + np.spacing(ma)
+                ex[-1][0], ex[-1][1] = mi, ma
+            else:
+                if field_obin[-1] > field_obin[0]:
+                    mi, ma = field_obin[0], field_obin[-1]
+                else:
+                    ma, mi = field_obin[0], field_obin[-1]
+                ex.append([mi, ma])
     else:
         ex = []
         for bin_field in bin_fields:
             bf_units = data_source.ds.field_info[bin_field].output_units
-            try:
-                field_ex = list(extrema[bin_field[-1]])
-            except KeyError as e:
-                try:
-                    field_ex = list(extrema[bin_field])
-                except KeyError:
-                    raise RuntimeError(
-                        f"Could not find field {bin_field[-1]} or {bin_field} in extrema"
-                    ) from e
+            field_ex = list(extrema[bin_field])
 
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
@@ -1431,33 +1514,6 @@ def create_profile(
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
-
-    if override_bins is not None:
-        o_bins = []
-        for bin_field in bin_fields:
-            bf_units = data_source.ds.field_info[bin_field].output_units
-            try:
-                field_obin = override_bins[bin_field[-1]]
-            except KeyError:
-                field_obin = override_bins[bin_field]
-
-            if field_obin is None:
-                o_bins.append(None)
-                continue
-
-            if isinstance(field_obin, tuple):
-                field_obin = data_source.ds.arr(*field_obin)
-
-            if units is not None and bin_field in units:
-                fe = data_source.ds.arr(field_obin, units[bin_field])
-            else:
-                if hasattr(field_obin, "units"):
-                    fe = field_obin.to(bf_units)
-                else:
-                    fe = data_source.ds.arr(field_obin, bf_units)
-            fe.convert_to_units(bf_units)
-            field_obin = fe.d
-            o_bins.append(field_obin)
 
     args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs, strict=True):
