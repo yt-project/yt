@@ -1430,7 +1430,9 @@ def create_profile(
             logs_list.append(data_source.ds.field_info[bin_field].take_log)
     logs = logs_list
 
-    if override_bins is not None:
+    if override_bins is None:
+        o_bins = [None for _ in bin_fields]
+    else:
         o_bins = []
         for bin_field in bin_fields:
             bf_units = data_source.ds.field_info[bin_field].output_units
@@ -1455,15 +1457,21 @@ def create_profile(
             o_bins.append(field_obin)
 
     if extrema is None:
-        ex = [
-            data_source.quantities["Extrema"](f, non_zero=l)
-            for f, l in zip(bin_fields, logs, strict=True)
-        ]
-        # pad extrema by epsilon so cells at bin edges are not excluded
-        for i, (mi, ma) in enumerate(ex):
-            mi = mi - np.spacing(mi)
-            ma = ma + np.spacing(ma)
-            ex[i][0], ex[i][1] = mi, ma
+        ex = []
+        for field, log, field_obin in zip(bin_fields, logs, o_bins, strict=True):
+            if field_obin is None:
+                ex.append(data_source.quantities["Extrema"](field, non_zero=log))
+                # pad extrema by epsilon so cells at bin edges are not excluded
+                mi, ma = ex[-1]
+                mi = mi - np.spacing(mi)
+                ma = ma + np.spacing(ma)
+                ex[-1][0], ex[-1][1] = mi, ma
+            else:
+                if field_obin[-1] > field_obin[0]:
+                    mi, ma = field_obin[0], field_obin[-1]
+                else:
+                    ma, mi = field_obin[0], field_obin[-1]
+                ex.append([mi, ma])
     else:
         ex = []
         for bin_field in bin_fields:
