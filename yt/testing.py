@@ -1245,7 +1245,15 @@ def skip(reason: str):
     def dec(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            raise SkipTest(reason)
+            if os.getenv("PYTEST_VERSION") is not None:
+                # this is the recommended way to detect a pytest session
+                # https://docs.pytest.org/en/stable/reference/reference.html#envvar-PYTEST_VERSION
+                import pytest
+
+                pytest.skip(reason)
+            else:
+                # running from nose, or unittest
+                raise SkipTest(reason)
 
         return wrapper
 
