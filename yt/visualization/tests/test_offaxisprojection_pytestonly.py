@@ -11,6 +11,7 @@ from yt.testing import (
     fake_sph_grid_ds,
     integrate_kernel,
     requires_module_pytest,
+    resreduce_image,
 )
 from yt.visualization.api import OffAxisProjectionPlot, ProjectionPlot
 
@@ -128,6 +129,7 @@ def test_sph_proj_general_offaxis(
         data_source=source,
         north_vector=northvector,
         depth=depth,
+        pixelmeaning="pencilbeam",
     )
     img = prj.frb.data["gas", "density"]
     if weighted:
@@ -169,6 +171,141 @@ def test_sph_proj_general_offaxis(
     # print("expected:\n", expected_out)
     # print("recovered:\n", img.v)
     assert_rel_equal(expected_out, img.v, 4)
+
+
+@pytest.mark.parametrize("axis", [(0.0, 1e-4, 1.0), (0.2, 0.0, -0.8)])
+@pytest.mark.parametrize("north_vector", [None, (1.0e-4, 1.0, 0.0)])
+@pytest.mark.parametrize("shiftcenter", [True, False])
+@pytest.mark.parametrize("periodic", [True, False])
+@pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
+@pytest.mark.parametrize("hsmlfac", [0.2, 0.5, 1.0])
+def test_sph_proj_pixelave_offaxes(
+    axis: tuple[float, float, float],
+    north_vector: tuple[float, float, float] | None,
+    shiftcenter: bool,
+    periodic: bool,
+    depth: float,
+    hsmlfac: float,
+) -> None:
+    # weighted and unweighted tested in one round:
+    # need weight map to downsample the baseline weighted map
+    if shiftcenter:
+        center = unyt.unyt_array(np.array((0.6, 0.5, 0.4)), "cm")
+    else:
+        center = unyt.unyt_array(np.array((1.5, 1.5, 1.5)), "cm")
+    bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]), "cm")
+    hsml_factor = hsmlfac
+    unitrho = 1.5
+    buff_size = (4, 4)
+    subsample_size = (4 * 256, 4 * 256)
+
+    # test correct centering, particle selection
+    def makemasses(i, j, k):
+        if i == 0 and j == 1 and k == 2:
+            return 2.0
+        else:
+            return 1.0
+
+    # result shouldn't depend explicitly on the center if we re-center
+    # the data, unless we get cut-offs in the non-periodic case
+    ds = fake_sph_flexible_grid_ds(
+        hsml_factor=hsml_factor,
+        nperside=3,
+        periodic=periodic,
+        offsets=np.full(3, 0.5),
+        massgenerator=makemasses,
+        unitrho=unitrho,
+        bbox=bbox.v,
+        recenter=center.v,
+    )
+    source = ds.all_data()
+
+    # we don't actually want a plot, it's just a straightforward,
+    # common way to get an frb / image array
+    testprj = ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=None,
+        north_vector=north_vector,
+        buff_size=buff_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pixelave",
+        depth=depth,
+    )
+    testprj_wtd = ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=("gas", "density"),
+        north_vector=north_vector,
+        buff_size=buff_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pixelave",
+        depth=depth,
+    )
+    testimg = testprj.frb.data[("gas", "density")]
+    testimg_wtd = testprj_wtd.frb.data[("gas", "density")]
+
+    baseprj = ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=None,
+        buff_size=subsample_size,
+        north_vector=north_vector,
+        center=center,
+        data_source=source,
+        pixelmeaning="pencilbeam",
+        depth=depth,
+    )
+    baseprj_wtd = ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=("gas", "density"),
+        buff_size=subsample_size,
+        north_vector=north_vector,
+        center=center,
+        data_source=source,
+        pixelmeaning="pencilbeam",
+        depth=depth,
+    )
+    _baseimg = baseprj.frb.data[("gas", "density")]
+    baseimg = resreduce_image(_baseimg, buff_size)
+    _baseimg_wtd = baseprj_wtd.frb.data[("gas", "density")]
+    _divimg = np.copy(baseimg.v)
+    _divimg[_divimg == 0.0] = -1.0  # avoid div. by 0 test failures
+    baseimg_wtd = resreduce_image(_baseimg * _baseimg_wtd.v, buff_size) / _divimg
+
+    print(
+        f"axis: {axis}, shiftcenter: {shiftcenter}, "
+        f"depth: {depth}, periodic: {periodic}, "
+        f"hsmlfac: {hsmlfac}"
+    )
+    print("expected:")
+    print(baseimg.v)
+    print("got:")
+    print(testimg.v)
+    print("expected (weighted):")
+    print(baseimg_wtd.v)
+    print("got (weighted):")
+    print(testimg_wtd.v)
+    # in a few single-particle projection tests, mass conservation
+    # seems to be good to about 4 decimal places; agreement with
+    # subsampling with multiple particles is not quite at 4.
+    # pixel values seem to converge more slowly though, so we test
+    # mass conservation explicitly, and pixel agreement at low
+    # precision
+    assert_rel_equal(baseimg.v, testimg.v, 1)
+    assert_rel_equal(np.sum(baseimg.v), np.sum(testimg.v), 2)
+    assert_rel_equal(baseimg_wtd.v, testimg_wtd.v, 1)
 
 
 _diag_dist = np.sqrt(3.0)  # diagonal distance of a cube with length 1.
