@@ -47,6 +47,8 @@ pyparsing==3.1.4
     #   packaging
 python-dateutil==2.9.0.post0
     # via matplotlib
+rlic==0.3.2
+    # via yt (pyproject.toml)
 six==1.16.0
     # via python-dateutil
 sympy==1.13.2
