@@ -52,11 +52,11 @@ As described above, bugfix releases are regularly scheduled updates for minor
 releases to ensure fixes for bugs make their way out to users in a timely
 manner. Since bugfix releases should not include new features, we do not issue
 bugfix releases by simply merging from the development ``main`` branch into
-the ``stable`` branch. Instead, commits are cherry-picked from the ``main``
-branch to a backport branch, which is itself merged into ``stable`` when a release
-happens.
+the designated backport branch for the seres. Instead, commits are cherry-picked
+from the ``main`` branch to a backport branch, and the backport branch is tagged
+with the release tags.
 
-Backport branches are named after the minor version then descend from, followed by
+Backport branches are named after the minor version they descend from, followed by
 an ``x``. For instance, ``yt-4.0.x`` is the backport branch for all releases in the 4.0 series.
 
 Backporting bugfixes can be done automatically using the `MeeseeksBox bot
@@ -115,8 +115,8 @@ to be edited are:
 Once these files have been updated, commit these updates. This is the commit we
 will tag for the release.
 
-To actually create the tag, issue the following command from the ``stable``
-branch:
+To actually create the tag, issue the following command from the
+branch that is ready for release:
 
 .. code-block:: bash
 
@@ -133,35 +133,6 @@ yt git repository. If you are doing a minor or major version number release, you
 will also need to update back to the development branch and update the
 development version numbers in the same files.
 
-Uploading to yt-project.org
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Before uploading the release to the Python Package Index (pypi.org) we will
-first upload the package to yt-project.org. This facilitates building binary
-wheels for pypi and binary conda packages on conda-forge before doing the
-"official" release. This also ensures that there isn't a period of time when
-users do ``pip install yt`` and end up downloading the source distribution
-instead of one of the binary wheels.
-
-To create the source distribution, issue the following command in the root of
-the yt repository::
-
-  $ python setup.py sdist
-
-This will generate a tarball in a ``dist/`` directory located in the root of the
-repository.
-
-Access to yt-project.org mediated via SSH login. Please contact one of the
-current yt developers for access to the webserver running yt-project.org if you
-do not already have it. You will need a copy of your SSH public key so that your
-key can be added to the list of authorized keys. Once you login, use
-e.g. ``scp`` to upload a copy of the source distribution tarball to
-https://yt-project.org/sdist, like so::
-
-  $ scp dist/yt-3.5.1.tar.gz yt_analysis@dickenson.dreamhost.com:yt-project.org/sdist
-
-You may find it helpful to set up an ssh config for dickenson to make this
-command a bit easier to execute.
 
 Publishing
 ~~~~~~~~~~
