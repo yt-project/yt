@@ -200,6 +200,7 @@ class ChollaGrid(AMRGridPatch):
 
 class ChollaHierarchy(GridIndex):
     grid = ChollaGrid
+    _grid_chunksize = 1
 
     def __init__(self, ds, dataset_type="cholla"):
         self.dataset_type = dataset_type
