@@ -24,7 +24,7 @@ else:
     from yt.utilities.on_demand_imports import _h5py
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True, slots=True, frozen=True)
 class _BlockDiskMapping:
     """Contains info for mapping blockids to locations in hdf5 files"""
 
