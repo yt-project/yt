@@ -1,6 +1,8 @@
 import os
+import typing
 import weakref
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import numpy as np
@@ -11,9 +13,15 @@ from yt.funcs import setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import ChollaFieldInfo
+
+# this is a hacky workaround to get _h5py.File to work in annotations. We can probably
+# address this issue more robustly by directly modifying yt.utilities.on_demand_imports
+if typing.TYPE_CHECKING:
+    import h5py as _h5py
+else:
+    from yt.utilities.on_demand_imports import _h5py
 
 
 @dataclass(kw_only=True, slots=True)
@@ -26,7 +34,7 @@ class _BlockDiskMapping:
     # group containing field data (empty string denotes the root group)
     field_group: str
     # maps blockid to an index that select all associated data from a field-dataset
-    field_idx_map: dict[int, tuple[int | slice, ...]]
+    field_idx_map: Mapping[int, tuple[int | slice, ...]]
 
     # in the future, we will add particle_group and particle_idx_map
 
@@ -42,7 +50,7 @@ def _infer_blockid_location_arr(fname_template, global_dims, arr_shape):
         local_dims, rem = np.divmod(global_dims, blockid_location_arr.shape)
         assert np.all(rem == 0) and np.all(local_dims > 0)
         for blockid in range(0, blockid_location_arr.size):
-            with h5py.File(fname_template.format(blockid=blockid), "r") as f:
+            with _h5py.File(fname_template.format(blockid=blockid), "r") as f:
                 tmp, rem = np.divmod(f.attrs["offset"][:], local_dims)
             assert np.all(rem == 0)  # sanity check
             idx3D = tuple(int(e) for e in tmp)
@@ -50,7 +58,7 @@ def _infer_blockid_location_arr(fname_template, global_dims, arr_shape):
     return blockid_location_arr
 
 
-def _determine_data_layout(f: "h5py.File") -> tuple[np.ndarray, _BlockDiskMapping]:
+def _determine_data_layout(f: _h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]:
     """Determine the data layout of the snapshot
 
     The premise is that the basic different data formats shouldn't
@@ -80,7 +88,7 @@ def _determine_data_layout(f: "h5py.File") -> tuple[np.ndarray, _BlockDiskMappin
     # ========================================================
     # Historically, we would always store datasets directly in the root group of the
     # data file. More recent concatenation scripts store no data in groups.
-    flat_structure = any(not isinstance(elem, h5py.Group) for elem in f.values())
+    flat_structure = any(not isinstance(elem, _h5py.Group) for elem in f.values())
 
     # STEP 3: Extract basic domain info information from the file(s)
     # ==============================================================
@@ -89,7 +97,7 @@ def _determine_data_layout(f: "h5py.File") -> tuple[np.ndarray, _BlockDiskMappin
         # this branch primarily handles concatenated files made with newer logic
         blockid_location_arr = f["domain/blockid_location_arr"][...]
         field_idx_map = {
-            blockid: (i, slice(None), slice(None), slice(None))
+            int(blockid): (i, slice(None), slice(None), slice(None))
             for i, blockid in enumerate(f["domain/stored_blockid_list"][...])
         }
         consolidated_data = len(field_idx_map) == blockid_location_arr.size
@@ -213,12 +221,12 @@ class ChollaHierarchy(GridIndex):
         super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
-        with h5py.File(self.index_filename, mode="r") as h5f:
+        with _h5py.File(self.index_filename, mode="r") as h5f:
             grp = h5f.get("field", h5f)
             self.field_list = [("cholla", k) for k in grp.keys()]
 
     def _count_grids(self):
-        with h5py.File(self.index_filename, "r") as f:
+        with _h5py.File(self.index_filename, "r") as f:
             self._blockid_location_arr, self._block_mapping = _determine_data_layout(f)
         self.num_grids = self._blockid_location_arr.size
 
@@ -300,7 +308,7 @@ class ChollaDataset(Dataset):
             setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
-        with h5py.File(self.parameter_filename, mode="r") as h5f:
+        with _h5py.File(self.parameter_filename, mode="r") as h5f:
             attrs = h5f.attrs
             self.parameters = dict(attrs.items())
             self.domain_left_edge = attrs["bounds"][:].astype("=f8")
@@ -367,7 +375,7 @@ class ChollaDataset(Dataset):
             return False
 
         try:
-            fileh = h5py.File(filename, mode="r")
+            fileh = _h5py.File(filename, mode="r")
         except OSError:
             return False
 
