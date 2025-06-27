@@ -22,12 +22,19 @@ class ChollaIOHandler(BaseIOHandler):
             for obj in chunk.objs:
                 if obj.filename is None:  # unclear when this case arises...
                     continue
-                elif obj.filename != filename:
+
+                # ensure the file containing data for obj is open
+                if obj.filename != filename:
                     if fh is not None:
                         fh.close()
-                    fh, filename = h5py.File(obj.filename, "r"), obj.filename
-                idx = mapper.field_idx_map[obj.id]
+                    fh = h5py.File(obj.filename, "r")
+                    filename = obj.filename
+
+                # access the HDF5 group containing the datasets of field values
                 grp = fh if mapper.field_group == "" else fh[mapper.field_group]
+                # get the set of indices in a generic dataset that correspond to obj.id
+                idx = mapper.field_idx_map[obj.id]
+
                 for field in fields:
                     ftype, fname = field
                     yield field, obj, grp[fname][idx].astype("=f8")

@@ -36,7 +36,7 @@ class _BlockDiskMapping:
     # maps blockid to an index that select all associated data from a field-dataset
     field_idx_map: Mapping[int, tuple[int | slice, ...]]
 
-    # in the future, we will add particle_group and particle_idx_map
+    # in the future, we may add particle_group and particle_idx_map
 
 
 def _infer_blockid_location_arr(fname_template, global_dims, arr_shape):
@@ -102,7 +102,7 @@ def _determine_data_layout(f: _h5py.File) -> tuple[np.ndarray, _BlockDiskMapping
         }
         consolidated_data = len(field_idx_map) == blockid_location_arr.size
         if not consolidated_data:
-            # in the near future, we will support one of the 2 cases:
+            # in the near future, we may support one of the 2 cases:
             # > if (flat_structure):
             # >     _common_idx = (slice(None), slice(None), slice(None))
             # > else:
@@ -182,17 +182,18 @@ def _split_fname_procid_suffix(filename: str):
     # that are necessary to represent the process id. For flexibility, we will
     # allow extra zero-padding
 
-    sep_i = filename.rfind(".")
-    suf_len = len(filename) - (sep_i + 1)
-    if (sep_i == -1) or (suf_len == 0) or not filename[sep_i + 1 :].isdecimal():
-        return (filename, "")
-    elif (sep_i == 0) or ((sep_i - 1) == filename.rfind("/")):
-        raise ValueError(
-            f"can't split a process-suffix off of {filename!r} "
-            "since the remaining filename would be empty"
-        )
-    else:
-        return (filename[:sep_i], filename[sep_i + 1 :])
+    match filename.rpartition("."):
+        case (None, None, str(_)):  # <- in other words, "." not in filename
+            return (filename, "")
+        case (_, ".", suffix) if len(suffix) == 0 or not suffix.isdecimal():
+            return (filename, "")
+        case (prefix, ".", _) if prefix == "" or prefix[-1] == "/":
+            raise ValueError(
+                f"can't split a process-suffix off of {filename!r} "
+                "since the remaining filename would be empty"
+            )
+        case (prefix, ".", suffix):
+            return (prefix, suffix)
 
 
 class ChollaGrid(AMRGridPatch):
