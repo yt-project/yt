@@ -1503,16 +1503,8 @@ def create_profile(
                 else:
                     fe = data_source.ds.arr(field_ex, bf_units)
             fe.convert_to_units(bf_units)
-            field_ex = [fe[0].v, fe[1].v]
-            # can we remove the next 6 lines?
-            if is_sequence(field_ex[0]):
-                field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
-                field_ex[0] = field_ex[0].in_units(bf_units)
-            if is_sequence(field_ex[1]):
-                field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
-                field_ex[1] = field_ex[1].in_units(bf_units)
-            # record the extrema
-            ex.append(field_ex)
+
+            ex.append([fe[0].v, fe[1].v])  # record the extrema
 
     args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs, strict=True):
