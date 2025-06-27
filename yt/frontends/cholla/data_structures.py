@@ -183,9 +183,7 @@ def _split_fname_procid_suffix(filename: str):
     # allow extra zero-padding
 
     match filename.rpartition("."):
-        case (None, None, str(_)):  # <- in other words, "." not in filename
-            return (filename, "")
-        case (_, ".", suffix) if len(suffix) == 0 or not suffix.isdecimal():
+        case ("", "", _) | (_, ".", ""):
             return (filename, "")
         case (prefix, ".", _) if prefix == "" or prefix[-1] == "/":
             raise ValueError(
@@ -193,7 +191,7 @@ def _split_fname_procid_suffix(filename: str):
                 "since the remaining filename would be empty"
             )
         case (prefix, ".", suffix):
-            return (prefix, suffix)
+            return (prefix, suffix) if suffix.isdecimal() else (filename, "")
 
 
 class ChollaGrid(AMRGridPatch):
