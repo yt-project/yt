@@ -23,7 +23,6 @@ class Index(ParallelAnalysisInterface, abc.ABC):
     """The base index class"""
 
     _unsupported_objects: ClassVar[tuple[str, ...]] = ()
-    _index_properties: ClassVar[tuple[str, ...]] = ()
 
     def __init__(self, ds, dataset_type):
         ParallelAnalysisInterface.__init__(self)
