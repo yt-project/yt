@@ -16,7 +16,8 @@ class ChollaIOHandler(BaseIOHandler):
         # this is loosely inspired by the implementation used for Enzo/Enzo-E
         # - those other options use the lower-level hdf5 interface. Unclear
         #   whether that affords any advantages...
-        fh, filename = None, None
+        fh = None
+        filename = None
         mapper = self.ds.index._block_mapping
         for chunk in chunks:
             for obj in chunk.objs:
