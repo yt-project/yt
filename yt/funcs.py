@@ -1410,6 +1410,12 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
     as the number of edits goes above the value. This allows for an earlier break
     and speeds calculations up.
     """
+    issue_deprecation_warning(
+        "yt.funcs.levenshtein_distance is deprecated. "
+        "Please prefer difflib.get_close_matches.",
+        since="4.5.0",
+        stacklevel=3,
+    )
     size_x = len(seq1) + 1
     size_y = len(seq2) + 1
     if max_dist is None:

@@ -3,13 +3,7 @@ import os
 from nose.tools import assert_raises
 from numpy.testing import assert_equal
 
-from yt.funcs import (
-    just_one,
-    levenshtein_distance,
-    simple_download_file,
-    validate_axis,
-    validate_center,
-)
+from yt.funcs import just_one, simple_download_file, validate_axis, validate_center
 from yt.testing import fake_amr_ds
 from yt.units import YTArray, YTQuantity
 
@@ -69,41 +63,6 @@ def test_just_one():
         expected = YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
         jo = just_one(obj)
         assert jo == expected
-
-
-def test_levenshtein():
-    assert_equal(levenshtein_distance("abcdef", "abcdef"), 0)
-
-    # Deletions / additions
-    assert_equal(levenshtein_distance("abcdef", "abcde"), 1)
-    assert_equal(levenshtein_distance("abcdef", "abcd"), 2)
-    assert_equal(levenshtein_distance("abcdef", "abc"), 3)
-
-    assert_equal(levenshtein_distance("abcdf", "abcdef"), 1)
-    assert_equal(levenshtein_distance("cdef", "abcdef"), 2)
-    assert_equal(levenshtein_distance("bde", "abcdef"), 3)
-
-    # Substitutions
-    assert_equal(levenshtein_distance("abcd", "abc_"), 1)
-    assert_equal(levenshtein_distance("abcd", "ab__"), 2)
-    assert_equal(levenshtein_distance("abcd", "a___"), 3)
-    assert_equal(levenshtein_distance("abcd", "____"), 4)
-
-    # Deletion + Substitutions
-    assert_equal(levenshtein_distance("abcd", "abc_z"), 2)
-    assert_equal(levenshtein_distance("abcd", "ab__zz"), 4)
-    assert_equal(levenshtein_distance("abcd", "a___zzz"), 6)
-    assert_equal(levenshtein_distance("abcd", "____zzzz"), 8)
-
-    # Max distance
-    assert_equal(levenshtein_distance("abcd", "", max_dist=0), 1)
-    assert_equal(levenshtein_distance("abcd", "", max_dist=3), 4)
-    assert_equal(levenshtein_distance("abcd", "", max_dist=10), 4)
-    assert_equal(levenshtein_distance("abcd", "", max_dist=1), 2)
-    assert_equal(levenshtein_distance("abcd", "a", max_dist=2), 3)
-    assert_equal(levenshtein_distance("abcd", "ad", max_dist=2), 2)
-    assert_equal(levenshtein_distance("abcd", "abd", max_dist=2), 1)
-    assert_equal(levenshtein_distance("abcd", "abcd", max_dist=2), 0)
 
 
 def test_simple_download_file():
