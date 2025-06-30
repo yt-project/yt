@@ -461,12 +461,11 @@ show_error_context = true
 exclude = "(test_*|lodgeit)"
 
 [tool.cibuildwheel]
-build = "cp310-* cp311-* cp312-* cp313-*"
 build-verbosity = 1
 test-skip = "*-musllinux*"
 test-extras = "test"
 test-command = [
-    "pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
+    "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
 
 [tool.cibuildwheel.linux]
