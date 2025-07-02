@@ -11,6 +11,8 @@ from .data_structures import (
     NyxHierarchy,
     OrionDataset,
     OrionHierarchy,
+    QuokkaDataset,
+    QuokkaHierarchy,
     WarpXDataset,
     WarpXHierarchy,
 )
@@ -19,6 +21,7 @@ from .fields import (
     CastroFieldInfo,
     MaestroFieldInfo,
     NyxFieldInfo,
+    QuokkaFieldInfo,
     WarpXFieldInfo,
 )
 from .io import IOHandlerBoxlib
