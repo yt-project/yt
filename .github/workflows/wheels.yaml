@@ -10,6 +10,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/wheels.yaml'
+      - pyproject.toml
       - MANIFEST.in
   workflow_dispatch:
 
