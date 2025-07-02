@@ -21,6 +21,8 @@ from yt.utilities.answer_testing.testing_utilities import (
 )
 
 NUMPY_VERSION = Version(version("numpy"))
+PILLOW_VERSION = Version(version("Pillow"))
+MATPLOTLIB_VERSION = Version(version("matplotlib"))
 
 # setuptools does not ship with the standard lib starting in Python 3.12, so we need to
 # be resilient if it's not available at runtime
@@ -143,6 +145,13 @@ def pytest_configure(config):
                 "filterwarnings",
                 "ignore:`product` is deprecated as of NumPy 1.25.0:DeprecationWarning",
             )
+
+    if PILLOW_VERSION >= Version("11.3.0") and MATPLOTLIB_VERSION <= Version("3.10.3"):
+        # patched upstream: https://github.com/matplotlib/matplotlib/pull/30221
+        config.addinivalue_line(
+            "filterwarnings",
+            r"ignore:'mode' parameter is deprecated:DeprecationWarning",
+        )
 
     if PANDAS_VERSION is not None and PANDAS_VERSION >= Version("2.2.0"):
         config.addinivalue_line(
