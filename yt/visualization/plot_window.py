@@ -2,7 +2,7 @@ import abc
 import sys
 from collections import defaultdict
 from numbers import Number
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Literal, Union
 
 import matplotlib
 import numpy as np
@@ -182,6 +182,15 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
+    pixelmeaning:
+        "pixelave": a pixel represents an average surface density or
+        surface-density-weighted average across a pixel.
+
+        "pencilbeam": a pixel represents a column density or
+        column-density-weighted average integrated over a pencil
+        beam through the pixel center.
+
+        Only applies to SPH datasets.
 
     """
 
@@ -199,6 +208,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         fontsize=18,
         aspect=None,
         setup=False,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         geometry: Geometry = Geometry.CARTESIAN,
     ) -> None:
@@ -216,6 +226,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         self._axes_unit_names = None
         self._transform = None
         self._projection = None
+        self.pixelmeaning = pixelmeaning
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -336,6 +347,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
             self.antialias,
             periodic=self._periodic,
             filters=old_filters,
+            pixelmeaning=self.pixelmeaning,
         )
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
@@ -763,6 +775,28 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         aa : boolean
         """
         self.antialias = aa
+
+    @invalidate_data
+    def set_pixelmeaning(
+        self,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pencilbeam",
+    ):
+        """
+        Change the SPH surface density calculation approach
+
+        parameters
+        ----------
+        pixelmeaning:
+            "pixelave": a pixel represents an average surface density or
+            surface-density-weighted average across a pixel.
+
+            "pencilbeam": a pixel represents a column density or
+            column-density-weighted average integrated over a pencil
+            beam through the pixel center.
+
+            Only applies to projections of SPH datasets.
+        """
+        self.pixelmeaning = pixelmeaning
 
     @invalidate_data
     def set_buff_size(self, size):
@@ -2014,7 +2048,15 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         for a weighted projection, moment = 1 (the default) corresponds to a
         weighted average. moment = 2 corresponds to a weighted standard
         deviation.
+    pixelmeaning:
+        "pixelave": a pixel represents an average surface density or
+        surface-density-weighted average across a pixel.
 
+        "pencilbeam": a pixel represents a column density or
+        column-density-weighted average integrated over a pencil
+        beam through the pixel center.
+
+        Only applies to SPH datasets.
     Examples
     --------
 
@@ -2048,6 +2090,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         moment=1,
     ):
@@ -2112,6 +2155,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             aspect=aspect,
             buff_size=buff_size,
             geometry=ds.geometry,
+            pixelmeaning=pixelmeaning,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2427,6 +2471,15 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         Size of the buffer to use for the image, i.e. the number of resolution elements
         used. Effectively sets a resolution limit to the image if buff_size is
         smaller than the finest gridding.
+    pixelmeaning:
+        "pixelave": a pixel represents an average surface density or
+        surface-density-weighted average across a pixel.
+
+        "pencilbeam": a pixel represents a column density or
+        column-density-weighted average integrated over a pencil
+        beam through the pixel center.
+
+        Only applies to SPH datasets.
     """
 
     _plot_type = "OffAxisProjection"
@@ -2455,6 +2508,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         moment=1,
         data_source=None,
         buff_size=(800, 800),
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
     ):
         if ds.geometry not in self._supported_geometries:
             raise NotImplementedError(
@@ -2555,6 +2609,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             oblique=True,
             fontsize=fontsize,
             buff_size=buff_size,
+            pixelmeaning=pixelmeaning,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)

@@ -4,6 +4,7 @@ import unyt
 
 import yt
 from yt.data_objects.selection_objects.region import YTRegion
+from yt.loaders import load_particles
 from yt.testing import (
     assert_rel_equal,
     cubicspline_python,
@@ -11,6 +12,7 @@ from yt.testing import (
     fake_random_sph_ds,
     fake_sph_flexible_grid_ds,
     integrate_kernel,
+    resreduce_image,
 )
 
 
@@ -112,6 +114,7 @@ def test_sph_proj_general_alongaxes(
         buff_size=(5, 5),
         center=center,
         data_source=source,
+        pixelmeaning="pencilbeam",
     )
     img = prj.frb.data["gas", "density"]
     if weighted:
@@ -154,10 +157,228 @@ def test_sph_proj_general_alongaxes(
     if (not periodic) and shiftcenter:
         expected_out[:1, :] = 0.0
         expected_out[:, :1] = 0.0
-    # print(axis, shiftcenter, depth, periodic, weighted)
+    # print(f"axis: {axis}, shiftcenter: {shiftcenter}, "
+    #      f"depth: {depth}, periodic: {periodic}, weighted: {weighted}")
+    # print("expected:")
     # print(expected_out)
+    # print("got:")
     # print(img.v)
     assert_rel_equal(expected_out, img.v, 5)
+
+
+@pytest.mark.parametrize("axis", [0, 1, 2])
+@pytest.mark.parametrize("shiftcenter", [True, False])
+@pytest.mark.parametrize("periodic", [True, False])
+@pytest.mark.parametrize("depth", [None, (1.0, "cm"), (5.0, "cm")])
+@pytest.mark.parametrize("hsmlfac", [0.2, 0.5, 1.0])
+def test_sph_proj_pixelave_alongaxes(
+    axis: int,
+    shiftcenter: bool,
+    periodic: bool,
+    depth: float,
+    hsmlfac: float,
+) -> None:
+    # weighted and unweighted tested in one round:
+    # need weight map to downsample the baseline weighted map
+    if shiftcenter:
+        center = unyt.unyt_array(np.array((0.6, 0.5, 0.4)), "cm")
+    else:
+        center = unyt.unyt_array(np.array((1.5, 1.5, 1.5)), "cm")
+    bbox = unyt.unyt_array(np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]]), "cm")
+    hsml_factor = hsmlfac
+    unitrho = 1.5
+    buff_size = (4, 4)
+    subsample_size = (4 * 256, 4 * 256)
+
+    # test correct centering, particle selection
+    def makemasses(i, j, k):
+        if i == 0 and j == 1 and k == 2:
+            return 2.0
+        else:
+            return 1.0
+
+    # result shouldn't depend explicitly on the center if we re-center
+    # the data, unless we get cut-offs in the non-periodic case
+    ds = fake_sph_flexible_grid_ds(
+        hsml_factor=hsml_factor,
+        nperside=3,
+        periodic=periodic,
+        offsets=np.full(3, 0.5),
+        massgenerator=makemasses,
+        unitrho=unitrho,
+        bbox=bbox.v,
+        recenter=center.v,
+    )
+    if depth is None:
+        source = ds.all_data()
+    else:
+        depth = unyt.unyt_quantity(*depth)
+        le = np.array(ds.domain_left_edge)
+        re = np.array(ds.domain_right_edge)
+        le[axis] = center[axis] - 0.5 * depth
+        re[axis] = center[axis] + 0.5 * depth
+        if not periodic:
+            le[axis] = max(le[axis], ds.domain_left_edge[axis])
+            re[axis] = min(re[axis], ds.domain_right_edge[axis])
+        cen = 0.5 * (le + re)
+        reg = YTRegion(center=cen, left_edge=le, right_edge=re, ds=ds)
+        source = reg
+
+    # we don't actually want a plot, it's just a straightforward,
+    # common way to get an frb / image array
+    testprj = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=None,
+        buff_size=buff_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pixelave",
+    )
+    testprj_wtd = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=("gas", "density"),
+        buff_size=buff_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pixelave",
+    )
+    testimg = testprj.frb.data[("gas", "density")]
+    testimg_wtd = testprj_wtd.frb.data[("gas", "density")]
+
+    baseprj = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=None,
+        buff_size=subsample_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pencilbeam",
+    )
+    baseprj_wtd = yt.ProjectionPlot(
+        ds,
+        axis,
+        ("gas", "density"),
+        width=(2.5, "cm"),
+        weight_field=("gas", "density"),
+        buff_size=subsample_size,
+        center=center,
+        data_source=source,
+        pixelmeaning="pencilbeam",
+    )
+    _baseimg = baseprj.frb.data[("gas", "density")]
+    baseimg = resreduce_image(_baseimg, buff_size)
+    _baseimg_wtd = baseprj_wtd.frb.data[("gas", "density")]
+    _divimg = np.copy(baseimg.v)
+    _divimg[_divimg == 0.0] = -1.0  # avoid div. by 0 test failures
+    baseimg_wtd = resreduce_image(_baseimg * _baseimg_wtd.v, buff_size) / _divimg
+
+    print(
+        f"axis: {axis}, shiftcenter: {shiftcenter}, "
+        f"depth: {depth}, periodic: {periodic}, "
+        f"hsmlfac: {hsmlfac}"
+    )
+    print("expected:")
+    print(baseimg.v)
+    print("got:")
+    print(testimg.v)
+    print("expected (weighted):")
+    print(baseimg_wtd.v)
+    print("got (weighted):")
+    print(testimg_wtd.v)
+    # in a few single-particle projection tests, mass conservation
+    # seems to be good to about 4 decimal places; agreement with
+    # subsampling with multiple particles is not quite at 4.
+    # pixel values seem to converge more slowly though, so we test
+    # mass conservation explicitly, and pixel agreement at low
+    # precision
+    assert_rel_equal(baseimg.v, testimg.v, 1)
+    assert_rel_equal(np.sum(baseimg.v), np.sum(testimg.v), 2)
+    assert_rel_equal(baseimg_wtd.v, testimg_wtd.v, 1)
+
+
+def test_massconservation_pixave():
+    bbox = np.array([[0.0, 3.0], [0.0, 3.0], [0.0, 3.0]])
+    pz = 1.5
+    periodic = True
+    periods = 3.0
+    nrandom = 50
+
+    # random centers, three pixel size + hsml sets
+    # test three cases in the backend routine
+    rng = np.random.default_rng()
+    pxs = rng.uniform(0.0, 3.0, nrandom)
+    pys = rng.uniform(0.0, 3.0, nrandom)
+    # particles < pixels: overlap 1, 2x1, or 2x2 pixels
+    hsmls1 = rng.uniform(0.01, 0.05, nrandom)
+    outsize1 = (7, 7)
+    # particles ~ pixels: typical 2x2 overlaps
+    hsmls2 = rng.uniform(0.1, 0.25, nrandom)
+    outsize2 = (7, 7)
+    # particles > pixels:
+    hsmls3 = rng.uniform(0.07, 0.8, nrandom)
+    outsize3 = (50, 50)
+
+    for i, (hsmls, outsize) in enumerate(
+        [
+            (hsmls1, outsize1),
+            (hsmls2, outsize2),
+            (hsmls3, outsize3),
+        ]
+    ):
+        masses_rel = []
+        for i in range(nrandom):
+            data = {
+                "particle_position_x": (np.array([pxs[i]]), "cm"),
+                "particle_position_y": (np.array([pys[i]]), "cm"),
+                "particle_position_z": (np.array([pz]), "cm"),
+                "particle_mass": (np.array([1.0]), "g"),
+                "particle_velocity_x": (np.zeros(1), "cm/s"),
+                "particle_velocity_y": (np.zeros(1), "cm/s"),
+                "particle_velocity_z": (np.zeros(1), "cm/s"),
+                "smoothing_length": (np.ones(1) * hsmls[i], "cm"),
+                "density": (np.array([1.5]), "g/cm**3"),
+            }
+            ds = load_particles(
+                data=data,
+                bbox=bbox,
+                periodicity=(periodic,) * 3,
+                length_unit=1.0,
+                mass_unit=1.0,
+                time_unit=1.0,
+                velocity_unit=1.0,
+            )
+            ds.kernel_name = "cubic"
+
+            proj = ds.proj(("gas", "density"), 2)
+            frb = proj.to_frb(
+                width=(3.0, "cm"),
+                resolution=outsize,
+                height=(3.0, "cm"),
+                center=np.array([1.5, 1.5, 1.5]),
+                periodic=True,
+                pixelmeaning="pixelave",
+            )
+            out = frb.get_image(("gas", "density"))
+            mass_in = 1.0
+            mass_out = np.sum(out.v) * periods**2 / np.prod(outsize)
+            masses_rel.append(mass_out / mass_in - 1.0)
+        masses_rel = np.array(masses_rel)
+        minrel = np.min(masses_rel)
+        maxrel = np.max(masses_rel)
+        print(
+            f"Mass conservation test pixel/hsml set {i}:"
+            " mass conservation deviations fractions"
+            f" {minrel:.2e} -- {maxrel:.2e} "
+        )
+        assert np.all(np.abs(masses_rel) < 1e-4)
 
 
 @pytest.mark.parametrize("periodic", [True, False])
