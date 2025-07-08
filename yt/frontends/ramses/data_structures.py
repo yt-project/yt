@@ -29,7 +29,7 @@ from .definitions import (
     ramses_header,
 )
 from .field_handlers import get_field_handlers
-from .fields import _X, RAMSESFieldInfo
+from .fields import RAMSESFieldInfo
 from .hilbert import get_intersecting_cpus
 from .io_utils import fill_hydro, read_amr
 from .particle_handlers import get_particle_handlers
@@ -1003,11 +1003,6 @@ class RAMSESDataset(Dataset):
         magnetic_unit = np.sqrt(4 * np.pi * mass_unit / (time_unit**2 * length_unit))
         pressure_unit = density_unit * (length_unit / time_unit) ** 2
 
-        # TODO:
-        # Generalize the temperature field to account for ionization
-        # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
-        mean_molecular_weight_factor = _X**-1
-
         setdefaultattr(self, "density_unit", self.quan(density_unit, "g/cm**3"))
         setdefaultattr(self, "magnetic_unit", self.quan(magnetic_unit, "gauss"))
         setdefaultattr(self, "pressure_unit", self.quan(pressure_unit, "dyne/cm**2"))
@@ -1016,9 +1011,7 @@ class RAMSESDataset(Dataset):
         setdefaultattr(
             self, "velocity_unit", self.quan(length_unit, "cm") / self.time_unit
         )
-        temperature_unit = (
-            self.velocity_unit**2 * mp * mean_molecular_weight_factor / kb
-        )
+        temperature_unit = self.velocity_unit**2 * mp / kb
         setdefaultattr(self, "temperature_unit", temperature_unit.in_units("K"))
 
         # Only the length unit get scales by a factor of boxlen
