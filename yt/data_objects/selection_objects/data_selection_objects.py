@@ -1404,9 +1404,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         geometry: Geometry = self.ds.geometry
         if geometry is Geometry.CARTESIAN:
             le, re = self._get_bbox()
-            le.convert_to_units("code_length")
-            re.convert_to_units("code_length")
-            return le, re
+            return (le.to("code_length"), re.to("code_length"))
         elif (
             geometry is Geometry.CYLINDRICAL
             or geometry is Geometry.POLAR
