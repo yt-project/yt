@@ -3,10 +3,11 @@ import enum
 import inspect
 import re
 import sys
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from functools import cached_property
-from typing import Optional
+from typing import Optional, Union
 
+import numpy as np
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
@@ -527,6 +528,57 @@ class DerivedField:
             ds=self.ds,
             nodal_flag=self.nodal_flag,
         )
+
+    def _operator(
+        self, other: Union["DerivedField", float], op: Callable
+    ) -> "DerivedField":
+        my_units = self.ds.get_unit_from_registry(self.units)
+        if isinstance(other, DerivedField):
+            if self.sampling_type != other.sampling_type:
+                raise TypeError(
+                    f"Cannot {op} fields with different sampling types: "
+                    f"{self.sampling_type} and {other.sampling_type}"
+                )
+
+            def wrapped(field, data):
+                return op(self(data), other(data))
+
+            other_name = other.name[1]
+            other_units = self.ds.get_unit_from_registry(other.units)
+
+        else:
+
+            def wrapped(field, data):
+                return op(self(data), other)
+
+            other_name = str(other)
+            other_units = self.ds.get_unit_from_registry(getattr(other, "units", "1"))
+
+        if op in (np.add, np.subtract):
+            assert my_units.same_dimensions_as(other_units)
+            new_units = my_units
+        else:
+            new_units = op(my_units, other_units)
+
+        return DerivedField(
+            name=(self.name[0], f"{self.name[1]}_{op.__name__}_{other_name}"),
+            sampling_type=self.sampling_type,
+            function=wrapped,
+            units=new_units,
+            ds=self.ds,
+        )
+
+    def __mul__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=np.multiply)
+
+    def __truediv__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=np.divide)
+
+    def __add__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=np.add)
+
+    def __sub__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=np.subtract)
 
 
 class FieldValidator:

@@ -1735,7 +1735,7 @@ class Dataset(abc.ABC):
         return self._quan
 
     def add_field(
-        self, name, function, sampling_type, *, force_override=False, **kwargs
+        self, name, function, *, sampling_type=None, force_override=False, **kwargs
     ):
         """
         Dataset-specific call to add_field
@@ -1775,7 +1775,16 @@ class Dataset(abc.ABC):
         """
         from yt.fields.field_functions import validate_field_function
 
-        validate_field_function(function)
+        if not isinstance(function, DerivedField):
+            if sampling_type is None:
+                raise ValueError("You must specify a sampling_type for the field.")
+            validate_field_function(function)
+        else:
+            sampling_type = function.sampling_type
+            kwargs.setdefault("units", function.units)
+
+            function = function._function
+
         self.index
         if force_override and name in self.index.field_list:
             raise RuntimeError(
