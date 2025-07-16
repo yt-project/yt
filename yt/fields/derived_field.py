@@ -554,11 +554,16 @@ class DerivedField:
             other_name = str(other)
             other_units = self.ds.get_unit_from_registry(getattr(other, "units", "1"))
 
-        if op in (operator.add, operator.sub):
+        if op in (operator.add, operator.sub, operator.eq):
             assert my_units.same_dimensions_as(other_units)
             new_units = my_units
-        else:
+        elif op in (operator.mul, operator.truediv):
             new_units = op(my_units, other_units)
+        elif op in (operator.le, operator.lt, operator.ge, operator.gt, operator.ne):
+            # Comparison yield unitless fields
+            new_units = Unit("1")
+        else:
+            raise TypeError(f"Unsupported operator {op} for DerivedField")
 
         return DerivedField(
             name=(self.name[0], f"{self.name[1]}_{op.__name__}_{other_name}"),
@@ -622,6 +627,26 @@ class DerivedField:
         )
 
         return inverse_self * other
+
+    # Comparison operators
+    def __leq__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=operator.le)
+
+    def __lt__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=operator.lt)
+
+    def __geq__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=operator.ge)
+
+    def __gt__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=operator.gt)
+
+    # Somehow, makes yt not work?
+    # def __eq__(self, other: Union["DerivedField", float]) -> "DerivedField":
+    #     return self._operator(other, op=operator.eq)
+
+    def __ne__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=operator.ne)
 
 
 class FieldValidator:

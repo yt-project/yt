@@ -8,7 +8,8 @@ from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer3D,
 )
 from yt.data_objects.static_output import Dataset
-from yt.funcs import iter_fields, validate_object, validate_sequence
+from yt.fields.derived_field import DerivedField
+from yt.funcs import iter_fields, validate_object
 from yt.geometry.selection_routines import points_in_cells
 from yt.utilities.exceptions import YTIllDefinedCutRegion
 from yt.utilities.on_demand_imports import _scipy
@@ -54,14 +55,14 @@ class YTCutRegion(YTSelectionContainer3D):
         if locals is None:
             locals = {}
         validate_object(data_source, YTSelectionContainer)
-        validate_sequence(conditionals)
+        conditionals = list(always_iterable(conditionals))
         for condition in conditionals:
-            validate_object(condition, str)
+            validate_object(condition, (str, DerivedField))
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(base_object, YTSelectionContainer)
 
-        self.conditionals = list(always_iterable(conditionals))
+        self.conditionals = conditionals
         if isinstance(data_source, YTCutRegion):
             # If the source is also a cut region, add its conditionals
             # and set the source to be its source.
@@ -82,6 +83,10 @@ class YTCutRegion(YTSelectionContainer3D):
     def _check_filter_fields(self):
         fields = []
         for cond in self.conditionals:
+            if isinstance(cond, DerivedField):
+                fields.append(cond.name)
+                continue
+
             for field in re.findall(r"\[([A-Za-z0-9_,.'\"\(\)]+)\]", cond):
                 fd = field.replace('"', "").replace("'", "")
                 if "," in fd:
@@ -125,8 +130,11 @@ class YTCutRegion(YTSelectionContainer3D):
             m = m.copy()
             with obj._field_parameter_state(self.field_parameters):
                 for cond in self.conditionals:
-                    ss = eval(cond)
-                    m = np.logical_and(m, ss, m)
+                    if isinstance(cond, DerivedField):
+                        ss = cond(obj)
+                    else:
+                        ss = eval(cond)
+                    m &= ss
             if not np.any(m):
                 continue
             yield obj, m
@@ -144,12 +152,15 @@ class YTCutRegion(YTSelectionContainer3D):
         locals["obj"] = obj
         with obj._field_parameter_state(self.field_parameters):
             for cond in self.conditionals:
-                res = eval(cond, locals)
+                if isinstance(cond, DerivedField):
+                    res = cond(obj)
+                else:
+                    res = eval(cond, locals)
                 if ind is None:
                     ind = res
                 if ind.shape != res.shape:
                     raise YTIllDefinedCutRegion(self.conditionals)
-                np.logical_and(res, ind, ind)
+                ind &= res
         return ind
 
     def _part_ind_KDTree(self, ptype):
