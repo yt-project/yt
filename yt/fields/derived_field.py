@@ -1,13 +1,13 @@
 import contextlib
 import enum
 import inspect
+import operator
 import re
 import sys
 from collections.abc import Callable, Iterable
 from functools import cached_property
 from typing import Optional, Union
 
-import numpy as np
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
@@ -554,7 +554,7 @@ class DerivedField:
             other_name = str(other)
             other_units = self.ds.get_unit_from_registry(getattr(other, "units", "1"))
 
-        if op in (np.add, np.subtract):
+        if op in (operator.add, operator.sub):
             assert my_units.same_dimensions_as(other_units)
             new_units = my_units
         else:
@@ -568,17 +568,60 @@ class DerivedField:
             ds=self.ds,
         )
 
+    # Multiplication (left and right side)
     def __mul__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=np.multiply)
+        return self._operator(other, op=operator.mul)
 
+    def __rmul__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=operator.mul)
+
+    # Division (left side)
     def __truediv__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=np.divide)
+        return self._operator(other, op=operator.truediv)
 
+    # Addition (left and right side)
     def __add__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=np.add)
+        return self._operator(other, op=operator.add)
 
+    def __radd__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(other, op=operator.add)
+
+    # Subtraction (left and right side)
     def __sub__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=np.subtract)
+        return self._operator(other, op=operator.sub)
+
+    def __rsub__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        return self._operator(-other, op=operator.add)
+
+    # Unary minus
+    def __neg__(self) -> "DerivedField":
+        def wrapped(field, data):
+            return -self(data)
+
+        return DerivedField(
+            name=(self.name[0], f"neg_{self.name[1]}"),
+            sampling_type=self.sampling_type,
+            function=wrapped,
+            units=self.units,
+            ds=self.ds,
+        )
+
+    # Division (right side, a bit more complex)
+    def __rtruediv__(self, other: Union["DerivedField", float]) -> "DerivedField":
+        units = self.ds.get_unit_from_registry(self.units)
+
+        def wrapped(field, data):
+            return 1 / self(data)
+
+        inverse_self = DerivedField(
+            name=(self.name[0], f"inverse_{self.name[1]}"),
+            sampling_type=self.sampling_type,
+            function=wrapped,
+            units=units**-1,
+            ds=self.ds,
+        )
+
+        return inverse_self * other
 
 
 class FieldValidator:
