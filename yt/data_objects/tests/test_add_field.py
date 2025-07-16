@@ -1,5 +1,6 @@
 from functools import partial
 
+import numpy as np
 import pytest
 import unyt
 
@@ -142,3 +143,46 @@ def test_dimensionless_field(add_field_kwargs):
     )
     # check access
     ds.all_data()["gas", "dimensionless_density"]
+
+
+def test_add_field_quick():
+    ds = fake_random_ds(16)
+
+    # Test subtractions
+    for field in (
+        -ds.fields.gas.density,
+        -1 * ds.fields.gas.density,
+        ds.fields.gas.density - 2 * ds.fields.gas.density,
+        ds.fields.gas.density * (-1),
+    ):
+        ds.add_field(("gas", "-density"), field, force_override=True)
+        np.testing.assert_allclose(ds.r["gas", "-density"], -ds.r["gas", "density"])
+
+    # Test additions
+    for field in (
+        ds.fields.index.ones + 1,
+        1 + ds.fields.index.ones,
+    ):
+        ds.add_field(("index", "two"), field, force_override=True)
+        np.testing.assert_allclose(ds.r["index", "two"], 2)
+
+    # Test multiplications
+    for field in (ds.fields.gas.density * 2, 2 * ds.fields.gas.density):
+        ds.add_field(("gas", "twodensity"), field, force_override=True)
+        np.testing.assert_allclose(
+            ds.r["gas", "twodensity"], ds.r["gas", "density"] * 2
+        )
+
+    # Test divisions
+    for field in (ds.fields.gas.density / 2, 0.5 * ds.fields.gas.density):
+        ds.add_field(("gas", "halfdensity"), field, force_override=True)
+        np.testing.assert_allclose(
+            ds.r["gas", "halfdensity"], ds.r["gas", "density"] / 2
+        )
+
+    # Test right division
+    for field in (1 / ds.fields.gas.density,):
+        ds.add_field(("gas", "one_over_density"), field, force_override=True)
+        np.testing.assert_allclose(
+            ds.r["gas", "one_over_density"], 1 / ds.r["gas", "density"]
+        )
