@@ -92,6 +92,12 @@ class FieldNameContainer:
             return self.__getattribute__(attr)
         return ds.field_info[ft, attr]
 
+    def __setattr__(self, attr, value):
+        if isinstance(value, DerivedField):
+            self.ds.add_field((self.field_type, attr), value)
+        else:
+            super().__setattr__(attr, value)
+
     def __dir__(self):
         return [n for t, n in self.ds.field_info if t == self.field_type]
 
