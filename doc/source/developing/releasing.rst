@@ -41,18 +41,18 @@ from the version number used. Version numbers should follow the scheme
   version numbers to zero. If it ever happens, version ``5.0.0`` will be a major release.
 
 The job of doing a release differs depending on the kind of release. Below, we
-describe the necessary steps for each kind of release in detail. Several of the 
-following steps require that you have write privileges for the main yt GitHub 
+describe the necessary steps for each kind of release in detail. Several of the
+following steps require that you have write privileges for the main yt GitHub
 repository (if you're reading this, you probably already do).
 
 .. note::
 
-  This documentation assumes that your local copy of the yt repository has the 
-  main yt repository as the ``origin`` remote. You can double check with: 
-  ``git remote -v``, which will display all the remote sources you have setup 
-  as well as their addresses. If ``origin`` does not point to the main yt repo 
-  address (``git@github.com:yt-project/yt.git``), you will need to replace 
-  the usage of ``origin`` with whichever remote points to the correct 
+  This documentation assumes that your local copy of the yt repository has the
+  main yt repository as the ``origin`` remote. You can double check with:
+  ``git remote -v``, which will display all the remote sources you have setup
+  as well as their addresses. If ``origin`` does not point to the main yt repo
+  address (``git@github.com:yt-project/yt.git``), you will need to replace
+  the usage of ``origin`` with whichever remote points to the correct
   address.
 
 Prepping Release Notes
@@ -67,10 +67,10 @@ as the release title (e.g., ``yt-4.4.1``). For the target tag, enter the tag tha
 
 Now it's time to generate some release notes. To get a nice starting point, try using the ``uv`` script
 `draft_yt_release_notes.py <https://gist.github.com/chrishavlin/248adea4296abb7bcdbaac952f304cf0>`_
-and copying the output into the new draft release. This script will pull all the issues and pull requests 
-that have been tagged to a specified GitHub milestone and do some initial categorizing to produce a decent 
-draft for release notes. It will still need some manual attention: update the release summary text, 
-add any highlights if desired, add PRs that are missing. At present, you'll also need to manually sort the 
+and copying the output into the new draft release. This script will pull all the issues and pull requests
+that have been tagged to a specified GitHub milestone and do some initial categorizing to produce a decent
+draft for release notes. It will still need some manual attention: update the release summary text,
+add any highlights if desired, add PRs that are missing. At present, you'll also need to manually sort the
 frontend-specific changes by frontend to match previous release notes.
 
 Click "save" at any point to save a draft. Do NOT publish the draft yet.
@@ -122,13 +122,13 @@ between the previous minor or major release and the new one. Then, create a new
 series branch off of the ``main`` branch (for example ``git checkout -b yt-4.5.x``)
 and push the new branch up to the yt repository.
 
-.. code-block:: bash 
-  git fetch origin 
+.. code-block:: bash
+  git fetch origin
   git checkout origin/main
   git checkout -b yt-4.5.x
   git push --set-upstream origin yt-4.5.x
 
-After the series branch is up, you will bump the version number and generate a git tag 
+After the series branch is up, you will bump the version number and generate a git tag
 as described below.
 
 After the completion of the release, the new series branch becomes the
