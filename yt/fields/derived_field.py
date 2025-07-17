@@ -547,12 +547,15 @@ class DerivedField:
             other_units = self.ds.get_unit_from_registry(other.units)
 
         else:
+            # Special case when passing (value, "unit") tuple
+            if isinstance(other, tuple) and len(other) == 2:
+                other = self.ds.quan(*other)
 
             def wrapped(field, data):
                 return op(self(data), other)
 
             other_name = str(other)
-            other_units = self.ds.get_unit_from_registry(getattr(other, "units", "1"))
+            other_units = getattr(other, "units", self.ds.get_unit_from_registry("1"))
 
         if op in (operator.add, operator.sub, operator.eq):
             assert my_units.same_dimensions_as(other_units)
