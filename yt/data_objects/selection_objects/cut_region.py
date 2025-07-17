@@ -8,7 +8,7 @@ from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer3D,
 )
 from yt.data_objects.static_output import Dataset
-from yt.fields.derived_field import DerivedField
+from yt.fields.derived_field import DerivedFieldCombination
 from yt.funcs import iter_fields, validate_object
 from yt.geometry.selection_routines import points_in_cells
 from yt.utilities.exceptions import YTIllDefinedCutRegion
@@ -57,7 +57,8 @@ class YTCutRegion(YTSelectionContainer3D):
         validate_object(data_source, YTSelectionContainer)
         conditionals = list(always_iterable(conditionals))
         for condition in conditionals:
-            validate_object(condition, (str, DerivedField))
+            validate_object(condition, (str, DerivedFieldCombination))
+
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(base_object, YTSelectionContainer)
@@ -83,8 +84,8 @@ class YTCutRegion(YTSelectionContainer3D):
     def _check_filter_fields(self):
         fields = []
         for cond in self.conditionals:
-            if isinstance(cond, DerivedField):
-                fields.append(cond.name)
+            if isinstance(cond, DerivedFieldCombination):
+                fields.extend(cond.getDependentFields())
                 continue
 
             for field in re.findall(r"\[([A-Za-z0-9_,.'\"\(\)]+)\]", cond):
@@ -130,8 +131,8 @@ class YTCutRegion(YTSelectionContainer3D):
             m = m.copy()
             with obj._field_parameter_state(self.field_parameters):
                 for cond in self.conditionals:
-                    if isinstance(cond, DerivedField):
-                        ss = cond(obj)
+                    if isinstance(cond, DerivedFieldCombination):
+                        ss = cond(None, obj)
                     else:
                         ss = eval(cond)
                     m &= ss
@@ -152,8 +153,8 @@ class YTCutRegion(YTSelectionContainer3D):
         locals["obj"] = obj
         with obj._field_parameter_state(self.field_parameters):
             for cond in self.conditionals:
-                if isinstance(cond, DerivedField):
-                    res = cond(obj)
+                if isinstance(cond, DerivedFieldCombination):
+                    res = cond(None, obj)
                 else:
                     res = eval(cond, locals)
                 if ind is None:
