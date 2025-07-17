@@ -45,6 +45,16 @@ describe the necessary steps for each kind of release in detail. Several of the
 following steps require that you have write privileges for the main yt GitHub 
 repository (if you're reading this, you probably already do).
 
+.. note::
+
+  This documentation assumes that your local copy of the yt repository has the 
+  main yt repository as the ``origin`` remote. You can double check with: 
+  ``git remote -v``, which will display all the remote sources you have setup 
+  as well as their addresses. If ``origin`` does not point to the main yt repo 
+  address (``git@github.com:yt-project/yt.git``), you will need to replace 
+  the usage of ``origin`` with whichever remote points to the correct 
+  address.
+
 Prepping Release Notes
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -80,7 +90,7 @@ with the release tags.
 
 Backport branches are named after the minor version they descend from, followed by
 an ``x``. For instance, ``yt-4.0.x`` is the backport branch for all releases in the 4.0 series.
-The backport branches are initially generated during the release of a new minor or major
+The backport branches are initially created during the release of a new minor or major
 version (see :ref:`doing-a-minor-or-major-release`).
 
 Backporting bugfixes can be done automatically using the `MeeseeksBox bot
@@ -109,10 +119,19 @@ This is much simpler than a bugfix release. First, make sure that all
 deprecated features targeted for removal in the new release are removed from the
 ``main`` branch, ideally in a single PR. Such a PR can be issued at any point
 between the previous minor or major release and the new one. Then, create a new
-series branch off of the ``main`` branch (for example ``git checkout -b yt-4.5.x``),
-on which you will bump the version number and generate a git tag as described below.
+series branch off of the ``main`` branch (for example ``git checkout -b yt-4.5.x``)
+and push the new branch up to the yt repository.
 
-After the completion of the release, the new series branch can be used as the
+.. code-block:: bash 
+  git fetch origin 
+  git checkout origin/main
+  git checkout -b yt-4.5.x
+  git push --set-upstream origin yt-4.5.x
+
+After the series branch is up, you will bump the version number and generate a git tag 
+as described below.
+
+After the completion of the release, the new series branch becomes the
 backporch branch for subsequent bugfix releases.
 
 Incrementing Version Numbers
