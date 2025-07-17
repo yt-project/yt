@@ -14,7 +14,7 @@ from yt.funcs import (
     validate_sequence,
 )
 from yt.units import YTArray
-from yt.utilities.exceptions import YTEllipsoidOrdering, YTException, YTSphereTooSmall
+from yt.utilities.exceptions import YTEllipsoidOrdering, YTException
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.on_demand_imports import _miniball
@@ -57,12 +57,6 @@ class YTSphere(YTSelectionContainer3D):
         super().__init__(center, ds, field_parameters, data_source)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.ds)
-        if radius < self.index.get_smallest_dx():
-            raise YTSphereTooSmall(
-                ds,
-                radius.in_units("code_length"),
-                self.index.get_smallest_dx().in_units("code_length"),
-            )
         self.set_field_parameter("radius", radius)
         self.set_field_parameter("center", self.center)
         self.radius = radius
@@ -187,8 +181,7 @@ class YTEllipsoid(YTSelectionContainer3D):
         self._A = self.ds.quan(A, "code_length")
         self._B = self.ds.quan(B, "code_length")
         self._C = self.ds.quan(C, "code_length")
-        if self._C < self.index.get_smallest_dx():
-            raise YTSphereTooSmall(self.ds, self._C, self.index.get_smallest_dx())
+
         self._e0 = e0 = e0 / (e0**2.0).sum() ** 0.5
         self._tilt = tilt
 
