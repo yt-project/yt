@@ -32,7 +32,11 @@ from yt._typing import (
     ParticleType,
 )
 from yt.config import ytcfg
-from yt.data_objects.particle_filters import ParticleFilter, filter_registry
+from yt.data_objects.particle_filters import (
+    ParticleFilter,
+    add_particle_filter,
+    filter_registry,
+)
 from yt.data_objects.region_expression import RegionExpression
 from yt.data_objects.unions import ParticleUnion
 from yt.fields.derived_field import (
@@ -897,6 +901,9 @@ class Dataset(abc.ABC):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
+        if isinstance(filter, DerivedFieldCombination):
+            add_particle_filter(filter.name, filter)
+            filter = filter.name
         if isinstance(filter, str):
             used = False
             f = filter_registry.get(filter, None)
@@ -905,9 +912,6 @@ class Dataset(abc.ABC):
             used = self._setup_filtered_type(f)
             if used:
                 filter = f
-        elif isinstance(filter, DerivedFieldCombination):
-            filter_registry[filter.name] = filter
-            used = self._setup_filtered_type(filter)
         else:
             used = self._setup_filtered_type(filter)
         if not used:

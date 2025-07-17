@@ -190,6 +190,10 @@ class DerivedFieldCombination(DerivedFieldBase):
                 continue
         return fields
 
+    @property
+    def name(self):
+        return f"{self!r}"
+
 
 class DerivedField(DerivedFieldBase):
     """
