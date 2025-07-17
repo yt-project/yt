@@ -158,7 +158,7 @@ to be edited are:
   The ``__version__`` variable must be updated.
 
 To update these files, check out and update the branch that will be released (``main``
-if doing a major or minor release, or the backport if doing a bugfix release).
+if doing a major or minor release, or the backport branch if doing a bugfix release).
 
 Once these files have been updated, commit these updates and submit a pull request
 targeting the branch that will be released. This is the commit we
