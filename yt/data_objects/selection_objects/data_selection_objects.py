@@ -1403,9 +1403,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         match self.ds.geometry:
             case Geometry.CARTESIAN:
                 le, re = self._get_bbox()
-                le.convert_to_units("code_length")
-                re.convert_to_units("code_length")
-                return le, re
+                return (le.to("code_length"), re.to("code_length"))
             case (
                 Geometry.CYLINDRICAL
                 | Geometry.POLAR
