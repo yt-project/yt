@@ -8,7 +8,7 @@ import weakref
 from functools import cached_property
 
 from yt._maintenance.ipython_compat import IPYWIDGETS_ENABLED
-from yt.fields.derived_field import DerivedField
+from yt.fields.derived_field import DerivedField, DerivedFieldCombination
 
 
 def _fill_values(values):
@@ -93,7 +93,7 @@ class FieldNameContainer:
         return ds.field_info[ft, attr]
 
     def __setattr__(self, attr, value):
-        if isinstance(value, DerivedField):
+        if isinstance(value, DerivedFieldCombination):
             self.ds.add_field((self.field_type, attr), value)
         else:
             super().__setattr__(attr, value)

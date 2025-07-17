@@ -1,3 +1,4 @@
+import abc
 import contextlib
 import enum
 import inspect
@@ -5,8 +6,8 @@ import operator
 import re
 import sys
 from collections.abc import Callable, Iterable
-from functools import cached_property
-from typing import Optional, Union
+from functools import cached_property, reduce
+from typing import Optional
 
 from more_itertools import always_iterable
 
@@ -72,7 +73,125 @@ def DeprecatedFieldFunc(ret_field, func, since, removal):
     return _DeprecatedFieldFunc
 
 
-class DerivedField:
+class DerivedFieldBase(abc.ABC):
+    @abc.abstractmethod
+    def __call__(self, field, data):
+        pass
+
+    @abc.abstractmethod
+    def __repr__(self) -> str:
+        pass
+
+    # Multiplication (left and right side)
+    def __mul__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.mul)
+
+    def __rmul__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.mul)
+
+    # Division (left side)
+    def __truediv__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.truediv)
+
+    def __rtruediv__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([other, self], op=operator.truediv)
+
+    # Addition (left and right side)
+    def __add__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.add)
+
+    def __radd__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.add)
+
+    # Subtraction (left and right side)
+    def __sub__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.sub)
+
+    def __rsub__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([other, self], op=operator.sub)
+
+    # Unary minus
+    def __neg__(self) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self], op=operator.neg)
+
+    # Comparison operators
+    def __leq__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.le)
+
+    def __lt__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.lt)
+
+    def __geq__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.ge)
+
+    def __gt__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.gt)
+
+    # def __eq__(self, other) -> "DerivedFieldCombination":
+    #     return DerivedFieldCombination([self, other], op=operator.eq)
+
+    def __ne__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.ne)
+
+
+class DerivedFieldCombination(DerivedFieldBase):
+    sampling_type: str | None
+    terms: list
+    op: Callable | None
+
+    def __init__(self, terms: list, op=None):
+        if not terms:
+            raise ValueError("DerivedFieldCombination requires at least one term.")
+
+        # Make sure all terms have the same sampling type
+        sampling_types = set()
+        for term in terms:
+            if isinstance(term, DerivedField):
+                sampling_types.add(term.sampling_type)
+
+        if len(sampling_types) > 1:
+            raise ValueError(
+                "All terms in a DerivedFieldCombination must "
+                "have the same sampling type."
+            )
+        self.sampling_type = sampling_types.pop() if sampling_types else None
+        self.terms = terms
+        self.op = op
+
+    def __call__(self, field, data):
+        """
+        Return the value of the field in a given data object.
+        """
+        qties = []
+        for term in self.terms:
+            if isinstance(term, DerivedField):
+                qties.append(data[term.name])
+            elif isinstance(term, DerivedFieldCombination):
+                qties.append(term(field, data))
+            else:
+                qties.append(term)
+
+        if len(qties) == 1:
+            return self.op(qties[0])
+        else:
+            return reduce(self.op, qties)
+
+    def __repr__(self):
+        return f"DerivedFieldCombination(terms={self.terms!r}, op={self.op!r})"
+
+    def getDependentFields(self):
+        fields = []
+        for term in self.terms:
+            if isinstance(term, DerivedField):
+                fields.append(term.name)
+            elif isinstance(term, DerivedFieldCombination):
+                fields.extend(term.getDependentFields())
+            else:
+                continue
+        return fields
+
+
+class DerivedField(DerivedFieldBase):
     """
     This is the base class used to describe a cell-by-cell derived field.
 
@@ -528,128 +647,6 @@ class DerivedField:
             ds=self.ds,
             nodal_flag=self.nodal_flag,
         )
-
-    def _operator(
-        self, other: Union["DerivedField", float], op: Callable
-    ) -> "DerivedField":
-        my_units = self.ds.get_unit_from_registry(self.units)
-        if isinstance(other, DerivedField):
-            if self.sampling_type != other.sampling_type:
-                raise TypeError(
-                    f"Cannot {op} fields with different sampling types: "
-                    f"{self.sampling_type} and {other.sampling_type}"
-                )
-
-            def wrapped(field, data):
-                return op(self(data), other(data))
-
-            other_name = other.name[1]
-            other_units = self.ds.get_unit_from_registry(other.units)
-
-        else:
-            # Special case when passing (value, "unit") tuple
-            if isinstance(other, tuple) and len(other) == 2:
-                other = self.ds.quan(*other)
-
-            def wrapped(field, data):
-                return op(self(data), other)
-
-            other_name = str(other)
-            other_units = getattr(other, "units", self.ds.get_unit_from_registry("1"))
-
-        if op in (operator.add, operator.sub, operator.eq):
-            assert my_units.same_dimensions_as(other_units)
-            new_units = my_units
-        elif op in (operator.mul, operator.truediv):
-            new_units = op(my_units, other_units)
-        elif op in (operator.le, operator.lt, operator.ge, operator.gt, operator.ne):
-            # Comparison yield unitless fields
-            new_units = Unit("1")
-        else:
-            raise TypeError(f"Unsupported operator {op} for DerivedField")
-
-        return DerivedField(
-            name=(self.name[0], f"{self.name[1]}_{op.__name__}_{other_name}"),
-            sampling_type=self.sampling_type,
-            function=wrapped,
-            units=new_units,
-            ds=self.ds,
-        )
-
-    # Multiplication (left and right side)
-    def __mul__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.mul)
-
-    def __rmul__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.mul)
-
-    # Division (left side)
-    def __truediv__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.truediv)
-
-    # Addition (left and right side)
-    def __add__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.add)
-
-    def __radd__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.add)
-
-    # Subtraction (left and right side)
-    def __sub__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.sub)
-
-    def __rsub__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(-other, op=operator.add)
-
-    # Unary minus
-    def __neg__(self) -> "DerivedField":
-        def wrapped(field, data):
-            return -self(data)
-
-        return DerivedField(
-            name=(self.name[0], f"neg_{self.name[1]}"),
-            sampling_type=self.sampling_type,
-            function=wrapped,
-            units=self.units,
-            ds=self.ds,
-        )
-
-    # Division (right side, a bit more complex)
-    def __rtruediv__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        units = self.ds.get_unit_from_registry(self.units)
-
-        def wrapped(field, data):
-            return 1 / self(data)
-
-        inverse_self = DerivedField(
-            name=(self.name[0], f"inverse_{self.name[1]}"),
-            sampling_type=self.sampling_type,
-            function=wrapped,
-            units=units**-1,
-            ds=self.ds,
-        )
-
-        return inverse_self * other
-
-    # Comparison operators
-    def __leq__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.le)
-
-    def __lt__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.lt)
-
-    def __geq__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.ge)
-
-    def __gt__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.gt)
-
-    # Somehow, makes yt not work?
-    # def __eq__(self, other: Union["DerivedField", float]) -> "DerivedField":
-    #     return self._operator(other, op=operator.eq)
-
-    def __ne__(self, other: Union["DerivedField", float]) -> "DerivedField":
-        return self._operator(other, op=operator.ne)
 
 
 class FieldValidator:

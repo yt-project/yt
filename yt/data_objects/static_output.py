@@ -35,7 +35,11 @@ from yt.config import ytcfg
 from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
 from yt.data_objects.unions import ParticleUnion
-from yt.fields.derived_field import DerivedField, ValidateSpatial
+from yt.fields.derived_field import (
+    DerivedField,
+    DerivedFieldCombination,
+    ValidateSpatial,
+)
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.funcs import iter_fields, mylog, set_intersection, setdefaultattr
@@ -901,6 +905,9 @@ class Dataset(abc.ABC):
             used = self._setup_filtered_type(f)
             if used:
                 filter = f
+        elif isinstance(filter, DerivedFieldCombination):
+            filter_registry[filter.name] = filter
+            used = self._setup_filtered_type(filter)
         else:
             used = self._setup_filtered_type(filter)
         if not used:
@@ -1775,15 +1782,12 @@ class Dataset(abc.ABC):
         """
         from yt.fields.field_functions import validate_field_function
 
-        if not isinstance(function, DerivedField):
+        if not isinstance(function, DerivedFieldCombination):
             if sampling_type is None:
                 raise ValueError("You must specify a sampling_type for the field.")
             validate_field_function(function)
         else:
             sampling_type = function.sampling_type
-            kwargs.setdefault("units", function.units)
-
-            function = function._function
 
         self.index
         if force_override and name in self.index.field_list:
