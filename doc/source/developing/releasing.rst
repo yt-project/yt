@@ -41,25 +41,27 @@ from the version number used. Version numbers should follow the scheme
   version numbers to zero. If it ever happens, version ``5.0.0`` will be a major release.
 
 The job of doing a release differs depending on the kind of release. Below, we
-describe the necessary steps for each kind of release in detail.
+describe the necessary steps for each kind of release in detail. Several of the 
+following steps require that you have write privileges for the main yt GitHub 
+repository (if you're reading this, you probably already do).
 
 Prepping Release Notes
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Before starting the release process, it's useful to create a draft of a GitHub release. Doing this
 at the start lets you share the upcoming release notes with other developers before the release
-actually happens. To do so, go to
+actually happens. To create a new draft release, go to
 https://github.com/yt-project/yt/releases and click "Draft a new release". Use the version tag
 as the release title (e.g., ``yt-4.4.1``). For the target tag, enter the tag that you will use
 (see  :ref:`tagging-a-release-release`) and select the branch from which the release will be cut.
 
 Now it's time to generate some release notes. To get a nice starting point, try using the ``uv`` script
 `draft_yt_release_notes.py <https://gist.github.com/chrishavlin/248adea4296abb7bcdbaac952f304cf0>`_
-and copying the output into the new draft release. This script will pull all the issues and pull requests that have been tagged to a specified GitHub
-milestone and do some initial categorizing to produce a decent draft for release notes. It will still
-need some manual attention: update the release summary text, add any highlights if desired, add PRs that
-are missing. At present, you'll also need to manually sort the frontend-specific changes by frontend
-to match previous release notes.
+and copying the output into the new draft release. This script will pull all the issues and pull requests 
+that have been tagged to a specified GitHub milestone and do some initial categorizing to produce a decent 
+draft for release notes. It will still need some manual attention: update the release summary text, 
+add any highlights if desired, add PRs that are missing. At present, you'll also need to manually sort the 
+frontend-specific changes by frontend to match previous release notes.
 
 Click "save" at any point to save a draft. Do NOT publish the draft yet.
 
