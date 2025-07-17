@@ -55,6 +55,8 @@ repository (if you're reading this, you probably already do).
   the usage of ``origin`` with whichever remote points to the correct
   address.
 
+.. _prepping-release-notes:
+
 Prepping Release Notes
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -258,12 +260,9 @@ Announcing
 ~~~~~~~~~~
 
 After the release is uploaded to `PyPI <https://pypi.org/project/yt/#files>`_ and
-`conda-forge <https://anaconda.org/conda-forge/yt>`_,
-you should send out an announcement
-e-mail to the yt mailing lists as well as other possibly interested mailing
-lists for all but bugfix releases.
-
-Creating a Github release attached to the tag also offers a couple advantages.
-Auto-generated release notes can be a good starting point, though it's best to
-edit out PRs that not directly affecting users, and these notes can be edited
-before (draft mode) and after the release, so errors can be corrected after the fact.
+`conda-forge <https://anaconda.org/conda-forge/yt>`_, you should publish the
+GitHub draft release (see :ref:`prepping-release-notes`) and then you should
+send out an announcement e-mail to the yt mailing lists and the yt slack. Optionally,
+for major and minor releases, you can send the announcement to other interested
+mailing lists. Include a brief overview of the changes in the release and link to
+the GitHub release.
