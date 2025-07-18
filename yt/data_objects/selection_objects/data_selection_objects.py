@@ -4,6 +4,7 @@ import sys
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import Literal
 
 import numpy as np
 from more_itertools import always_iterable
@@ -505,13 +506,42 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
 
     def piter(
         self,
-        *args,
-        **kwargs,
+        njobs: int = 0,
+        storage: dict | None = None,
+        barrier: bool = True,
+        dynamic: bool = False,
+        reduction: Literal[None, "sum", "max", "min", "cat", "cat_on_root"] = None,
     ):
         """Iterate in parallel over data in the container.
 
-        See :class:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
-        for more information on the arguments.
+        Parameters
+        ----------
+        njobs : int
+            How many jobs to spawn.  By default, one job will be dispatched for
+            each available processor.
+        storage : dict
+            This is a dictionary, which will be filled with results during the
+            course of the iteration.  The keys will be the dataset
+            indices and the values will be whatever is assigned to the *result*
+            attribute on the storage during iteration.
+        barrier : bool
+            Should a barier be placed at the end of iteration?
+        dynamic : bool
+            This governs whether or not dynamic load balancing will be enabled.
+            This requires one dedicated processor; if this is enabled with a set of
+            128 processors available, only 127 will be available to iterate over
+            objects as one will be load balancing the rest.
+        reduction : Literal[None, "sum", "max", "min", "cat", "cat_on_root"]
+            This specifies the reduction operation to be applied to the results
+            from each processor.
+            - None: no reduction will be applied and the storage object will
+              contain one result per chunk in the container.
+            - concat: the storage object will contain a flattened list of
+              each results.
+            - cat_on_root: same as concat, but only the root processor will
+              contain anything.
+            - sum, min, max: the storage object will contain the result
+              of applying the operation until getting a single value.
 
         Example
         -------
@@ -533,8 +563,20 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         ...         "total_mass": chunk["gas", "cell_mass"].sum(),
         ...     }
         ... print("Total mass: ", my_storage["total_mass"])
+
+        Note
+        ----
+        `sto.result` has to be a dictionary.
+
         """
-        yield from parallel_objects(self.chunks([], "io"), *args, **kwargs)
+        yield from parallel_objects(
+            self.chunks([], "io"),
+            njobs=njobs,
+            storage=storage,
+            barrier=barrier,
+            dynamic=dynamic,
+            reduction=reduction,
+        )
 
 
 class YTSelectionContainer0D(YTSelectionContainer):
