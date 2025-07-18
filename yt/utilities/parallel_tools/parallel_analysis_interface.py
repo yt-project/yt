@@ -506,7 +506,7 @@ def parallel_objects(
         indices and the values will be whatever is assigned to the *result*
         attribute on the storage during iteration.
     barrier : bool
-        Should a barier be placed at the end of iteration?
+        Should a barrier be placed at the end of iteration?
     dynamic : bool
         This governs whether or not dynamic load balancing will be enabled.
         This requires one dedicated processor; if this is enabled with a set of
@@ -514,7 +514,15 @@ def parallel_objects(
         objects as one will be load balancing the rest.
     reduction : Literal[None, "sum", "max", "min", "cat", "cat_on_root"]
         This specifies the reduction operation to be applied to the results
-        from each processor.  The default is None, which doesn't apply any.
+        from each processor.
+        - None: no reduction will be applied and the storage object will
+            contain one result per chunk in the container.
+        - cat: the storage object will contain a flattened list of
+            each result.
+        - cat_on_root: same as cat, but only the root processor will
+            contain anything.
+        - sum, min, max: the storage object will contain the result
+            of applying the operation until getting a single value.
 
     Examples
     --------
@@ -1009,6 +1017,7 @@ class Communicator:
     ):
         """
         Concatenate all the values of data and send them to the root.
+        This returns None on all other processors.
 
         Notes:
         ------
