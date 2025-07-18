@@ -971,14 +971,16 @@ class Communicator:
                 )
                 for deeper_key in first_value.keys()
             }
+        else:
+            # Otherwise, we assume our values can be concatenated
+            reduced_values = reduction_op([reduction_op(d) for d in data.values()])
 
-        # Otherwise, we assume our values can be concatenated
-        reduced_values = reduction_op([reduction_op(d) for d in data.values()])
+            if self._distributed:
+                reduced_values = self.comm.allreduce(
+                    reduced_values, op=mpi_reduction_op
+                )
 
-        if self._distributed:
-            reduced_values = self.comm.allreduce(reduced_values, op=mpi_reduction_op)
-
-        return reduced_values
+            return reduced_values
 
     def all_concat(self, data: dict[Any, np.ndarray | dict[str, np.ndarray]]):
         """
@@ -999,14 +1001,16 @@ class Communicator:
                 )
                 for deeper_key in first_value.keys()
             }
+        else:
+            # Otherwise, we assume our values can be concatenated
+            all_values = np.concatenate(
+                [np.atleast_1d(value) for value in data.values()]
+            )
 
-        # Otherwise, we assume our values can be concatenated
-        all_values = np.concatenate([np.atleast_1d(value) for value in data.values()])
+            if self._distributed:
+                all_values = np.concatenate(self.comm.allgather(all_values))
 
-        if self._distributed:
-            all_values = np.concatenate(self.comm.allgather(all_values))
-
-        return all_values
+            return all_values
 
     def concat(
         self, data: dict[Any, np.ndarray | dict[str, np.ndarray]], root: int = 0
@@ -1030,16 +1034,18 @@ class Communicator:
                 )
                 for deeper_key in first_value.keys()
             }
+        else:
+            # Otherwise, we assume our values can be concatenated
+            all_values = np.concatenate(
+                [np.atleast_1d(value) for value in data.values()]
+            )
 
-        # Otherwise, we assume our values can be concatenated
-        all_values = np.concatenate([np.atleast_1d(value) for value in data.values()])
-
-        if self._distributed:
-            tmp = self.comm.gather(all_values, root=root)
-            if self.comm.rank == root:
-                return np.concatenate(tmp)
-            else:
-                return None
+            if self._distributed:
+                tmp = self.comm.gather(all_values, root=root)
+                if self.comm.rank == root:
+                    return np.concatenate(tmp)
+                else:
+                    return None
 
     ###
     # Non-blocking stuff.
