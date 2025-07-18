@@ -1749,7 +1749,7 @@ class Dataset(abc.ABC):
         if units is not None:
             entry["units"] = units
         if aliases is not None:
-            entry["alias"] = alias
+            entry["aliases"] = aliases
         if display_name is not None:
             entry["display_name"] = display_name
 
