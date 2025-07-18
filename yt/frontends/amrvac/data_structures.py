@@ -144,10 +144,26 @@ class AMRVACHierarchy(GridIndex):
 
         self.grids = np.empty(self.num_grids, dtype="object")
         meshlist = self.ds.namelist["meshlist"]
-        if (strech_dim := meshlist.get("strech_dim")) is not None:
-            assert isinstance(strech_dim, list)
-            assert len(strech_dim) >= self.ds.dimensionality
-            stretch_base = float(meshlist["qstretch_base"])
+        if (stretch_dim := meshlist.get("stretch_dim")) is not None:
+            assert isinstance(stretch_dim, list)
+            assert len(stretch_dim) >= self.ds.dimensionality
+            if "qstretch_base" not in meshlist:
+                # compute default values dynamically, just as done in AMRVAC
+                stretch_base = ...
+            elif isinstance(stretch_base := meshlist["qstretch_base"], list):
+                assert len(stretch_base) >= self.ds.dimensionality
+                stretch_base = (
+                    float(b) for b in stretch_base[: self.ds.dimensionality]
+                )
+            else:
+                assert isinstance(stretch_base, float | int)
+                stretched_dims = [bool(k) for k in stretch_dim]
+                assert sum(stretched_dims) == 1  # exactly one stretched direction
+                stretched_dim = stretched_dims.index(True)
+                assert len() == 1
+                _stretch_base = (1.0,) * self.ds.dimensionality
+                _stretch_base[stretched_dim] = stretch_base
+                stretch_base = _stretch_base
 
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
