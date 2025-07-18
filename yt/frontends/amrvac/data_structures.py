@@ -150,17 +150,17 @@ class AMRVACHierarchy(GridIndex):
             stretch_baselevel = meshlist.get("qstretch_baselevel")
             if "qstretch_baselevel" not in meshlist:
                 # compute default values dynamically, just as done in AMRVAC
-                dim = self.ds.dimensionality
-                xprobmin, xprobmax, domain_nx = (
-                    np.empty(dim),
-                    np.empty(dim),
-                    np.empty(dim),
-                )
-                for i in range(dim):
-                    xprobmin[i] = meshlist[f"xprobmin{i + 1}"]
-                    xprobmax[i] = meshlist[f"xprobmax{i + 1}"]
-                    domain_nx[i] = meshlist[f"domain_nx{i + 1}"]
-                stretch_baselevel = (xprobmax / xprobmin) ** (1.0 / domain_nx)
+                stretched_dims = [bool(k) for k in stretch_dim]
+                assert sum(stretched_dims) == 1  # exactly one stretched direction
+                stretched_dim = stretched_dims.index(True)
+                _sbl = [
+                    1.0,
+                ] * self.ds.dimensionality
+                _sbl[stretched_dim] = (
+                    meshlist[f"xprobmax{stretched_dim + 1}"]
+                    / meshlist[f"xprobmin{stretched_dim + 1}"]
+                ) ** (1.0 / meshlist[f"domain_nx{stretched_dim + 1}"])
+                stretch_baselevel = tuple(_sbl)
             elif isinstance(stretch_baselevel := meshlist["qstretch_baselevel"], list):
                 assert len(stretch_baselevel) >= self.ds.dimensionality
                 stretch_baselevel = (
@@ -171,9 +171,11 @@ class AMRVACHierarchy(GridIndex):
                 stretched_dims = [bool(k) for k in stretch_dim]
                 assert sum(stretched_dims) == 1  # exactly one stretched direction
                 stretched_dim = stretched_dims.index(True)
-                _sbl = (1.0,) * self.ds.dimensionality
+                _sbl = [
+                    1.0,
+                ] * self.ds.dimensionality
                 _sbl[stretched_dim] = stretch_baselevel
-                stretch_baselevel = _sbl
+                stretch_baselevel = tuple(_sbl)
 
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
