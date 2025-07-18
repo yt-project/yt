@@ -15,7 +15,7 @@ import numpy as np
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
-from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.stretched_grid import StretchedGrid
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.api import Geometry
@@ -52,17 +52,18 @@ def _parse_geometry(geometry_tag: str) -> Geometry:
     return Geometry(geometry_str.lower())
 
 
-class AMRVACGrid(AMRGridPatch):
+class AMRVACGrid(StretchedGrid):
     """A class to populate AMRVACHierarchy.grids, setting parent/children relations."""
 
     _id_offset = 0
 
-    def __init__(self, id, index, level):
+    def __init__(self, id, cell_widths, filename, index, level, dims):
         # <level> should use yt's convention (start from 0)
-        super().__init__(id, filename=index.index_filename, index=index)
+        super().__init__(id=id, filename=filename, index=index, cell_widths=cell_widths)
         self.Parent = None
         self.Children = []
         self.Level = level
+        self.ActiveDimensions = dims
 
     def get_global_startindex(self):
         """Refresh and retrieve the starting index for each dimension at current level.
