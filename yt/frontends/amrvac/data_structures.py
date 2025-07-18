@@ -150,7 +150,13 @@ class AMRVACHierarchy(GridIndex):
             stretch_baselevel = meshlist.get("qstretch_baselevel")
             if "qstretch_baselevel" not in meshlist:
                 # compute default values dynamically, just as done in AMRVAC
-                stretch_baselevel = ...
+                dim = self.ds.dimensionality
+                xprobmin, xprobmax, domain_nx = np.empty(dim), np.empty(dim), np.empty(dim)
+                for i in range(dim):
+                    xprobmin[i] = meshlist[f"xprobmin{i}"]
+                    xprobmax[i] = meshlist[f"xprobmax{i}"]
+                    domain_nx[i] = meshlist[f"domain_nx{i}"]
+                stretch_baselevel = (xprobmax / xprobmin)**(1. / domain_nx)
             elif isinstance(stretch_baselevel := meshlist["qstretch_baselevel"], list):
                 assert len(stretch_baselevel) >= self.ds.dimensionality
                 stretch_baselevel = (
