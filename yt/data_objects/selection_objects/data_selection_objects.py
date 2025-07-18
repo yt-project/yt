@@ -33,6 +33,7 @@ from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_f
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
+    parallel_objects,
 )
 
 if sys.version_info >= (3, 11):
@@ -534,6 +535,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         self.shape = None
         self._current_chunk = None
         self._min_level = value
+
+    def piter(
+        self,
+        *args,
+        **kwargs,
+    ):
+        yield from parallel_objects(self.chunks([], "io"), *args, **kwargs)
 
 
 class YTSelectionContainer0D(YTSelectionContainer):
