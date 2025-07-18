@@ -1,7 +1,5 @@
 import os
-import stat
 import struct
-from typing import Type
 
 import numpy as np
 
@@ -103,9 +101,9 @@ class GadgetBinaryHeader:
         else:
             raise RuntimeError(
                 "Gadget snapshot file is likely corrupted! "
-                "The first 4 bytes represent %s (as little endian int32). "
-                "But we are looking for %s (for format 1) or 8 (for format 2)."
-                % (rhead, first_header_size)
+                f"The first 4 bytes represent {rhead} (as little endian int32). "
+                f"But we are looking for {first_header_size} (for format 1) "
+                "or 8 (for format 2)."
             )
 
     @property
@@ -211,9 +209,9 @@ class GadgetBinaryIndex(SPHParticleIndex):
 
 
 class GadgetDataset(SPHDataset):
-    _index_class: Type[Index] = GadgetBinaryIndex
-    _file_class: Type[ParticleFile] = GadgetBinaryFile
-    _field_info_class: Type[FieldInfoContainer] = GadgetFieldInfo
+    _index_class: type[Index] = GadgetBinaryIndex
+    _file_class: type[ParticleFile] = GadgetBinaryFile
+    _field_info_class: type[FieldInfoContainer] = GadgetFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
@@ -349,7 +347,6 @@ class GadgetDataset(SPHDataset):
         return self._header.value
 
     def _parse_parameter_file(self):
-
         hvals = self._get_hvals()
 
         self.dimensionality = 3
@@ -365,24 +362,22 @@ class GadgetDataset(SPHDataset):
         self.domain_dimensions = np.ones(3, "int32")
         self._periodicity = (True, True, True)
 
-        self.cosmological_simulation = 1
+        self.current_redshift = hvals.get("Redshift", 0.0)
+        if "Redshift" not in hvals:
+            mylog.info("Redshift is not set in Header. Assuming z=0.")
 
-        try:
-            self.current_redshift = hvals["Redshift"]
-        except KeyError:
-            # Probably not a cosmological dataset, we should just set
-            # z = 0 and let the user know
-            self.current_redshift = 0.0
-            only_on_root(mylog.info, "Redshift is not set in Header. Assuming z=0.")
-
-        try:
+        if "OmegaLambda" in hvals:
             self.omega_lambda = hvals["OmegaLambda"]
             self.omega_matter = hvals["Omega0"]
             self.hubble_constant = hvals["HubbleParam"]
-        except KeyError:
+            self.cosmological_simulation = self.omega_lambda != 0.0
+        else:
             # If these are not set it is definitely not a cosmological dataset.
             self.omega_lambda = 0.0
-            self.omega_matter = 1.0  # Just in case somebody asks for it.
+            self.omega_matter = 0.0  # Just in case somebody asks for it.
+            # omega_matter has been changed to 0.0 for consistency with
+            # non-cosmological frontends
+            self.cosmological_simulation = 0
             # Hubble is set below for Omega Lambda = 0.
 
         # According to the Gadget manual, OmegaLambda will be zero for
@@ -391,12 +386,9 @@ class GadgetDataset(SPHDataset):
         # which case we may be doing something incorrect here.
         # It may be possible to deduce whether ComovingIntegration is on
         # somehow, but opinions on this vary.
-        if self.omega_lambda == 0.0:
-            only_on_root(
-                mylog.info, "Omega Lambda is 0.0, so we are turning off Cosmology."
-            )
+        if not self.cosmological_simulation:
+            mylog.info("Omega Lambda is 0.0, so we are turning off Cosmology.")
             self.hubble_constant = 1.0  # So that scaling comes out correct
-            self.cosmological_simulation = 0
             self.current_redshift = 0.0
             # This may not be correct.
             self.current_time = hvals["Time"]
@@ -411,20 +403,15 @@ class GadgetDataset(SPHDataset):
                 omega_lambda=self.omega_lambda,
             )
             self.current_time = cosmo.lookback_time(self.current_redshift, 1e6)
-            only_on_root(
-                mylog.info,
+            mylog.info(
                 "Calculating time from %0.3e to be %0.3e seconds",
                 hvals["Time"],
                 self.current_time,
             )
         self.parameters = hvals
 
-        prefix = os.path.abspath(
-            os.path.join(
-                os.path.dirname(self.parameter_filename),
-                os.path.basename(self.parameter_filename).split(".", 1)[0],
-            )
-        )
+        basename, _, _ = self.basename.partition(".")
+        prefix = os.path.join(self.directory, basename)
 
         if hvals["NumFiles"] > 1:
             for t in (
@@ -449,10 +436,10 @@ class GadgetDataset(SPHDataset):
                 only_on_root(
                     mylog.info, "Assuming length units are in kpc/h (comoving)"
                 )
-                self._unit_base = dict(length=(1.0, "kpccm/h"))
+                self._unit_base = {"length": (1.0, "kpccm/h")}
             else:
                 only_on_root(mylog.info, "Assuming length units are in kpc (physical)")
-                self._unit_base = dict(length=(1.0, "kpc"))
+                self._unit_base = {"length": (1.0, "kpc")}
 
         # If units passed in by user, decide what to do about
         # co-moving and factors of h
@@ -544,11 +531,8 @@ class GadgetDataset(SPHDataset):
         self.magnetic_unit = self.quan(*magnetic_unit)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        if "header_spec" in kwargs:
-            header_spec = kwargs["header_spec"]
-        else:
-            header_spec = "default"
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        header_spec = kwargs.get("header_spec", "default")
         # Check to see if passed filename is a directory. If so, use it to get
         # the .0 snapshot file. Make sure there's only one such file, otherwise
         # there's an ambiguity about which file the user wants. Ignore ewah files
@@ -575,9 +559,10 @@ class GadgetHDF5File(ParticleFile):
 
 
 class GadgetHDF5Dataset(GadgetDataset):
+    _load_requirements = ["h5py"]
     _file_class = GadgetHDF5File
     _index_class = SPHParticleIndex
-    _field_info_class: Type[FieldInfoContainer] = GadgetFieldInfo
+    _field_info_class: type[FieldInfoContainer] = GadgetFieldInfo
     _particle_mass_name = "Masses"
     _sph_ptypes = ("PartType0",)
     _suffix = ".hdf5"
@@ -631,6 +616,15 @@ class GadgetHDF5Dataset(GadgetDataset):
         if "Parameters" in handle:
             hvals.update((str(k), v) for k, v in handle["/Parameters"].attrs.items())
         handle.close()
+
+        # ensure that 1-element arrays are reduced to scalars
+        updated_hvals = {}
+        for hvalname, value in hvals.items():
+            if isinstance(value, np.ndarray) and value.size == 1:
+                mylog.info("Reducing single-element array %s to scalar.", hvalname)
+                updated_hvals[hvalname] = value.item()
+        hvals.update(updated_hvals)
+
         return hvals
 
     def _get_uvals(self):
@@ -641,11 +635,9 @@ class GadgetHDF5Dataset(GadgetDataset):
         return uvals
 
     def _set_owls_eagle(self):
-
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
-        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         self._unit_base = self._get_uvals()
         self._unit_base["cmcm"] = 1.0 / self._unit_base["UnitLength_in_cm"]
@@ -680,7 +672,6 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.file_count = self.parameters["NumFilesPerSnapshot"]
 
     def _set_owls_eagle_units(self):
-
         # note the contents of the HDF5 Units group are in _unit_base
         # note the velocity stored on disk is sqrt(a) dx/dt
         # physical velocity [cm/s] = a dx/dt
@@ -698,7 +689,10 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.specific_energy_unit = self.quan(specific_energy_unit_cgs, "(cm/s)**2")
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = ["Header"]
         veto_groups = ["FOF", "Group", "Subhalo"]
         valid = True
@@ -716,7 +710,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             fh = h5py.File(filename, mode="r")
             valid = fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
             fh.close()
-        except (OSError, KeyError, ImportError):
+        except (OSError, KeyError):
             pass
 
         return valid

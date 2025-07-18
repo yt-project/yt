@@ -1,3 +1,4 @@
+from functools import cached_property
 from itertools import groupby
 
 import numpy as np
@@ -10,14 +11,14 @@ from yt.utilities.io_handler import BaseIOHandler
 def particle_sequences(grids):
     g_iter = sorted(grids, key=lambda g: g.id)
     for _k, g in groupby(enumerate(g_iter), lambda i_x: i_x[0] - i_x[1].id):
-        seq = list(v[1] for v in g)
+        seq = [v[1] for v in g]
         yield seq[0], seq[-1]
 
 
 def grid_sequences(grids):
     g_iter = sorted(grids, key=lambda g: g.id)
     for _k, g in groupby(enumerate(g_iter), lambda i_x1: i_x1[0] - i_x1[1].id):
-        seq = list(v[1] for v in g)
+        seq = [v[1] for v in g]
         yield seq
 
 
@@ -140,7 +141,7 @@ class IOHandlerFLASH(BaseIOHandler):
                 if _xyz[0].size > 0:
                     bxyz.append(_xyz)
                 mask = selector.select_points(x, y, z, 0.0)
-                blockless = _xyz[0] > 0
+                blockless = (_xyz[0] > 0).any()
                 # This checks if none of the particles within these blocks are
                 # included in the mask We need to also allow for blockless
                 # particles to be selected.
@@ -276,7 +277,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
                 data = p_fields[si:ei, fi]
                 if selector:
                     data = data[mask]
-                data_return[(ptype, field)] = data
+                data_return[ptype, field] = data
 
         return data_return
 
@@ -284,11 +285,11 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         assert len(ptf) == 1
         yield from super()._read_particle_fields(chunks, ptf, selector)
 
-    _pcount = None
+    @cached_property
+    def _pcount(self):
+        return self._handle["/localnp"][:].sum()
 
     def _count_particles(self, data_file):
-        if self._pcount is None:
-            self._pcount = self._handle["/localnp"][:].sum()
         si, ei = data_file.start, data_file.end
         pcount = self._pcount
         if None not in (si, ei):

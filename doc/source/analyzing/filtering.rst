@@ -96,9 +96,7 @@ Cut Regions
 
 Cut regions are a more general solution to filtering mesh fields.  The output
 of a cut region is an entirely new data object, which can be treated like any
-other data object to generate images, examine its values, etc.
-
-.. notebook:: mesh_filter.ipynb
+other data object to generate images, examine its values, etc. See `this <mesh_filter>`_.
 
 In addition to inputting string parameters into cut_region to specify filters,
 wrapper functions exist that allow the user to use a simplified syntax for
@@ -170,7 +168,7 @@ only the particles with ``particle_type`` (i.e.  field = ``('all',
 
     @yt.particle_filter(requires=["particle_type"], filtered_type="all")
     def stars(pfilter, data):
-        filter = data[(pfilter.filtered_type, "particle_type")] == 2
+        filter = data[pfilter.filtered_type, "particle_type"] == 2
         return filter
 
 The :func:`~yt.data_objects.particle_filters.particle_filter` decorator takes a
@@ -190,7 +188,7 @@ As an alternative syntax, you can also define a new particle filter via the
 .. code-block:: python
 
     def stars(pfilter, data):
-        filter = data[(pfilter.filtered_type, "particle_type")] == 2
+        filter = data[pfilter.filtered_type, "particle_type"] == 2
         return filter
 
 
@@ -252,7 +250,7 @@ to the dataset, it will also add ``stars`` filter to the dataset.
     ds.add_particle_filter("young_stars")
 
 
-.. notebook:: particle_filter.ipynb
+Additional example of particle filters can be found in the `notebook <particle_filter>`_.
 
 .. _particle-unions:
 
@@ -265,7 +263,7 @@ union into a single ``darkmatter`` field.  The ``all`` particle type is a
 special case of this.
 
 To create a particle union, you need to import the ``ParticleUnion`` class from
-``yt.data_objects.particle_unions``, which you then create and pass into
+``yt.data_objects.unions``, which you then create and pass into
 ``add_particle_union`` on a dataset object.
 
 Here is an example, where we union the ``halo`` and ``disk`` particle types
@@ -274,7 +272,7 @@ accessible to this new particle type and it will add them.
 
 .. code-block:: python
 
-   from yt.data_objects.particle_unions import ParticleUnion
+   from yt.data_objects.unions import ParticleUnion
 
    u = ParticleUnion("star", ["halo", "disk"])
    ds.add_particle_union(u)

@@ -1,15 +1,10 @@
 import numpy as np
+from numpy.testing import assert_allclose
 
-from yt.testing import assert_allclose
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
 
-def setup():
-    pass
-
-
 def test_sample():
-
     grid = {}
 
     dims = np.array([64, 64, 64], dtype="int32")

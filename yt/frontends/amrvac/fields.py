@@ -3,13 +3,11 @@ AMRVAC-specific fields
 
 """
 
-
 import functools
 
 import numpy as np
 
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.units import dimensions
 from yt.utilities.logger import ytLogger as mylog
 
@@ -35,7 +33,7 @@ def _velocity(field, data, idir, prefix=None):
     #    used to generalize to dust fields
     if prefix is None:
         prefix = ""
-    moment = data["gas", "%smoment_%d" % (prefix, idir)]
+    moment = data["gas", f"{prefix}moment_{idir}"]
     rho = data["gas", f"{prefix}density"]
 
     mask1 = rho == 0
@@ -61,12 +59,12 @@ class AMRVACFieldInfo(FieldInfoContainer):
     # for now, define a finite family of dust fields (up to 100 species)
     MAXN_DUST_SPECIES = 100
     known_dust_fields = [
-        ("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
+        (f"rhod{idust}", (code_density, [f"dust{idust}_density"], None))
         for idust in range(1, MAXN_DUST_SPECIES + 1)
     ] + [
         (
-            "m%dd%d" % (idir, idust),
-            (code_moment, ["dust%d_moment_%d" % (idust, idir)], None),
+            f"m{idir}d{idust}",
+            (code_moment, [f"dust{idust}_moment_{idir}"], None),
         )
         for idust in range(1, MAXN_DUST_SPECIES + 1)
         for idir in (1, 2, 3)
@@ -93,12 +91,12 @@ class AMRVACFieldInfo(FieldInfoContainer):
         if idust is None:
             dust_flag = dust_label = ""
         else:
-            dust_flag = "d%d" % idust
-            dust_label = "dust%d_" % idust
+            dust_flag = f"d{idust}"
+            dust_label = f"dust{idust}_"
 
         us = self.ds.unit_system
         for idir, alias in enumerate(direction_aliases[self.ds.geometry], start=1):
-            if not ("amrvac", "m%d%s" % (idir, dust_flag)) in self.field_list:
+            if ("amrvac", f"m{idir}{dust_flag}") not in self.field_list:
                 break
             velocity_fn = functools.partial(_velocity, idir=idir, prefix=dust_label)
             self.add_field(
@@ -109,20 +107,20 @@ class AMRVACFieldInfo(FieldInfoContainer):
                 sampling_type="cell",
             )
             self.alias(
-                ("gas", "%svelocity_%d" % (dust_label, idir)),
+                ("gas", f"{dust_label}velocity_{idir}"),
                 ("gas", f"{dust_label}velocity_{alias}"),
                 units=us["velocity"],
             )
             self.alias(
                 ("gas", f"{dust_label}moment_{alias}"),
-                ("gas", "%smoment_%d" % (dust_label, idir)),
+                ("gas", f"{dust_label}moment_{idir}"),
                 units=us["density"] * us["velocity"],
             )
 
     def _setup_dust_fields(self):
         idust = 1
         imax = self.__class__.MAXN_DUST_SPECIES
-        while ("amrvac", "rhod%d" % idust) in self.field_list:
+        while ("amrvac", f"rhod{idust}") in self.field_list:
             if idust > imax:
                 mylog.error(
                     "Only the first %d dust species are currently read by yt. "
@@ -138,9 +136,9 @@ class AMRVACFieldInfo(FieldInfoContainer):
         if n_dust_found > 0:
 
             def _total_dust_density(field, data):
-                tot = np.zeros_like(data[("gas", "density")])
+                tot = np.zeros_like(data["gas", "density"])
                 for idust in range(1, n_dust_found + 1):
-                    tot += data["dust%d_density" % idust]
+                    tot += data[f"dust{idust}_density"]
                 return tot
 
             self.add_field(
@@ -152,7 +150,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             )
 
             def dust_to_gas_ratio(field, data):
-                return data[("gas", "total_dust_density")] / data[("gas", "density")]
+                return data["gas", "total_dust_density"] / data["gas", "density"]
 
             self.add_field(
                 ("gas", "dust_to_gas_ratio"),
@@ -162,6 +160,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             )
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import setup_magnetic_field_aliases
 
         setup_magnetic_field_aliases(self, "amrvac", [f"mag{ax}" for ax in "xyz"])
         self._setup_velocity_fields()  # gas velocities
@@ -189,7 +188,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             def _magnetic_energy_density(field, data):
                 emag = 0.5 * data["gas", "magnetic_1"] ** 2
                 for idim in "23":
-                    if not ("amrvac", f"b{idim}") in self.field_list:
+                    if ("amrvac", f"b{idim}") not in self.field_list:
                         break
                     emag += 0.5 * data["gas", f"magnetic_{idim}"] ** 2
                 # in AMRVAC the magnetic field is defined in units where mu0 = 1,

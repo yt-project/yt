@@ -1,6 +1,7 @@
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal, fake_random_ds
+from yt.testing import fake_random_ds
 
 
 def test_ortho_ray():
@@ -26,6 +27,6 @@ def test_ortho_ray():
         )
 
         assert_equal(
-            my_oray[("gas", "density")].sum(),
-            my_all[("gas", "density")][my_cells].sum(),
+            my_oray["gas", "density"].sum(),
+            my_all["gas", "density"][my_cells].sum(),
         )

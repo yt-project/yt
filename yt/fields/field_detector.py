@@ -62,12 +62,12 @@ class FieldDetector(defaultdict):
             ds.domain_left_edge = np.zeros(3, "float64")
             ds.domain_right_edge = np.ones(3, "float64")
             ds.dimensionality = 3
-            ds.force_periodicity()
+            ds.periodicity = (True, True, True)
         self.ds = ds
 
         class fake_index:
             class fake_io:
-                def _read_data_set(io_self, data, field):
+                def _read_data_set(io_self, data, field):  # noqa: B902
                     return self._read_data(field)
 
                 _read_exception = RuntimeError
@@ -80,17 +80,18 @@ class FieldDetector(defaultdict):
         self.index = fake_index()
         self.requested = []
         self.requested_parameters = []
+        rng = np.random.default_rng()
         if not self.flat:
             defaultdict.__init__(
                 self,
                 lambda: np.ones((nd, nd, nd), dtype="float64")
-                + 1e-4 * np.random.random((nd, nd, nd)),
+                + 1e-4 * rng.random((nd, nd, nd)),
             )
         else:
             defaultdict.__init__(
                 self,
                 lambda: np.ones((nd * nd * nd), dtype="float64")
-                + 1e-4 * np.random.random(nd * nd * nd),
+                + 1e-4 * rng.random(nd * nd * nd),
             )
 
     def _reshape_vals(self, arr):
@@ -100,14 +101,14 @@ class FieldDetector(defaultdict):
             return arr
         return arr.reshape(self.ActiveDimensions, order="C")
 
-    def __missing__(self, item):
+    def __missing__(self, item: tuple[str, str] | str):
         from yt.fields.derived_field import NullFunc
 
         if not isinstance(item, tuple):
             field = ("unknown", item)
         else:
             field = item
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         params, permute_params = finfo._get_needed_parameters(self)
         self.field_parameters.update(params)
         # For those cases where we are guessing the field type, we will
@@ -116,7 +117,7 @@ class FieldDetector(defaultdict):
         # types not getting correctly identified.
         # Note that the *only* way this works is if we also fix our field
         # dependencies during checking.  Bug #627 talks about this.
-        item = self.ds._last_freq
+        _item: tuple[str, str] = finfo.name
         if finfo is not None and finfo._function is not NullFunc:
             try:
                 for param, param_v in permute_params.items():
@@ -144,43 +145,43 @@ class FieldDetector(defaultdict):
                         self.requested_parameters.append(i)
             if vv is not None:
                 if not self.flat:
-                    self[item] = vv
+                    self[_item] = vv
                 else:
-                    self[item] = vv.ravel()
-                return self[item]
+                    self[_item] = vv.ravel()
+                return self[_item]
         elif finfo is not None and finfo.sampling_type == "particle":
             io = io_registry[self.ds.dataset_type](self.ds)
             if hasattr(io, "_vector_fields") and (
-                item in io._vector_fields or item[1] in io._vector_fields
+                _item in io._vector_fields or _item[1] in io._vector_fields
             ):
                 try:
-                    cols = io._vector_fields[item]
+                    cols = io._vector_fields[_item]
                 except KeyError:
-                    cols = io._vector_fields[item[1]]
+                    cols = io._vector_fields[_item[1]]
                 # A vector
-                self[item] = YTArray(
+                self[_item] = YTArray(
                     np.ones((self.NumberOfParticles, cols)),
                     finfo.units,
                     registry=self.ds.unit_registry,
                 )
             else:
                 # Not a vector
-                self[item] = YTArray(
+                self[_item] = YTArray(
                     np.ones(self.NumberOfParticles),
                     finfo.units,
                     registry=self.ds.unit_registry,
                 )
-            if item == ("STAR", "BIRTH_TIME"):
+            if _item == ("STAR", "BIRTH_TIME"):
                 # hack for the artio frontend so we pass valid times to
                 # the artio functions for calculating physical times
                 # from internal times
-                self[item] *= -0.1
-            self.requested.append(item)
-            return self[item]
-        self.requested.append(item)
-        if item not in self:
-            self[item] = self._read_data(item)
-        return self[item]
+                self[_item] *= -0.1
+            self.requested.append(_item)
+            return self[_item]
+        self.requested.append(_item)
+        if _item not in self:
+            self[_item] = self._read_data(_item)
+        return self[_item]
 
     def _debug(self):
         # We allow this to pass through.
@@ -193,15 +194,18 @@ class FieldDetector(defaultdict):
         if kwargs["method"] == "mesh_id":
             if isinstance(self.ds, (StreamParticlesDataset, ParticleDataset)):
                 raise ValueError
-        return np.random.random((self.nd, self.nd, self.nd))
+        rng = np.random.default_rng()
+        return rng.random((self.nd, self.nd, self.nd))
 
     def mesh_sampling_particle_field(self, *args, **kwargs):
         pos = args[0]
         npart = len(pos)
-        return np.random.rand(npart)
+        rng = np.random.default_rng()
+        return rng.random(npart)
 
     def smooth(self, *args, **kwargs):
-        tr = np.random.random((self.nd, self.nd, self.nd))
+        rng = np.random.default_rng()
+        tr = rng.random((self.nd, self.nd, self.nd))
         if kwargs["method"] == "volume_weighted":
             return [tr]
 
@@ -212,7 +216,7 @@ class FieldDetector(defaultdict):
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
-        finfo = self.ds._get_field_info(*field_name)
+        finfo = self.ds._get_field_info(field_name)
         if finfo.sampling_type == "particle":
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
@@ -234,7 +238,8 @@ class FieldDetector(defaultdict):
                     unit = "G"
             else:
                 unit = fp_units[param]
-            return self.ds.arr(np.random.random(3) * 1e-2, unit)
+            rng = np.random.default_rng()
+            return self.ds.arr(rng.random(3) * 1e-2, unit)
         elif param in ["surface_height"]:
             return self.ds.quan(0.0, "code_length")
         elif param in ["axis"]:
@@ -278,7 +283,8 @@ class FieldDetector(defaultdict):
 
     @property
     def fcoords_vertex(self):
-        fc = np.random.random((self.nd, self.nd, self.nd, 8, 3))
+        rng = np.random.default_rng()
+        fc = rng.random((self.nd, self.nd, self.nd, 8, 3))
         if self.flat:
             fc.shape = (self.nd * self.nd * self.nd, 8, 3)
         return self.ds.arr(fc, units="code_length")

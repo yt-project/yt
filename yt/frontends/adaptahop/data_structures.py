@@ -6,12 +6,9 @@ Data structures for AdaptaHOP frontend.
 
 """
 
-
 import os
 import re
-import stat
 from itertools import product
-from typing import Optional
 
 import numpy as np
 
@@ -57,22 +54,22 @@ class AdaptaHOPDataset(Dataset):
     _field_info_class = AdaptaHOPFieldInfo
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm
-    _code_length_to_Mpc = (1.0 * Mpc).to("cm").value / 3.08e24
-    _header_attributes: Optional[ATTR_T] = None
-    _halo_attributes: Optional[ATTR_T] = None
+    _code_length_to_Mpc = (1.0 * Mpc).to_value("cm") / 3.08e24
+    _header_attributes: ATTR_T | None = None
+    _halo_attributes: ATTR_T | None = None
 
     def __init__(
         self,
         filename,
         dataset_type="adaptahop_binary",
         n_ref=16,
-        over_refine_factor=1,
+        num_zones=2,
         units_override=None,
         unit_system="cgs",
         parent_ds=None,
     ):
         self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+        self.num_zones = num_zones
         if parent_ds is None:
             raise RuntimeError(
                 "The AdaptaHOP frontend requires a parent dataset "
@@ -109,7 +106,7 @@ class AdaptaHOPDataset(Dataset):
                     pass
 
             if not ok:
-                raise OSError("Could not read headers from file %s" % filename)
+                raise OSError(f"Could not read headers from file {filename}")
 
             istart = fpu.tell()
             fpu.seek(0, 2)
@@ -132,7 +129,7 @@ class AdaptaHOPDataset(Dataset):
                     continue
 
         if not ok:
-            raise OSError("Could not guess fields from file %s" % filename)
+            raise OSError(f"Could not guess fields from file {filename}")
 
         self._header_attributes = header_attributes
         self._halo_attributes = attributes
@@ -141,11 +138,10 @@ class AdaptaHOPDataset(Dataset):
         with FortranFile(self.parameter_filename) as fpu:
             params = fpu.read_attrs(self._header_attributes)
         self.dimensionality = 3
-        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Domain related things
         self.filename_template = self.parameter_filename
         self.file_count = 1
-        nz = 1 << self.over_refine_factor
+        nz = self.num_zones
         self.domain_dimensions = np.ones(3, "int32") * nz
 
         # Set things up
@@ -167,13 +163,13 @@ class AdaptaHOPDataset(Dataset):
 
         self.domain_left_edge = np.array([0.0, 0.0, 0.0])
         self.domain_right_edge = (
-            self.parent_ds.domain_right_edge.to("Mpc").value * self._code_length_to_Mpc
+            self.parent_ds.domain_right_edge.to_value("Mpc") * self._code_length_to_Mpc
         )
 
         self.parameters.update(params)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         fname = os.path.split(filename)[1]
         if not fname.startswith("tree_bricks") or not re.match(
             r"^tree_bricks\d{3}$", fname
@@ -278,8 +274,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
     def __init__(self, ptype, particle_identifier, parent_ds, halo_ds):
         if ptype not in parent_ds.particle_types_raw:
             raise RuntimeError(
-                'Possible halo types are %s, supplied "%s".'
-                % (parent_ds.particle_types_raw, ptype)
+                f'Possible halo types are {parent_ds.particle_types_raw}, supplied "{ptype}".'
             )
 
         # Setup required fields
@@ -299,7 +294,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         super().__init__(parent_ds, {})
 
     def __repr__(self):
-        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+        return f"{self.ds}_{self.ptype}_{self.particle_identifier:09}"
 
     def __getitem__(self, key):
         return self.region[key]
@@ -312,7 +307,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
             return ihalo
         else:
             halo_id = self.particle_identifier
-            halo_ids = self.halo_ds.r["halos", "particle_identifier"].astype(int)
+            halo_ids = self.halo_ds.r["halos", "particle_identifier"].astype("int64")
             ihalo = np.searchsorted(halo_ids, halo_id)
 
             assert halo_ids[ihalo] == halo_id
@@ -328,9 +323,9 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
         # Note: convert to physical units to prevent errors when jumping
         # from halo_ds to parent_ds
-        halo_pos = halo_ds.r["halos", "particle_position"][ihalo, :].to("Mpc").value
-        halo_vel = halo_ds.r["halos", "particle_velocity"][ihalo, :].to("km/s").value
-        halo_radius = halo_ds.r["halos", "r"][ihalo].to("Mpc").value
+        halo_pos = halo_ds.r["halos", "particle_position"][ihalo, :].to_value("Mpc")
+        halo_vel = halo_ds.r["halos", "particle_velocity"][ihalo, :].to_value("km/s")
+        halo_radius = halo_ds.r["halos", "r"][ihalo].to_value("Mpc")
 
         members = self.member_ids
         ok = False
@@ -342,7 +337,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
             f *= 1.1
             sph = parent_ds.sphere(center, f * radius)
 
-            part_ids = sph[ptype, "particle_identity"].astype(int)
+            part_ids = sph[ptype, "particle_identity"].astype("int64")
 
             ok = len(np.lib.arraysetops.setdiff1d(members, part_ids)) == 0
 
@@ -351,8 +346,8 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
         # Build subregion that only contains halo particles
         reg = sph.cut_region(
-            ['np.in1d(obj[("io", "particle_identity")].astype(int), members)'],
-            locals=dict(members=members, np=np),
+            ['np.isin(obj["io", "particle_identity"].astype("int64"), members)'],
+            locals={"members": members, "np": np},
         )
 
         self.sphere = sph

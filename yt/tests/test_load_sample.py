@@ -9,7 +9,10 @@ import pytest
 
 from yt.config import ytcfg
 from yt.loaders import load_sample
-from yt.sample_data.api import get_data_registry_table
+from yt.sample_data.api import (
+    get_data_registry_table,
+    get_download_cache_dir,
+)
 from yt.testing import requires_module_pytest
 from yt.utilities.logger import ytLogger
 
@@ -33,13 +36,13 @@ def capturable_logger(caplog):
     propagate = ytLogger.propagate
     ytLogger.propagate = True
 
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.INFO, "yt"):
         yield
 
     ytLogger.propagate = propagate
 
 
-@requires_module_pytest("pandas", "pooch")
+@requires_module_pytest("pandas", "pooch", "f90nml")
 @pytest.mark.usefixtures("capturable_logger")
 @pytest.mark.parametrize(
     "fn, archive, exact_loc, class_",
@@ -77,12 +80,16 @@ def capturable_logger(caplog):
 def test_load_sample_small_dataset(
     fn, archive, exact_loc, class_: str, tmp_data_dir, caplog
 ):
+    cache_path = get_download_cache_dir()
+    assert not cache_path.exists()
+
     ds = load_sample(fn, progressbar=False, timeout=30)
     assert type(ds).__name__ == class_
+    assert not cache_path.exists()
 
     text = textwrap.dedent(
         f"""
-            '{fn.replace('/', os.path.sep)}' is not available locally. Looking up online.
+            '{fn.replace("/", os.path.sep)}' is not available locally. Looking up online.
             Downloading from https://yt-project.org/data/{archive}
             Untaring downloaded file to '{str(tmp_data_dir)}'
         """
@@ -102,6 +109,12 @@ def test_load_sample_small_dataset(
     )
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    # flakyness is probably due to Windows' infamous lack of time resolution
+    # overall, this test doesn't seem worth it.
+    reason="This test is flaky on Windows",
+)
 @requires_module_pytest("pandas", "pooch")
 @pytest.mark.usefixtures("capturable_logger")
 def test_load_sample_timeout(tmp_data_dir, caplog):
@@ -189,3 +202,9 @@ def test_data_dir_broken():
     )
     with pytest.warns(UserWarning, match=msg):
         load_sample("ToroShockTube")
+
+
+def test_filename_none(capsys):
+    assert load_sample() is None
+    captured = capsys.readouterr()
+    assert "yt.sample_data.api.get_data_registry_table" in captured.err

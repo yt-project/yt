@@ -2,8 +2,8 @@
 Title: framework.py
 Purpose: Contains answer tests that are used by yt's various frontends
 """
+
 import contextlib
-import glob
 import hashlib
 import logging
 import os
@@ -12,16 +12,15 @@ import shelve
 import sys
 import tempfile
 import time
-import urllib
 import warnings
 import zlib
 from collections import defaultdict
-from typing import Optional
 
 import numpy as np
 from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
@@ -29,12 +28,16 @@ from yt.funcs import get_pbar, get_yt_version
 from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
-    assert_almost_equal,
-    assert_equal,
     assert_rel_equal,
     skipif,
 )
-from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
+from yt.utilities.exceptions import (
+    YTAmbiguousDataType,
+    YTCloudError,
+    YTNoAnswerNameSpecified,
+    YTNoOldAnswer,
+    YTUnidentifiedDataType,
+)
 from yt.utilities.logger import disable_stream_logging
 from yt.visualization import (
     image_writer as image_writer,
@@ -203,6 +206,9 @@ class AnswerTestStorage:
 
 class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, ds_name, default=None):
+        import urllib.error
+        import urllib.request
+
         if self.reference_name is None:
             return default
         if ds_name in self.cache:
@@ -210,8 +216,8 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         url = _url_path.format(self.reference_name, ds_name)
         try:
             resp = urllib.request.urlopen(url)
-        except urllib.error.HTTPError:
-            raise YTNoOldAnswer(url)
+        except urllib.error.HTTPError as exc:
+            raise YTNoOldAnswer(url) from exc
         else:
             for _ in range(3):
                 try:
@@ -278,6 +284,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
             return default
         # Read data using shelve
         answer_name = f"{ds_name}"
+        os.makedirs(os.path.dirname(self.reference_name), exist_ok=True)
         ds = shelve.open(self.reference_name, protocol=-1)
         try:
             result = ds[answer_name]
@@ -312,6 +319,9 @@ def can_run_ds(ds_fn, file_check=False):
                 result_storage["tainted"] = True
             raise
         return False
+    except (YTUnidentifiedDataType, YTAmbiguousDataType):
+        return False
+
     return result_storage is not None
 
 
@@ -329,6 +339,13 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
         ds = cls(os.path.join(path, ds_fn), *args, **kwargs)
     ds.index
     return ds
+
+
+def data_dir_load_v2(fn, *args, **kwargs):
+    # a version of data_dir_load without type flexibility
+    # that is simpler to reason about
+    path = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
+    return load(path, *args, **kwargs)
 
 
 def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):
@@ -580,10 +597,7 @@ class ProjectionValuesTest(AnswerTestingTest):
         oind = ~oind
         nind = ~nind
         for k in new_result:
-            err_msg = (
-                "%s values of %s (%s weighted) projection (axis %s) not equal."
-                % (k, self.field, self.weight_field, self.axis)
-            )
+            err_msg = f"{k} values of {self.field} ({self.weight_field} weighted) projection (axis {self.axis}) not equal."
             if k == "weight_field":
                 # Our weight_field can vary between unit systems, whereas we
                 # can do a unitful comparison for the other fields.  So we do
@@ -598,7 +612,7 @@ class ProjectionValuesTest(AnswerTestingTest):
                 assert_equal(nres, ores, err_msg=err_msg)
             else:
                 assert_allclose_units(
-                    nres, ores, 10.0 ** -(self.decimals), err_msg=err_msg
+                    nres, ores, 10.0**-(self.decimals), err_msg=err_msg
                 )
 
 
@@ -625,13 +639,10 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             obj = create_obj(self.ds, self.obj_type)
         else:
             obj = None
-        proj = self.ds.proj(
-            self.field, self.axis, weight_field=self.weight_field, data_source=obj
-        )
-        frb = proj.to_frb((1.0, "unitary"), 256)
-        frb[self.field]
+        proj, frb = self._get_frb(obj)
+        frb.render(self.field)
         if self.weight_field is not None:
-            frb[self.weight_field]
+            frb.render(self.weight_field)
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.
@@ -757,16 +768,24 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         return result
 
     def compare(self, new_result, old_result):
-        for newp, oldp in zip(new_result["parents"], old_result["parents"]):
+        for newp, oldp in zip(
+            new_result["parents"],
+            old_result["parents"],
+            strict=True,
+        ):
             assert newp == oldp
-        for newc, oldc in zip(new_result["children"], old_result["children"]):
+        for newc, oldc in zip(
+            new_result["children"],
+            old_result["children"],
+            strict=True,
+        ):
             assert newc == oldc
 
 
 def dump_images(new_result, old_result, decimals=10):
-    tmpfd, old_image = tempfile.mkstemp(suffix=".png")
+    tmpfd, old_image = tempfile.mkstemp(prefix="baseline_", suffix=".png")
     os.close(tmpfd)
-    tmpfd, new_image = tempfile.mkstemp(suffix=".png")
+    tmpfd, new_image = tempfile.mkstemp(prefix="thisPR_", suffix=".png")
     os.close(tmpfd)
     image_writer.write_projection(new_result, new_image)
     image_writer.write_projection(old_result, old_image)
@@ -790,7 +809,8 @@ def ensure_image_comparability(a, b):
 
     warnings.warn(
         f"Images have different shapes {a.shape} and {b.shape}. "
-        "Padding nans to make them comparable."
+        "Padding nans to make them comparable.",
+        stacklevel=2,
     )
     smallest_containing_shape = (
         max(a.shape[0], b.shape[0]),
@@ -827,7 +847,10 @@ def compare_image_lists(new_result, old_result, decimals):
                 line.strip() for line in results.split("\n") if line.endswith(".png")
             ]
             for fn, img, padded in zip(
-                tempfiles, (expected, actual), (expected_p, actual_p)
+                tempfiles,
+                (expected, actual),
+                (expected_p, actual_p),
+                strict=True,
             ):
                 # padded images are convenient for comparison
                 # but what we really want to store and upload
@@ -841,30 +864,6 @@ def compare_image_lists(new_result, old_result, decimals):
         assert_equal(results, None, results)
         for fn in fns:
             os.remove(fn)
-
-
-class VRImageComparisonTest(AnswerTestingTest):
-    _type_name = "VRImageComparison"
-    _attrs = ("desc",)
-
-    def __init__(self, scene, ds, desc, decimals):
-        super().__init__(None)
-        self.obj_type = ("vr",)
-        self.ds = ds
-        self.scene = scene
-        self.desc = desc
-        self.decimals = decimals
-
-    def run(self):
-        tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
-        os.close(tmpfd)
-        self.scene.save(tmpname, sigma_clip=1.0)
-        image = mpimg.imread(tmpname)
-        os.remove(tmpname)
-        return [zlib.compress(image.dumps())]
-
-    def compare(self, new_result, old_result):
-        compare_image_lists(new_result, old_result, self.decimals)
 
 
 class PlotWindowAttributeTest(AnswerTestingTest):
@@ -883,12 +882,12 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         ds_fn: str,
         plot_field: str,
         plot_axis: str,
-        attr_name: Optional[str] = None,
-        attr_args: Optional[tuple] = None,
-        decimals: Optional[int] = 12,
-        plot_type: Optional[str] = "SlicePlot",
-        callback_id: Optional[str] = "",
-        callback_runners: Optional[tuple] = None,
+        attr_name: str | None = None,
+        attr_args: tuple | None = None,
+        decimals: int | None = 12,
+        plot_type: str | None = "SlicePlot",
+        callback_id: str | None = "",
+        callback_runners: tuple | None = None,
     ):
         super().__init__(ds_fn)
         self.plot_type = plot_type
@@ -1033,43 +1032,6 @@ class GenericArrayTest(AnswerTestingTest):
                 )
 
 
-class GenericImageTest(AnswerTestingTest):
-    _type_name = "GenericImage"
-    _attrs = ("image_func_name", "args", "kwargs")
-
-    def __init__(self, ds_fn, image_func, decimals, args=None, kwargs=None):
-        super().__init__(ds_fn)
-        self.image_func = image_func
-        self.image_func_name = image_func.__name__
-        self.args = args
-        self.kwargs = kwargs
-        self.decimals = decimals
-
-    def run(self):
-        if self.args is None:
-            args = []
-        else:
-            args = self.args
-        if self.kwargs is None:
-            kwargs = {}
-        else:
-            kwargs = self.kwargs
-        comp_imgs = []
-        tmpdir = tempfile.mkdtemp()
-        image_prefix = os.path.join(tmpdir, "test_img")
-        self.image_func(image_prefix, *args, **kwargs)
-        imgs = sorted(glob.glob(image_prefix + "*"))
-        assert len(imgs) > 0
-        for img in imgs:
-            img_data = mpimg.imread(img)
-            os.remove(img)
-            comp_imgs.append(zlib.compress(img_data.dumps()))
-        return comp_imgs
-
-    def compare(self, new_result, old_result):
-        compare_image_lists(new_result, old_result, self.decimals)
-
-
 class AxialPixelizationTest(AnswerTestingTest):
     # This test is typically used once per geometry or coordinates type.
     # Feed it a dataset, and it checks that the results of basic pixelization
@@ -1130,7 +1092,7 @@ def requires_answer_testing():
 
 def requires_ds(ds_fn, big_data=False, file_check=False):
     condition = (big_data and not run_big_data) or not can_run_ds(ds_fn, file_check)
-    return skipif(condition, reason="cannot load dataset")
+    return skipif(condition, reason=f"cannot load dataset {ds_fn}")
 
 
 def small_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):

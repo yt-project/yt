@@ -1,9 +1,10 @@
 from contextlib import contextmanager
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.on_demand_imports import NotAModule, _h5py as h5py
 
 
-def valid_hdf5_signature(fn):
+def valid_hdf5_signature(fn: str, /) -> bool:
     signature = b"\x89HDF\r\n\x1a\n"
     try:
         with open(fn, "rb") as f:
@@ -14,6 +15,9 @@ def valid_hdf5_signature(fn):
 
 
 def warn_h5py(fn):
+    issue_deprecation_warning(
+        "warn_h5py is not used within yt any more and is deprecated.", since="4.3"
+    )
     needs_h5py = valid_hdf5_signature(fn)
     if needs_h5py and isinstance(h5py.File, NotAModule):
         raise RuntimeError(
@@ -76,7 +80,23 @@ class FITSFileHandler(HDF5FileHandler):
         self.handle.close()
 
 
+def valid_netcdf_signature(fn: str, /) -> bool:
+    try:
+        with open(fn, "rb") as f:
+            header = f.read(4)
+    except Exception:
+        return False
+    else:
+        return header in (b"CDF\x01", b"CDF\x02") or (
+            fn.endswith((".nc", ".nc4")) and valid_hdf5_signature(fn)
+        )
+
+
 def valid_netcdf_classic_signature(filename):
+    issue_deprecation_warning(
+        "valid_netcdf_classic_signature is not used within yt any more and is deprecated.",
+        since="4.3",
+    )
     signature_v1 = b"CDF\x01"
     signature_v2 = b"CDF\x02"
     try:
@@ -89,6 +109,10 @@ def valid_netcdf_classic_signature(filename):
 
 def warn_netcdf(fn):
     # There are a few variants of the netCDF format.
+    issue_deprecation_warning(
+        "warn_netcdf is not used within yt any more and is deprecated.", since="4.3"
+    )
+
     classic = valid_netcdf_classic_signature(fn)
     # NetCDF-4 Classic files are HDF5 files constrained to the Classic
     # data model used by netCDF-3.

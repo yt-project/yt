@@ -1,18 +1,14 @@
 import argparse
 import base64
-import getpass
 import json
 import os
 import pprint
 import sys
 import textwrap
-import urllib
-import urllib.request
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 from more_itertools import always_iterable
-from tqdm import tqdm
 
 from yt.config import ytcfg
 from yt.funcs import (
@@ -144,6 +140,8 @@ class FileStreamer:
         self.f = f
 
     def __iter__(self):
+        from tqdm import tqdm
+
         with tqdm(
             total=self.final_size, desc="Uploading file", unit="B", unit_scale=True
         ) as pbar:
@@ -187,12 +185,12 @@ class YTCommandSubtype(type):
 
 
 class YTCommand(metaclass=YTCommandSubtype):
-    args: Tuple[Union[str, Dict[str, Any]], ...] = ()
-    name: Optional[Union[str, List[str]]] = None
+    args: tuple[str | dict[str, Any], ...] = ()
+    name: str | list[str] | None = None
     description: str = ""
     aliases = ()
     ndatasets: int = 1
-    subparser: Optional[str] = None
+    subparser: str | None = None
 
     @classmethod
     def run(cls, args):
@@ -233,7 +231,7 @@ class GetParameterFiles(argparse.Action):
             datasets = values
         elif len(values) == 2 and namespace.basename is not None:
             datasets = [
-                "%s%04i" % (namespace.basename, r)
+                f"{namespace.basename}{r:04}"
                 for r in range(int(values[0]), int(values[1]), namespace.skip)
             ]
         else:
@@ -241,430 +239,419 @@ class GetParameterFiles(argparse.Action):
         namespace.ds = [_fix_ds(ds) for ds in datasets]
 
 
-_common_options = dict(
-    all=dict(
-        longname="--all",
-        dest="reinstall",
-        default=False,
-        action="store_true",
-        help=(
+_common_options = {
+    "all": {
+        "longname": "--all",
+        "dest": "reinstall",
+        "default": False,
+        "action": "store_true",
+        "help": (
             "Reinstall the full yt stack in the current location. "
             "This option has been deprecated and will not have any "
             "effect."
         ),
-    ),
-    ds=dict(short="ds", action=GetParameterFiles, nargs="+", help="datasets to run on"),
-    ods=dict(
-        action=GetParameterFiles,
-        dest="ds",
-        nargs="*",
-        help="(Optional) datasets to run on",
-    ),
-    axis=dict(
-        short="-a",
-        longname="--axis",
-        action="store",
-        type=int,
-        dest="axis",
-        default=4,
-        help="Axis (4 for all three)",
-    ),
-    log=dict(
-        short="-l",
-        longname="--log",
-        action="store_true",
-        dest="takelog",
-        default=True,
-        help="Use logarithmic scale for image",
-    ),
-    linear=dict(
-        longname="--linear",
-        action="store_false",
-        dest="takelog",
-        help="Use linear scale for image",
-    ),
-    text=dict(
-        short="-t",
-        longname="--text",
-        action="store",
-        type=str,
-        dest="text",
-        default=None,
-        help="Textual annotation",
-    ),
-    field=dict(
-        short="-f",
-        longname="--field",
-        action="store",
-        type=str,
-        dest="field",
-        default="density",
-        help=("Field to color by, use a comma to separate field tuple values"),
-    ),
-    weight=dict(
-        short="-g",
-        longname="--weight",
-        action="store",
-        type=str,
-        dest="weight",
-        default=None,
-        help=(
+    },
+    "ds": {
+        "short": "ds",
+        "action": GetParameterFiles,
+        "nargs": "+",
+        "help": "datasets to run on",
+    },
+    "ods": {
+        "action": GetParameterFiles,
+        "dest": "ds",
+        "nargs": "*",
+        "help": "(Optional) datasets to run on",
+    },
+    "axis": {
+        "short": "-a",
+        "longname": "--axis",
+        "action": "store",
+        "type": int,
+        "dest": "axis",
+        "default": 4,
+        "help": "Axis (4 for all three)",
+    },
+    "log": {
+        "short": "-l",
+        "longname": "--log",
+        "action": "store_true",
+        "dest": "takelog",
+        "default": True,
+        "help": "Use logarithmic scale for image",
+    },
+    "linear": {
+        "longname": "--linear",
+        "action": "store_false",
+        "dest": "takelog",
+        "help": "Use linear scale for image",
+    },
+    "text": {
+        "short": "-t",
+        "longname": "--text",
+        "action": "store",
+        "type": str,
+        "dest": "text",
+        "default": None,
+        "help": "Textual annotation",
+    },
+    "field": {
+        "short": "-f",
+        "longname": "--field",
+        "action": "store",
+        "type": str,
+        "dest": "field",
+        "default": "density",
+        "help": ("Field to color by, use a comma to separate field tuple values"),
+    },
+    "weight": {
+        "short": "-g",
+        "longname": "--weight",
+        "action": "store",
+        "type": str,
+        "dest": "weight",
+        "default": None,
+        "help": (
             "Field to weight projections with, "
             "use a comma to separate field tuple values"
         ),
-    ),
-    cmap=dict(
-        longname="--colormap",
-        action="store",
-        type=str,
-        dest="cmap",
-        default=_default_colormap,
-        help="Colormap name",
-    ),
-    zlim=dict(
-        short="-z",
-        longname="--zlim",
-        action="store",
-        type=float,
-        dest="zlim",
-        default=None,
-        nargs=2,
-        help="Color limits (min, max)",
-    ),
-    dex=dict(
-        longname="--dex",
-        action="store",
-        type=float,
-        dest="dex",
-        default=None,
-        nargs=1,
-        help="Number of dex above min to display",
-    ),
-    width=dict(
-        short="-w",
-        longname="--width",
-        action="store",
-        type=float,
-        dest="width",
-        default=None,
-        help="Width in specified units",
-    ),
-    unit=dict(
-        short="-u",
-        longname="--unit",
-        action="store",
-        type=str,
-        dest="unit",
-        default="1",
-        help="Desired axes units",
-    ),
-    center=dict(
-        short="-c",
-        longname="--center",
-        action="store",
-        type=float,
-        dest="center",
-        default=None,
-        nargs=3,
-        help="Center, space separated (-1 -1 -1 for max)",
-    ),
-    max=dict(
-        short="-m",
-        longname="--max",
-        action="store_true",
-        dest="max",
-        default=False,
-        help="Center the plot on the density maximum",
-    ),
-    bn=dict(
-        short="-b",
-        longname="--basename",
-        action="store",
-        type=str,
-        dest="basename",
-        default=None,
-        help="Basename of datasets",
-    ),
-    output=dict(
-        short="-o",
-        longname="--output",
-        action="store",
-        type=str,
-        dest="output",
-        default="frames/",
-        help="Folder in which to place output images",
-    ),
-    outputfn=dict(
-        short="-o",
-        longname="--output",
-        action="store",
-        type=str,
-        dest="output",
-        default=None,
-        help="File in which to place output",
-    ),
-    skip=dict(
-        short="-s",
-        longname="--skip",
-        action="store",
-        type=int,
-        dest="skip",
-        default=1,
-        help="Skip factor for outputs",
-    ),
-    proj=dict(
-        short="-p",
-        longname="--projection",
-        action="store_true",
-        dest="projection",
-        default=False,
-        help="Use a projection rather than a slice",
-    ),
-    maxw=dict(
-        longname="--max-width",
-        action="store",
-        type=float,
-        dest="max_width",
-        default=1.0,
-        help="Maximum width in code units",
-    ),
-    minw=dict(
-        longname="--min-width",
-        action="store",
-        type=float,
-        dest="min_width",
-        default=50,
-        help="Minimum width in units of smallest dx (default: 50)",
-    ),
-    nframes=dict(
-        short="-n",
-        longname="--nframes",
-        action="store",
-        type=int,
-        dest="nframes",
-        default=100,
-        help="Number of frames to generate",
-    ),
-    slabw=dict(
-        longname="--slab-width",
-        action="store",
-        type=float,
-        dest="slab_width",
-        default=1.0,
-        help="Slab width in specified units",
-    ),
-    slabu=dict(
-        short="-g",
-        longname="--slab-unit",
-        action="store",
-        type=str,
-        dest="slab_unit",
-        default="1",
-        help="Desired units for the slab",
-    ),
-    ptype=dict(
-        longname="--particle-type",
-        action="store",
-        type=int,
-        dest="ptype",
-        default=2,
-        help="Particle type to select",
-    ),
-    agecut=dict(
-        longname="--age-cut",
-        action="store",
-        type=float,
-        dest="age_filter",
-        default=None,
-        nargs=2,
-        help="Bounds for the field to select",
-    ),
-    uboxes=dict(
-        longname="--unit-boxes",
-        action="store_true",
-        dest="unit_boxes",
-        help="Display heldsul unit boxes",
-    ),
-    thresh=dict(
-        longname="--threshold",
-        action="store",
-        type=float,
-        dest="threshold",
-        default=None,
-        help="Density threshold",
-    ),
-    dm_only=dict(
-        longname="--all-particles",
-        action="store_false",
-        dest="dm_only",
-        default=True,
-        help="Use all particles",
-    ),
-    grids=dict(
-        longname="--show-grids",
-        action="store_true",
-        dest="grids",
-        default=False,
-        help="Show the grid boundaries",
-    ),
-    time=dict(
-        longname="--time",
-        action="store_true",
-        dest="time",
-        default=False,
-        help="Print time in years on image",
-    ),
-    contours=dict(
-        longname="--contours",
-        action="store",
-        type=int,
-        dest="contours",
-        default=None,
-        help="Number of Contours for Rendering",
-    ),
-    contour_width=dict(
-        longname="--contour_width",
-        action="store",
-        type=float,
-        dest="contour_width",
-        default=None,
-        help="Width of gaussians used for rendering.",
-    ),
-    enhance=dict(
-        longname="--enhance",
-        action="store_true",
-        dest="enhance",
-        default=False,
-        help="Enhance!",
-    ),
-    valrange=dict(
-        short="-r",
-        longname="--range",
-        action="store",
-        type=float,
-        dest="valrange",
-        default=None,
-        nargs=2,
-        help="Range, space separated",
-    ),
-    up=dict(
-        longname="--up",
-        action="store",
-        type=float,
-        dest="up",
-        default=None,
-        nargs=3,
-        help="Up, space separated",
-    ),
-    viewpoint=dict(
-        longname="--viewpoint",
-        action="store",
-        type=float,
-        dest="viewpoint",
-        default=[1.0, 1.0, 1.0],
-        nargs=3,
-        help="Viewpoint, space separated",
-    ),
-    pixels=dict(
-        longname="--pixels",
-        action="store",
-        type=int,
-        dest="pixels",
-        default=None,
-        help="Number of Pixels for Rendering",
-    ),
-    halos=dict(
-        longname="--halos",
-        action="store",
-        type=str,
-        dest="halos",
-        default="multiple",
-        help="Run halo profiler on a 'single' halo or 'multiple' halos.",
-    ),
-    halo_radius=dict(
-        longname="--halo_radius",
-        action="store",
-        type=float,
-        dest="halo_radius",
-        default=0.1,
-        help="Constant radius for profiling halos if using hop output files with no "
+    },
+    "cmap": {
+        "longname": "--colormap",
+        "action": "store",
+        "type": str,
+        "dest": "cmap",
+        "default": _default_colormap,
+        "help": "Colormap name",
+    },
+    "zlim": {
+        "short": "-z",
+        "longname": "--zlim",
+        "action": "store",
+        "type": float,
+        "dest": "zlim",
+        "default": None,
+        "nargs": 2,
+        "help": "Color limits (min, max)",
+    },
+    "dex": {
+        "longname": "--dex",
+        "action": "store",
+        "type": float,
+        "dest": "dex",
+        "default": None,
+        "nargs": 1,
+        "help": "Number of dex above min to display",
+    },
+    "width": {
+        "short": "-w",
+        "longname": "--width",
+        "action": "store",
+        "type": float,
+        "dest": "width",
+        "default": None,
+        "help": "Width in specified units",
+    },
+    "unit": {
+        "short": "-u",
+        "longname": "--unit",
+        "action": "store",
+        "type": str,
+        "dest": "unit",
+        "default": "1",
+        "help": "Desired axes units",
+    },
+    "center": {
+        "short": "-c",
+        "longname": "--center",
+        "action": "store",
+        "type": float,
+        "dest": "center",
+        "default": None,
+        "nargs": 3,
+        "help": "Center, space separated (-1 -1 -1 for max)",
+    },
+    "max": {
+        "short": "-m",
+        "longname": "--max",
+        "action": "store_true",
+        "dest": "max",
+        "default": False,
+        "help": "Center the plot on the density maximum",
+    },
+    "bn": {
+        "short": "-b",
+        "longname": "--basename",
+        "action": "store",
+        "type": str,
+        "dest": "basename",
+        "default": None,
+        "help": "Basename of datasets",
+    },
+    "output": {
+        "short": "-o",
+        "longname": "--output",
+        "action": "store",
+        "type": str,
+        "dest": "output",
+        "default": "frames/",
+        "help": "Folder in which to place output images",
+    },
+    "outputfn": {
+        "short": "-o",
+        "longname": "--output",
+        "action": "store",
+        "type": str,
+        "dest": "output",
+        "default": None,
+        "help": "File in which to place output",
+    },
+    "skip": {
+        "short": "-s",
+        "longname": "--skip",
+        "action": "store",
+        "type": int,
+        "dest": "skip",
+        "default": 1,
+        "help": "Skip factor for outputs",
+    },
+    "proj": {
+        "short": "-p",
+        "longname": "--projection",
+        "action": "store_true",
+        "dest": "projection",
+        "default": False,
+        "help": "Use a projection rather than a slice",
+    },
+    "maxw": {
+        "longname": "--max-width",
+        "action": "store",
+        "type": float,
+        "dest": "max_width",
+        "default": 1.0,
+        "help": "Maximum width in code units",
+    },
+    "minw": {
+        "longname": "--min-width",
+        "action": "store",
+        "type": float,
+        "dest": "min_width",
+        "default": 50,
+        "help": "Minimum width in units of smallest dx (default: 50)",
+    },
+    "nframes": {
+        "short": "-n",
+        "longname": "--nframes",
+        "action": "store",
+        "type": int,
+        "dest": "nframes",
+        "default": 100,
+        "help": "Number of frames to generate",
+    },
+    "slabw": {
+        "longname": "--slab-width",
+        "action": "store",
+        "type": float,
+        "dest": "slab_width",
+        "default": 1.0,
+        "help": "Slab width in specified units",
+    },
+    "slabu": {
+        "short": "-g",
+        "longname": "--slab-unit",
+        "action": "store",
+        "type": str,
+        "dest": "slab_unit",
+        "default": "1",
+        "help": "Desired units for the slab",
+    },
+    "ptype": {
+        "longname": "--particle-type",
+        "action": "store",
+        "type": int,
+        "dest": "ptype",
+        "default": 2,
+        "help": "Particle type to select",
+    },
+    "agecut": {
+        "longname": "--age-cut",
+        "action": "store",
+        "type": float,
+        "dest": "age_filter",
+        "default": None,
+        "nargs": 2,
+        "help": "Bounds for the field to select",
+    },
+    "uboxes": {
+        "longname": "--unit-boxes",
+        "action": "store_true",
+        "dest": "unit_boxes",
+        "help": "Display heldsul unit boxes",
+    },
+    "thresh": {
+        "longname": "--threshold",
+        "action": "store",
+        "type": float,
+        "dest": "threshold",
+        "default": None,
+        "help": "Density threshold",
+    },
+    "dm_only": {
+        "longname": "--all-particles",
+        "action": "store_false",
+        "dest": "dm_only",
+        "default": True,
+        "help": "Use all particles",
+    },
+    "grids": {
+        "longname": "--show-grids",
+        "action": "store_true",
+        "dest": "grids",
+        "default": False,
+        "help": "Show the grid boundaries",
+    },
+    "time": {
+        "longname": "--time",
+        "action": "store_true",
+        "dest": "time",
+        "default": False,
+        "help": "Print time in years on image",
+    },
+    "contours": {
+        "longname": "--contours",
+        "action": "store",
+        "type": int,
+        "dest": "contours",
+        "default": None,
+        "help": "Number of Contours for Rendering",
+    },
+    "contour_width": {
+        "longname": "--contour_width",
+        "action": "store",
+        "type": float,
+        "dest": "contour_width",
+        "default": None,
+        "help": "Width of gaussians used for rendering.",
+    },
+    "enhance": {
+        "longname": "--enhance",
+        "action": "store_true",
+        "dest": "enhance",
+        "default": False,
+        "help": "Enhance!",
+    },
+    "valrange": {
+        "short": "-r",
+        "longname": "--range",
+        "action": "store",
+        "type": float,
+        "dest": "valrange",
+        "default": None,
+        "nargs": 2,
+        "help": "Range, space separated",
+    },
+    "up": {
+        "longname": "--up",
+        "action": "store",
+        "type": float,
+        "dest": "up",
+        "default": None,
+        "nargs": 3,
+        "help": "Up, space separated",
+    },
+    "viewpoint": {
+        "longname": "--viewpoint",
+        "action": "store",
+        "type": float,
+        "dest": "viewpoint",
+        "default": [1.0, 1.0, 1.0],
+        "nargs": 3,
+        "help": "Viewpoint, space separated",
+    },
+    "pixels": {
+        "longname": "--pixels",
+        "action": "store",
+        "type": int,
+        "dest": "pixels",
+        "default": None,
+        "help": "Number of Pixels for Rendering",
+    },
+    "halos": {
+        "longname": "--halos",
+        "action": "store",
+        "type": str,
+        "dest": "halos",
+        "default": "multiple",
+        "help": "Run halo profiler on a 'single' halo or 'multiple' halos.",
+    },
+    "halo_radius": {
+        "longname": "--halo_radius",
+        "action": "store",
+        "type": float,
+        "dest": "halo_radius",
+        "default": 0.1,
+        "help": "Constant radius for profiling halos if using hop output files with no "
         + "radius entry. Default: 0.1.",
-    ),
-    halo_radius_units=dict(
-        longname="--halo_radius_units",
-        action="store",
-        type=str,
-        dest="halo_radius_units",
-        default="1",
-        help="Units for radius used with --halo_radius flag. "
+    },
+    "halo_radius_units": {
+        "longname": "--halo_radius_units",
+        "action": "store",
+        "type": str,
+        "dest": "halo_radius_units",
+        "default": "1",
+        "help": "Units for radius used with --halo_radius flag. "
         + "Default: '1' (code units).",
-    ),
-    halo_hop_style=dict(
-        longname="--halo_hop_style",
-        action="store",
-        type=str,
-        dest="halo_hop_style",
-        default="new",
-        help="Style of hop output file. "
+    },
+    "halo_hop_style": {
+        "longname": "--halo_hop_style",
+        "action": "store",
+        "type": str,
+        "dest": "halo_hop_style",
+        "default": "new",
+        "help": "Style of hop output file. "
         + "'new' for yt_hop files and 'old' for enzo_hop files.",
-    ),
-    halo_dataset=dict(
-        longname="--halo_dataset",
-        action="store",
-        type=str,
-        dest="halo_dataset",
-        default=None,
-        help="HaloProfiler dataset.",
-    ),
-    make_profiles=dict(
-        longname="--make_profiles",
-        action="store_true",
-        default=False,
-        help="Make profiles with halo profiler.",
-    ),
-    make_projections=dict(
-        longname="--make_projections",
-        action="store_true",
-        default=False,
-        help="Make projections with halo profiler.",
-    ),
-)
-
-# This code snippet is modified from Georg Brandl
-def bb_apicall(endpoint, data, use_pass=True):
-    uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
-    # since bitbucket doesn't return the required WWW-Authenticate header when
-    # making a request without Authorization, we cannot use the standard urllib2
-    # auth handlers; we have to add the requisite header from the start
-    if data is not None:
-        data = urllib.parse.urlencode(data)
-    req = urllib.request.Request(uri, data)
-    if use_pass:
-        username = input("Bitbucket Username? ")
-        password = getpass.getpass()
-        upw = f"{username}:{password}"
-        req.add_header("Authorization", f"Basic {base64.b64encode(upw).strip()}")
-    return urllib.request.urlopen(req).read()
+    },
+    "halo_dataset": {
+        "longname": "--halo_dataset",
+        "action": "store",
+        "type": str,
+        "dest": "halo_dataset",
+        "default": None,
+        "help": "HaloProfiler dataset.",
+    },
+    "make_profiles": {
+        "longname": "--make_profiles",
+        "action": "store_true",
+        "default": False,
+        "help": "Make profiles with halo profiler.",
+    },
+    "make_projections": {
+        "longname": "--make_projections",
+        "action": "store_true",
+        "default": False,
+        "help": "Make projections with halo profiler.",
+    },
+}
 
 
 class YTInstInfoCmd(YTCommand):
     name = ["instinfo", "version"]
     args = (
-        dict(
-            short="-u",
-            longname="--update-source",
-            action="store_true",
-            default=False,
-            help="Update the yt installation, if able",
-        ),
-        dict(
-            short="-o",
-            longname="--output-version",
-            action="store",
-            default=None,
-            dest="outputfile",
-            help="File into which the current revision number will be stored",
-        ),
+        {
+            "short": "-u",
+            "longname": "--update-source",
+            "action": "store_true",
+            "default": False,
+            "help": "Update the yt installation, if able",
+        },
+        {
+            "short": "-o",
+            "longname": "--output-version",
+            "action": "store",
+            "default": None,
+            "dest": "outputfile",
+            "help": "File into which the current revision number will be stored",
+        },
     )
     description = """
         Get some information about the yt installation
@@ -672,10 +659,9 @@ class YTInstInfoCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        import pkg_resources
+        import importlib.resources as importlib_resources
 
-        yt_provider = pkg_resources.get_provider("yt")
-        path = os.path.dirname(yt_provider.module_path)
+        path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:
             print("This installation CAN be automatically updated.")
@@ -703,9 +689,8 @@ class YTLoadCmd(YTCommand):
         import IPython
 
         import yt
-        import yt.mods
 
-        local_ns = yt.mods.__dict__.copy()
+        local_ns = {}
         local_ns["ds"] = args.ds
         local_ns["pf"] = args.ds
         local_ns["yt"] = yt
@@ -714,7 +699,6 @@ class YTLoadCmd(YTCommand):
             from traitlets.config.loader import Config
         except ImportError:
             from IPython.config.loader import Config
-        import sys
 
         cfg = Config()
         # prepend sys.path with current working directory
@@ -731,25 +715,25 @@ class YTMapserverCmd(YTCommand):
         "center",
         "width",
         "cmap",
-        dict(
-            short="-a",
-            longname="--axis",
-            action="store",
-            type=int,
-            dest="axis",
-            default=0,
-            help="Axis",
-        ),
-        dict(
-            short="-o",
-            longname="--host",
-            action="store",
-            type=str,
-            dest="host",
-            default=None,
-            help="IP Address to bind on",
-        ),
-        dict(short="ds", nargs=1, type=str, help="The dataset to load."),
+        {
+            "short": "-a",
+            "longname": "--axis",
+            "action": "store",
+            "type": int,
+            "dest": "axis",
+            "default": 0,
+            "help": "Axis",
+        },
+        {
+            "short": "-o",
+            "longname": "--host",
+            "action": "store",
+            "type": str,
+            "dest": "host",
+            "default": None,
+            "help": "IP Address to bind on",
+        },
+        {"short": "ds", "nargs": 1, "type": str, "help": "The dataset to load."},
     )
 
     name = "mapserver"
@@ -764,14 +748,14 @@ class YTMapserverCmd(YTCommand):
 
         # For RAMSES datasets, use the bbox feature to make the dataset load faster
         if RAMSESDataset._is_valid(args.ds) and args.center and args.width:
-            kwa = dict(
-                bbox=[
+            kwa = {
+                "bbox": [
                     [c - args.width / 2 for c in args.center],
                     [c + args.width / 2 for c in args.center],
                 ]
-            )
+            }
         else:
-            kwa = dict()
+            kwa = {}
 
         ds = _fix_ds(args.ds, **kwa)
         if args.center and args.width:
@@ -831,56 +815,56 @@ class YTMapserverCmd(YTCommand):
 class YTPastebinCmd(YTCommand):
     name = "pastebin"
     args = (
-        dict(
-            short="-l",
-            longname="--language",
-            action="store",
-            default=None,
-            dest="language",
-            help="Use syntax highlighter for the file in language",
-        ),
-        dict(
-            short="-L",
-            longname="--languages",
-            action="store_true",
-            default=False,
-            dest="languages",
-            help="Retrieve a list of supported languages",
-        ),
-        dict(
-            short="-e",
-            longname="--encoding",
-            action="store",
-            default="utf-8",
-            dest="encoding",
-            help="Specify the encoding of a file (default is "
+        {
+            "short": "-l",
+            "longname": "--language",
+            "action": "store",
+            "default": None,
+            "dest": "language",
+            "help": "Use syntax highlighter for the file in language",
+        },
+        {
+            "short": "-L",
+            "longname": "--languages",
+            "action": "store_true",
+            "default": False,
+            "dest": "languages",
+            "help": "Retrieve a list of supported languages",
+        },
+        {
+            "short": "-e",
+            "longname": "--encoding",
+            "action": "store",
+            "default": "utf-8",
+            "dest": "encoding",
+            "help": "Specify the encoding of a file (default is "
             "utf-8 or guessing if available)",
-        ),
-        dict(
-            short="-b",
-            longname="--open-browser",
-            action="store_true",
-            default=False,
-            dest="open_browser",
-            help="Open the paste in a web browser",
-        ),
-        dict(
-            short="-p",
-            longname="--private",
-            action="store_true",
-            default=False,
-            dest="private",
-            help="Paste as private",
-        ),
-        dict(
-            short="-c",
-            longname="--clipboard",
-            action="store_true",
-            default=False,
-            dest="clipboard",
-            help="File to output to; else, print.",
-        ),
-        dict(short="file", type=str),
+        },
+        {
+            "short": "-b",
+            "longname": "--open-browser",
+            "action": "store_true",
+            "default": False,
+            "dest": "open_browser",
+            "help": "Open the paste in a web browser",
+        },
+        {
+            "short": "-p",
+            "longname": "--private",
+            "action": "store_true",
+            "default": False,
+            "dest": "private",
+            "help": "Paste as private",
+        },
+        {
+            "short": "-c",
+            "longname": "--clipboard",
+            "action": "store_true",
+            "default": False,
+            "dest": "clipboard",
+            "help": "File to output to; else, print.",
+        },
+        {"short": "file", "type": str},
     )
     description = """
         Post a script to an anonymous pastebin
@@ -902,7 +886,7 @@ class YTPastebinCmd(YTCommand):
 
 
 class YTPastebinGrabCmd(YTCommand):
-    args = (dict(short="number", type=str),)
+    args = ({"short": "number", "type": str},)
     name = "pastebin_grab"
     description = """
         Print an online pastebin to STDOUT for local use.
@@ -934,20 +918,20 @@ class YTPlotCmd(YTCommand):
         "max",
         "log",
         "linear",
-        dict(
-            short="-fu",
-            longname="--field-unit",
-            action="store",
-            type=str,
-            dest="field_unit",
-            default=None,
-            help="Desired field units",
-        ),
-        dict(
-            longname="--show-scale-bar",
-            action="store_true",
-            help="Annotate the plot with the scale",
-        ),
+        {
+            "short": "-fu",
+            "longname": "--field-unit",
+            "action": "store",
+            "type": str,
+            "dest": "field_unit",
+            "default": None,
+            "help": "Desired field units",
+        },
+        {
+            "longname": "--show-scale-bar",
+            "action": "store_true",
+            "help": "Annotate the plot with the scale",
+        },
     )
 
     name = "plot"
@@ -1025,110 +1009,20 @@ class YTRPDBCmd(YTCommand):
 
         """
     args = (
-        dict(
-            short="-t",
-            longname="--task",
-            action="store",
-            default=0,
-            dest="task",
-            help="Open a web browser.",
-        ),
+        {
+            "short": "-t",
+            "longname": "--task",
+            "action": "store",
+            "default": 0,
+            "dest": "task",
+            "help": "Open a web browser.",
+        },
     )
 
     def __call__(self, args):
         from . import rpdb
 
         rpdb.run_rpdb(int(args.task))
-
-
-class YTNotebookCmd(YTCommand):
-    name = ["notebook"]
-    args = (
-        dict(
-            short="-o",
-            longname="--open-browser",
-            action="store_true",
-            default=False,
-            dest="open_browser",
-            help="Open a web browser.",
-        ),
-        dict(
-            short="-p",
-            longname="--port",
-            action="store",
-            default=0,
-            dest="port",
-            help="Port to listen on; defaults to auto-detection.",
-        ),
-        dict(
-            short="-prof",
-            longname="--profile",
-            action="store",
-            default=None,
-            dest="profile",
-            help="The IPython profile to use when launching the kernel.",
-        ),
-        dict(
-            short="-n",
-            longname="--no-password",
-            action="store_true",
-            default=False,
-            dest="no_password",
-            help="If set, do not prompt or use a password.",
-        ),
-    )
-    description = """
-        Start the Jupyter Notebook locally.
-        """
-
-    def __call__(self, args):
-        kwargs = {}
-        from notebook.notebookapp import NotebookApp
-
-        print(
-            "You must choose a password so that others cannot connect to "
-            "your notebook."
-        )
-        pw = ytcfg.get("yt", "notebook_password")
-        if len(pw) == 0 and not args.no_password:
-            import IPython.lib
-
-            pw = IPython.lib.passwd()
-            print("If you would like to use this password in the future,")
-            print("place a line like this inside the [yt] section in your")
-            print("yt configuration file at ~/.config/yt/yt.toml")
-            print()
-            print(f"notebook_password = {pw}")
-            print()
-        elif args.no_password:
-            pw = None
-        if args.port != 0:
-            kwargs["port"] = int(args.port)
-        if args.profile is not None:
-            kwargs["profile"] = args.profile
-        if pw is not None:
-            kwargs["password"] = pw
-        app = NotebookApp(open_browser=args.open_browser, **kwargs)
-        app.initialize(argv=[])
-        print()
-        print("***************************************************************")
-        print()
-        print("The notebook is now live at:")
-        print()
-        print(f"     http://127.0.0.1:{app.port}/")
-        print()
-        print("Recall you can create a new SSH tunnel dynamically by pressing")
-        print(f"~C and then typing -L{app.port}:localhost:{app.port}")
-        print("where the first number is the port on your local machine. ")
-        print()
-        print(
-            "If you are using %s on your machine already, try "
-            "-L8889:localhost:%s" % (app.port, app.port)
-        )
-        print()
-        print("***************************************************************")
-        print()
-        app.start()
 
 
 class YTStatsCmd(YTCommand):
@@ -1138,20 +1032,20 @@ class YTStatsCmd(YTCommand):
         "skip",
         "ds",
         "field",
-        dict(
-            longname="--max",
-            action="store_true",
-            default=False,
-            dest="max",
-            help="Display maximum of field requested through -f option.",
-        ),
-        dict(
-            longname="--min",
-            action="store_true",
-            default=False,
-            dest="min",
-            help="Display minimum of field requested through -f option.",
-        ),
+        {
+            "longname": "--max",
+            "action": "store_true",
+            "default": False,
+            "dest": "max",
+            "help": "Display maximum of field requested through -f option.",
+        },
+        {
+            "longname": "--min",
+            "action": "store_true",
+            "default": False,
+            "dest": "min",
+            "help": "Display minimum of field requested through -f option.",
+        },
     )
     name = "stats"
     description = """
@@ -1179,13 +1073,11 @@ class YTStatsCmd(YTCommand):
                 f.write(f"{ds} ({t:0.5e})\n")
                 if "min" in vals:
                     f.write(
-                        "Minimum %s is %0.5e at %s\n"
-                        % (field.name, vals["min"][0], vals["min"][1])
+                        f"Minimum {field.name} is {vals['min'][0]:0.5e} at {vals['min'][1]}\n"
                     )
                 if "max" in vals:
                     f.write(
-                        "Maximum %s is %0.5e at %s\n"
-                        % (field.name, vals["max"][0], vals["max"][1])
+                        f"Maximum {field.name} is {vals['max'][0]:0.5e} at {vals['max'][1]}\n"
                     )
 
 
@@ -1198,10 +1090,9 @@ class YTUpdateCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        import pkg_resources
+        import importlib.resources as importlib_resources
 
-        yt_provider = pkg_resources.get_provider("yt")
-        path = os.path.dirname(yt_provider.module_path)
+        path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:
             print()
@@ -1212,7 +1103,7 @@ class YTUpdateCmd(YTCommand):
 
 
 class YTDeleteImageCmd(YTCommand):
-    args = (dict(short="delete_hash", type=str),)
+    args = ({"short": "delete_hash", "type": str},)
     description = """
         Delete image from imgur.com.
 
@@ -1220,6 +1111,9 @@ class YTDeleteImageCmd(YTCommand):
     name = "delete_image"
 
     def __call__(self, args):
+        import urllib.error
+        import urllib.request
+
         headers = {"Authorization": f"Client-ID {ytcfg.get('yt', 'imagebin_api_key')}"}
 
         delete_url = ytcfg.get("yt", "imagebin_delete_url")
@@ -1245,7 +1139,7 @@ class YTDeleteImageCmd(YTCommand):
 
 
 class YTUploadImageCmd(YTCommand):
-    args = (dict(short="file", type=str),)
+    args = ({"short": "file", "type": str},)
     description = """
         Upload an image to imgur.com.  Must be PNG.
 
@@ -1253,6 +1147,10 @@ class YTUploadImageCmd(YTCommand):
     name = "upload_image"
 
     def __call__(self, args):
+        import urllib.error
+        import urllib.parse
+        import urllib.request
+
         filename = args.file
         if not filename.endswith(".png"):
             print("File must be a PNG file!")
@@ -1292,7 +1190,7 @@ class YTUploadImageCmd(YTCommand):
 
 
 class YTUploadFileCmd(YTCommand):
-    args = (dict(short="file", type=str),)
+    args = ({"short": "file", "type": str},)
     description = """
         Upload a file to yt's curldrop.
 
@@ -1310,7 +1208,7 @@ class YTUploadFileCmd(YTCommand):
 
 
 class YTConfigLocalConfigHandler:
-    def load_config(self, args):
+    def load_config(self, args) -> None:
         import os
 
         from yt.config import YTConfig
@@ -1325,12 +1223,12 @@ class YTConfigLocalConfigHandler:
         local_arg_exists = hasattr(args, "local")
         global_arg_exists = hasattr(args, "global")
 
+        config_file: str | None = None
         if getattr(args, "local", False):
             config_file = local_config_file
         elif getattr(args, "global", False):
             config_file = global_config_file
         else:
-            config_file: Optional[str] = None
             if local_exists and global_exists:
                 s = (
                     "Yt detected a local and a global configuration file, refusing "
@@ -1363,16 +1261,16 @@ class YTConfigLocalConfigHandler:
 
 
 _global_local_args = (
-    dict(
-        short="--local",
-        action="store_true",
-        help="Store the configuration in the local configuration file.",
-    ),
-    dict(
-        short="--global",
-        action="store_true",
-        help="Store the configuration in the global configuration file.",
-    ),
+    {
+        "short": "--local",
+        "action": "store_true",
+        "help": "Store the configuration in the local configuration file.",
+    },
+    {
+        "short": "--global",
+        "action": "store_true",
+        "help": "Store the configuration in the global configuration file.",
+    },
 )
 
 
@@ -1381,8 +1279,8 @@ class YTConfigGetCmd(YTCommand, YTConfigLocalConfigHandler):
     name = "get"
     description = "get a config value"
     args = (
-        dict(short="section", help="The section containing the option."),
-        dict(short="option", help="The option to retrieve."),
+        {"short": "section", "help": "The section containing the option."},
+        {"short": "option", "help": "The option to retrieve."},
         *_global_local_args,
     )
 
@@ -1399,9 +1297,9 @@ class YTConfigSetCmd(YTCommand, YTConfigLocalConfigHandler):
     name = "set"
     description = "set a config value"
     args = (
-        dict(short="section", help="The section containing the option."),
-        dict(short="option", help="The option to set."),
-        dict(short="value", help="The value to set the option to."),
+        {"short": "section", "help": "The section containing the option."},
+        {"short": "option", "help": "The option to set."},
+        {"short": "value", "help": "The value to set the option to."},
         *_global_local_args,
     )
 
@@ -1423,8 +1321,8 @@ class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigHandler):
     name = "rm"
     description = "remove a config option"
     args = (
-        dict(short="section", help="The section containing the option."),
-        dict(short="option", help="The option to remove."),
+        {"short": "section", "help": "The section containing the option."},
+        {"short": "option", "help": "The option to remove."},
         *_global_local_args,
     )
 
@@ -1464,31 +1362,31 @@ class YTConfigPrintPath(YTCommand, YTConfigLocalConfigHandler):
 
 class YTSearchCmd(YTCommand):
     args = (
-        dict(
-            short="-o",
-            longname="--output",
-            action="store",
-            type=str,
-            dest="output",
-            default="yt_index.json",
-            help="File in which to place output",
-        ),
-        dict(
-            longname="--check-all",
-            short="-a",
-            help="Attempt to load every file",
-            action="store_true",
-            default=False,
-            dest="check_all",
-        ),
-        dict(
-            longname="--full",
-            short="-f",
-            help="Output full contents of parameter file",
-            action="store_true",
-            default=False,
-            dest="full_output",
-        ),
+        {
+            "short": "-o",
+            "longname": "--output",
+            "action": "store",
+            "type": str,
+            "dest": "output",
+            "default": "yt_index.json",
+            "help": "File in which to place output",
+        },
+        {
+            "longname": "--check-all",
+            "short": "-a",
+            "help": "Attempt to load every file",
+            "action": "store_true",
+            "default": False,
+            "dest": "check_all",
+        },
+        {
+            "longname": "--full",
+            "short": "-f",
+            "help": "Output full contents of parameter file",
+            "action": "store_true",
+            "default": False,
+            "dest": "full_output",
+        },
     )
     description = """
         Attempt to find outputs that yt can recognize in directories.
@@ -1500,7 +1398,7 @@ class YTSearchCmd(YTCommand):
 
         candidates = []
         for base, dirs, files in os.walk(".", followlinks=True):
-            print("(% 10i candidates) Examining %s" % (len(candidates), base))
+            print(f"({len(candidates):>10} candidates) Examining {base}")
             recurse = []
             if args.check_all:
                 candidates.extend([os.path.join(base, _) for _ in files])
@@ -1514,7 +1412,7 @@ class YTSearchCmd(YTCommand):
         # and try to load each one.
         records = []
         for i, c in enumerate(sorted(candidates)):
-            print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
+            print(f"({i:>10}/{len(candidates):>10}) Evaluating {c}")
             try:
                 record = get_metadata(c, args.full_output)
             except YTUnidentifiedDataType:
@@ -1526,40 +1424,39 @@ class YTSearchCmd(YTCommand):
 
 
 class YTDownloadData(YTCommand):
-
     args = (
-        dict(
-            short="filename",
-            action="store",
-            type=str,
-            help="The name of the file to download",
-            nargs="?",
-            default="",
-        ),
-        dict(
-            short="location",
-            action="store",
-            type=str,
-            nargs="?",
-            help="The location in which to place the file, can be "
+        {
+            "short": "filename",
+            "action": "store",
+            "type": str,
+            "help": "The name of the file to download",
+            "nargs": "?",
+            "default": "",
+        },
+        {
+            "short": "location",
+            "action": "store",
+            "type": str,
+            "nargs": "?",
+            "help": "The location in which to place the file, can be "
             '"supp_data_dir", "test_data_dir", or any valid '
             "path on disk. ",
-            default="",
-        ),
-        dict(
-            longname="--overwrite",
-            short="-c",
-            help="Overwrite existing file.",
-            action="store_true",
-            default=False,
-        ),
-        dict(
-            longname="--list",
-            short="-l",
-            help="Display all available files.",
-            action="store_true",
-            default=False,
-        ),
+            "default": "",
+        },
+        {
+            "longname": "--overwrite",
+            "short": "-c",
+            "help": "Overwrite existing file.",
+            "action": "store_true",
+            "default": False,
+        },
+        {
+            "longname": "--list",
+            "short": "-l",
+            "help": "Display all available files.",
+            "action": "store_true",
+            "default": False,
+        },
     )
     description = """
         Download a file from http://yt-project.org/data and save it to a
@@ -1604,6 +1501,8 @@ class YTDownloadData(YTCommand):
         print(f"File: {args.filename} downloaded successfully to {data_file}")
 
     def get_list(self):
+        import urllib.request
+
         data = (
             urllib.request.urlopen("http://yt-project.org/data/datafiles.json")
             .read()

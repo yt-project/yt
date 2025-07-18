@@ -1,14 +1,14 @@
 import os
-import stat
 import weakref
 from collections import OrderedDict
 
 import numpy as np
 
+from yt._typing import AxisOrder
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
+from yt.utilities.file_handler import NetCDF4FileHandler, valid_netcdf_signature
 from yt.utilities.logger import ytLogger as mylog
 
 from .fields import CM1FieldInfo
@@ -52,8 +52,8 @@ class CM1Hierarchy(GridIndex):
         self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
         self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
         self.grid_particle_count[0][0] = 0
-        self.grid_levels[0][0] = 1
-        self.max_level = 1
+        self.grid_levels[0][0] = 0
+        self.max_level = 0
 
     def _populate_grid_objects(self):
         self.grids = np.empty(self.num_grids, dtype="object")
@@ -65,6 +65,7 @@ class CM1Hierarchy(GridIndex):
 
 
 class CM1Dataset(Dataset):
+    _load_requirements = ["netCDF4"]
     _index_class = CM1Hierarchy
     _field_info_class = CM1FieldInfo
 
@@ -78,7 +79,7 @@ class CM1Dataset(Dataset):
     ):
         self.fluid_types += ("cm1",)
         self._handle = NetCDF4FileHandler(filename)
-        # refinement factor between a grid and its subgrid
+        # refinement factor between a grid and its subgrid.
         self.refine_by = 1
         super().__init__(
             filename,
@@ -88,12 +89,16 @@ class CM1Dataset(Dataset):
         )
         self.storage_filename = storage_filename
 
-    def _setup_coordinate_handler(self):
+    def _setup_coordinate_handler(self, axis_order: AxisOrder | None) -> None:
         # ensure correct ordering of axes so plots aren't rotated (z should always be
         # on the vertical axis).
-        super()._setup_coordinate_handler()
-        self.coordinates._x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))
-        self.coordinates._y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))
+        super()._setup_coordinate_handler(axis_order)
+
+        # type checking is deactivated in the following two lines because changing them is not
+        # within the scope of the PR that _enabled_ typechecking here (#4244), but it'd be worth
+        # having a careful look at *why* these warnings appear, as they may point to rotten code
+        self.coordinates._x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))  # type: ignore [union-attr]
+        self.coordinates._y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))  # type: ignore [union-attr]
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -113,10 +118,7 @@ class CM1Dataset(Dataset):
         # assumed to be in code units; domain_left_edge and domain_right_edge
         # will be converted to YTArray automatically at a later time.
         # This includes the cosmological parameters.
-        #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
-        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
         self.parameters = {}  # code-specific items
         with self._handle.open_ds() as _handle:
             # _handle here is a netcdf Dataset object, we need to parse some metadata
@@ -166,11 +168,15 @@ class CM1Dataset(Dataset):
         self.hubble_constant = 0.0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
+        if not valid_netcdf_signature(filename):
+            return False
 
-        warn_netcdf(filename)
+        if cls._missing_load_requirements():
+            return False
+
         try:
             nc4_file = NetCDF4FileHandler(filename)
             with nc4_file.open_ds(keepweakref=True) as _handle:

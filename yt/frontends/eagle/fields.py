@@ -5,7 +5,6 @@ from yt.utilities.periodic_table import periodic_table
 
 
 class EagleNetworkFieldInfo(OWLSFieldInfo):
-
     _ions = (
         "H1",
         "H2",
@@ -134,12 +133,11 @@ class EagleNetworkFieldInfo(OWLSFieldInfo):
         """returns a function that calculates the ion density of a particle."""
 
         def _ion_density(field, data):
-
             # Lookup the index of the ion
             index = eaglenetwork_ion_lookup[ion]
 
             # Ion to hydrogen number density ratio
-            ion_chem = data[ftype, "Chemistry_%03i" % index]
+            ion_chem = data[ftype, f"Chemistry_{index:03}"]
 
             # Mass of a single ion
             if ion[0:2].isalpha():

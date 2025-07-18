@@ -27,11 +27,10 @@ storage = {}
 # The serial equivalent of piter() here is just "for ds in ts:" .
 
 for store, ds in ts.piter(storage=storage):
-
     # Create a sphere of radius 100 kpc at the center of the dataset volume
     sphere = ds.sphere("c", (100.0, "kpc"))
     # Calculate the entropy within that sphere
-    entr = sphere[("gas", "entropy")].sum()
+    entr = sphere["gas", "entropy"].sum()
     # Store the current time and sphere entropy for this dataset in our
     # storage dictionary as a tuple
     store.result = (ds.current_time.in_units("Gyr"), entr)

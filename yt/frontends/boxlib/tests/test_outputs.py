@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.testing import assert_allclose, assert_equal
 
 from yt.frontends.boxlib.api import (
     AMReXDataset,
@@ -10,8 +11,6 @@ from yt.frontends.boxlib.api import (
 )
 from yt.loaders import load
 from yt.testing import (
-    assert_allclose,
-    assert_equal,
     disable_dataset_cache,
     requires_file,
     units_override_check,
@@ -98,17 +97,17 @@ def test_nyx_particle_io():
 
     grid = ds.index.grids[0]
     npart_grid_0 = 7908  # read directly from the header
-    assert_equal(grid[("all", "particle_position_x")].size, npart_grid_0)
+    assert_equal(grid["all", "particle_position_x"].size, npart_grid_0)
     assert_equal(grid["DM", "particle_position_y"].size, npart_grid_0)
     assert_equal(grid["all", "particle_position_z"].size, npart_grid_0)
 
     ad = ds.all_data()
     npart = 32768  # read directly from the header
-    assert_equal(ad[("all", "particle_velocity_x")].size, npart)
+    assert_equal(ad["all", "particle_velocity_x"].size, npart)
     assert_equal(ad["DM", "particle_velocity_y"].size, npart)
     assert_equal(ad["all", "particle_velocity_z"].size, npart)
 
-    assert np.all(ad[("all", "particle_mass")] == ad[("all", "particle_mass")][0])
+    assert np.all(ad["all", "particle_mass"] == ad["all", "particle_mass"][0])
 
     left_edge = ds.arr([0.0, 0.0, 0.0], "code_length")
     right_edge = ds.arr([4.0, 4.0, 4.0], "code_length")
@@ -118,22 +117,22 @@ def test_nyx_particle_io():
 
     assert np.all(
         np.logical_and(
-            reg[("all", "particle_position_x")] <= right_edge[0],
-            reg[("all", "particle_position_x")] >= left_edge[0],
+            reg["all", "particle_position_x"] <= right_edge[0],
+            reg["all", "particle_position_x"] >= left_edge[0],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg[("all", "particle_position_y")] <= right_edge[1],
-            reg[("all", "particle_position_y")] >= left_edge[1],
+            reg["all", "particle_position_y"] <= right_edge[1],
+            reg["all", "particle_position_y"] >= left_edge[1],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg[("all", "particle_position_z")] <= right_edge[2],
-            reg[("all", "particle_position_z")] >= left_edge[2],
+            reg["all", "particle_position_z"] <= right_edge[2],
+            reg["all", "particle_position_z"] >= left_edge[2],
         )
     )
 
@@ -156,13 +155,13 @@ def test_castro_particle_io():
 
     grid = ds.index.grids[2]
     npart_grid_2 = 49  # read directly from the header
-    assert_equal(grid[("all", "particle_position_x")].size, npart_grid_2)
+    assert_equal(grid["all", "particle_position_x"].size, npart_grid_2)
     assert_equal(grid["Tracer", "particle_position_y"].size, npart_grid_2)
     assert_equal(grid["all", "particle_position_y"].size, npart_grid_2)
 
     ad = ds.all_data()
     npart = 49  # read directly from the header
-    assert_equal(ad[("all", "particle_velocity_x")].size, npart)
+    assert_equal(ad["all", "particle_velocity_x"].size, npart)
     assert_equal(ad["Tracer", "particle_velocity_y"].size, npart)
     assert_equal(ad["all", "particle_velocity_y"].size, npart)
 
@@ -174,15 +173,15 @@ def test_castro_particle_io():
 
     assert np.all(
         np.logical_and(
-            reg[("all", "particle_position_x")] <= right_edge[0],
-            reg[("all", "particle_position_x")] >= left_edge[0],
+            reg["all", "particle_position_x"] <= right_edge[0],
+            reg["all", "particle_position_x"] >= left_edge[0],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg[("all", "particle_position_y")] <= right_edge[1],
-            reg[("all", "particle_position_y")] >= left_edge[1],
+            reg["all", "particle_position_y"] <= right_edge[1],
+            reg["all", "particle_position_y"] >= left_edge[1],
         )
     )
 
@@ -266,22 +265,22 @@ def test_warpx_particle_io():
 
     assert np.all(
         np.logical_and(
-            reg[("all", "particle_position_x")] <= right_edge[0],
-            reg[("all", "particle_position_x")] >= left_edge[0],
+            reg["all", "particle_position_x"] <= right_edge[0],
+            reg["all", "particle_position_x"] >= left_edge[0],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg[("all", "particle_position_y")] <= right_edge[1],
-            reg[("all", "particle_position_y")] >= left_edge[1],
+            reg["all", "particle_position_y"] <= right_edge[1],
+            reg["all", "particle_position_y"] >= left_edge[1],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg[("all", "particle_position_z")] <= right_edge[2],
-            reg[("all", "particle_position_z")] >= left_edge[2],
+            reg["all", "particle_position_z"] <= right_edge[2],
+            reg["all", "particle_position_z"] >= left_edge[2],
         )
     )
 
@@ -320,6 +319,11 @@ def test_CastroDataset():
 @requires_file("castro_sod_x_plt00036")
 def test_CastroDataset_2():
     assert isinstance(data_dir_load("castro_sod_x_plt00036"), CastroDataset)
+
+
+@requires_file("castro_sedov_1d_cyl_plt00150")
+def test_CastroDataset_3():
+    assert isinstance(data_dir_load("castro_sedov_1d_cyl_plt00150"), CastroDataset)
 
 
 @requires_file(plasma)
@@ -420,22 +424,47 @@ def test_maestro_parameters():
 
     # Check a string parameter
     assert ds.parameters["plot_base_name"] == "subCh_hot_baserun_plt"
-    assert type(ds.parameters["plot_base_name"]) is str
+    assert type(ds.parameters["plot_base_name"]) is str  # noqa: E721
 
     # Check boolean parameters: T or F
     assert not ds.parameters["use_thermal_diffusion"]
-    assert type(ds.parameters["use_thermal_diffusion"]) is bool
+    assert type(ds.parameters["use_thermal_diffusion"]) is bool  # noqa: E721
 
     assert ds.parameters["do_burning"]
-    assert type(ds.parameters["do_burning"]) is bool
+    assert type(ds.parameters["do_burning"]) is bool  # noqa: E721
 
     # Check a float parameter with a decimal point
     assert ds.parameters["sponge_kappa"] == float("10.00000000")
-    assert type(ds.parameters["sponge_kappa"]) is float
+    assert type(ds.parameters["sponge_kappa"]) is float  # noqa: E721
 
     # Check a float parameter with E exponent notation
     assert ds.parameters["small_dt"] == float("0.1000000000E-09")
 
     # Check an int parameter
     assert ds.parameters["s0_interp_type"] == 3
-    assert type(ds.parameters["s0_interp_type"]) is int
+    assert type(ds.parameters["s0_interp_type"]) is int  # noqa: E721
+
+
+castro_1d_cyl = "castro_sedov_1d_cyl_plt00150"
+
+
+@requires_file(castro_1d_cyl)
+def test_castro_parameters():
+    ds = data_dir_load(castro_1d_cyl)
+    assert isinstance(ds, CastroDataset)
+
+    # Modified from default (leading [*])
+    assert ds.parameters["castro.do_hydro"] == 1
+    assert ds.parameters["castro.cfl"] == 0.5
+    assert ds.parameters["problem.p_ambient"] == float("1e-06")
+    # Leading [*] should be removed from the parameter name
+    assert "[*] castro.do_hydro" not in ds.parameters
+
+    # Not modified from default
+    assert ds.parameters["castro.pslope_cutoff_density"] == float("-1e+20")
+    assert ds.parameters["castro.do_sponge"] == 0
+    assert ds.parameters["problem.dens_ambient"] == 1
+    assert ds.parameters["eos.eos_assume_neutral"] == 1
+
+    # Empty string value
+    assert ds.parameters["castro.stopping_criterion_field"] is None

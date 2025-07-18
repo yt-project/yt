@@ -25,7 +25,6 @@ from libc.math cimport (
     sin,
     sqrt,
 )
-from vec3_ops cimport L2_norm, dot, fma, subtract
 
 from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, imin
 
@@ -34,11 +33,12 @@ from .image_samplers cimport (
     calculate_extent_function,
     generate_vector_info_function,
 )
+from .vec3_ops cimport L2_norm, dot, fma, subtract
 from .volume_container cimport VolumeContainer
 
 
 cdef extern from "platform_dep.h":
-    long int lrint(double x) nogil
+    long int lrint(double x) noexcept nogil
 
 cdef extern from "limits.h":
     cdef int SHRT_MAX

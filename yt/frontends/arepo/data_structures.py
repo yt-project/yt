@@ -8,6 +8,7 @@ from .fields import ArepoFieldInfo
 
 
 class ArepoHDF5Dataset(GadgetHDF5Dataset):
+    _load_requirements = ["h5py"]
     _field_info_class = ArepoFieldInfo
 
     def __init__(
@@ -44,7 +45,10 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         self.gamma_cr = self.parameters.get("GammaCR", 4.0 / 3.0)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = ["Header", "Config"]
         veto_groups = ["FOF", "Group", "Subhalo"]
         valid = True
@@ -68,18 +72,19 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
     def _get_uvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")
         uvals = {}
-        missing = [False] * 3
+        missing = [True] * 3
         for i, unit in enumerate(
             ["UnitLength_in_cm", "UnitMass_in_g", "UnitVelocity_in_cm_per_s"]
         ):
-            if unit in handle["/Header"].attrs:
-                uvals[unit] = handle["/Header"].attrs[unit]
-                if unit == "UnitLength_in_cm":
-                    # We assume this is comoving, because in the absence of comoving
-                    # integration the redshift will be zero.
-                    uvals["cmcm"] = 1.0 / uvals[unit]
-            else:
-                missing[i] = True
+            for grp in ["Header", "Parameters", "Units"]:
+                if grp in handle and unit in handle[grp].attrs:
+                    uvals[unit] = handle[grp].attrs[unit]
+                    missing[i] = False
+                    break
+        if "UnitLength_in_cm" in uvals:
+            # We assume this is comoving, because in the absence of comoving
+            # integration the redshift will be zero.
+            uvals["cmcm"] = 1.0 / uvals["UnitLength_in_cm"]
         handle.close()
         if all(missing):
             uvals = None

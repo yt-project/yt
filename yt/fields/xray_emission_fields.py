@@ -20,16 +20,13 @@ data_url = "http://yt-project.org/data"
 
 
 def _get_data_file(table_type, data_dir=None):
-    data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
+    data_file = f"{table_type}_emissivity_v{data_version[table_type]}.h5"
     if data_dir is None:
         supp_data_dir = ytcfg.get("yt", "supp_data_dir")
         data_dir = supp_data_dir if os.path.exists(supp_data_dir) else "."
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
-        msg = "Failed to find emissivity data file {}! Please download from {}".format(
-            data_file,
-            data_url,
-        )
+        msg = f"Failed to find emissivity data file {data_file}! Please download from {data_url}"
         mylog.error(msg)
         raise OSError(msg)
     return data_path
@@ -46,7 +43,7 @@ class EnergyBoundsException(YTException):
 
 class ObsoleteDataException(YTException):
     def __init__(self, table_type):
-        data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
+        data_file = f"{table_type}_emissivity_v{data_version[table_type]}.h5"
         self.msg = "X-ray emissivity data is out of date.\n"
         self.msg += f"Download the latest data from {data_url}/{data_file}."
 
@@ -81,7 +78,6 @@ class XrayEmissivityIntegrator:
     """
 
     def __init__(self, table_type, redshift=0.0, data_dir=None, use_metals=True):
-
         filename = _get_data_file(table_type, data_dir=data_dir)
         only_on_root(mylog.info, "Loading emissivity data from %s", filename)
         in_file = h5py.File(filename, mode="r")
@@ -92,8 +88,8 @@ class XrayEmissivityIntegrator:
         else:
             only_on_root(
                 mylog.info,
-                "X-ray '%s' emissivity data version: %s."
-                % (table_type, parse_h5_attr(in_file, "version")),
+                f"X-ray '{table_type}' emissivity data version: "
+                f"{parse_h5_attr(in_file, 'version')}.",
             )
 
         self.log_T = in_file["log_T"][:]
@@ -216,7 +212,7 @@ def add_xray_emissivity_field(
     """
     if not isinstance(metallicity, float) and metallicity is not None:
         try:
-            metallicity = ds._get_field_info(*metallicity)
+            metallicity = ds._get_field_info(metallicity)
         except YTFieldNotFound as e:
             raise RuntimeError(
                 f"Your dataset does not have a {metallicity} field! "
@@ -255,7 +251,7 @@ def add_xray_emissivity_field(
         my_emissivity = np.power(10, em_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity.name].to("Zsun")
+                my_Z = data[metallicity.name].to_value("Zsun")
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, em_Z(dd))
@@ -294,7 +290,7 @@ def add_xray_emissivity_field(
         my_emissivity = np.power(10, emp_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity.name].to("Zsun")
+                my_Z = data[metallicity.name].to_value("Zsun")
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
@@ -313,7 +309,6 @@ def add_xray_emissivity_field(
     fields = [emiss_name, lum_name, phot_name]
 
     if redshift > 0.0 or dist is not None:
-
         if dist is None:
             if cosmology is None:
                 if hasattr(ds, "cosmology"):

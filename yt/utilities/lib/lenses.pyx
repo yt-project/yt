@@ -20,7 +20,7 @@ from .image_samplers cimport ImageSampler
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef int calculate_extent_plane_parallel(ImageSampler image,
-            VolumeContainer *vc, np.int64_t rv[4]) nogil except -1:
+            VolumeContainer *vc, np.int64_t rv[4]) except -1 nogil:
     # We do this for all eight corners
     cdef np.float64_t temp
     cdef np.float64_t *edges[2]
@@ -58,7 +58,7 @@ cdef int calculate_extent_plane_parallel(ImageSampler image,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef int calculate_extent_perspective(ImageSampler image,
-            VolumeContainer *vc, np.int64_t rv[4]) nogil except -1:
+            VolumeContainer *vc, np.int64_t rv[4]) except -1 nogil:
 
     cdef np.float64_t cam_pos[3]
     cdef np.float64_t cam_width[3]
@@ -167,7 +167,7 @@ cdef int calculate_extent_perspective(ImageSampler image,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef int calculate_extent_null(ImageSampler image,
-            VolumeContainer *vc, np.int64_t rv[4]) nogil except -1:
+            VolumeContainer *vc, np.int64_t rv[4]) except -1 nogil:
     rv[0] = 0
     rv[1] = image.nv[0]
     rv[2] = 0
@@ -180,7 +180,7 @@ cdef void generate_vector_info_plane_parallel(ImageSampler im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
             # Now outbound
-            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) noexcept nogil:
     cdef int i
     cdef np.float64_t px, py
     px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
@@ -197,7 +197,7 @@ cdef void generate_vector_info_null(ImageSampler im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
             # Now outbound
-            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) noexcept nogil:
     cdef int i
     for i in range(3):
         # Here's a funny thing: we use vi here because our *image* will be

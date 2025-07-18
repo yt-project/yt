@@ -20,11 +20,9 @@ def h5rd(fname, path, dtype=None):
 
 
 class IonTableSpectrum:
-
     """A class to handle the HM01 spectra in the OWLS ionization tables."""
 
     def __init__(self, ion_file):
-
         where = "/header/spectrum/gammahi"
         self.GH1 = h5rd(ion_file, where)  # GH1[1/s]
 
@@ -38,7 +36,6 @@ class IonTableSpectrum:
         self.z = h5rd(ion_file, where)  # z
 
     def return_table_GH1_at_z(self, z):
-
         # find redshift indices
         # -----------------------------------------------------------------
         i_zlo = np.argmin(np.abs(self.z - z))
@@ -62,14 +59,12 @@ class IonTableSpectrum:
 
 
 class IonTableOWLS:
-
     """A class to handle OWLS ionization tables."""
 
     DELTA_nH = 0.25
     DELTA_T = 0.1
 
     def __init__(self, ion_file):
-
         self.ion_file = ion_file
 
         # ionbal is indexed like [nH, T, z]
@@ -107,7 +102,6 @@ class IonTableOWLS:
     # sets iz and fz
     # -----------------------------------------------------
     def set_iz(self, z):
-
         if z <= self.z[0]:
             self.iz = 0
             self.fz = 0.0
@@ -126,7 +120,6 @@ class IonTableOWLS:
     # tri-linear interpolation is used.
     # -----------------------------------------------------
     def interp(self, nH, T):
-
         nH = np.array(nH)
         T = np.array(T)
 

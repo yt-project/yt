@@ -32,17 +32,29 @@ Here's a summary for most recent releases
 +------------+------------+----------------+-----------------+
 | yt release | Python 2.7 | Python3 min    | Python3 max     |
 +============+============+================+=================+
-| 4.1.x      | no         | 3.7            | 3.10 (expected) |
+| 4.4.x      | no         | 3.10.3         | 3.13 (expected) |
++------------+------------+----------------|-----------------|
+| 4.3.x      | no         | 3.9.2          | 3.12            |
 +------------+------------+----------------+-----------------+
-| 4.0.x      | no         | 3.6            | 3.9             |
+| 4.2.x      | no         | 3.8            | 3.11            |
++------------+------------+----------------+-----------------+
+| 4.1.x      | no         | 3.7            | 3.11            |
++------------+------------+----------------+-----------------+
+| 4.0.x      | no         | 3.6            | 3.10            |
 +------------+------------+----------------+-----------------+
 | 3.6.x      | no         | 3.5            | 3.8             |
 +------------+------------+----------------+-----------------+
 | 3.5.x      | yes        | 3.4            | 3.5             |
 +------------+------------+----------------+-----------------+
 
-Where the Python3 max column is purely indicative and reflects the newest
-*guaranteed* compatible version.
+Minimum Python versions are strict requirements, while maximum
+indicates the newest version for which the yt development team
+provides pre-compiled binaries via PyPI and conda-forge.
+It may be possible to compile existing yt versions under more
+recent Python versions, though this is never guaranteed.
+
+yt also adheres to `SPEC 0 <https://scientific-python.org/specs/spec-0000/>`_ as a soft
+guideline for our support policy of core dependencies (Python, numpy, matplotlib ...).
 
 
 Getting yt
@@ -60,11 +72,10 @@ will work best for you depends on your precise situation:
 Installing a stable release
 +++++++++++++++++++++++++++
 
-The latest stable release can be obtained from Pypi with pip
+The latest stable release can be obtained from PyPI with pip
 
 .. code-block:: bash
 
-  $ python -m pip install --upgrade pip
   $ python -m pip install --user yt
 
 
@@ -73,6 +84,25 @@ Or using the Anaconda/Miniconda Python distributions
 .. code-block:: bash
 
   $ conda install --channel conda-forge yt
+
+
+
+.. _install-additional:
+
+Additional requirements (pip only)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+yt knows about several data file formats. In many cases (e.g. HDF5), additional
+dependencies are needed to enable parsing, that are not installed with yt by default.
+In order to install all required packages for a specific format alongside yt,
+one can specify them as, for instance
+
+.. code-block:: bash
+
+  $ python -m pip install --user "yt[ramses]"
+
+Extra requirements can be combined, separated by commas (say ``yt[ramses,enzo_e]``).
+Note that all format names are normalized to lower case.
 
 
 .. _install-from-source:
@@ -89,7 +119,6 @@ Then run
 
   $ git clone https://github.com/yt-project/yt
   $ cd yt
-  $ python -m pip install --upgrade pip
   $ python -m pip install --user -e .
 
 

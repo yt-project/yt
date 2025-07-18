@@ -4,10 +4,10 @@ CF Radial data structures
 
 
 """
+
 import contextlib
 import os
 import weakref
-from typing import Optional, Tuple
 
 import numpy as np
 from unyt import unyt_array
@@ -16,7 +16,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
+from yt.utilities.file_handler import NetCDF4FileHandler, valid_netcdf_signature
 from yt.utilities.on_demand_imports import _xarray as xr
 
 from .fields import CFRadialFieldInfo
@@ -80,6 +80,7 @@ class CFRadialHierarchy(GridIndex):
 
 
 class CFRadialDataset(Dataset):
+    _load_requirements = ["xarray", "pyart"]
     _index_class = CFRadialHierarchy
     _field_info_class = CFRadialFieldInfo
 
@@ -89,10 +90,10 @@ class CFRadialDataset(Dataset):
         dataset_type="cf_radial",
         storage_filename=None,
         storage_overwrite: bool = False,
-        grid_shape: Optional[Tuple[int, int, int]] = None,
-        grid_limit_x: Optional[Tuple[float, float]] = None,
-        grid_limit_y: Optional[Tuple[float, float]] = None,
-        grid_limit_z: Optional[Tuple[float, float]] = None,
+        grid_shape: tuple[int, int, int] | None = None,
+        grid_limit_x: tuple[float, float] | None = None,
+        grid_limit_y: tuple[float, float] | None = None,
+        grid_limit_z: tuple[float, float] | None = None,
         units_override=None,
     ):
         """
@@ -109,7 +110,7 @@ class CFRadialDataset(Dataset):
             storage_filename will be over-written if it exists. Default is False.
         grid_shape : Optional[Tuple[int, int, int]]
             when gridding to cartesian, grid_shape is the number of cells in the
-            z, y, x coordinatess. If not provided, yt attempts to calculate a
+            z, y, x coordinates. If not provided, yt attempts to calculate a
             reasonable shape based on the resolution of the original cfradial grid
         grid_limit_x : Optional[Tuple[float, float]]
             The x range of the cartesian-gridded data in the form (xmin, xmax) with
@@ -193,7 +194,7 @@ class CFRadialDataset(Dataset):
         self.refine_by = 2  # refinement factor between a grid and its subgrid
 
     @contextlib.contextmanager
-    def _handle(self, filename: Optional[str] = None):
+    def _handle(self, filename: str | None = None):
         if filename is None:
             if hasattr(self, "filename"):
                 filename = self.filename
@@ -204,8 +205,8 @@ class CFRadialDataset(Dataset):
             yield xrds
 
     def _validate_grid_dim(
-        self, radar, dim: str, grid_limit: Optional[Tuple[float, float]] = None
-    ) -> Tuple[float, float]:
+        self, radar, dim: str, grid_limit: tuple[float, float] | None = None
+    ) -> tuple[float, float]:
         if grid_limit is None:
             if dim.lower() == "z":
                 gate_alt = radar.gate_altitude["data"]
@@ -234,8 +235,8 @@ class CFRadialDataset(Dataset):
         return grid_limit
 
     def _validate_grid_shape(
-        self, grid_shape: Optional[Tuple[int, int, int]] = None
-    ) -> Tuple[int, int, int]:
+        self, grid_shape: tuple[int, int, int] | None = None
+    ) -> tuple[int, int, int]:
         if grid_shape is None:
             grid_shape = (100, 100, 100)
             mylog.info(
@@ -248,7 +249,7 @@ class CFRadialDataset(Dataset):
             )
         return grid_shape
 
-    def _round_grid_guess(self, bounds: Tuple[float, float], unit_str: str):
+    def _round_grid_guess(self, bounds: tuple[float, float], unit_str: str):
         # rounds the bounds to the closest 10 km increment that still contains
         # the grid_limit
         for findstr, repstr in self._field_info_class.unit_subs:
@@ -271,16 +272,20 @@ class CFRadialDataset(Dataset):
         with self._handle() as xr_ds_handle:
             x, y, z = (xr_ds_handle.coords[d] for d in "xyz")
 
-            self.origin_latitude = xr_ds_handle.origin_latitude[0]
-            self.origin_longitude = xr_ds_handle.origin_longitude[0]
-
             self.domain_left_edge = np.array([x.min(), y.min(), z.min()])
             self.domain_right_edge = np.array([x.max(), y.max(), z.max()])
             self.dimensionality = 3
-            dims = [xr_ds_handle.dims[d] for d in "xyz"]
+            dims = [xr_ds_handle.sizes[d] for d in "xyz"]
             self.domain_dimensions = np.array(dims, dtype="int64")
             self._periodicity = (False, False, False)
-            self.current_time = float(xr_ds_handle.time.values)
+
+            # note: origin_latitude and origin_longitude arrays will have time
+            # as a dimension and the initial implementation here only handles
+            # the first index. Also, the time array may have a datetime dtype,
+            # so cast to float.
+            self.origin_latitude = xr_ds_handle.origin_latitude[0]
+            self.origin_longitude = xr_ds_handle.origin_longitude[0]
+            self.current_time = float(xr_ds_handle.time.values[0])
 
         # Cosmological information set to zero (not in space).
         self.cosmological_simulation = 0
@@ -290,11 +295,15 @@ class CFRadialDataset(Dataset):
         self.hubble_constant = 0.0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
+        if not valid_netcdf_signature(filename):
+            return False
 
-        warn_netcdf(filename)
+        if cls._missing_load_requirements():
+            return False
+
         is_cfrad = False
         try:
             # note that we use the NetCDF4FileHandler here to avoid some
@@ -304,11 +313,14 @@ class CFRadialDataset(Dataset):
             nc4_file = NetCDF4FileHandler(filename)
             with nc4_file.open_ds(keepweakref=True) as ds:
                 con = "Conventions"  # the attribute to check for file conventions
+                # note that the attributes here are potentially space- or
+                # comma-delimited strings, so we concatenate a single string
+                # to search for a substring.
                 cons = ""  # the value of the Conventions attribute
-                for c in [con, con.lower()]:
+                for c in [con, con.lower(), "Sub_" + con.lower()]:
                     if hasattr(ds, c):
                         cons += getattr(ds, c)
-                is_cfrad = "CF/Radial" in cons
+                is_cfrad = "CF/Radial" in cons or "CF-Radial" in cons
         except (OSError, AttributeError, ImportError):
             return False
 

@@ -3,10 +3,10 @@ import shutil
 import tempfile
 
 import numpy as np
+from numpy.testing import assert_array_equal
 
 from yt.loaders import load, load_uniform_grid
 from yt.testing import (
-    assert_array_equal,
     assert_fname,
     fake_random_ds,
     requires_file,
@@ -93,7 +93,7 @@ def test_non_square_frb():
 
     # construct an arbitrary dataset
     arr = np.arange(8.0 * 9.0 * 10.0).reshape((8, 9, 10))
-    data = dict(density=(arr, "g/cm**3"))
+    data = {"density": (arr, "g/cm**3")}
     bbox = np.array([[-4, 4.0], [-4.5, 4.5], [-5.0, 5]])
     ds = load_uniform_grid(
         data, arr.shape, length_unit="Mpc", bbox=bbox, periodicity=(False, False, False)
@@ -114,7 +114,7 @@ def test_non_square_frb():
     expected_vals = arr[:, :, 5].T
     print(
         "\nConfirmation that initial frb results are expected:",
-        (expected_vals == frb[("gas", "density")].v).all(),
+        (expected_vals == frb["gas", "density"].v).all(),
         "\n",
     )
 
@@ -122,9 +122,9 @@ def test_non_square_frb():
     reloaded_ds = load(fname)
 
     assert_array_equal(
-        frb[("gas", "density")].shape, reloaded_ds.data[("gas", "density")].shape
+        frb["gas", "density"].shape, reloaded_ds.data["gas", "density"].shape
     )
-    assert_array_equal(frb[("gas", "density")], reloaded_ds.data[("gas", "density")])
+    assert_array_equal(frb["gas", "density"], reloaded_ds.data["gas", "density"])
 
     os.chdir(curdir)
     if tmpdir != ".":

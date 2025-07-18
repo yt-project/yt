@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.testing import assert_equal
 
 import yt
 
@@ -36,7 +37,7 @@ def test_octree():
     octree_mask = np.array(OCT_MASK_LIST, dtype=np.uint8)
 
     quantities = {}
-    quantities[("gas", "density")] = np.ones((22, 1), dtype="float64")
+    quantities["gas", "density"] = np.random.random((22, 1))
 
     bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
@@ -44,9 +45,16 @@ def test_octree():
         octree_mask=octree_mask,
         data=quantities,
         bbox=bbox,
-        over_refine_factor=0,
+        num_zones=1,
         partial_coverage=0,
     )
 
     proj = ds.proj(("gas", "density"), "x")
-    proj[("gas", "density")]
+    proj["gas", "density"]
+
+    assert_equal(ds.r[:]["ones"].size, 22)
+    rho1 = quantities["gas", "density"].ravel()
+    rho2 = ds.r[:]["density"].copy()
+    rho1.sort()
+    rho2.sort()
+    assert_equal(rho1, rho2)

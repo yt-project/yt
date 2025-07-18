@@ -15,6 +15,7 @@ from yt.testing import (
     fake_random_ds,
     fake_tetrahedral_ds,
     requires_file,
+    requires_module,
 )
 from yt.utilities.answer_testing.framework import (
     PlotWindowAttributeTest,
@@ -140,7 +141,6 @@ def test_timestamp_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        assert_raises(YTDataTypeUnsupported, p.annotate_timestamp, coord_system="data")
         p.annotate_timestamp(coord_system="axis")
         assert_fname(p.save(prefix)[0])
 
@@ -404,6 +404,23 @@ def test_sphere_callback():
         assert_fname(p.save(prefix)[0])
 
 
+def test_invalidated_annotations():
+    # check that annotate_sphere and annotate_arrow succeed on re-running after
+    # an operation that invalidates the plot (set_font_size), see
+    # https://github.com/yt-project/yt/issues/4698
+
+    ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
+    p = SlicePlot(ds, "z", ("gas", "density"))
+    p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
+    p.set_font_size(24)
+    p.render()
+
+    p = SlicePlot(ds, "z", ("gas", "density"))
+    p.annotate_arrow([0.5, 0.5, 0.5])
+    p.set_font_size(24)
+    p.render()
+
+
 def test_text_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
@@ -437,6 +454,7 @@ def test_text_callback():
         assert_fname(p.save(prefix)[0])
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_velocity_callback():
@@ -485,18 +503,26 @@ def test_velocity_callback():
             slc.annotate_velocity()
             assert_fname(slc.save(prefix)[0])
 
+
+def test_velocity_callback_spherical():
+    ds = fake_amr_ds(
+        fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
+        units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+        geometry="spherical",
+    )
+
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(
-            fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
-            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
-            geometry="spherical",
-        )
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
-        assert_raises(
-            YTDataTypeUnsupported, p.annotate_velocity, factor=40, normalize=True
-        )
+        p = ProjectionPlot(ds, "phi", ("stream", "density"))
+        p.annotate_velocity(factor=40, normalize=True)
+        assert_fname(p.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
+        p = ProjectionPlot(ds, "r", ("stream", "density"))
+        p.annotate_velocity(factor=40, normalize=True)
+        assert_raises(NotImplementedError, p.save, prefix)
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_magnetic_callback():
@@ -568,11 +594,26 @@ def test_magnetic_callback():
             ),
             geometry="spherical",
         )
+        p = ProjectionPlot(ds, "phi", ("gas", "density"))
+        p.annotate_magnetic_field(
+            factor=8, scale=0.5, scale_units="inches", normalize=True
+        )
+        assert_fname(p.save(prefix)[0])
+
+        p = ProjectionPlot(ds, "theta", ("gas", "density"))
+        p.annotate_magnetic_field(
+            factor=8, scale=0.5, scale_units="inches", normalize=True
+        )
+        assert_fname(p.save(prefix)[0])
+
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        kwargs = dict(factor=8, scale=0.5, scale_units="inches", normalize=True)
-        assert_raises(YTDataTypeUnsupported, p.annotate_magnetic_field, **kwargs)
+        p.annotate_magnetic_field(
+            factor=8, scale=0.5, scale_units="inches", normalize=True
+        )
+        assert_raises(NotImplementedError, p.save, prefix)
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_quiver_callback():
@@ -628,28 +669,40 @@ def test_quiver_callback():
         slc.annotate_quiver(("gas", "velocity_r"), ("gas", "velocity_z"))
         assert_fname(slc.save(prefix)[0])
 
+
+def test_quiver_callback_spherical():
+    ds = fake_amr_ds(
+        fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
+        units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+        geometry="spherical",
+    )
+
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(
-            fields=("density", "velocity_x", "velocity_theta", "velocity_phi"),
-            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
-            geometry="spherical",
-        )
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
-        args = (
-            ("gas", "velocity_theta"),
-            ("gas", "velocity_phi"),
-        )
-        kwargs = dict(
+        p = ProjectionPlot(ds, "phi", ("gas", "density"))
+        p.annotate_quiver(
+            ("gas", "velocity_cylindrical_radius"),
+            ("gas", "velocity_cylindrical_z"),
             factor=8,
             scale=0.5,
             scale_units="inches",
             normalize=True,
-            bv_x=0.5 * u.cm / u.s,
-            bv_y=0.5 * u.cm / u.s,
         )
-        assert_raises(YTDataTypeUnsupported, p.annotate_quiver, *args, **kwargs)
+        assert_fname(p.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
+        p = ProjectionPlot(ds, "r", ("gas", "density"))
+        p.annotate_quiver(
+            ("gas", "velocity_theta"),
+            ("gas", "velocity_phi"),
+            factor=8,
+            scale=0.5,
+            scale_units="inches",
+            normalize=True,
+        )
+        assert_fname(p.save(prefix)[0])
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 def test_contour_callback():
     with _cleanup_fname() as prefix:
@@ -718,20 +771,21 @@ def test_contour_callback():
             geometry="spherical",
         )
         p = SlicePlot(ds, "r", ("gas", "density"))
-        kwargs = dict(
-            levels=10,
-            factor=8,
-            take_log=False,
-            clim=(0.4, 0.6),
-            plot_args={"linewidths": 2.0},
-            label=True,
-            text_args={"fontsize": "x-large"},
-        )
+        kwargs = {
+            "levels": 10,
+            "factor": 8,
+            "take_log": False,
+            "clim": (0.4, 0.6),
+            "plot_args": {"linewidths": 2.0},
+            "label": True,
+            "text_args": {"fontsize": "x-large"},
+        }
         assert_raises(
             YTDataTypeUnsupported, p.annotate_contour, ("gas", "temperature"), **kwargs
         )
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 def test_grids_callback():
     with _cleanup_fname() as prefix:
@@ -773,20 +827,21 @@ def test_grids_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = SlicePlot(ds, "r", ("gas", "density"))
-        kwargs = dict(
-            alpha=0.7,
-            min_pix=10,
-            min_pix_ids=30,
-            draw_ids=True,
-            id_loc="upper right",
-            periodic=False,
-            min_level=2,
-            max_level=3,
-            cmap="gist_stern",
-        )
+        kwargs = {
+            "alpha": 0.7,
+            "min_pix": 10,
+            "min_pix_ids": 30,
+            "draw_ids": True,
+            "id_loc": "upper right",
+            "periodic": False,
+            "min_level": 2,
+            "max_level": 3,
+            "cmap": "gist_stern",
+        }
         assert_raises(YTDataTypeUnsupported, p.annotate_grids, **kwargs)
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 def test_cell_edges_callback():
     with _cleanup_fname() as prefix:
@@ -823,7 +878,6 @@ def test_cell_edges_callback():
 
 def test_mesh_lines_callback():
     with _cleanup_fname() as prefix:
-
         ds = fake_hexahedral_ds()
         for field in ds.field_list:
             sl = SlicePlot(ds, 1, field)
@@ -838,12 +892,11 @@ def test_mesh_lines_callback():
         check_axis_manipulation(sl, prefix)  # only test the final field
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_streamline_callback():
-
     with _cleanup_fname() as prefix:
-
         ds = fake_amr_ds(
             fields=("density", "velocity_x", "velocity_y", "magvel"),
             units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
@@ -877,17 +930,20 @@ def test_streamline_callback():
             p.annotate_streamlines(
                 ("gas", "velocity_x"),
                 ("gas", "velocity_y"),
-                field_color=("stream", "magvel"),
+                color=("stream", "magvel"),
             )
             assert_fname(p.save(prefix)[0])
             check_axis_manipulation(p, prefix)
 
+            # a more thorough example involving many keyword arguments
             p = SlicePlot(ds, ax, ("gas", "density"))
             p.annotate_streamlines(
                 ("gas", "velocity_x"),
                 ("gas", "velocity_y"),
-                field_color=("stream", "magvel"),
-                display_threshold=0.5,
+                linewidth=("gas", "density"),
+                linewidth_upscaling=3,
+                color=("stream", "magvel"),
+                color_threshold=0.5,
                 cmap="viridis",
                 arrowstyle="->",
             )
@@ -896,7 +952,6 @@ def test_streamline_callback():
     # Axisymmetric dataset
 
     with _cleanup_fname() as prefix:
-
         ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", ("gas", "velocity_magnitude"))
         slc.annotate_streamlines(("gas", "velocity_r"), ("gas", "velocity_z"))
@@ -918,21 +973,24 @@ def test_streamline_callback():
 
     # Spherical dataset
     with _cleanup_fname() as prefix:
-
         ds = fake_amr_ds(
             fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
             units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
             geometry="spherical",
         )
-        p = SlicePlot(ds, "r", ("gas", "density"))
-        assert_raises(
-            YTDataTypeUnsupported,
-            p.annotate_streamlines,
-            ("gas", "velocity_theta"),
-            ("gas", "velocity_phi"),
+        slc = SlicePlot(ds, "phi", ("gas", "velocity_magnitude"))
+        slc.annotate_streamlines(
+            ("gas", "velocity_cylindrical_radius"), ("gas", "velocity_cylindrical_z")
         )
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "theta", ("gas", "velocity_magnitude"))
+        slc.annotate_streamlines(
+            ("gas", "velocity_conic_x"), ("gas", "velocity_conic_y")
+        )
+        assert_fname(slc.save(prefix)[0])
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_line_integral_convolution_callback():
@@ -1005,13 +1063,17 @@ def test_line_integral_convolution_callback():
             units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
             geometry="spherical",
         )
-        p = SlicePlot(ds, "r", ("gas", "density"))
-        assert_raises(
-            YTDataTypeUnsupported,
-            p.annotate_line_integral_convolution,
-            ("gas", "velocity_theta"),
-            ("gas", "velocity_phi"),
+        slc = SlicePlot(ds, "phi", ("gas", "velocity_magnitude"))
+        slc.annotate_line_integral_convolution(
+            ("gas", "velocity_cylindrical_radius"), ("gas", "velocity_cylindrical_z")
         )
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "theta", ("gas", "velocity_magnitude"))
+        slc.annotate_line_integral_convolution(
+            ("gas", "velocity_conic_x"), ("gas", "velocity_conic_y")
+        )
+        assert_fname(slc.save(prefix)[0])
+        check_axis_manipulation(slc, prefix)
 
 
 def test_accepts_all_fields_decorator():
@@ -1026,7 +1088,7 @@ def test_accepts_all_fields_decorator():
     plot = SlicePlot(ds, "z", fields=fields)
 
     # mocking a class method
-    plot.fake_attr = {f: "not set" for f in fields}
+    plot.fake_attr = dict.fromkeys(fields, "not set")
 
     @accepts_all_fields
     def set_fake_field_attribute(self, field, value):

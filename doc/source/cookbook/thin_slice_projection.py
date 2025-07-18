@@ -9,12 +9,12 @@ ds = yt.load("Enzo_64/DD0030/data0030")
 # as a data_source for the projection.
 
 # Center on the domain center
-center = ds.domain_center
+center = ds.domain_center.copy()
 
 # First make the left and right corner of the region based
 # on the full domain.
-left_corner = ds.domain_left_edge
-right_corner = ds.domain_right_edge
+left_corner = ds.domain_left_edge.copy()
+right_corner = ds.domain_right_edge.copy()
 
 # Now adjust the size of the region along the line of sight (x axis).
 depth = ds.quan(5.0, "Mpc")

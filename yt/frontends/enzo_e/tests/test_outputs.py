@@ -1,8 +1,9 @@
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 from yt.frontends.enzo_e.api import EnzoEDataset
 from yt.frontends.enzo_e.fields import NODAL_FLAGS
-from yt.testing import assert_array_equal, assert_equal, requires_file
+from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     PixelizedProjectionValuesTest,
@@ -33,11 +34,13 @@ ep_cosmo = "ENZOP_DD0140/ENZOP_DD0140.block_list"
 orszag_tang = "ENZOE_orszag-tang_0.5/ENZOE_orszag-tang_0.5.block_list"
 
 
+@requires_module("h5py")
 @requires_file(hello_world)
 def test_EnzoEDataset():
     assert isinstance(data_dir_load(hello_world), EnzoEDataset)
 
 
+@requires_module("h5py")
 @requires_ds(hello_world)
 def test_hello_world():
     ds = data_dir_load(hello_world)
@@ -52,11 +55,12 @@ def test_hello_world():
                     )
             yield FieldValuesTest(hello_world, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj[("index", "ones")].sum()
+        s1 = dobj["index", "ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
 
+@requires_module("h5py")
 @requires_ds(ep_cosmo)
 def test_particle_fields():
     ds = data_dir_load(ep_cosmo)
@@ -66,11 +70,12 @@ def test_particle_fields():
         for field in _pfields:
             yield FieldValuesTest(ep_cosmo, field, dobj_name, particle_type=True)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj[("index", "ones")].sum()
+        s1 = dobj["index", "ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
 
+@requires_module("h5py")
 @requires_file(hello_world)
 def test_hierarchy():
     ds = data_dir_load(hello_world)
@@ -89,6 +94,7 @@ def test_hierarchy():
     fh.close()
 
 
+@requires_module("h5py")
 @requires_file(ep_cosmo)
 def test_critical_density():
     ds = data_dir_load(ep_cosmo)
@@ -107,6 +113,7 @@ def test_critical_density():
     assert np.abs(c1 - c2) / max(c1, c2) < 1e-3
 
 
+@requires_module("h5py")
 @requires_file(orszag_tang)
 def test_face_centered_bfields():
     # this is based on the enzo frontend test, test_face_centered_mhdct_fields

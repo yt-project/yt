@@ -44,3 +44,12 @@ ef783151bfd7c6777fa25e9e06f95fe47653b3aa
 
 # apply linting to ipynb files
 ec8bb45ea1603f3862041fa9e8ec274afd9bbbfd
+
+# auto upgrade typing idioms from Python 3.8 to 3.9
+4cfd370a8445abd4620e3853c2c047ee3d649fd7
+
+# migration: black -> ruff-format
+3214662dc7d53f7ac56b3589c5a27ef075f83ab4
+
+# auto upgrade syntax from Python 3.9 to 3.10
+e86625e780b77a42aedad711e5a9a945ce650974

@@ -5,12 +5,11 @@ import unittest
 
 import numpy as np
 from nose.tools import assert_raises
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.particle_filters import particle_filter
 from yt.testing import (
-    assert_equal,
     fake_amr_ds,
     fake_particle_ds,
     fake_random_ds,
@@ -50,13 +49,13 @@ class TestDataContainers(unittest.TestCase):
         # Delete the key and check if exits
         del proj["px"]
         assert_equal("px" in proj.keys(), False)
-        del proj[("gas", "density")]
+        del proj["gas", "density"]
         assert_equal("density" in proj.keys(), False)
 
         # Delete a non-existent field
         with assert_raises(YTFieldNotFound) as ex:
             del proj["p_mass"]
-        desired = "Could not find field ('unknown', 'p_mass') in UniformGridData."
+        desired = "Could not find field 'p_mass' in UniformGridData."
         assert_equal(str(ex.exception), desired)
 
     def test_write_out(self):
@@ -161,10 +160,11 @@ class TestDataContainers(unittest.TestCase):
         # their parent field to be created
         ds = fake_particle_ds()
         dd = ds.all_data()
+        dd.set_field_parameter("axis", 0)
 
         @particle_filter(requires=["particle_mass"], filtered_type="io")
         def massive(pfilter, data):
-            return data[(pfilter.filtered_type, "particle_mass")].to("code_mass") > 0.5
+            return data[pfilter.filtered_type, "particle_mass"].to("code_mass") > 0.5
 
         ds.add_particle_filter("massive")
 

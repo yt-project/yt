@@ -71,8 +71,7 @@ class TipsyDataset(SPHDataset):
         if not success:
             print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
             print(
-                "%s != (sum == %s + %s + %s)"
-                % (
+                "{} != (sum == {} + {} + {})".format(
                     self.parameters["nbodies"],
                     self.parameters["nsph"],
                     self.parameters["ndark"],
@@ -115,16 +114,17 @@ class TipsyDataset(SPHDataset):
         return os.path.basename(self.parameter_filename)
 
     def _parse_parameter_file(self):
-
         # Parsing the header of the tipsy file, from this we obtain
         # the snapshot time and particle counts.
 
         f = open(self.parameter_filename, "rb")
-        hh = self.endian + "".join("%s" % (b) for a, b in self._header_spec)
+        hh = self.endian + "".join(str(b) for a, b in self._header_spec)
         hvals = {
             a: c
             for (a, b), c in zip(
-                self._header_spec, struct.unpack(hh, f.read(struct.calcsize(hh)))
+                self._header_spec,
+                struct.unpack(hh, f.read(struct.calcsize(hh))),
+                strict=True,
             )
         }
         self.parameters.update(hvals)
@@ -197,18 +197,18 @@ class TipsyDataset(SPHDataset):
             cosm = self._cosmology_parameters or {}
             # In comoving simulations, time stores the scale factor a
             self.scale_factor = hvals["time"]
-            dcosm = dict(
-                current_redshift=(1.0 / self.scale_factor) - 1.0,
-                omega_lambda=self.parameters.get(
+            dcosm = {
+                "current_redshift": (1.0 / self.scale_factor) - 1.0,
+                "omega_lambda": self.parameters.get(
                     "dLambda", cosm.get("omega_lambda", 0.0)
                 ),
-                omega_matter=self.parameters.get(
+                "omega_matter": self.parameters.get(
                     "dOmega0", cosm.get("omega_matter", 0.0)
                 ),
-                hubble_constant=self.parameters.get(
+                "hubble_constant": self.parameters.get(
                     "dHubble0", cosm.get("hubble_constant", 1.0)
                 ),
-            )
+            }
             for param in dcosm.keys():
                 pval = dcosm[param]
                 setattr(self, param, pval)
@@ -333,5 +333,5 @@ class TipsyDataset(SPHDataset):
         return True, endianswap
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         return TipsyDataset._validate_header(filename)[0]

@@ -1,18 +1,12 @@
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal, assert_raises
 
 from yt.data_objects.profiles import create_profile
-from yt.testing import (
-    assert_equal,
-    assert_raises,
-    fake_random_ds,
-    periodicity_cases,
-    requires_module,
-)
+from yt.testing import fake_random_ds, periodicity_cases, requires_module
 from yt.utilities.exceptions import YTException, YTFieldNotFound
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
@@ -50,7 +44,7 @@ def test_domain_sphere():
     sp1.set_field_parameter("bulk_velocity", bulk_vel)
 
     assert_equal(
-        np.any(sp0[("gas", "radial_velocity")] == sp1[("gas", "radial_velocity")]),
+        np.any(sp0["gas", "radial_velocity"] == sp1["gas", "radial_velocity"]),
         False,
     )
 
@@ -127,25 +121,25 @@ def test_center_error():
 def test_minimal_sphere():
     ds = fake_random_ds(16, nprocs=8, particles=100)
 
-    pos = ds.r[("all", "particle_position")]
+    pos = ds.r["all", "particle_position"]
     sp1 = ds.minimal_sphere(pos)
 
     N0 = len(pos)
 
     # Check all particles have been found
-    N1 = len(sp1[("all", "particle_ones")])
+    N1 = len(sp1["all", "particle_ones"])
     assert_equal(N0, N1)
 
     # Check that any smaller sphere is missing some particles
     sp2 = ds.sphere(sp1.center, sp1.radius * 0.9)
-    N2 = len(sp2[("all", "particle_ones")])
+    N2 = len(sp2["all", "particle_ones"])
     assert N2 < N0
 
 
 @requires_module("miniball")
 def test_minimal_sphere_bad_inputs():
     ds = fake_random_ds(16, nprocs=8, particles=100)
-    pos = ds.r[("all", "particle_position")]
+    pos = ds.r["all", "particle_position"]
 
     ## Check number of points >= 2
     # -> should fail

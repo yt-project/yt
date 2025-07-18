@@ -1,24 +1,22 @@
 import numpy as np
+from numpy.testing import assert_allclose, assert_equal
 
 from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.loaders import load
 from yt.testing import (
     assert_allclose_units,
-    assert_equal,
     disable_dataset_cache,
     requires_file,
     units_override_check,
 )
 from yt.units import dimensions
 from yt.utilities.answer_testing.framework import (
+    GenericArrayTest,
     data_dir_load,
     requires_ds,
     small_patch_amr,
 )
 
-# Deactivating this problematic test until the dataset type can be
-# handled properly, see https://github.com/yt-project/yt/issues/3619
-"""
 _fields_disk = ("density", "velocity_r")
 
 disk = "KeplerianDisk/disk.out1.00000.athdf"
@@ -33,13 +31,13 @@ def test_disk():
     vol *= np.cos(ds.domain_left_edge[1]) - np.cos(ds.domain_right_edge[1])
     vol *= ds.domain_right_edge[2].v - ds.domain_left_edge[2].v
     assert_allclose(dd.quantities.total_quantity(("gas", "cell_volume")), vol)
+
+    def field_func(field):
+        return dd[field]
+
     for field in _fields_disk:
-
-        def field_func(name):
-            return dd[field]
-
         yield GenericArrayTest(ds, field_func, args=[field])
-"""
+
 
 _fields_AM06 = ("temperature", "density", "velocity_magnitude", "magnetic_field_x")
 

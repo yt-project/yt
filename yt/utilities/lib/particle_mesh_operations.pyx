@@ -13,7 +13,7 @@ cimport numpy as np
 
 import numpy as np
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+from yt.utilities.lib.fp_utils cimport fclip
 
 
 @cython.boundscheck(False)
@@ -151,8 +151,6 @@ def NGPDeposit_2(np.float64_t[:] posx,
 
     cdef int i, j, i1, j1, n
     cdef np.float64_t xpos, ypos
-    cdef np.float64_t edge0, edge1
-    cdef np.float64_t le0, le1
     cdef np.float64_t[2] x_endpoints
     cdef np.float64_t[2] y_endpoints
 

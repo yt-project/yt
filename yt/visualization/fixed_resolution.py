@@ -1,9 +1,12 @@
+import sys
 import weakref
-from typing import TYPE_CHECKING, Dict, List, Optional
+from functools import partial
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey, MaskT
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
@@ -12,10 +15,19 @@ from yt.utilities.lib.api import (  # type: ignore
     CICDeposit_2,
     add_points_to_greyscale_image,
 )
-from yt.utilities.lib.pixelization_routines import pixelize_cylinder
+from yt.utilities.lib.pixelization_routines import (
+    pixelize_cylinder,
+    rotate_particle_coord_pib,
+)
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .volume_rendering.api import off_axis_projection
+
+if sys.version_info >= (3, 12):
+    from typing import override
+else:
+    from typing_extensions import override
 
 if TYPE_CHECKING:
     from yt.visualization.fixed_resolution_filters import FixedResolutionBufferFilter
@@ -65,11 +77,12 @@ class FixedResolutionBuffer:
 
     >>> proj = ds.proj(0, ("gas", "density"))
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
-    >>> print(frb1[("gas", "density")].max())
+    >>> print(frb1["gas", "density"].max())
     1.0914e-9 g/cm**3
-    >>> print(frb1[("gas", "temperature")].max())
+    >>> print(frb1["gas", "temperature"].max())
     104923.1 K
     """
+
     _exclude_fields = (
         "pz",
         "pdz",
@@ -103,14 +116,15 @@ class FixedResolutionBuffer:
         antialias=True,
         periodic=False,
         *,
-        filters: Optional[List["FixedResolutionBufferFilter"]] = None,
+        filters: list["FixedResolutionBufferFilter"] | None = None,
     ):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
         self.buff_size = (int(buff_size[0]), int(buff_size[1]))
         self.antialias = antialias
-        self.data: Dict[str, np.ndarray] = {}
+        self.data: dict[str, ImageArray] = {}
+        self.mask: dict[str, MaskT] = {}
         self.axis = data_source.axis
         self.periodic = periodic
         self._data_valid = False
@@ -119,12 +133,12 @@ class FixedResolutionBuffer:
         # note that this import statement is actually crucial at runtime:
         # the filter methods for the present class are defined only when
         # fixed_resolution_filters is imported, so we need to guarantee
-        # that it happens no later than instanciation
-        from yt.visualization.fixed_resolution_filters import (
+        # that it happens no later than instantiation
+        from yt.visualization.fixed_resolution_filters import (  # noqa
             FixedResolutionBufferFilter,
         )
 
-        self._filters: List[FixedResolutionBufferFilter] = (
+        self._filters: list[FixedResolutionBufferFilter] = (
             filters if filters is not None else []
         )
 
@@ -133,7 +147,7 @@ class FixedResolutionBuffer:
             ds.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
-        if self.data_source.axis < 3:
+        if self.data_source.axis is not None:
             DLE = self.ds.domain_left_edge
             DRE = self.ds.domain_right_edge
             DD = float(self.periodic) * (DRE - DLE)
@@ -149,9 +163,7 @@ class FixedResolutionBuffer:
     def __delitem__(self, item):
         del self.data[item]
 
-    def __getitem__(self, item):
-        if item in self.data and self._data_valid:
-            return self.data[item]
+    def _generate_image_and_mask(self, item) -> None:
         mylog.info(
             "Making a fixed resolution buffer of (%s) %d by %d",
             item,
@@ -164,13 +176,14 @@ class FixedResolutionBuffer:
                 b = float(b.in_units("code_length"))
             bounds.append(b)
 
-        buff = self.ds.coordinates.pixelize(
+        buff, mask = self.ds.coordinates.pixelize(
             self.data_source.axis,
             self.data_source,
             item,
             bounds,
             self.buff_size,
             int(self.antialias),
+            return_mask=True,
         )
 
         buff = self._apply_filters(buff)
@@ -187,10 +200,32 @@ class FixedResolutionBuffer:
         except (KeyError, AttributeError):
             units = self.data_source[item].units
 
-        ia = ImageArray(buff, units=units, info=self._get_info(item))
-        self.data[item] = ia
+        self.data[item] = ImageArray(buff, units=units, info=self._get_info(item))
+        self.mask[item] = mask
         self._data_valid = True
-        return self.data[item]
+
+    def __getitem__(self, item):
+        # backward compatibility
+        return self.get_image(item)
+
+    def get_image(self, key, /) -> ImageArray:
+        if not (key in self.data and self._data_valid):
+            self._generate_image_and_mask(key)
+        return self.data[key]
+
+    def get_mask(self, key, /) -> MaskT:
+        """Return the boolean array associated with an image with the same key.
+
+        Elements set to True indicate pixels that were updated by a pixelisation routine
+        """
+        if not (key in self.mask and self._data_valid):
+            self._generate_image_and_mask(key)
+        return self.mask[key]
+
+    def render(self, item):
+        # deleguate to __getitem__ for historical reasons
+        # this method exists for clarity of intention
+        return self[item]
 
     def _apply_filters(self, buffer: np.ndarray) -> np.ndarray:
         for f in self._filters:
@@ -206,12 +241,12 @@ class FixedResolutionBuffer:
         fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
             if f not in exclude and f[0] not in self.data_source.ds.particle_types:
-                self[f]
+                self.render(f)
 
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
-        finfo = self.data_source.ds._get_field_info(*field)
+        finfo = self.data_source.ds._get_field_info(field)
         info["data_source"] = self.data_source.__str__()
         info["axis"] = self.data_source.axis
         info["field"] = str(item)
@@ -350,7 +385,7 @@ class FixedResolutionBuffer:
             fields = list(self.data.keys())
         output = h5py.File(filename, mode="a")
         for field in fields:
-            output.create_dataset(field, data=self[field])
+            output.create_dataset("_".join(field), data=self[field])
         output.close()
 
     def to_fits_data(self, fields=None, other_keys=None, length_unit=None, **kwargs):
@@ -391,7 +426,7 @@ class FixedResolutionBuffer:
         fid = FITSImageData(self, fields=fields, length_unit=length_unit)
         if other_keys is not None:
             for k, v in other_keys.items():
-                fid.update_all_headers(k, v)
+                fid.update_header("all", k, v)
         return fid
 
     def export_dataset(self, fields=None, nprocs=1):
@@ -474,7 +509,7 @@ class FixedResolutionBuffer:
         >>> frb = proj.to_frb(1.0, (800, 800))
         >>> fn = frb.save_as_dataset(fields=[("gas", "density")])
         >>> ds2 = yt.load(fn)
-        >>> print(ds2.data[("gas", "density")])
+        >>> print(ds2.data["gas", "density"])
         [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
             7.90820691e-31   7.90820691e-31]
          [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
@@ -501,7 +536,7 @@ class FixedResolutionBuffer:
         else:
             data.update(self.data)
 
-        ftypes = {field: "grid" for field in data}
+        ftypes = dict.fromkeys(data, "grid")
         extra_attrs = {
             arg: getattr(self.data_source, arg, None)
             for arg in self.data_source._con_args + self.data_source._tds_attrs
@@ -523,7 +558,7 @@ class FixedResolutionBuffer:
 
     @property
     def limits(self):
-        rv = dict(x=None, y=None, z=None)
+        rv = {"x": None, "y": None, "z": None}
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
         xn = self.ds.coordinates.axis_name[xax]
@@ -535,7 +570,8 @@ class FixedResolutionBuffer:
     def setup_filters(self):
         issue_deprecation_warning(
             "The FixedResolutionBuffer.setup_filters method is now a no-op. ",
-            since="4.1.0",
+            stacklevel=3,
+            since="4.1",
         )
 
 
@@ -559,11 +595,10 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         if ds is not None:
             ds.plots.append(weakref.proxy(self))
 
-    def __getitem__(self, item):
-        if item in self.data:
-            return self.data[item]
+    @override
+    def _generate_image_and_mask(self, item) -> None:
         buff = np.zeros(self.buff_size, dtype="f8")
-        pixelize_cylinder(
+        mask = pixelize_cylinder(
             buff,
             self.data_source["r"],
             self.data_source["dr"],
@@ -571,9 +606,12 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
             self.data_source["dtheta"],
             self.data_source[item].astype("float64"),
             self.radius,
+            return_mask=True,
         )
-        self[item] = buff
-        return buff
+        self.data[item] = ImageArray(
+            buff, units=self.data_source[item].units, info=self._get_info(item)
+        )
+        self.mask[item] = mask
 
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
@@ -583,9 +621,8 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
     that supports off axis projections.  This calls the volume renderer.
     """
 
-    def __getitem__(self, item):
-        if item in self.data:
-            return self.data[item]
+    @override
+    def _generate_image_and_mask(self, item) -> None:
         mylog.info(
             "Making a fixed resolution buffer of (%s) %d by %d",
             item,
@@ -593,6 +630,8 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             self.buff_size[1],
         )
         dd = self.data_source
+        # only need the first two for SPH,
+        # but need the third one for other data formats.
         width = self.ds.arr(
             (
                 self.bounds[1] - self.bounds[0],
@@ -612,11 +651,47 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             no_ghost=dd.no_ghost,
             interpolated=dd.interpolated,
             north_vector=dd.north_vector,
+            depth=dd.depth,
             method=dd.method,
         )
+        if self.data_source.moment == 2:
+
+            def _sq_field(field, data, item: FieldKey):
+                return data[item] ** 2
+
+            fd = self.ds._get_field_info(item)
+            ftype, fname = item
+
+            item_sq = (ftype, f"tmp_{fname}_squared")
+            self.ds.add_field(
+                item_sq,
+                partial(_sq_field, item=item),
+                sampling_type=fd.sampling_type,
+                units=f"({fd.units})*({fd.units})",
+            )
+
+            buff2 = off_axis_projection(
+                dd.dd,
+                dd.center,
+                dd.normal_vector,
+                width,
+                self.buff_size,
+                item_sq,
+                weight=dd.weight_field,
+                volume=dd.volume,
+                no_ghost=dd.no_ghost,
+                interpolated=dd.interpolated,
+                north_vector=dd.north_vector,
+                depth=dd.depth,
+                method=dd.method,
+            )
+            buff = compute_stddev_image(buff2, buff)
+
+            self.ds.field_info.pop(item_sq)
+
         ia = ImageArray(buff.swapaxes(0, 1), info=self._get_info(item))
-        self[item] = ia
-        return ia
+        self.data[item] = ia
+        self.mask[item] = None
 
 
 class ParticleImageBuffer(FixedResolutionBuffer):
@@ -645,16 +720,15 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # set up the axis field names
         axis = self.axis
-        self.xax = self.ds.coordinates.x_axis[axis]
-        self.yax = self.ds.coordinates.y_axis[axis]
-        ax_field_template = "particle_position_%s"
-        self.x_field = ax_field_template % self.ds.coordinates.axis_name[self.xax]
-        self.y_field = ax_field_template % self.ds.coordinates.axis_name[self.yax]
+        if axis is not None:
+            self.xax = self.ds.coordinates.x_axis[axis]
+            self.yax = self.ds.coordinates.y_axis[axis]
+            axis_name = self.ds.coordinates.axis_name
+            self.x_field = f"particle_position_{axis_name[self.xax]}"
+            self.y_field = f"particle_position_{axis_name[self.yax]}"
 
-    def __getitem__(self, item):
-        if item in self.data:
-            return self.data[item]
-
+    @override
+    def _generate_image_and_mask(self, item) -> None:
         deposition = self.data_source.deposition
         density = self.data_source.density
 
@@ -666,20 +740,39 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             deposition,
         )
 
-        bounds = []
-        for b in self.bounds:
-            if hasattr(b, "in_units"):
-                b = float(b.in_units("code_length"))
-            bounds.append(b)
+        dd = self.data_source.dd
 
         ftype = item[0]
-        x_data = self.data_source.dd[ftype, self.x_field]
-        y_data = self.data_source.dd[ftype, self.y_field]
-        data = self.data_source.dd[item]
+        if self.axis is None:
+            wd = []
+            for w in self.data_source.width:
+                if hasattr(w, "to_value"):
+                    w = w.to_value("code_length")
+                wd.append(w)
+            x_data, y_data, *bounds = rotate_particle_coord_pib(
+                dd[ftype, "particle_position_x"].to_value("code_length"),
+                dd[ftype, "particle_position_y"].to_value("code_length"),
+                dd[ftype, "particle_position_z"].to_value("code_length"),
+                self.data_source.center.to_value("code_length"),
+                wd,
+                self.data_source.normal_vector,
+                self.data_source.north_vector,
+            )
+            x_data = np.array(x_data)
+            y_data = np.array(y_data)
+        else:
+            bounds = []
+            for b in self.bounds:
+                if hasattr(b, "to_value"):
+                    b = b.to_value("code_length")
+                bounds.append(b)
+            x_data = dd[ftype, self.x_field].to_value("code_length")
+            y_data = dd[ftype, self.y_field].to_value("code_length")
+        data = dd[item]
 
         # handle periodicity
-        dx = x_data.in_units("code_length").d - bounds[0]
-        dy = y_data.in_units("code_length").d - bounds[2]
+        dx = x_data - bounds[0]
+        dy = y_data - bounds[2]
         if self.periodic:
             dx %= float(self._period[0].in_units("code_length"))
             dy %= float(self._period[1].in_units("code_length"))
@@ -697,7 +790,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         if weight_field is None:
             weight_data = np.ones_like(data.v)
         else:
-            weight_data = self.data_source.dd[weight_field]
+            weight_data = dd[weight_field]
         splat_vals = weight_data[mask] * data[mask]
 
         x_bin_edges = np.linspace(0.0, 1.0, self.buff_size[0] + 1)
@@ -731,16 +824,14 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         # requested
         info = self._get_info(item)
         if density:
-            width = self.data_source.width
-            norm = width[self.xax] * width[self.yax] / np.prod(self.buff_size)
-            norm = norm.in_base()
+            dpx = (bounds[1] - bounds[0]) / self.buff_size[0]
+            dpy = (bounds[3] - bounds[2]) / self.buff_size[1]
+            norm = self.ds.quan(dpx * dpy, "code_length**2").in_base()
             buff /= norm.v
             units = data.units / norm.units
-            info["label"] = "%s $\\rm{Density}$" % info["label"]
+            info["label"] += " $\\rm{Density}$"
         else:
             units = data.units
-
-        ia = ImageArray(buff, units=units, info=info)
 
         # divide by the weight_field, if needed
         if weight_field is not None:
@@ -761,16 +852,13 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                     y_bin_edges,
                     x_bin_edges,
                 )
-            weight_array = ImageArray(
-                weight_buff, units=weight_data.units, info=self._get_info(item)
-            )
             # remove values in no-particle region
             weight_buff[weight_buff_mask == 0] = np.nan
-            locs = np.where(weight_array > 0)
-            ia[locs] /= weight_array[locs]
+            locs = np.where(weight_buff > 0)
+            buff[locs] /= weight_buff[locs]
 
-        self.data[item] = ia
-        return self.data[item]
+        self.data[item] = ImageArray(buff, units=units, info=info)
+        self.mask[item] = buff_mask != 0
 
     # over-ride the base class version, since we don't want to exclude
     # particle fields
@@ -780,4 +868,4 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
             if f not in exclude:
-                self[f]
+                self.render(f)

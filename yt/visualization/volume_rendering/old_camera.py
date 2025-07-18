@@ -1,9 +1,8 @@
-import builtins
 from copy import deepcopy
-from typing import List
 
 import numpy as np
 
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
@@ -117,7 +116,6 @@ class Camera(ParallelAnalysisInterface):
     Examples
     --------
 
-    >>> from yt.mods import *
     >>> import yt.visualization.volume_rendering.api as vr
 
     >>> ds = load("DD1701")  # Load a dataset
@@ -142,6 +140,7 @@ class Camera(ParallelAnalysisInterface):
     >>> image = cam.snapshot(fn="my_rendering.png")
 
     """
+
     _sampler_object = VolumeRenderSampler
     _tf_figure = None
     _render_figure = None
@@ -186,8 +185,8 @@ class Camera(ParallelAnalysisInterface):
             center = self.ds.arr(center, units="code_length")
         # Ensure that width and center are in the same units
         # Cf. https://bitbucket.org/yt_analysis/yt/issue/1080
-        width.convert_to_units("code_length")
-        center.convert_to_units("code_length")
+        width = width.in_units("code_length")
+        center = center.in_units("code_length")
         self.orienter = Orientation(
             normal_vector, north_vector=north_vector, steady_north=steady_north
         )
@@ -204,7 +203,7 @@ class Camera(ParallelAnalysisInterface):
         dd = self.ds.all_data()
         efields = dd._determine_fields(self.fields)
         if self.log_fields is None:
-            self.log_fields = [self.ds._get_field_info(*f).take_log for f in efields]
+            self.log_fields = [self.ds._get_field_info(f).take_log for f in efields]
         self.no_ghost = no_ghost
         self.use_light = use_light
         self.light_dir = None
@@ -252,8 +251,8 @@ class Camera(ParallelAnalysisInterface):
         dy = np.dot(pos - self.origin, self.orienter.unit_vectors[0])
         dz = np.dot(pos - self.center, self.orienter.unit_vectors[2])
         # Transpose into image coords.
-        py = (res[0] * (dx / self.width[0])).astype("int")
-        px = (res[1] * (dy / self.width[1])).astype("int")
+        py = (res[0] * (dx / self.width[0])).astype("int64")
+        px = (res[1] * (dy / self.width[1])).astype("int64")
         return px, py, dz
 
     def draw_grids(self, im, alpha=0.3, cmap=None, min_level=None, max_level=None):
@@ -411,7 +410,7 @@ class Camera(ParallelAnalysisInterface):
 
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        for vec, color in zip(coord_vectors, colors):
+        for vec, color in zip(coord_vectors, colors, strict=True):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
             px = np.array([px0, px0 + dx], dtype="int64")
@@ -649,7 +648,7 @@ class Camera(ParallelAnalysisInterface):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate(
-            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel()]
+            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel().ndview]
         )
         args = (
             np.atleast_3d(rotp),
@@ -801,14 +800,8 @@ class Camera(ParallelAnalysisInterface):
 
     def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
         if self.comm.rank == 0 and fn is not None:
-            if transparent:
-                image.write_png(
-                    fn, clip_ratio=clip_ratio, rescale=True, background=None
-                )
-            else:
-                image.write_png(
-                    fn, clip_ratio=clip_ratio, rescale=True, background="black"
-                )
+            background = None if transparent else "black"
+            image.write_png(fn, rescale=True, background=background)
 
     def initialize_source(self):
         return self.volume.initialize_source(
@@ -903,7 +896,7 @@ class Camera(ParallelAnalysisInterface):
         >>> cam.show()
 
         """
-        if "__IPYTHON__" in dir(builtins):
+        if IS_IPYTHON:
             from IPython.core.displaypub import publish_display_data
 
             image = self.snapshot()[:, :, :3]
@@ -1184,7 +1177,7 @@ data_object_registry["camera"] = Camera
 
 
 class InteractiveCamera(Camera):
-    frames: List[ImageArray] = []
+    frames: list[ImageArray] = []
 
     def snapshot(self, fn=None, clip_ratio=None):
         self._pyplot.figure(2)
@@ -1215,7 +1208,7 @@ class InteractiveCamera(Camera):
 
     def save_frames(self, basename, clip_ratio=None):
         for i, frame in enumerate(self.frames):
-            fn = basename + "_%04i.png" % i
+            fn = f"{basename}_{i:04}.png"
             if clip_ratio is not None:
                 write_bitmap(frame, fn, clip_ratio * frame.std())
             else:
@@ -1420,8 +1413,8 @@ class PerspectiveCamera(Camera):
         dy = np.dot(pos1 - sight_center, self.orienter.unit_vectors[1])
         dz = np.dot(pos1 - sight_center, self.orienter.unit_vectors[2])
         # Transpose into image coords.
-        px = (res[0] * 0.5 + res[0] / self.width[0] * dx).astype("int")
-        py = (res[1] * 0.5 + res[1] / self.width[1] * dy).astype("int")
+        px = (res[0] * 0.5 + res[0] / self.width[0] * dx).astype("int64")
+        py = (res[1] * 0.5 + res[1] / self.width[1] * dy).astype("int64")
         return px, py, dz
 
     def yaw(self, theta, rot_center):
@@ -1478,7 +1471,6 @@ def corners(left_edge, right_edge):
 
 
 class HEALpixCamera(Camera):
-
     _sampler_object = None
 
     def __init__(
@@ -1710,7 +1702,7 @@ class FisheyeCamera(Camera):
         fields = dd._determine_fields(fields)
         self.fields = fields
         if log_fields is None:
-            log_fields = [self.ds._get_field_info(*f).take_log for f in fields]
+            log_fields = [self.ds._get_field_info(f).take_log for f in fields]
         self.log_fields = log_fields
         self.sub_samples = sub_samples
         if volume is None:
@@ -1807,7 +1799,6 @@ class MosaicCamera(Camera):
         preload=True,
         use_light=False,
     ):
-
         ParallelAnalysisInterface.__init__(self)
 
         self.procs_per_wg = procs_per_wg
@@ -1928,10 +1919,9 @@ class MosaicCamera(Camera):
         self.width = owidth
 
     def snapshot(self, fn=None, clip_ratio=None, double_check=False, num_threads=0):
-
         my_storage = {}
         offx, offy = np.meshgrid(range(self.nimx), range(self.nimy))
-        offxy = zip(offx.ravel(), offy.ravel())
+        offxy = zip(offx.ravel(), offy.ravel(), strict=True)
 
         for sto, xy in parallel_objects(
             offxy, self.procs_per_wg, storage=my_storage, dynamic=True
@@ -1967,7 +1957,7 @@ class MosaicCamera(Camera):
         final_image = 0
         if self.comm.rank == 0:
             offx, offy = np.meshgrid(range(self.nimx), range(self.nimy))
-            offxy = zip(offx.ravel(), offy.ravel())
+            offxy = zip(offx.ravel(), offy.ravel(), strict=True)
             nx, ny = self.resolution
             final_image = np.empty(
                 (nx * self.nimx, ny * self.nimy, 4), dtype="float64", order="C"
@@ -1999,7 +1989,7 @@ def plot_allsky_healpix(
     import matplotlib.figure
 
     if rotation is None:
-        rotation = np.eye(3).astype("float64")
+        rotation = np.eye(3, dtype="float64")
 
     img, count = pixelize_healpix(nside, image, resolution, resolution, rotation)
 
@@ -2046,7 +2036,6 @@ class ProjectionCamera(Camera):
         interpolated=False,
         method="integrate",
     ):
-
         if not interpolated:
             volume = 1
 
@@ -2061,7 +2050,7 @@ class ProjectionCamera(Camera):
             # This is a temporary field, which we will remove at the end
             # it is given a unique name to avoid conflicting with other
             # class instances
-            self.weightfield = ("index", "temp_weightfield_%u" % (id(self),))
+            self.weightfield = ("index", f"temp_weightfield_{id(self)}")
 
             def _make_wf(f, w):
                 def temp_weightfield(field, data):
@@ -2125,7 +2114,7 @@ class ProjectionCamera(Camera):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate(
-            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel()]
+            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel().ndview]
         )
         args = (
             np.atleast_3d(rotp),
@@ -2151,7 +2140,7 @@ class ProjectionCamera(Camera):
         ds = self.ds
         dd = ds.all_data()
         field = dd._determine_fields([self.field])[0]
-        finfo = ds._get_field_info(*field)
+        finfo = ds._get_field_info(field)
         dl = 1.0
         if self.method == "integrate":
             if self.weight is None:
@@ -2189,7 +2178,7 @@ class ProjectionCamera(Camera):
         # Now we have a bounding box.
         data_source = ds.region(self.center, mi, ma)
 
-        for (grid, mask) in data_source.blocks:
+        for grid, mask in data_source.blocks:
             data = [(grid[field] * mask).astype("float64") for field in fields]
             pg = PartitionedGrid(
                 grid.id,
@@ -2208,7 +2197,7 @@ class ProjectionCamera(Camera):
     def save_image(self, image, fn=None, clip_ratio=None):
         dd = self.ds.all_data()
         field = dd._determine_fields([self.field])[0]
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         if finfo.take_log:
             im = np.log10(image)
         else:
@@ -2220,7 +2209,6 @@ class ProjectionCamera(Camera):
                 write_image(im, fn)
 
     def snapshot(self, fn=None, clip_ratio=None, double_check=False, num_threads=0):
-
         if num_threads is None:
             num_threads = get_num_threads()
 
@@ -2400,7 +2388,6 @@ class StereoSphericalCamera(Camera):
         num_threads=0,
         transparent=False,
     ):
-
         if num_threads is None:
             num_threads = get_num_threads()
 
@@ -2452,6 +2439,8 @@ class StereoSphericalCamera(Camera):
 data_object_registry["stereospherical_camera"] = StereoSphericalCamera
 
 
+# replaced in volume_rendering API by the function of the same name in
+# yt/visualization/volume_rendering/off_axis_projection
 def off_axis_projection(
     ds,
     center,

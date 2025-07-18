@@ -75,8 +75,8 @@ def plot_channel(
     elements.  Optionally, *label*, *label_color* and *label_size* may be
     specified.
     """
+    import matplotlib as mpl
     from matplotlib import pyplot as plt
-    from matplotlib.cm import get_cmap
     from matplotlib.colors import LogNorm
 
     Nvec = image.shape[0]
@@ -94,7 +94,7 @@ def plot_channel(
     fig.subplots_adjust(
         left=0.0, right=1.0, bottom=0.0, top=1.0, wspace=0.0, hspace=0.0
     )
-    mycm = get_cmap(cmap)
+    mycm = mpl.colormaps[cmap]
     if log:
         ax.imshow(image, cmap=mycm, norm=mynorm, interpolation="nearest")
     else:

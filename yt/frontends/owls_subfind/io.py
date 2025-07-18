@@ -20,12 +20,7 @@ class IOHandlerOWLSSubfindHDF5(BaseParticleIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
@@ -67,12 +62,7 @@ class IOHandlerOWLSSubfindHDF5(BaseParticleIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
@@ -189,7 +179,7 @@ def subfind_field_list(fh, ptype, pcount):
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1 :]
                 if my_div > 1:
                     for i in range(int(my_div)):
-                        fields.append((ptype, "%s_%d" % (fname, i)))
+                        fields.append((ptype, f"{fname}_{i}"))
                 else:
                     fields.append((ptype, fname))
             elif (
@@ -203,7 +193,7 @@ def subfind_field_list(fh, ptype, pcount):
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1 :]
                 if my_div > 1:
                     for i in range(int(my_div)):
-                        fields.append(("FOF", "%s_%d" % (fname, i)))
+                        fields.append(("FOF", f"{fname}_{i}"))
                 else:
                     fields.append(("FOF", fname))
                 offset_fields.append(fname)

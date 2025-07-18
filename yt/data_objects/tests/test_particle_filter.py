@@ -4,9 +4,10 @@ import tempfile
 
 import numpy as np
 from nose.tools import assert_raises
+from numpy.testing import assert_equal
 
 from yt.data_objects.particle_filters import add_particle_filter, particle_filter
-from yt.testing import assert_equal, fake_random_ds, fake_sph_grid_ds
+from yt.testing import fake_random_ds, fake_sph_grid_ds
 from yt.utilities.exceptions import YTIllDefinedFilter, YTIllDefinedParticleFilter
 from yt.visualization.plot_window import ProjectionPlot
 

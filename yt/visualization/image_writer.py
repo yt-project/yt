@@ -1,7 +1,6 @@
-import builtins
-
 import numpy as np
 
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.yt_array import YTQuantity
@@ -36,7 +35,7 @@ def scale_image(image, mi=None, ma=None):
         mi = image.min()
     if ma is None:
         ma = image.max()
-    image = (np.clip((image - mi) / (ma - mi) * 255, 0, 255)).astype("uint8")
+    image = np.clip((image - mi) / (ma - mi) * 255, 0, 255).astype("uint8")
     return image
 
 
@@ -83,8 +82,8 @@ def multi_image_composite(
     Examples
     --------
 
-        >>> red_channel = np.log10(frb[("gas", "temperature")])
-        >>> blue_channel = np.log10(frb[("gas", "density")])
+        >>> red_channel = np.log10(frb["gas", "temperature"])
+        >>> blue_channel = np.log10(frb["gas", "density"])
         >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
     """
@@ -137,7 +136,7 @@ def write_bitmap(bitmap_array, filename, max_val=None, transpose=False):
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3, 4):
         raise RuntimeError(
             "Expecting image array of shape (N,M,3) or "
-            "(N,M,4), received %s" % str(bitmap_array.shape)
+            f"(N,M,4), received {str(bitmap_array.shape)}"
         )
 
     if bitmap_array.dtype != np.uint8:
@@ -149,6 +148,9 @@ def write_bitmap(bitmap_array, filename, max_val=None, transpose=False):
             alpha_channel.shape = s1, s2, 1
         if max_val is None:
             max_val = bitmap_array[:, :, :3].max()
+            if max_val == 0.0:
+                # avoid dividing by zero for blank images
+                max_val = 1.0
         bitmap_array = np.clip(bitmap_array[:, :, :3] / max_val, 0.0, 1.0) * 255
         bitmap_array = np.concatenate(
             [bitmap_array.astype("uint8"), alpha_channel], axis=-1
@@ -195,7 +197,7 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
 
     >>> sl = ds.slice(0, 0.5, "Density")
     >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
-    >>> write_image(frb1[("gas", "density")], "saved.png")
+    >>> write_image(frb1["gas", "density"], "saved.png")
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
@@ -266,52 +268,6 @@ def map_to_colors(buff, cmap_name):
         x = np.mgrid[0.0 : 1.0 : lut[0].shape[0] * 1j]
         mapped = np.dstack([(np.interp(buff, x, v) * 255).astype("uint8") for v in lut])
     return mapped.copy("C")
-
-
-def strip_colormap_data(
-    fn="color_map_data.py",
-    cmaps=(
-        "jet",
-        "cmyt.algae",
-        "hot",
-        "gist_stern",
-        "RdBu",
-        "cmyt.pastel",
-        "cmyt.kelp",
-        "cmyt.arbre",
-        "cmyt.octarine",
-        "cmyt.dusk",
-    ),
-):
-    import pprint
-
-    from yt._maintenance.deprecation import issue_deprecation_warning
-
-    from . import color_maps as rcm
-
-    issue_deprecation_warning(
-        "yt.visualization.image_writer.strip_colormap_data is deprecated.",
-        since="4.1.0",
-        removal="4.2.0",
-    )
-    f = open(fn, "w")
-    f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
-    f.write("from numpy import array\n")
-    f.write("color_map_luts = {}\n\n\n")
-    if cmaps is None:
-        cmaps = rcm.ColorMaps
-    if isinstance(cmaps, str):
-        cmaps = [cmaps]
-    for cmap_name in sorted(cmaps):
-        vals = get_colormap_lut(cmap_name)
-        f.write(f"### {cmap_name} ###\n\n")
-        f.write(f"color_map_luts['{cmap_name}'] = \\\n")
-        f.write("   (\n")
-        for v in vals:
-            f.write(pprint.pformat(v, indent=3))
-            f.write(",\n")
-        f.write("   )\n\n")
-    f.close()
 
 
 def splat_points(image, points_x, points_y, contribution=None, transposed=False):
@@ -461,7 +417,7 @@ def display_in_notebook(image, max_val=None):
         three channels.
     """
 
-    if "__IPYTHON__" in dir(builtins):
+    if IS_IPYTHON:
         from IPython.core.displaypub import publish_display_data
 
         data = write_bitmap(image, None, max_val=max_val)

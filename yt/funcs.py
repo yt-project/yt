@@ -1,36 +1,32 @@
 import base64
-import builtins
 import contextlib
 import copy
 import errno
-import getpass
 import glob
 import inspect
 import itertools
 import os
-import pdb
 import re
 import struct
 import subprocess
 import sys
 import time
 import traceback
-import urllib.parse
-import urllib.request
+from collections import UserDict
+from collections.abc import Callable
+from copy import deepcopy
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Type
+from typing import Any
 
-import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
-from packaging.version import Version
-from tqdm import tqdm
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._maintenance.ipython_compat import IS_IPYTHON
 from yt.config import ytcfg
 from yt.units import YTArray, YTQuantity
-from yt.utilities.exceptions import YTInvalidWidthError
+from yt.utilities.exceptions import YTFieldNotFound, YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _requests as requests
 
@@ -141,19 +137,12 @@ def humanize_time(secs):
     """
     mins, secs = divmod(secs, 60)
     hours, mins = divmod(mins, 60)
-    return "%02d:%02d:%02d" % (hours, mins, secs)
+    return ":".join(f"{int(t):02}" for t in (hours, mins, secs))
 
 
 #
 # Some function wrappers that come in handy once in a while
 #
-
-# we use the resource module to get the memory page size
-
-try:
-    import resource
-except ImportError:
-    pass
 
 
 def get_memory_usage(subtract_share=False):
@@ -161,10 +150,14 @@ def get_memory_usage(subtract_share=False):
     Returning resident size in megabytes
     """
     pid = os.getpid()
+    # we use the resource module to get the memory page size
+
     try:
-        pagesize = resource.getpagesize()
-    except NameError:
+        import resource
+    except ImportError:
         return -1024
+    else:
+        pagesize = resource.getpagesize()
     status_file = f"/proc/{pid}/statm"
     if not os.path.isfile(status_file):
         return -1024
@@ -227,8 +220,7 @@ def rootonly(func):
     .. code-block:: python
 
        @rootonly
-       def some_root_only_function(*args, **kwargs):
-           ...
+       def some_root_only_function(*args, **kwargs): ...
     """
 
     @wraps(func)
@@ -252,6 +244,7 @@ def pdb_run(func):
     ...     ...
 
     """
+    import pdb
 
     @wraps(func)
     def wrapper(*args, **kw):
@@ -290,7 +283,7 @@ def insert_ipython(num_up=1):
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
-    dd = dict(fname=frame[3], filename=frame[1], lineno=frame[2])
+    dd = {"fname": frame[3], "filename": frame[1], "lineno": frame[2]}
     cfg = Config()
     cfg.InteractiveShellEmbed.local_ns = loc
     cfg.InteractiveShellEmbed.global_ns = glo
@@ -309,6 +302,8 @@ class TqdmProgressBar:
     # This is a drop in replacement for pbar
     # called tqdm
     def __init__(self, title, maxval):
+        from tqdm import tqdm
+
         self._pbar = tqdm(leave=True, total=maxval, desc=title)
         self.i = 0
 
@@ -520,7 +515,7 @@ def update_git(path):
 def rebuild_modules(path, f):
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen(
-        [sys.executable, "setup.py", "build_ext", "-i"],
+        [sys.executable, "setup.py", "build_clib", "build_ext", "-i"],
         cwd=path,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -551,11 +546,9 @@ def get_git_version(path):
 
 
 def get_yt_version():
-    import pkg_resources
+    import importlib.resources as importlib_resources
 
-    yt_provider = pkg_resources.get_provider("yt")
-    path = os.path.dirname(yt_provider.module_path)
-    version = get_git_version(path)
+    version = get_git_version(os.path.dirname(importlib_resources.files("yt")))
     if version is None:
         return version
     else:
@@ -566,8 +559,12 @@ def get_yt_version():
 
 
 def get_version_stack():
+    import matplotlib
+
+    from yt._version import __version__ as yt_version
+
     version_info = {}
-    version_info["yt"] = get_yt_version()
+    version_info["yt"] = yt_version
     version_info["numpy"] = np.version.version
     version_info["matplotlib"] = matplotlib.__version__
     return version_info
@@ -607,7 +604,8 @@ def fancy_download_file(url, filename, requests=None):
             iterations = int(float(total_length) / float(blocksize))
 
             pbar = get_pbar(
-                "Downloading %s to %s " % os.path.split(filename)[::-1], iterations
+                "Downloading {} to {} ".format(*os.path.split(filename)[::-1]),
+                iterations,
             )
             iteration = 0
             for chunk in response.iter_content(chunk_size=blocksize):
@@ -619,19 +617,25 @@ def fancy_download_file(url, filename, requests=None):
 
 
 def simple_download_file(url, filename):
-    class MyURLopener(urllib.request.FancyURLopener):
-        def http_error_default(self, url, fp, errcode, errmsg, headers):
-            raise RuntimeError(
-                "Attempt to download file from %s failed with error %s: %s."
-                % (url, errcode, errmsg)
-            )
+    import urllib.error
+    import urllib.request
 
-    fn, h = MyURLopener().retrieve(url, filename)
+    try:
+        fn, h = urllib.request.urlretrieve(url, filename)
+    except urllib.error.HTTPError as err:
+        raise RuntimeError(
+            f"Attempt to download file from {url} failed with error {err.code}: {err.msg}."
+        ) from None
+
     return fn
 
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass=True):
+    import getpass
+    import urllib.parse
+    import urllib.request
+
     uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
     # since bitbucket doesn't return the required WWW-Authenticate header when
     # making a request without Authorization, we cannot use the standard urllib2
@@ -691,11 +695,9 @@ def parallel_profile(prefix):
     """
     import cProfile
 
-    fn = "%s_%04i_%04i.cprof" % (
-        prefix,
-        ytcfg.get("yt", "internals", "topcomm_parallel_size"),
-        ytcfg.get("yt", "internals", "topcomm_parallel_rank"),
-    )
+    topcomm_parallel_size = ytcfg.get("yt", "internals", "topcomm_parallel_size")
+    topcomm_parallel_rank = ytcfg.get("yt", "internals", "topcomm_parallel_rank")
+    fn = f"{prefix}_{topcomm_parallel_size:04}_{topcomm_parallel_rank}.cprof"
     p = cProfile.Profile()
     p.enable()
     yield fn
@@ -982,59 +984,33 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
 def get_brewer_cmap(cmap):
     """Returns a colorbrewer colormap from palettable"""
     try:
-        import brewer2mpl
-    except ImportError:
-        brewer2mpl = None
-    try:
         import palettable
-    except ImportError:
-        palettable = None
-    if palettable is not None:
-        bmap = palettable.colorbrewer.get_map(*cmap)
-    elif brewer2mpl is not None:
-        issue_deprecation_warning(
-            "Using brewer2mpl colormaps is deprecated. "
-            "Please install the successor to brewer2mpl, "
-            "palettable, with `pip install palettable`. "
-            "Colormap tuple names remain unchanged.",
-            since="3.3",
-            removal="4.2",
-        )
-        bmap = brewer2mpl.get_map(*cmap)
-    else:
-        raise RuntimeError("Please install palettable to use colorbrewer colormaps")
+    except ImportError as exc:
+        raise RuntimeError(
+            "Please install palettable to use colorbrewer colormaps"
+        ) from exc
+
+    bmap = palettable.colorbrewer.get_map(*cmap)
     return bmap.get_mpl_colormap(N=cmap[2])
 
 
-@contextlib.contextmanager
-def dummy_context_manager(*args, **kwargs):
-    yield
-
-
-def matplotlib_style_context(style_name=None, after_reset=False):
+def matplotlib_style_context(style="yt.default", after_reset=False):
     """Returns a context manager for controlling matplotlib style.
 
     Arguments are passed to matplotlib.style.context() if specified. Defaults
-    to setting "classic" style, after resetting to the default config parameters.
-
-    On older matplotlib versions (<=1.5.0) where matplotlib.style isn't
-    available, returns a dummy context manager.
+    to setting yt's "yt.default" style, after resetting to the default config parameters.
     """
-    if style_name is None:
-        import matplotlib
+    # FUTURE: this function should be deprecated in favour of matplotlib.style.context
+    # after support for matplotlib 3.6 and older versions is dropped.
+    import importlib.resources as importlib_resources
 
-        style_name = {"mathtext.fontset": "cm"}
-        if Version(matplotlib.__version__) >= Version("3.3.0"):
-            style_name["mathtext.fallback"] = "cm"
-        else:
-            style_name["mathtext.fallback_to_cm"] = True
-    try:
-        import matplotlib.style
+    import matplotlib as mpl
+    import matplotlib.style
 
-        return matplotlib.style.context(style_name, after_reset=after_reset)
-    except ImportError:
-        pass
-    return dummy_context_manager()
+    if style == "yt.default" and mpl.__version_info__ < (3, 7):
+        style = importlib_resources.files("yt") / "default.mplstyle"
+
+    return matplotlib.style.context(style, after_reset=after_reset)
 
 
 interactivity = False
@@ -1046,7 +1022,7 @@ def toggle_interactivity():
     global interactivity
     interactivity = not interactivity
     if interactivity:
-        if "__IPYTHON__" in dir(builtins):
+        if IS_IPYTHON:
             import IPython
 
             shell = IPython.get_ipython()
@@ -1094,10 +1070,7 @@ def obj_length(v):
 
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
-    if isinstance(field, tuple):
-        finfo = data.ds._get_field_info(field[0], field[1])
-    else:
-        finfo = data.ds._get_field_info(field)
+    finfo = data.ds._get_field_info(field)
     if finfo.sampling_type == "particle":
         units = finfo.output_units
     else:
@@ -1112,18 +1085,27 @@ def array_like_field(data, x, field):
         return data.ds.quan(x, units)
 
 
+def _full_type_name(obj: object = None, /, *, cls: type | None = None) -> str:
+    if cls is not None and obj is not None:
+        raise TypeError("_full_type_name takes an object or a class, but not both")
+    if cls is None:
+        cls = obj.__class__
+    prefix = f"{cls.__module__}." if cls.__module__ != "builtins" else ""
+    return f"{prefix}{cls.__name__}"
+
+
 def validate_3d_array(obj):
     if not is_sequence(obj) or len(obj) != 3:
         raise TypeError(
-            "Expected an array of size (3,), received '%s' of "
-            "length %s" % (str(type(obj)).split("'")[1], len(obj))
+            f"Expected an array of size (3,), "
+            f"received {_full_type_name(obj)!r} of length {len(obj)}"
         )
 
 
 def validate_float(obj):
     """Validates if the passed argument is a float value.
 
-    Raises an exception if `obj` is a single float value
+    Raises an exception if `obj` is not a single float value
     or a YTQuantity of size 1.
 
     Parameters
@@ -1160,23 +1142,21 @@ def validate_float(obj):
         ):
             raise TypeError(
                 "Expected a numeric value (or tuple of format "
-                "(float, String)), received an inconsistent tuple "
-                "'%s'." % str(obj)
+                f"(float, String)), received an inconsistent tuple {str(obj)!r}."
             )
         else:
             return
     if is_sequence(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
-            "received '%s' of length %s" % (str(type(obj)).split("'")[1], len(obj))
+            f"received {_full_type_name(obj)!r} of length {len(obj)}"
         )
 
 
 def validate_sequence(obj):
     if obj is not None and not is_sequence(obj):
         raise TypeError(
-            "Expected an iterable object,"
-            " received '%s'" % str(type(obj)).split("'")[1]
+            f"Expected an iterable object, received {_full_type_name(obj)!r}"
         )
 
 
@@ -1194,24 +1174,32 @@ def validate_field_key(key):
     )
 
 
+def is_valid_field_key(key):
+    try:
+        validate_field_key(key)
+    except TypeError:
+        return False
+    else:
+        return True
+
+
 def validate_object(obj, data_type):
     if obj is not None and not isinstance(obj, data_type):
         raise TypeError(
-            "Expected an object of '%s' type, received '%s'"
-            % (str(data_type).split("'")[1], str(type(obj)).split("'")[1])
+            f"Expected an object of {_full_type_name(cls=data_type)!r} type, "
+            f"received {_full_type_name(obj)!r}"
         )
 
 
 def validate_axis(ds, axis):
     if ds is not None:
-        valid_axis = ds.coordinates.axis_name.keys()
+        valid_axis = sorted(
+            ds.coordinates.axis_name.keys(), key=lambda k: str(k).swapcase()
+        )
     else:
         valid_axis = [0, 1, 2, "x", "y", "z", "X", "Y", "Z"]
     if axis not in valid_axis:
-        raise TypeError(
-            "Expected axis of int or char type (can be %s), "
-            "received '%s'." % (list(valid_axis), axis)
-        )
+        raise TypeError(f"Expected axis to be any of {valid_axis}, received {axis!r}")
 
 
 def validate_center(center):
@@ -1225,14 +1213,137 @@ def validate_center(center):
             raise TypeError(
                 "Expected 'center' to be in ['c', 'center', "
                 "'m', 'max', 'min'] or the prefix to be "
-                "'max_'/'min_', received '%s'." % center
+                f"'max_'/'min_', received {center!r}."
             )
     elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sequence(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "
-            "received '%s'." % str(type(center)).split("'")[1]
+            f"received {_full_type_name(center)}."
         )
+
+
+def parse_center_array(center, ds, axis: int | None = None):
+    known_shortnames = {"m": "max", "c": "center", "l": "left", "r": "right"}
+    valid_single_str_values = ("center", "left", "right")
+    valid_field_loc_str_values = ("min", "max")
+    valid_str_values = valid_single_str_values + valid_field_loc_str_values
+    default_error_message = (
+        "Expected any of the following\n"
+        "- 'c', 'center', 'l', 'left', 'r', 'right', 'm', 'max', or 'min'\n"
+        "- a 2 element tuple with 'min' or 'max' as the first element, followed by a field identifier\n"
+        "- a 3 element array-like: for a unyt_array, expects length dimensions, otherwise code_lenght is assumed"
+    )
+    # store an unmodified copy of user input to be inserted in error messages
+    center_input = deepcopy(center)
+
+    if isinstance(center, str):
+        centerl = center.lower()
+        if centerl in known_shortnames:
+            centerl = known_shortnames[centerl]
+
+        match = re.match(r"^(?P<extremum>(min|max))(_(?P<field>[\w_]+))?", centerl)
+        if match is not None:
+            if match["field"] is not None:
+                for ftype, fname in ds.derived_field_list:  # noqa: B007
+                    if fname == match["field"]:
+                        break
+                else:
+                    raise YTFieldNotFound(match["field"], ds)
+            else:
+                ftype, fname = ("gas", "density")
+
+            center = (match["extremum"], (ftype, fname))
+
+        elif centerl in ("center", "left", "right"):
+            # domain_left_edge and domain_right_edge might not be
+            # initialized until we create the index, so create it
+            ds.index
+            center = ds.domain_center.copy()
+            if centerl in ("left", "right") and axis is None:
+                raise ValueError(f"center={center!r} is not valid with axis=None")
+            if centerl == "left":
+                center = ds.domain_center.copy()
+                center[axis] = ds.domain_left_edge[axis]
+            elif centerl == "right":
+                # note that the right edge of a grid is excluded by slice selector
+                # which is why we offset the region center by the smallest distance possible
+                center = ds.domain_center.copy()
+                center[axis] = (
+                    ds.domain_right_edge[axis] - center.uq * np.finfo(center.dtype).eps
+                )
+
+        elif centerl not in valid_str_values:
+            raise ValueError(
+                f"Received unknown center single string value {center!r}. "
+                + default_error_message
+            )
+
+    if is_sequence(center):
+        if (
+            len(center) == 2
+            and isinstance(center[0], str)
+            and (is_valid_field_key(center[1]) or isinstance(center[1], str))
+        ):
+            center0l = center[0].lower()
+
+            if center0l not in valid_str_values:
+                raise ValueError(
+                    f"Received unknown string value {center[0]!r}. "
+                    f"Expected one of {valid_field_loc_str_values} (case insensitive)"
+                )
+            field_key = center[1]
+            if center0l == "min":
+                v, center = ds.find_min(field_key)
+            else:
+                assert center0l == "max"
+                v, center = ds.find_max(field_key)
+            center = ds.arr(center, "code_length")
+        elif len(center) == 2 and is_sequence(center[0]) and isinstance(center[1], str):
+            center = ds.arr(center[0], center[1])
+        elif len(center) == 3 and all(isinstance(_, YTQuantity) for _ in center):
+            center = ds.arr([c.copy() for c in center], dtype="float64")
+        elif len(center) == 3:
+            center = ds.arr(center, "code_length")
+
+    if isinstance(center, np.ndarray) and center.ndim > 1:
+        mylog.debug("Removing singleton dimensions from 'center'.")
+        center = np.squeeze(center)
+
+    if not isinstance(center, YTArray):
+        raise TypeError(
+            f"Received {center_input!r}, but failed to transform to a unyt_array (obtained {center!r}).\n"
+            + default_error_message
+            + "\n"
+            "If you supplied an expected type, consider filing a bug report"
+        )
+
+    if center.shape != (3,):
+        raise TypeError(
+            f"Received {center_input!r} and obtained {center!r} after sanitizing.\n"
+            + default_error_message
+            + "\n"
+            "If you supplied an expected type, consider filing a bug report"
+        )
+
+    # make sure the return value shares all
+    # unit symbols with ds.unit_registry
+    # we rely on unyt to invalidate unit dimensionality here
+    center = ds.arr(center).in_units("code_length")
+
+    if not ds._is_within_domain(center):
+        mylog.warning(
+            "Requested center at %s is outside of data domain with "
+            "left edge = %s, "
+            "right edge = %s, "
+            "periodicity = %s",
+            center,
+            ds.domain_left_edge,
+            ds.domain_right_edge,
+            ds.periodicity,
+        )
+
+    return center.astype("float64")
 
 
 def sglob(pattern):
@@ -1242,7 +1353,7 @@ def sglob(pattern):
     return sorted(glob.glob(pattern))
 
 
-def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
+def dictWithFactory(factory: Callable[[Any], Any]) -> type:
     """
     Create a dictionary class with a default factory function.
     Contrary to `collections.defaultdict`, the factory takes
@@ -1259,7 +1370,14 @@ def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
         A class to create new dictionaries handling missing keys.
     """
 
-    class DictWithFactory(dict):
+    issue_deprecation_warning(
+        "yt.funcs.dictWithFactory will be removed in a future version of yt, please do not rely on it. "
+        "If you need it, copy paste this function from yt's source code",
+        stacklevel=3,
+        since="4.1",
+    )
+
+    class DictWithFactory(UserDict):
         def __init__(self, *args, **kwargs):
             self.factory = factory
             super().__init__(*args, **kwargs)
@@ -1325,3 +1443,36 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
         if matrix[x].min() > max_dist:
             return max_dist + 1
     return matrix[size_x - 1, size_y - 1]
+
+
+def validate_moment(moment, weight_field):
+    if moment == 2 and weight_field is None:
+        raise ValueError(
+            "Cannot compute the second moment of a projection if weight_field=None!"
+        )
+    if moment not in [1, 2]:
+        raise ValueError(
+            "Weighted projections can only be made of averages "
+            "(moment = 1) or standard deviations (moment = 2)!"
+        )
+
+
+def setdefault_mpl_metadata(save_kwargs: dict[str, Any], name: str) -> None:
+    """
+    Set a default Software metadata entry for use with Matplotlib outputs.
+    """
+    _, ext = os.path.splitext(name.lower())
+    if ext in (".eps", ".ps", ".svg", ".pdf"):
+        key = "Creator"
+    elif ext == ".png":
+        key = "Software"
+    else:
+        return
+    default_software = (
+        "Matplotlib version{matplotlib}, https://matplotlib.org|NumPy-{numpy}|yt-{yt}"
+    ).format(**get_version_stack())
+
+    if "metadata" in save_kwargs:
+        save_kwargs["metadata"].setdefault(key, default_software)
+    else:
+        save_kwargs["metadata"] = {key: default_software}

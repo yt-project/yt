@@ -1,7 +1,7 @@
 import glob
 import weakref
 from collections import defaultdict
-from functools import partial
+from functools import cached_property, partial
 
 import numpy as np
 
@@ -11,7 +11,6 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 from yt.data_objects.static_output import (
     ParticleDataset,
     ParticleFile,
-    validate_index_order,
 )
 from yt.frontends.ytdata.data_structures import SavedDataset
 from yt.funcs import parse_h5_attr
@@ -98,6 +97,7 @@ class YTHaloCatalogDataset(SavedDataset):
     in yt_astro_analysis.
     """
 
+    _load_requirements = ["h5py"]
     _index_class = ParticleIndex
     _file_class = YTHaloCatalogFile
     _field_info_class = YTHaloCatalogFieldInfo
@@ -121,7 +121,7 @@ class YTHaloCatalogDataset(SavedDataset):
         units_override=None,
         unit_system="cgs",
     ):
-        self.index_order = validate_index_order(index_order)
+        self.index_order = index_order
         super().__init__(
             filename,
             dataset_type,
@@ -141,13 +141,9 @@ class YTHaloCatalogDataset(SavedDataset):
     def halos_derived_field_list(self):
         return self._halos_ds.derived_field_list
 
-    _instantiated_halo_ds = None
-
-    @property
+    @cached_property
     def _halos_ds(self):
-        if self._instantiated_halo_ds is None:
-            self._instantiated_halo_ds = YTHaloDataset(self)
-        return self._instantiated_halo_ds
+        return YTHaloDataset(self)
 
     def _setup_classes(self):
         super()._setup_classes()
@@ -167,9 +163,13 @@ class YTHaloCatalogDataset(SavedDataset):
         super()._parse_parameter_file()
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".h5"):
             return False
+
+        if cls._missing_load_requirements():
+            return False
+
         with h5py.File(filename, mode="r") as f:
             if (
                 "data_type" in f.attrs
@@ -304,6 +304,7 @@ class YTHaloParticleIndex(ParticleIndex):
         super()._setup_data_io()
         if self.real_ds._instantiated_index is None:
             self.real_ds.index
+        self.real_ds.index
 
         # inherit some things from parent index
         self._data_files = self.real_ds.index.data_files
@@ -386,7 +387,7 @@ class YTHaloDataset(HaloDataset):
         pass
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # We don't ever want this to be loaded by yt.load.
         return False
 
@@ -434,37 +435,21 @@ class HaloContainer(YTSelectionContainer):
         # starting and ending indices for each file containing particles
         self._set_field_indices()
 
-    _mass = None
-
-    @property
+    @cached_property
     def mass(self):
-        if self._mass is None:
-            self._mass = self[self.ptype, "particle_mass"][0]
-        return self._mass
+        return self[self.ptype, "particle_mass"][0]
 
-    _radius = None
-
-    @property
+    @cached_property
     def radius(self):
-        if self._radius is None:
-            self._radius = self[self.ptype, "virial_radius"][0]
-        return self._radius
+        return self[self.ptype, "virial_radius"][0]
 
-    _position = None
-
-    @property
+    @cached_property
     def position(self):
-        if self._position is None:
-            self._position = self[self.ptype, "particle_position"][0]
-        return self._position
+        return self[self.ptype, "particle_position"][0]
 
-    _velocity = None
-
-    @property
+    @cached_property
     def velocity(self):
-        if self._velocity is None:
-            self._velocity = self[self.ptype, "particle_velocity"][0]
-        return self._velocity
+        return self[self.ptype, "particle_velocity"][0]
 
     def _set_io_data(self):
         halo_fields = self._get_member_fieldnames()

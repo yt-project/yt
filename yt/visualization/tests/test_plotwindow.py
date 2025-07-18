@@ -5,15 +5,19 @@ import unittest
 from collections import OrderedDict
 
 import numpy as np
-from nose.tools import assert_true
-
-from yt.loaders import load_uniform_grid
-from yt.testing import (
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
+from numpy.testing import (
     assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
-    assert_fname,
     assert_raises,
+)
+from unyt import unyt_array
+
+from yt.loaders import load_uniform_grid
+from yt.testing import (
+    assert_allclose_units,
+    assert_fname,
     assert_rel_equal,
     fake_amr_ds,
     fake_random_ds,
@@ -40,7 +44,7 @@ from yt.visualization.plot_window import (
 )
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 
@@ -69,10 +73,9 @@ ATTR_ARGS = {
     "set_figure_size": [((7.0,), {})],
     "set_zlim": [
         (("density", 1e-25, 1e-23), {}),
-        (("density", 1e-25, None), {"dynamic_range": 4}),
+        (("density",), {"zmin": 1e-25, "dynamic_range": 4}),
     ],
     "zoom": [((10,), {})],
-    "toggle_right_handed": [((), {})],
 }
 
 
@@ -81,13 +84,19 @@ CENTER_SPECS = (
     "M",
     "max",
     "Max",
+    "min",
+    "Min",
     "c",
     "C",
     "center",
     "Center",
+    "left",
+    "right",
     [0.5, 0.5, 0.5],
     [[0.2, 0.3, 0.4], "cm"],
     YTArray([0.3, 0.4, 0.7], "cm"),
+    ("max", ("gas", "density")),
+    ("min", ("gas", "density")),
 )
 
 WIDTH_SPECS = {
@@ -194,7 +203,6 @@ def test_attributes():
 
 
 class TestHideAxesColorbar(unittest.TestCase):
-
     ds = None
 
     def setUp(self):
@@ -230,7 +238,6 @@ class TestHideAxesColorbar(unittest.TestCase):
 
 
 class TestSetWidth(unittest.TestCase):
-
     ds = None
 
     def setUp(self):
@@ -267,7 +274,7 @@ class TestSetWidth(unittest.TestCase):
             [self.slc.xlim, self.slc.ylim, self.slc.width],
             [(0.0, 1.0), (0.0, 1.0), (1.0, 1.0)],
         )
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_set_width_nonequal(self):
         self.slc.set_width((0.5, 0.8))
@@ -276,22 +283,22 @@ class TestSetWidth(unittest.TestCase):
             [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)],
             15,
         )
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_twoargs_eq(self):
         self.slc.set_width(0.5, "cm")
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
     def test_tuple_eq(self):
         self.slc.set_width((0.5, "cm"))
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
     def test_tuple_of_tuples_neq(self):
         self.slc.set_width(((0.5, "cm"), (0.75, "cm")))
         self._assert_05_075cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
 
 class TestPlotWindowSave(unittest.TestCase):
@@ -379,14 +386,17 @@ class TestPlotWindowSave(unittest.TestCase):
             ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
             pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
 
-            [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
-            [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
-            [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
-            assert_true(aun == plot._axes_unit_names)
+            for px, x in zip(plot.xlim, xlim, strict=True):
+                assert_array_almost_equal(px, x, 14)
+            for py, y in zip(plot.ylim, ylim, strict=True):
+                assert_array_almost_equal(py, y, 14)
+            for pw, w in zip(plot.width, pwidth, strict=True):
+                assert_array_almost_equal(pw, w, 14)
+
+            assert aun == plot._axes_unit_names
 
 
 class TestPerFieldConfig(unittest.TestCase):
-
     ds = None
 
     def setUp(self):
@@ -423,13 +433,13 @@ class TestPerFieldConfig(unittest.TestCase):
         fields_to_plot = fields + [("index", "radius")]
         if self.ds is None:
             self.ds = fake_random_ds(16, fields=fields, units=units)
-            self.slc = ProjectionPlot(self.ds, 0, fields_to_plot)
+            self.proj = ProjectionPlot(self.ds, 0, fields_to_plot)
 
     def tearDown(self):
         from yt.config import ytcfg
 
         del self.ds
-        del self.slc
+        del self.proj
         for key in self.newConfig.keys():
             ytcfg.remove(*key)
         for key, val in self.oldConfig.items():
@@ -438,21 +448,36 @@ class TestPerFieldConfig(unittest.TestCase):
     def test_units(self):
         from unyt import Unit
 
-        assert_equal(self.slc.frb["gas", "density"].units, Unit("mile*lb/yd**3"))
-        assert_equal(self.slc.frb["gas", "temperature"].units, Unit("cm*K"))
-        assert_equal(self.slc.frb["gas", "pressure"].units, Unit("dyn/cm"))
+        assert_equal(self.proj.frb["gas", "density"].units, Unit("mile*lb/yd**3"))
+        assert_equal(self.proj.frb["gas", "temperature"].units, Unit("cm*K"))
+        assert_equal(self.proj.frb["gas", "pressure"].units, Unit("dyn/cm"))
 
     def test_scale(self):
-        assert_equal(self.slc._field_transform["gas", "density"].name, "linear")
-        assert_equal(self.slc._field_transform["gas", "temperature"].name, "symlog")
-        assert_equal(self.slc._field_transform["gas", "temperature"].func, 100)
-        assert_equal(self.slc._field_transform["gas", "pressure"].name, "log10")
-        assert_equal(self.slc._field_transform["index", "radius"].name, "log10")
+        assert_equal(
+            self.proj.plots["gas", "density"].norm_handler.norm_type, Normalize
+        )
+        assert_equal(
+            self.proj.plots["gas", "temperature"].norm_handler.norm_type, SymLogNorm
+        )
+        assert_allclose_units(
+            self.proj.plots["gas", "temperature"].norm_handler.linthresh,
+            unyt_array(100, "K*cm"),
+        )
+        assert_equal(self.proj.plots["gas", "pressure"].norm_handler.norm_type, LogNorm)
+        assert_equal(
+            self.proj.plots["index", "radius"].norm_handler.norm_type, SymLogNorm
+        )
 
     def test_cmap(self):
-        assert_equal(self.slc._colormap_config["gas", "density"], "plasma")
-        assert_equal(self.slc._colormap_config["gas", "temperature"], "hot")
-        assert_equal(self.slc._colormap_config["gas", "pressure"], "viridis")
+        assert_equal(
+            self.proj.plots["gas", "density"].colorbar_handler.cmap.name, "plasma"
+        )
+        assert_equal(
+            self.proj.plots["gas", "temperature"].colorbar_handler.cmap.name, "hot"
+        )
+        assert_equal(
+            self.proj.plots["gas", "pressure"].colorbar_handler.cmap.name, "viridis"
+        )
 
 
 def test_on_off_compare():
@@ -460,7 +485,7 @@ def test_on_off_compare():
     den = np.arange(32**3) / 32**2 + 1
     den = den.reshape(32, 32, 32)
     den = np.array(den, dtype=np.float64)
-    data = dict(density=(den, "g/cm**3"))
+    data = {"density": (den, "g/cm**3")}
     bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     ds = load_uniform_grid(data, den.shape, length_unit="Mpc", bbox=bbox, nprocs=64)
 
@@ -472,18 +497,14 @@ def test_on_off_compare():
         ds, L, ("gas", "density"), center=[0, 0, 0], north_vector=north_vector
     )
 
-    assert_array_almost_equal(
-        sl_on.frb[("gas", "density")], sl_off.frb[("gas", "density")]
-    )
+    assert_array_almost_equal(sl_on.frb["gas", "density"], sl_off.frb["gas", "density"])
 
     sl_on.set_buff_size((800, 400))
     sl_on._recreate_frb()
     sl_off.set_buff_size((800, 400))
     sl_off._recreate_frb()
 
-    assert_array_almost_equal(
-        sl_on.frb[("gas", "density")], sl_off.frb[("gas", "density")]
-    )
+    assert_array_almost_equal(sl_on.frb["gas", "density"], sl_off.frb["gas", "density"])
 
 
 def test_plot_particle_field_error():
@@ -571,7 +592,7 @@ def test_setup_origin():
     ]
     for o in origin_inputs:
         slc = SlicePlot(ds, 2, ("gas", "density"), width=w, origin=o)
-        ax = slc.plots[("gas", "density")].axes
+        ax = slc.plots["gas", "density"].axes
         xlims = ax.get_xlim()
         ylims = ax.get_ylim()
         lims = [xlims[0], xlims[1], ylims[0], ylims[1]]
@@ -584,17 +605,17 @@ def test_frb_regen():
     ds = fake_random_ds(32)
     slc = SlicePlot(ds, 2, ("gas", "density"))
     slc.set_buff_size(1200)
-    assert_equal(slc.frb[("gas", "density")].shape, (1200, 1200))
+    assert_equal(slc.frb["gas", "density"].shape, (1200, 1200))
     slc.set_buff_size((400.0, 200.7))
-    assert_equal(slc.frb[("gas", "density")].shape, (200, 400))
+    assert_equal(slc.frb["gas", "density"].shape, (200, 400))
 
 
 def test_set_background_color():
     ds = fake_random_ds(32)
     plot = SlicePlot(ds, 2, ("gas", "density"))
     plot.set_background_color(("gas", "density"), "red")
-    plot._setup_plots()
-    ax = plot.plots[("gas", "density")].axes
+    plot.render()
+    ax = plot.plots["gas", "density"].axes
     assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
 
 
@@ -668,36 +689,32 @@ def test_plot_2d():
         width=(0.2, "unitary"),
         center=ds.arr([0.4, 0.3], "cm"),
     )
-    assert_array_equal(
-        slc.frb[("gas", "temperature")], slc2.frb[("gas", "temperature")]
-    )
-    assert_array_equal(
-        slc.frb[("gas", "temperature")], slc3.frb[("gas", "temperature")]
-    )
+    assert_array_equal(slc.frb["gas", "temperature"], slc2.frb["gas", "temperature"])
+    assert_array_equal(slc.frb["gas", "temperature"], slc3.frb["gas", "temperature"])
     # Cylindrical
     ds = data_dir_load(WD)
     slc = SlicePlot(ds, "theta", [("gas", "density")], width=(30000.0, "km"))
     slc2 = plot_2d(ds, ("gas", "density"), width=(30000.0, "km"))
-    assert_array_equal(slc.frb[("gas", "density")], slc2.frb[("gas", "density")])
+    assert_array_equal(slc.frb["gas", "density"], slc2.frb["gas", "density"])
 
     # Spherical
     ds = data_dir_load(blast_wave)
     slc = SlicePlot(ds, "phi", [("gas", "density")], width=(1, "unitary"))
     slc2 = plot_2d(ds, ("gas", "density"), width=(1, "unitary"))
-    assert_array_equal(slc.frb[("gas", "density")], slc2.frb[("gas", "density")])
+    assert_array_equal(slc.frb["gas", "density"], slc2.frb["gas", "density"])
 
 
 def test_symlog_colorbar():
     ds = fake_random_ds(16)
 
     def _thresh_density(field, data):
-        wh = data[("gas", "density")] < 0.5
-        ret = data[("gas", "density")]
+        wh = data["gas", "density"] < 0.5
+        ret = data["gas", "density"]
         ret[wh] = 0
         return ret
 
     def _neg_density(field, data):
-        return -data[("gas", "threshold_density")]
+        return -data["gas", "threshold_density"]
 
     ds.add_field(
         ("gas", "threshold_density"),
@@ -718,7 +735,7 @@ def test_symlog_colorbar():
         ("gas", "negative_density"),
     ]:
         plot = SlicePlot(ds, 2, field)
-        plot.set_log(field, True, linthresh=0.1)
+        plot.set_log(field, linthresh=0.1)
         with tempfile.NamedTemporaryFile(suffix="png") as f:
             plot.save(f.name)
 
@@ -749,15 +766,57 @@ def test_symlog_min_zero():
 def test_symlog_extremely_small_vals():
     # check that the plot can be constructed without crashing
     # see https://github.com/yt-project/yt/issues/3858
+    # and https://github.com/yt-project/yt/issues/3944
     shape = (64, 64, 1)
     arr = np.full(shape, 5.0e-324)
     arr[0, 0] = -1e12
     arr[1, 1] = 200
-    d = {"scalar": arr}
+
+    arr2 = np.full(shape, 5.0e-324)
+    arr2[0, 0] = -1e12
+
+    arr3 = arr.copy()
+    arr3[4, 4] = 0.0
+
+    d = {"scalar_spans_0": arr, "tiny_vmax": arr2, "scalar_tiny_with_0": arr3}
 
     ds = load_uniform_grid(d, shape)
-    p = SlicePlot(ds, "z", ("stream", "scalar"))
-    p["stream", "scalar"]
+    for field in d:
+        p = SlicePlot(ds, "z", field)
+        p["stream", field]
+
+
+def test_symlog_linthresh_gt_vmax():
+    # check that some more edge cases do not crash
+
+    # linthresh will end up being larger than vmax here. This is OK.
+    shape = (64, 64, 1)
+    arr = np.full(shape, -1e30)
+    arr[1, 1] = -1e27
+    arr[2, 2] = 1e-12
+    arr[3, 3] = 1e-10
+
+    arr2 = -1 * arr.copy()  # also check the reverse
+    d = {"linthresh_gt_vmax": arr, "linthresh_lt_vmin": arr2}
+
+    ds = load_uniform_grid(d, shape)
+    for field in d:
+        p = SlicePlot(ds, "z", field)
+        p["stream", field]
+
+
+def test_symlog_symmetric():
+    # should run ok when abs(min negative) == abs(pos max)
+    shape = (64, 64, 1)
+    arr = np.full(shape, -1e30)
+    arr[1, 1] = -1e27
+    arr[2, 2] = 1e10
+    arr[3, 3] = 1e30
+    d = {"linthresh_symmetric": arr}
+
+    ds = load_uniform_grid(d, shape)
+    p = SlicePlot(ds, "z", "linthresh_symmetric")
+    p["stream", "linthresh_symmetric"]
 
 
 def test_nan_data():
@@ -776,7 +835,7 @@ def test_nan_data():
 
 def test_sanitize_valid_normal_vector():
     # note: we don't test against non-cartesian geometries
-    # because the way normal "vectors" work isn't cleary
+    # because the way normal "vectors" work isn't clearly
     # specified and works more as an implementation detail
     # at the moment
     ds = fake_amr_ds(geometry="cartesian")
@@ -852,3 +911,19 @@ def test_invalid_swap_projection():
     slc.set_mpl_projection("Robinson")
     slc.swap_axes()  # should raise mylog.warning and not toggle _swap_axes
     assert slc._has_swapped_axes is False
+
+
+def test_set_font():
+    # simply check that calling the set_font method doesn't raise an error
+    # https://github.com/yt-project/yt/issues/4263
+    ds = fake_amr_ds()
+    slc = SlicePlot(ds, "x", "Density")
+    slc.set_font(
+        {
+            "family": "sans-serif",
+            "style": "italic",
+            "weight": "bold",
+            "size": 24,
+            "color": "blue",
+        }
+    )

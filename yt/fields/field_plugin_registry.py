@@ -1,7 +1,11 @@
-field_plugins = {}
+from collections.abc import Callable
+
+FunctionName = str
+FieldPluginMap = dict[FunctionName, Callable]
+field_plugins: FieldPluginMap = {}
 
 
-def register_field_plugin(func):
+def register_field_plugin(func: Callable) -> Callable:
     name = func.__name__
     if name.startswith("setup_"):
         name = name[len("setup_") :]

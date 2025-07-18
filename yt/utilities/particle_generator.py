@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.funcs import get_pbar
-from yt.units.yt_array import uconcatenate  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
 
@@ -36,7 +36,7 @@ class ParticleGenerator:
         except Exception as e:
             raise KeyError(
                 "You must specify position fields: "
-                + " ".join("particle_position_%s" % ax for ax in "xyz")
+                + " ".join(f"particle_position_{ax}" for ax in "xyz")
             ) from e
         self.index_index = self.field_list.index((ptype, "particle_index"))
 
@@ -394,9 +394,9 @@ class WithDensityParticleGenerator(ParticleGenerator):
 
         super().__init__(ds, num_particles, field_list, ptype=ptype)
 
-        num_cells = len(data_source[("index", "x")].flat)
+        num_cells = len(data_source["index", "x"].flat)
         max_mass = (
-            data_source[density_field] * data_source[("gas", "cell_volume")]
+            data_source[density_field] * data_source["gas", "cell_volume"]
         ).max()
         num_particles_left = num_particles
         all_x = []
@@ -404,33 +404,33 @@ class WithDensityParticleGenerator(ParticleGenerator):
         all_z = []
 
         pbar = get_pbar("Generating Particles", num_particles)
-        tot_num_accepted = int(0)
+        tot_num_accepted = 0
+        rng = np.random.default_rng()
 
         while num_particles_left > 0:
-
-            m = np.random.uniform(high=1.01 * max_mass, size=num_particles_left)
-            idxs = np.random.randint(low=0, high=num_cells, size=num_particles_left)
+            m = rng.uniform(high=1.01 * max_mass, size=num_particles_left)
+            idxs = rng.integers(low=0, high=num_cells, size=num_particles_left)
             m_true = (
-                data_source[density_field] * data_source[("gas", "cell_volume")]
+                data_source[density_field] * data_source["gas", "cell_volume"]
             ).flat[idxs]
             accept = m <= m_true
             num_accepted = accept.sum()
             accepted_idxs = idxs[accept]
 
             xpos = (
-                data_source[("index", "x")].flat[accepted_idxs]
-                + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source[("index", "dx")].flat[accepted_idxs]
+                data_source["index", "x"].flat[accepted_idxs]
+                + rng.uniform(low=-0.5, high=0.5, size=num_accepted)
+                * data_source["index", "dx"].flat[accepted_idxs]
             )
             ypos = (
-                data_source[("index", "y")].flat[accepted_idxs]
-                + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source[("index", "dy")].flat[accepted_idxs]
+                data_source["index", "y"].flat[accepted_idxs]
+                + rng.uniform(low=-0.5, high=0.5, size=num_accepted)
+                * data_source["index", "dy"].flat[accepted_idxs]
             )
             zpos = (
-                data_source[("index", "z")].flat[accepted_idxs]
-                + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source[("index", "dz")].flat[accepted_idxs]
+                data_source["index", "z"].flat[accepted_idxs]
+                + rng.uniform(low=-0.5, high=0.5, size=num_accepted)
+                * data_source["index", "dz"].flat[accepted_idxs]
             )
 
             all_x.append(xpos)

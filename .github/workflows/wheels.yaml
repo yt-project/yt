@@ -10,7 +10,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/wheels.yaml'
+      - MANIFEST.in
   workflow_dispatch:
+
 
 jobs:
   build_wheels:
@@ -18,37 +20,26 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-      # pinning OS versions to oldest versions available
-      # because forward compatibility is much easier to
-      # guarantee than backward compatibility
         os: [
-          ubuntu-18.04,
-          windows-2019,
-          macos-10.15,
+          ubuntu-22.04,
+          windows-2022,
+          macos-13, # x86_64
+          macos-14, # arm64
         ]
       fail-fast: false
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build wheels for CPython
-        uses: pypa/cibuildwheel@v2.4.0
+        uses: pypa/cibuildwheel@v3.0.0
         with:
           output-dir: dist
-        env:
-          CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-*"
-          CIBW_SKIP: "*-musllinux_*"  #  numpy doesn't have wheels for musllinux so we can't build some quickly and without bloating
-          CIBW_ARCHS_LINUX: "x86_64"
-          CIBW_ARCHS_MACOS: x86_64 arm64
-          CIBW_ARCHS_WINDOWS: "auto"
-          CIBW_ENVIRONMENT: "LDFLAGS='-static-libstdc++'"
-          CIBW_BUILD_VERBOSITY: 1
-          CIBW_BEFORE_BUILD: "rm -rf build/"  # working around .so files accumulation between builds leading up to bloated wheels
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.os }}
           path: ./dist/*.whl
 
   build_sdist:
@@ -56,13 +47,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: Build sdist
         run: pipx run build --sdist
 
+      - name: Test sdist
+        run: |
+          python -m pip install "$(echo dist/*.tar.gz)[test]"
+          python -m pip list
+          project_dir=$(pwd)
+          cd ../../
+          pytest -c $project_dir/pyproject.toml --rootdir . --color=yes --pyargs yt
+
       - name: Upload sdist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -72,28 +76,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/checkout@v4
       with:
-        python-version: '3.10'
+        submodules: true
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
     - name: install check-manifest
       run: |
         python -m pip install --upgrade pip
         python -m pip install check-manifest
     - name: Install build time dependencies
       shell: bash
+
+      # keep in sync with pyproject.toml
       run: |
-        python -m pip install "Cython>=0.29.21,<3.0"
-        python -m pip install oldest-supported-numpy
-        python -m pip install --upgrade wheel
+        python -m pip install Cython>=3.0.3
+        python -m pip install numpy>=2.0.0
+        python -m pip install ewah-bool-utils>=1.2.0
         python -m pip install --upgrade setuptools
     - name: build yt
       shell: bash
       run: |
         python -m pip install --no-build-isolation .
-    - name: Init submodules
-      uses: snickerbockers/submodules-init@v4
     - name: run check-manifest
       run: check-manifest -vvv
 
@@ -105,19 +111,20 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/yt-')
     steps:
       - name: Download sdist
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: sdist
           path: dist
 
       - name: Download wheels
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: wheels
           path: dist
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.4.2
+        uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}

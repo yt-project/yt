@@ -1,16 +1,15 @@
-import inspect
+import sys
+from collections import UserDict
 from collections.abc import Callable
-from numbers import Number as numeric_type
-from typing import Optional, Tuple
 
-import numpy as np
 from unyt.exceptions import UnitConversionError
 
-from yt._typing import KnownFieldsT
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey, FieldName, FieldType, KnownFieldsT
 from yt.config import ytcfg
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, obj_length, only_on_root
-from yt.geometry.geometry_handler import is_curvilinear
+from yt.geometry.api import Geometry
 from yt.units.dimensions import dimensionless  # type: ignore
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import (
@@ -20,7 +19,7 @@ from yt.utilities.exceptions import (
 )
 
 from .derived_field import DeprecatedFieldFunc, DerivedField, NullFunc, TranslationFunc
-from .field_plugin_registry import field_plugins
+from .field_plugin_registry import FunctionName, field_plugins
 from .particle_fields import (
     add_union_field,
     particle_deposition_functions,
@@ -30,19 +29,13 @@ from .particle_fields import (
     standard_particle_fields,
 )
 
-
-def tupleize(inp):
-    if isinstance(inp, tuple):
-        return inp
-    # prepending with a '?' ensures that the sort order is the same in py2 and
-    # py3, since names of field types shouldn't begin with punctuation
-    return (
-        "?",
-        inp,
-    )
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
 
 
-class FieldInfoContainer(dict):
+class FieldInfoContainer(UserDict):
     """
     This is a generic field container.  It contains a list of potential derived
     fields, all of which know how to act on a data object and return a value.
@@ -54,21 +47,33 @@ class FieldInfoContainer(dict):
     fallback = None
     known_other_fields: KnownFieldsT = ()
     known_particle_fields: KnownFieldsT = ()
-    extra_union_fields: Tuple[Tuple[str, str], ...] = ()
+    extra_union_fields: tuple[FieldKey, ...] = ()
 
-    def __init__(self, ds, field_list, slice_info=None):
-        self._show_field_errors = []
+    def __init__(self, ds, field_list: list[FieldKey], slice_info=None):
+        super().__init__()
+        self._show_field_errors: list[Exception] = []
         self.ds = ds
         # Now we start setting things up.
         self.field_list = field_list
         self.slice_info = slice_info
-        self.field_aliases = {}
-        self.species_names = []
-        if ds is not None and is_curvilinear(ds.geometry):
-            self.curvilinear = True
-        else:
-            self.curvilinear = False
+        self.field_aliases: dict[FieldKey, FieldKey] = {}
+        self.species_names: list[FieldName] = []
         self.setup_fluid_aliases()
+
+    @property
+    def curvilinear(self) -> bool:
+        issue_deprecation_warning(
+            "FieldInfoContainer.curvilinear attribute is deprecated. "
+            "Please compare the internal dataset geometry directly to known Geometry enum members instead. ",
+            stacklevel=3,
+            since="4.2",
+        )
+        geometry = self.ds.geometry
+        return (
+            geometry is Geometry.POLAR
+            or geometry is Geometry.CYLINDRICAL
+            or geometry is Geometry.SPHERICAL
+        )
 
     def setup_fluid_fields(self):
         pass
@@ -191,6 +196,13 @@ class FieldInfoContainer(dict):
                     (ptype, alias_name),
                 )
             )
+            if "particle_position_" in alias_name:
+                new_aliases.append(
+                    (
+                        (ftype, alias_name),
+                        (ptype, alias_name),
+                    )
+                )
             new_aliases.append(
                 (
                     (ptype, uni_alias_name),
@@ -199,22 +211,40 @@ class FieldInfoContainer(dict):
             )
             for alias, source in new_aliases:
                 self.alias(alias, source)
+        self.alias((ftype, "particle_position"), (ptype, "particle_position"))
+        self.alias((ftype, "particle_mass"), (ptype, "particle_mass"))
 
     # Collect the names for all aliases if geometry is curvilinear
-    def get_aliases_gallery(self):
-        aliases_gallery = []
+    def get_aliases_gallery(self) -> list[FieldName]:
+        aliases_gallery: list[FieldName] = []
         known_other_fields = dict(self.known_other_fields)
-        if self.curvilinear:
-            for field in sorted(self.field_list):
-                if field[0] in self.ds.particle_types:
-                    continue
-                args = known_other_fields.get(field[1], ("", [], None))
-                units, aliases, display_name = args
-                for alias in aliases:
-                    aliases_gallery.append(alias)
+
+        if self.ds is None:
+            return aliases_gallery
+
+        match self.ds.geometry:
+            case Geometry.POLAR | Geometry.CYLINDRICAL | Geometry.SPHERICAL:
+                aliases: list[FieldName]
+                for field in sorted(self.field_list):
+                    if field[0] in self.ds.particle_types:
+                        continue
+                    args = known_other_fields.get(field[1], ("", [], None))
+                    units, aliases, display_name = args
+                    aliases_gallery.extend(aliases)
+            case (
+                Geometry.CARTESIAN
+                | Geometry.GEOGRAPHIC
+                | Geometry.INTERNAL_GEOGRAPHIC
+                | Geometry.SPECTRAL_CUBE
+            ):
+                # nothing to do
+                pass
+            case _:
+                assert_never(self.ds.geometry)
+
         return aliases_gallery
 
-    def setup_fluid_aliases(self, ftype="gas"):
+    def setup_fluid_aliases(self, ftype: FieldType = "gas") -> None:
         known_other_fields = dict(self.known_other_fields)
 
         # For non-Cartesian geometry, convert alias of vector fields to
@@ -222,7 +252,7 @@ class FieldInfoContainer(dict):
         aliases_gallery = self.get_aliases_gallery()
 
         for field in sorted(self.field_list):
-            if not isinstance(field, tuple):
+            if not isinstance(field, tuple) or len(field) != 2:
                 raise RuntimeError
             if field[0] in self.ds.particle_types:
                 continue
@@ -233,7 +263,7 @@ class FieldInfoContainer(dict):
                 try:
                     node = ytcfg.get("fields", *field).as_dict()
                 except KeyError:
-                    node = dict()
+                    node = {}
 
                 units = node.get("units", "")
                 aliases = node.get("aliases", [])
@@ -243,45 +273,30 @@ class FieldInfoContainer(dict):
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
-            if not isinstance(units, str) and args[0] != "":
-                units = f"(({args[0]})*{units})"
-            if (
-                isinstance(units, (numeric_type, np.number, np.ndarray))
-                and args[0] == ""
-                and units != 1.0
-            ):
-                mylog.warning(
-                    "Cannot interpret units: %s * %s, setting to dimensionless.",
-                    units,
-                    args[0],
-                )
-                units = ""
-            elif units == 1.0:
-                units = ""
             self.add_output_field(
                 field, sampling_type="cell", units=units, display_name=display_name
             )
             axis_names = self.ds.coordinates.axis_order
             for alias in aliases:
-                if (
-                    self.curvilinear
-                ):  # For non-Cartesian geometry, convert vector aliases
-
-                    if alias[-2:] not in ["_x", "_y", "_z"]:
-                        to_convert = False
-                    else:
-                        for suffix in ["x", "y", "z"]:
-                            if f"{alias[:-2]}_{suffix}" not in aliases_gallery:
-                                to_convert = False
-                                break
-                        to_convert = True
-                    if to_convert:
-                        if alias[-2:] == "_x":
-                            alias = f"{alias[:-2]}_{axis_names[0]}"
-                        elif alias[-2:] == "_y":
-                            alias = f"{alias[:-2]}_{axis_names[1]}"
-                        elif alias[-2:] == "_z":
-                            alias = f"{alias[:-2]}_{axis_names[2]}"
+                match self.ds.geometry:
+                    case Geometry.POLAR | Geometry.CYLINDRICAL | Geometry.SPHERICAL:
+                        KNOWN_SUFFIXES = ("x", "y", "z")
+                        stem, _, suffix = alias.rpartition("_")
+                        if suffix in KNOWN_SUFFIXES and all(
+                            f"{stem}_{s}" in aliases_gallery for s in KNOWN_SUFFIXES
+                        ):
+                            new_suffix = axis_names[KNOWN_SUFFIXES.index(suffix)]
+                            alias = f"{stem}_{new_suffix}"
+                    case (
+                        Geometry.CARTESIAN
+                        | Geometry.GEOGRAPHIC
+                        | Geometry.INTERNAL_GEOGRAPHIC
+                        | Geometry.SPECTRAL_CUBE
+                    ):
+                        # nothing to do
+                        pass
+                    case _:
+                        assert_never(self.ds.geometry)
                 self.alias((ftype, alias), field)
 
     @staticmethod
@@ -315,11 +330,11 @@ class FieldInfoContainer(dict):
 
     def add_field(
         self,
-        name: Tuple[str, str],
+        name: FieldKey,
         function: Callable,
         sampling_type: str,
         *,
-        alias: Optional[DerivedField] = None,
+        alias: DerivedField | None = None,
         force_override: bool = False,
         **kwargs,
     ) -> None:
@@ -363,31 +378,6 @@ class FieldInfoContainer(dict):
 
         kwargs.setdefault("ds", self.ds)
 
-        if not isinstance(function, Callable):  # type: ignore [arg-type]
-            # type-checking is disabled because of https://github.com/python/mypy/issues/11071
-            # this is compatible with lambdas and functools.partial objects
-            raise TypeError(
-                f"Expected a callable object, got {function} with type {type(function)}"
-            )
-
-        # lookup parameters that do not have default values
-        fparams = inspect.signature(function).parameters
-        nodefaults = tuple(p.name for p in fparams.values() if p.default is p.empty)
-        if nodefaults != ("field", "data"):
-            raise TypeError(
-                f"Received field function {function} with invalid signature. "
-                f"Expected exactly 2 positional parameters ('field', 'data'), got {nodefaults!r}"
-            )
-        if any(
-            fparams[name].kind == fparams[name].KEYWORD_ONLY
-            for name in ("field", "data")
-        ):
-            raise TypeError(
-                f"Received field function {function} with invalid signature. "
-                "Parameters 'field' and 'data' must accept positional values "
-                "(they cannot be keyword-only)"
-            )
-
         sampling_type = self._sanitize_sampling_type(sampling_type)
 
         if (
@@ -401,7 +391,7 @@ class FieldInfoContainer(dict):
         else:
             raise ValueError(f"Expected name to be a tuple[str, str], got {name}")
 
-    def load_all_plugins(self, ftype: Optional[str] = "gas"):
+    def load_all_plugins(self, ftype: str | None = "gas") -> None:
         if ftype is None:
             return
         mylog.debug("Loading field plugins for field type: %s.", ftype)
@@ -411,11 +401,13 @@ class FieldInfoContainer(dict):
             only_on_root(mylog.debug, "Loaded %s (%s new fields)", n, len(loaded))
         self.find_dependencies(loaded)
 
-    def load_plugin(self, plugin_name, ftype="gas", skip_check=False):
-        if callable(plugin_name):
-            f = plugin_name
-        else:
-            f = field_plugins[plugin_name]
+    def load_plugin(
+        self,
+        plugin_name: FunctionName,
+        ftype: FieldType = "gas",
+        skip_check: bool = False,
+    ):
+        f = field_plugins[plugin_name]
         orig = set(self.items())
         f(self, ftype, slice_info=self.slice_info)
         loaded = [n for n, v in set(self.items()).difference(orig)]
@@ -426,7 +418,7 @@ class FieldInfoContainer(dict):
         self.ds.field_dependencies.update(deps)
         # Note we may have duplicated
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
+        self.ds.derived_field_list = sorted(dfl)
         return loaded, unavailable
 
     def add_output_field(self, name, sampling_type, **kwargs):
@@ -441,25 +433,25 @@ class FieldInfoContainer(dict):
 
     def alias(
         self,
-        alias_name: Tuple[str, str],
-        original_name: Tuple[str, str],
-        units: Optional[str] = None,
-        deprecate: Optional[Tuple[str, str]] = None,
+        alias_name: FieldKey,
+        original_name: FieldKey,
+        units: str | None = None,
+        deprecate: tuple[str, str | None] | None = None,
     ):
         """
         Alias one field to another field.
 
         Parameters
         ----------
-        alias_name : Tuple[str, str]
+        alias_name : tuple[str, str]
             The new field name.
-        original_name : Tuple[str, str]
+        original_name : tuple[str, str]
             The field to be aliased.
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^). If set to "auto" the units
            will be inferred from the return value of the field function.
-        deprecate : Tuple[str, str], optional
+        deprecate : tuple[str, str | None] | None
             If this is set, then the tuple contains two string version
             numbers: the first marking the version when the field was
             deprecated, and the second marking when the field will be
@@ -507,7 +499,14 @@ class FieldInfoContainer(dict):
             )
 
     def add_deprecated_field(
-        self, name, function, sampling_type, since, removal, ret_name=None, **kwargs
+        self,
+        name,
+        function,
+        sampling_type,
+        since,
+        removal=None,
+        ret_name=None,
+        **kwargs,
     ):
         """
         Add a new field which is deprecated, along with supplemental metadata,
@@ -574,25 +573,24 @@ class FieldInfoContainer(dict):
         return obj
 
     def __contains__(self, key):
-        if dict.__contains__(self, key):
+        if super().__contains__(key):
             return True
         if self.fallback is None:
             return False
         return key in self.fallback
 
     def __iter__(self):
-        yield from dict.__iter__(self)
+        yield from super().__iter__()
         if self.fallback is not None:
             yield from self.fallback
 
     def keys(self):
-        keys = dict.keys(self)
+        keys = super().keys()
         if self.fallback:
             keys += list(self.fallback.keys())
         return keys
 
     def check_derived_fields(self, fields_to_check=None):
-
         # The following exceptions lists were obtained by expanding an
         # all-catching `except Exception`.
         # We define
@@ -658,7 +656,7 @@ class FieldInfoContainer(dict):
         # now populate the derived field list with results
         # this violates isolation principles and should be refactored
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        dfl = list(sorted(dfl, key=tupleize))
+        dfl = sorted(dfl)
 
         if not hasattr(self.ds.index, "meshes"):
             # the meshes attribute characterizes an unstructured-mesh data structure

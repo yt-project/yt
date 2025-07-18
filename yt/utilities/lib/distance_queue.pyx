@@ -15,7 +15,7 @@ import numpy as np
 cimport cython
 
 
-cdef int Neighbor_compare(void *on1, void *on2) nogil:
+cdef int Neighbor_compare(void *on1, void *on2) noexcept nogil:
     cdef NeighborList *n1
     cdef NeighborList *n2
     n1 = <NeighborList *> on1
@@ -66,7 +66,6 @@ cdef class PriorityQueue:
     is because our typical use case is to store radii.
     """
     def __cinit__(self, int maxn):
-        cdef int i
         self.maxn = maxn
         self.curn = 0
         self.items = <ItemList *> malloc(

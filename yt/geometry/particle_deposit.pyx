@@ -14,12 +14,11 @@ cimport numpy as np
 import numpy as np
 
 cimport cython
-from cython.view cimport memoryview as cymemview
 from libc.math cimport sqrt
-from libc.stdlib cimport free, malloc
-from oct_container cimport Oct, OctInfo, OctreeContainer
 
 from yt.utilities.lib.fp_utils cimport *
+
+from .oct_container cimport Oct, OctInfo, OctreeContainer
 
 from yt.utilities.lib.misc_utilities import OnceIndirect
 
@@ -63,12 +62,10 @@ cdef class ParticleDepositOperation:
         cdef np.float64_t pos[3]
         cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
         cdef int dims[3]
-        dims[0] = dims[1] = dims[2] = (1 << octree.oref)
-        cdef int nz = dims[0] * dims[1] * dims[2]
+        dims[0] = dims[1] = dims[2] = octree.nz
         cdef OctInfo oi
         cdef np.int64_t offset, moff
         cdef Oct *oct
-        cdef np.int64_t numpart = positions.shape[0]
         cdef np.int8_t use_lvlmax
         moff = octree.get_domain_offset(domain_id + domain_offset)
         if lvlmax is None:
@@ -160,7 +157,7 @@ cdef class ParticleDepositOperation:
     cdef int process(self, int dim[3], int ipart, np.float64_t left_edge[3],
                      np.float64_t dds[3], np.int64_t offset,
                      np.float64_t ppos[3], np.float64_t[:] fields,
-                     np.int64_t domain_ind) nogil except -1:
+                     np.int64_t domain_ind) except -1 nogil:
         with gil:
             raise NotImplementedError
 
@@ -180,7 +177,7 @@ cdef class CountParticles(ParticleDepositOperation):
                      np.float64_t ppos[3], # this particle's position
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         # here we do our thing; this is the kernel
         cdef int ii[3]
         cdef int i
@@ -218,7 +215,7 @@ cdef class SimpleSmooth(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         cdef int ii[3]
         cdef int ib0[3]
         cdef int ib1[3]
@@ -279,7 +276,7 @@ cdef class SumParticleField(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         cdef int ii[3]
         cdef int i
         for i in range(3):
@@ -322,9 +319,9 @@ cdef class StdParticleField(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         cdef int ii[3]
-        cdef int i, cell_index
+        cdef int i
         cdef float k, mk, qk
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
@@ -373,16 +370,12 @@ cdef class CICDeposit(ParticleDepositOperation):
                      np.float64_t ppos[3], # this particle's position
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
 
         cdef int i, j, k
-        cdef np.uint64_t ii
         cdef int ind[3]
         cdef np.float64_t rpos[3]
         cdef np.float64_t rdds[3][2]
-        cdef np.float64_t fact, edge0, edge1, edge2
-        cdef np.float64_t le0, le1, le2
-        cdef np.float64_t dx, dy, dz, dx2, dy2, dz2
 
         # Compute the position of the central cell
         for i in range(3):
@@ -428,7 +421,7 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         cdef int ii[3]
         cdef int i
         for i in range(3):
@@ -463,7 +456,7 @@ cdef class MeshIdentifier(ParticleDepositOperation):
                       np.float64_t ppos[3],
                       np.float64_t[:] fields,
                       np.int64_t domain_ind
-                      ) nogil except -1:
+                      ) except -1 nogil:
         fields[0] = domain_ind
         return 0
 
@@ -489,7 +482,7 @@ cdef class CellIdentifier(ParticleDepositOperation):
                       np.float64_t ppos[3],
                       np.float64_t[:] fields,
                       np.int64_t domain_ind
-                      ) nogil except -1:
+                      ) except -1 nogil:
         cdef int i, icell
         self.indexes[ipart] = offset
 
@@ -527,11 +520,10 @@ cdef class NNParticleField(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         # This one is a bit slow.  Every grid cell is going to be iterated
         # over, and we're going to deposit particles in it.
         cdef int i, j, k
-        cdef int ii[3]
         cdef np.float64_t r2
         cdef np.float64_t gpos[3]
         gpos[0] = left_edge[0] + 0.5 * dds[0]

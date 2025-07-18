@@ -1,6 +1,5 @@
 # distutils: include_dirs = LIB_DIR
-# distutils: libraries = STD_LIBS
-# distutils: sources = FIXED_INTERP
+# distutils: libraries = STD_LIBS FIXED_INTERP
 # distutils: language = c++
 """
 Marching cubes implementation
@@ -15,16 +14,15 @@ cimport numpy as np
 
 import numpy as np
 
-from fixed_interpolator cimport (
+from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
+
+from .fixed_interpolator cimport (
     eval_gradient,
     offset_fill,
     offset_interpolate,
     vertex_interp,
 )
-from libc.math cimport sqrt
-from libc.stdlib cimport abs, free, malloc
-
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
 
 from yt.units.yt_array import YTArray
 

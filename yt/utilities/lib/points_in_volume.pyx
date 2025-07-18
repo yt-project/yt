@@ -83,7 +83,7 @@ def grid_points_in_volume(
                    np.ndarray[np.int32_t, ndim=3] mask,
                    int break_first):
     cdef int n[3]
-    cdef i, j, k
+    cdef int i, j, k
     cdef np.float64_t rds[3][3]
     cdef np.float64_t cur_pos[3]
     cdef np.float64_t rorigin[3]

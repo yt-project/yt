@@ -1,7 +1,6 @@
 import sys
 from functools import wraps
 from importlib.util import find_spec
-from typing import Type
 
 
 class NotAModule:
@@ -11,11 +10,27 @@ class NotAModule:
     package installed.
     """
 
-    def __init__(self, pkg_name):
+    def __init__(self, pkg_name, exc: BaseException | None = None):
         self.pkg_name = pkg_name
-        self.error = ImportError(
-            f"This functionality requires the {self.pkg_name} package to be installed."
+        self._original_exception = exc
+        error_note = (
+            f"Something went wrong while trying to lazy-import {pkg_name}. "
+            f"Please make sure that {pkg_name} is properly installed.\n"
+            "If the problem persists, please file an issue at "
+            "https://github.com/yt-project/yt/issues/new"
         )
+        self.error: BaseException
+        if exc is None:
+            self.error = ImportError(error_note)
+        elif sys.version_info >= (3, 11):
+            exc.add_note(error_note)
+            self.error = exc
+        else:
+            # mimic Python 3.11 behaviour:
+            # preserve error message and traceback
+            self.error = type(exc)(f"{exc!s}\n{error_note}").with_traceback(
+                exc.__traceback__
+            )
 
     def __getattr__(self, item):
         raise self.error
@@ -24,11 +39,14 @@ class NotAModule:
         raise self.error
 
     def __repr__(self) -> str:
-        return f"NotAModule({self.pkg_name!r})"
+        if self._original_exception is None:
+            return f"NotAModule({self.pkg_name!r})"
+        else:
+            return f"NotAModule({self.pkg_name!r}, {self._original_exception!r})"
 
 
 class OnDemand:
-    _default_factory: Type[NotAModule] = NotAModule
+    _default_factory: type[NotAModule] = NotAModule
 
     def __init_subclass__(cls):
         if not cls.__name__.endswith("_imports"):
@@ -36,7 +54,7 @@ class OnDemand:
 
     def __new__(cls):
         if cls is OnDemand:
-            raise TypeError("The OnDemand base class cannot be instanciated.")
+            raise TypeError("The OnDemand base class cannot be instantiated.")
         else:
             return object.__new__(cls)
 
@@ -57,23 +75,13 @@ def safe_import(func):
     def inner(self):
         try:
             return func(self)
-        except ImportError:
-            return self._default_factory(self._name)
+        except ImportError as exc:
+            return self._default_factory(self._name, exc)
 
     return inner
 
 
 class netCDF4_imports(OnDemand):
-    def __init__(self):
-        # this ensures the import ordering between netcdf4 and h5py. If h5py is
-        # imported first, can get file lock errors on some systems (including travis-ci)
-        # so we need to do this before initializing h5py_imports()!
-        # similar to this issue https://github.com/pydata/xarray/issues/2560
-        try:
-            import netCDF4  # noqa F401
-        except ImportError:
-            pass
-
     @safe_import
     def Dataset(self):
         from netCDF4 import Dataset
@@ -135,8 +143,26 @@ class astropy_imports(OnDemand):
         self.log
         return wcsaxes
 
+    @safe_import
+    def WCS(self):
+        from astropy.wcs import WCS
+
+        self.log
+        return WCS
+
 
 _astropy = astropy_imports()
+
+
+class regions_imports(OnDemand):
+    @safe_import
+    def Regions(self):
+        from regions import Regions
+
+        return Regions
+
+
+_regions = regions_imports()
 
 
 class NotCartopy(NotAModule):
@@ -145,31 +171,27 @@ class NotCartopy(NotAModule):
     for cartopy imports.
     """
 
-    def __init__(self, pkg_name):
-        self.pkg_name = pkg_name
+    def __init__(self, pkg_name, exc: BaseException | None = None):
+        super().__init__(pkg_name, exc)
         if any(s in sys.version for s in ("Anaconda", "Continuum")):
             # the conda-based installs of cartopy don't have issues with the
             # GEOS library, so the error message for users with conda can be
             # relatively short. Discussion related to this is in
             # yt-project/yt#1966
             self.error = ImportError(
-                "This functionality requires the %s "
-                "package to be installed." % self.pkg_name
+                f"This functionality requires the {self.pkg_name} "
+                "package to be installed."
             )
         else:
             self.error = ImportError(
-                "This functionality requires the %s "
-                "package to be installed. Try installing proj4 and "
-                "geos with your package manager and building shapely "
-                "and cartopy from source with: \n \n "
-                "python -m pip install --no-binary :all: shapely cartopy \n \n"
-                "For further instruction please refer to the "
-                "yt documentation." % self.pkg_name
+                f"This functionality requires the {pkg_name} "
+                "package to be installed.\n"
+                "For further instruction please refer to Cartopy's documentation\n"
+                "https://scitools.org.uk/cartopy/docs/latest/installing.html"
             )
 
 
 class cartopy_imports(OnDemand):
-
     _default_factory = NotCartopy
 
     @safe_import
@@ -252,11 +274,32 @@ class scipy_imports(OnDemand):
 
         return ndimage
 
+    # Optimize is not presently used by yt, but appears here to enable
+    # required functionality in yt extension, trident
+
+    @safe_import
+    def optimize(self):
+        from scipy import optimize
+
+        return optimize
+
 
 _scipy = scipy_imports()
 
 
 class h5py_imports(OnDemand):
+    def __init__(self):
+        # this ensures the import ordering between netcdf4 and h5py. If h5py is
+        # imported first, can get file lock errors on some systems (including travis-ci)
+        # so we need to do this before initializing h5py_imports()!
+        # similar to this issue https://github.com/pydata/xarray/issues/2560
+        if find_spec("h5py") is None or find_spec("netCDF4") is None:
+            return
+        try:
+            import netCDF4  # noqa F401
+        except ImportError:
+            pass
+
     @safe_import
     def File(self):
         from h5py import File
@@ -442,25 +485,31 @@ class pandas_imports(OnDemand):
 
         return concat
 
+    @safe_import
+    def read_csv(self):
+        from pandas import read_csv
+
+        return read_csv
+
 
 _pandas = pandas_imports()
 
 
-class Firefly_imports(OnDemand):
+class firefly_imports(OnDemand):
     @safe_import
     def data_reader(self):
-        import Firefly.data_reader as data_reader
+        import firefly.data_reader as data_reader
 
         return data_reader
 
     @safe_import
     def server(self):
-        import Firefly.server as server
+        import firefly.server as server
 
         return server
 
 
-_firefly = Firefly_imports()
+_firefly = firefly_imports()
 
 
 # Note: ratarmount may fail with an OSError on import if libfuse is missing

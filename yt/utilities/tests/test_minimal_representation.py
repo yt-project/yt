@@ -1,20 +1,27 @@
 import os.path
 
+from numpy.testing import assert_equal, assert_raises
+
 import yt
 from yt.config import ytcfg
-from yt.testing import assert_equal, assert_raises, requires_file
+from yt.testing import requires_file, requires_module
 
 G30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
+old_serialize = None
 
-def setup():
+
+def setup_module():
+    global old_serialize
+    old_serialize = ytcfg.get("yt", "serialize")
     ytcfg["yt", "serialize"] = True
 
 
-def teardown():
-    ytcfg["yt", "serialize"] = False
+def teardown_module():
+    ytcfg["yt", "serialize"] = old_serialize
 
 
+@requires_module("h5py")
 @requires_file(G30)
 def test_store():
     ds = yt.load(G30)

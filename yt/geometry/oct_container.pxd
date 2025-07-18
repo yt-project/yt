@@ -9,11 +9,10 @@ Oct definitions file
 
 cimport cython
 cimport numpy as np
-cimport oct_visitors
-cimport selection_routines
 from libc.math cimport floor
 from libc.stdlib cimport bsearch, free, malloc, qsort, realloc
 
+from yt.geometry cimport oct_visitors, selection_routines
 from yt.utilities.lib.allocation_container cimport AllocationContainer, ObjectPool
 from yt.utilities.lib.fp_utils cimport *
 
@@ -58,14 +57,14 @@ cdef class OctreeContainer:
     cdef int partial_coverage
     cdef int level_offset
     cdef int nn[3]
-    cdef np.uint8_t oref
+    cdef np.uint8_t nz
     cdef np.float64_t DLE[3]
     cdef np.float64_t DRE[3]
     cdef public np.int64_t nocts
     cdef public int num_domains
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?,
-                  int max_level = ?) nogil
-    cdef int get_root(self, int ind[3], Oct **o) nogil
+                  int max_level = ?) noexcept nogil
+    cdef int get_root(self, int ind[3], Oct **o) noexcept nogil
     cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors,
                          Oct *o, bint periodicity[3])
     # This function must return the offset from global-to-local domains; i.e.,
@@ -81,6 +80,30 @@ cdef class OctreeContainer:
     # The fill_style is the ordering, C or F, of the octs in the file.  "o"
     # corresponds to C, and "r" is for Fortran.
     cdef public object fill_style
+    cdef public int max_level
+
+    cpdef void fill_level(
+        self,
+        const int level,
+        const np.uint8_t[::1] level_inds,
+        const np.uint8_t[::1] cell_inds,
+        const np.int64_t[::1] file_inds,
+        dict dest_fields,
+        dict source_fields,
+        np.int64_t offset = ?
+    )
+    cpdef int fill_level_with_domain(
+        self,
+        const int level,
+        const np.uint8_t[::1] level_inds,
+        const np.uint8_t[::1] cell_inds,
+        const np.int64_t[::1] file_inds,
+        const np.int32_t[::1] domain_inds,
+        dict dest_fields,
+        dict source_fields,
+        const np.int32_t domain,
+        np.int64_t offset = ?
+    )
 
 cdef class SparseOctreeContainer(OctreeContainer):
     cdef OctKey *root_nodes
@@ -88,7 +111,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
     cdef int num_root
     cdef int max_root
     cdef void key_to_ipos(self, np.int64_t key, np.int64_t pos[3])
-    cdef np.int64_t ipos_to_key(self, int pos[3]) nogil
+    cdef np.int64_t ipos_to_key(self, int pos[3]) noexcept nogil
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     pass

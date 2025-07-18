@@ -18,7 +18,6 @@ class SPHDataset(ParticleDataset):
         self,
         filename,
         dataset_type=None,
-        file_style=None,
         units_override=None,
         unit_system="cgs",
         index_order=None,
@@ -35,7 +34,6 @@ class SPHDataset(ParticleDataset):
         super().__init__(
             filename,
             dataset_type=dataset_type,
-            file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
             index_order=index_order,
@@ -61,8 +59,8 @@ class SPHDataset(ParticleDataset):
     def sph_smoothing_style(self, value):
         if value not in self._sph_smoothing_styles:
             raise ValueError(
-                "Smoothing style not implemented: %s, please "
-                "select one of the following: " % value,
+                f"Smoothing style not implemented: {value}, "
+                "please select one of the following: ",
                 self._sph_smoothing_styles,
             )
 

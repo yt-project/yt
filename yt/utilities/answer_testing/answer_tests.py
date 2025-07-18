@@ -2,6 +2,7 @@
 Title: answer_tests.py
 Purpose: Contains answer tests that are used by yt's various frontends
 """
+
 import hashlib
 import os
 import tempfile
@@ -87,10 +88,13 @@ def field_values(ds, field, obj_type=None, particle_type=False):
     # If needed build an instance of the dataset type
     obj = create_obj(ds, obj_type)
     determined_field = obj._determine_fields(field)[0]
+    fd = ds.field_info[determined_field]
     # Get the proper weight field depending on if we're looking at
     # particles or not
     if particle_type:
         weight_field = (determined_field[0], "particle_ones")
+    elif fd.is_sph_field:
+        weight_field = (determined_field[0], "ones")
     else:
         weight_field = ("index", "ones")
     # Get the average, min, and max
@@ -109,9 +113,9 @@ def pixelized_projection_values(ds, axis, field, weight_field=None, dobj_type=No
         obj = None
     proj = ds.proj(field, axis, weight_field=weight_field, data_source=obj)
     frb = proj.to_frb((1.0, "unitary"), 256)
-    frb[field]
+    frb.render(field)
     if weight_field is not None:
-        frb[weight_field]
+        frb.render(weight_field)
     d = frb.data
     for f in proj.field_data:
         # Sometimes f will be a tuple.
@@ -262,6 +266,14 @@ def phase_plot_attribute(
 
 
 def generic_image(img_fname):
+    from yt._maintenance.deprecation import issue_deprecation_warning
+
+    issue_deprecation_warning(
+        "yt.utilities.answer_testing.answer_tests.generic_image is deprecated "
+        "and will be removed in a future version. Please use pytest-mpl instead",
+        since="4.4",
+        stacklevel=2,
+    )
     img_data = mpimg.imread(img_fname)
     return img_data
 

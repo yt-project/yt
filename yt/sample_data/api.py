@@ -1,23 +1,22 @@
 """
 This is a collection of helper functions to yt.load_sample
 """
+
 import json
 import re
+import sys
 from functools import lru_cache
-from itertools import chain
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 from warnings import warn
 
-import pkg_resources
-
 from yt.config import ytcfg
-from yt.funcs import mylog
 from yt.utilities.on_demand_imports import (
     _pandas as pd,
     _pooch as pooch,
     _requests as requests,
 )
+
 
 num_exp = re.compile(r"\d*(\.\d*)?")
 byte_unit_exp = re.compile(r"[KMGT]?B")
@@ -80,6 +79,16 @@ def _parse_byte_size(s: str):
     return int(float(f"{raw_res:.3e}"))
 
 
+def _get_sample_data_registry():
+    import importlib.resources as importlib_resources
+
+    return json.loads(
+        importlib_resources.files("yt")
+        .joinpath("sample_data_registry.json")
+        .read_bytes()
+    )
+
+
 @lru_cache(maxsize=128)
 def get_data_registry_table():
     """
@@ -90,7 +99,6 @@ def get_data_registry_table():
 
     The output of this function is cached so it will only generate one request per session.
     """
-
     # it would be nicer to have an actual api on the yt website server,
     # but this will do for now
     api_url = "https://raw.githubusercontent.com/yt-project/website/master/data/datafiles.json"
@@ -121,9 +129,7 @@ def get_data_registry_table():
     )
 
     # load local data
-    with pkg_resources.resource_stream("yt", "sample_data_registry.json") as fh:
-        pooch_json = json.load(fh)
-    pooch_table = pd.DataFrame(pooch_json.values())
+    pooch_table = pd.DataFrame(_get_sample_data_registry().values())
 
     # merge tables
     unified_table = website_table.merge(pooch_table, on="url", how="outer")
@@ -163,7 +169,7 @@ def lookup_on_disk_data(fn) -> Path:
     FileNotFoundError
     """
 
-    path = Path(fn).expanduser()
+    path = Path(fn).expanduser().resolve()
 
     if path.exists():
         return path
@@ -173,7 +179,7 @@ def lookup_on_disk_data(fn) -> Path:
     if not test_data_dir.is_dir():
         raise FileNotFoundError(err_msg)
 
-    alt_path = _get_test_data_dir_path() / fn
+    alt_path = _get_test_data_dir_path().joinpath(fn).resolve()
     if alt_path != path:
         if alt_path.exists():
             return alt_path
@@ -181,17 +187,26 @@ def lookup_on_disk_data(fn) -> Path:
     raise FileNotFoundError(err_msg)
 
 
-@lru_cache(maxsize=128)
-def _get_pooch_instance():
-    data_registry = get_data_registry_table()
-    cache_storage = _get_test_data_dir_path() / "yt_download_cache"
+def get_download_cache_dir():
+    return _get_test_data_dir_path() / "yt_download_cache"
 
-    with pkg_resources.resource_stream("yt", "sample_data_registry.json") as fh:
-        sample_data_registry = json.load(fh)
-    registry = {k: v["hash"] for k, v in sample_data_registry.items()}
-    return pooch.create(
-        path=cache_storage, base_url="https://yt-project.org/data/", registry=registry
-    )
+
+_POOCHIE = None
+
+
+def _get_pooch_instance():
+    global _POOCHIE
+    if _POOCHIE is None:
+        data_registry = get_data_registry_table()
+        cache_storage = get_download_cache_dir()
+
+        registry = {k: v["hash"] for k, v in _get_sample_data_registry().items()}
+        _POOCHIE = pooch.create(
+            path=cache_storage,
+            base_url="https://yt-project.org/data/",
+            registry=registry,
+        )
+    return _POOCHIE
 
 
 def _download_sample_data_file(
@@ -209,4 +224,4 @@ def _download_sample_data_file(
 
     poochie = _get_pooch_instance()
     poochie.fetch(filename, downloader=downloader)
-    return Path.joinpath(poochie.path, filename)
+    return poochie.path / filename

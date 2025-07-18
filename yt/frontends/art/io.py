@@ -58,7 +58,7 @@ class IOHandlerART(BaseIOHandler):
                         cp,
                         cp + d.size,
                     )
-                    tr[(ft, f)].append(d)
+                    tr[ft, f].append(d)
                 cp += d.size
         d = {}
         for field in fields:
@@ -125,7 +125,7 @@ class IOHandlerART(BaseIOHandler):
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
-            for ptb, size, m in zip(pbool, sizes, self.ws):
+            for ptb, size, m in zip(pbool, sizes, self.ws, strict=True):
                 if ptb:
                     data[a : a + size] = m
                     a += size
@@ -135,7 +135,7 @@ class IOHandlerART(BaseIOHandler):
         elif fname == "particle_type":
             a = 0
             data = np.zeros(npa, dtype="int64")
-            for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+            for i, (ptb, size) in enumerate(zip(pbool, sizes, strict=True)):
                 if ptb:
                     data[a : a + size] = i
                     a += size
@@ -186,7 +186,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
 
     def _identify_fields(self, domain):
         field_list = []
-        self.particle_field_list = [f for f in particle_fields]
+        self.particle_field_list = list(particle_fields)
         for ptype in self.ds.particle_types_raw:
             for pfield in self.particle_field_list:
                 pfn = (ptype, pfield)
@@ -218,7 +218,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
-            for ptb, size, m in zip(pbool, sizes, self.ws):
+            for ptb, size, m in zip(pbool, sizes, self.ws, strict=True):
                 if ptb:
                     data[a : a + size] = m
                     a += size
@@ -228,7 +228,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
         elif fname == "particle_type":
             a = 0
             data = np.zeros(npa, dtype="int64")
-            for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+            for i, (ptb, size) in enumerate(zip(pbool, sizes, strict=True)):
                 if ptb:
                     data[a : a + size] = i
                     a += size
@@ -441,9 +441,12 @@ def read_particles(file, Nrow, idxa, idxb, fields):
     num_pages = os.path.getsize(file) // (real_size * words * np_per_page)
     fh = open(file)
     skip, count = idxa, idxb - idxa
-    kwargs = dict(
-        words=words, real_size=real_size, np_per_page=np_per_page, num_pages=num_pages
-    )
+    kwargs = {
+        "words": words,
+        "real_size": real_size,
+        "np_per_page": np_per_page,
+        "num_pages": num_pages,
+    }
     arrs = []
     for field in fields:
         ranges = get_ranges(skip, count, field, **kwargs)
@@ -584,9 +587,11 @@ def find_root(f, a, b, tol=1e-6):
 
 
 def quad(fintegrand, xmin, xmax, n=1e4):
+    from yt._maintenance.numpy2_compat import trapezoid
+
     spacings = np.logspace(np.log10(xmin), np.log10(xmax), num=int(n))
     integrand_arr = fintegrand(spacings)
-    val = np.trapz(integrand_arr, dx=np.diff(spacings))
+    val = trapezoid(integrand_arr, dx=np.diff(spacings))
     return val
 
 
@@ -617,11 +622,7 @@ def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
     def integrand(x):
         return 1.0 / (x * sqrt(Oml0 + Om0 * x**-3.0))
 
-    # current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
     current_time = quad(integrand, 1e-4, at)
-    # spacings = np.logspace(-5,np.log10(at),num=int(1e5))
-    # integrand_arr = integrand(spacings)
-    # current_time = np.trapz(integrand_arr,dx=np.diff(spacings))
     current_time *= 9.779 / h
     return current_time
 
@@ -634,7 +635,7 @@ def b2t(tb, n=1e2, logger=None, **kwargs):
         return a2t(b2a(tb))
     if len(tb) < n:
         n = len(tb)
-    tbs = -1.0 * np.logspace(np.log10(-tb.min()), np.log10(-tb.max()), n)
+    tbs = -1.0 * np.logspace(np.log10(-tb.min()), np.log10(-tb.max()), int(n))
     ages = []
     for i, tbi in enumerate(tbs):
         ages += (a2t(b2a(tbi)),)

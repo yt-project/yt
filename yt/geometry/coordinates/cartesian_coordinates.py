@@ -2,7 +2,8 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
-from yt.units.yt_array import YTArray, uconcatenate, uvstack  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate, uvstack
+from yt.units.yt_array import YTArray
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
     normalization_2d_utility,
@@ -11,9 +12,11 @@ from yt.utilities.lib.pixelization_routines import (
     pixelize_element_mesh,
     pixelize_element_mesh_line,
     pixelize_off_axis_cartesian,
+    pixelize_sph_kernel_cutting,
     pixelize_sph_kernel_projection,
     pixelize_sph_kernel_slice,
 )
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.nodal_data_utils import get_nodal_data
 
 from .coordinate_handler import (
@@ -44,8 +47,8 @@ def _sample_ray(ray, npoints, field):
     sample_dr = (end_point - start_point) / (npoints - 1)
     sample_points = [np.arange(npoints) * sample_dr[i] for i in range(3)]
     sample_points = uvstack(sample_points).T + start_point
-    ray_coordinates = uvstack([ray[("index", d)] for d in "xyz"]).T
-    ray_dds = uvstack([ray[("index", f"d{d}")] for d in "xyz"]).T
+    ray_coordinates = uvstack([ray["index", d] for d in "xyz"]).T
+    ray_dds = uvstack([ray["index", f"d{d}"] for d in "xyz"]).T
     ray_field = ray[field]
     field_values = ray.ds.arr(np.zeros(npoints), ray_field.units)
     for i, sample_point in enumerate(sample_points):
@@ -88,9 +91,7 @@ def all_data(data, ptype, fields, kdtree=False):
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
-
-    def __init__(self, ds, ordering=("x", "y", "z")):
-        super().__init__(ds, ordering)
+    _default_axis_order = ("x", "y", "z")
 
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
@@ -161,7 +162,16 @@ class CartesianCoordinateHandler(CoordinateHandler):
         )
 
     def pixelize(
-        self, dimension, data_source, field, bounds, size, antialias=True, periodic=True
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask=False,
     ):
         """
         Method for pixelizing datasets in preparation for
@@ -211,19 +221,33 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
 
-            img = pixelize_element_mesh(
-                coords, indices, buff_size, field_data, extents, index_offset=offset
+            buff, mask = pixelize_element_mesh(
+                coords,
+                indices,
+                buff_size,
+                field_data,
+                extents,
+                index_offset=offset,
+                return_mask=True,
             )
 
-            # re-order the array and squeeze out the dummy dim
-            return np.squeeze(np.transpose(img, (yax, xax, ax)))
+            buff = np.squeeze(np.transpose(buff, (yax, xax, ax)))
+            mask = np.squeeze(np.transpose(mask, (yax, xax, ax)))
 
-        elif self.axis_id.get(dimension, dimension) < 3:
-            return self._ortho_pixelize(
+        elif self.axis_id.get(dimension, dimension) is not None:
+            buff, mask = self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
             )
         else:
-            return self._oblique_pixelize(data_source, field, bounds, size, antialias)
+            buff, mask = self._oblique_pixelize(
+                data_source, field, bounds, size, antialias
+            )
+
+        if return_mask:
+            assert mask is None or mask.dtype == bool
+            return buff, mask
+        else:
+            return buff
 
     def pixelize_line(self, field, start_point, end_point, npoints):
         """
@@ -300,11 +324,20 @@ class CartesianCoordinateHandler(CoordinateHandler):
         # We should be using fcoords
         field = data_source._determine_fields(field)[0]
         finfo = data_source.ds.field_info[field]
-        period = self.period[:2].copy()  # dummy here
-        period[0] = self.period[self.x_axis[dim]]
-        period[1] = self.period[self.y_axis[dim]]
-        if hasattr(period, "in_units"):
-            period = period.in_units("code_length").d
+        # some coordinate handlers use only projection-plane periods,
+        # others need all box periods.
+        period2 = self.period[:2].copy()  # dummy here
+        period2[0] = self.period[self.x_axis[dim]]
+        period2[1] = self.period[self.y_axis[dim]]
+        period3 = self.period[:].copy()  # dummy here
+        period3[0] = self.period[self.x_axis[dim]]
+        period3[1] = self.period[self.y_axis[dim]]
+        zax = list({0, 1, 2} - {self.x_axis[dim], self.y_axis[dim]})[0]
+        period3[2] = self.period[zax]
+        if hasattr(period2, "in_units"):
+            period2 = period2.in_units("code_length").d
+        if hasattr(period3, "in_units"):
+            period3 = period3.in_units("code_length").d
 
         buff = np.full((size[1], size[0]), np.nan, dtype="float64")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
@@ -314,7 +347,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if np.any(finfo.nodal_flag):
             nodal_data = get_nodal_data(data_source, field)
             coord = data_source.coord.d
-            pixelize_cartesian_nodal(
+            mask = pixelize_cartesian_nodal(
                 buff,
                 data_source["px"],
                 data_source["py"],
@@ -326,24 +359,49 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 coord,
                 bounds,
                 int(antialias),
-                period,
+                period2,
                 int(periodic),
+                return_mask=True,
             )
         elif isinstance(data_source.ds, particle_datasets) and is_sph_field:
+            # SPH handling
             ptype = field[0]
             if ptype == "gas":
                 ptype = data_source.ds._sph_ptypes[0]
             px_name = self.axis_name[self.x_axis[dim]]
             py_name = self.axis_name[self.y_axis[dim]]
+            # need z coordinates for depth,
+            # but name isn't saved in the handler -> use the 'other one'
+            pz_name = list(set(self.axis_order) - {px_name, py_name})[0]
+
+            # ignore default True periodic argument
+            # (not actually supplied by a call from
+            # FixedResolutionBuffer), and use the dataset periodicity
+            # instead
+            xa = self.x_axis[dim]
+            ya = self.y_axis[dim]
+            # axorder = data_source.ds.coordinates.axis_order
+            za = list({0, 1, 2} - {xa, ya})[0]
+            ds_periodic = data_source.ds.periodicity
+            _periodic = np.array(ds_periodic)
+            _periodic[0] = ds_periodic[xa]
+            _periodic[1] = ds_periodic[ya]
+            _periodic[2] = ds_periodic[za]
             ounits = data_source.ds.field_info[field].output_units
             bnds = data_source.ds.arr(bounds, "code_length").tolist()
-            if isinstance(data_source, YTParticleProj):
+            kernel_name = None
+            if hasattr(data_source.ds, "kernel_name"):
+                kernel_name = data_source.ds.kernel_name
+            if kernel_name is None:
+                kernel_name = "cubic"
+
+            if isinstance(data_source, YTParticleProj):  # projection
                 weight = data_source.weight_field
+                moment = data_source.moment
                 le, re = data_source.data_source.get_bbox()
-                xa = self.x_axis[dim]
-                ya = self.y_axis[dim]
                 # If we're not periodic, we need to clip to the boundary edges
                 # or we get errors about extending off the edge of the region.
+                # (depth/z range is handled by region setting)
                 if not self.ds.periodicity[xa]:
                     le[xa] = max(bounds[0], self.ds.domain_left_edge[xa])
                     re[xa] = min(bounds[1], self.ds.domain_right_edge[xa])
@@ -364,21 +422,29 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     data_source=data_source.data_source,
                 )
                 proj_reg.set_field_parameter("axis", data_source.axis)
+                # need some z bounds for SPH projection
+                # -> use source bounds
+                bnds3 = bnds + [le[za], re[za]]
+
                 buff = np.zeros(size, dtype="float64")
+                mask_uint8 = np.zeros_like(buff, dtype="uint8")
                 if weight is None:
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([field], chunk)
                         pixelize_sph_kernel_projection(
                             buff,
+                            mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
+                            chunk[ptype, pz_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
-                            bnds,
-                            check_period=int(periodic),
-                            period=period,
+                            bnds3,
+                            _check_period=_periodic.astype("int"),
+                            period=period3,
+                            kernel_name=kernel_name,
                         )
                     # We use code length here, but to get the path length right
                     # we need to multiply by the conversion factor between
@@ -393,22 +459,26 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 else:
                     weight_buff = np.zeros(size, dtype="float64")
                     buff = np.zeros(size, dtype="float64")
+                    mask_uint8 = np.zeros_like(buff, dtype="uint8")
                     wounits = data_source.ds.field_info[weight].output_units
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([field], chunk)
                         data_source._initialize_projected_units([weight], chunk)
                         pixelize_sph_kernel_projection(
                             buff,
+                            mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
+                            chunk[ptype, pz_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
-                            bnds,
-                            check_period=int(periodic),
-                            period=period,
+                            bnds3,
+                            _check_period=_periodic.astype("int"),
+                            period=period3,
                             weight_field=chunk[weight].in_units(wounits),
+                            kernel_name=kernel_name,
                         )
                     mylog.info(
                         "Making a fixed resolution buffer of (%s) %d by %d",
@@ -420,55 +490,94 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         data_source._initialize_projected_units([weight], chunk)
                         pixelize_sph_kernel_projection(
                             weight_buff,
+                            mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
+                            chunk[ptype, pz_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[weight].in_units(wounits),
-                            bnds,
-                            check_period=int(periodic),
-                            period=period,
+                            bnds3,
+                            _check_period=_periodic.astype("int"),
+                            period=period3,
+                            kernel_name=kernel_name,
                         )
                     normalization_2d_utility(buff, weight_buff)
+                    if moment == 2:
+                        buff2 = np.zeros(size, dtype="float64")
+                        for chunk in proj_reg.chunks([], "io"):
+                            data_source._initialize_projected_units([field], chunk)
+                            data_source._initialize_projected_units([weight], chunk)
+                            pixelize_sph_kernel_projection(
+                                buff2,
+                                mask_uint8,
+                                chunk[ptype, px_name].to("code_length"),
+                                chunk[ptype, py_name].to("code_length"),
+                                chunk[ptype, pz_name].to("code_length"),
+                                chunk[ptype, "smoothing_length"].to("code_length"),
+                                chunk[ptype, "mass"].to("code_mass"),
+                                chunk[ptype, "density"].to("code_density"),
+                                chunk[field].in_units(ounits) ** 2,
+                                bnds3,
+                                _check_period=_periodic.astype("int"),
+                                period=period3,
+                                weight_field=chunk[weight].in_units(wounits),
+                                kernel_name=kernel_name,
+                            )
+                        normalization_2d_utility(buff2, weight_buff)
+                        buff = compute_stddev_image(buff2, buff)
+                mask = mask_uint8.astype("bool")
             elif isinstance(data_source, YTSlice):
                 smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
                 normalize = getattr(self.ds, "use_sph_normalization", True)
 
                 if smoothing_style == "scatter":
                     buff = np.zeros(size, dtype="float64")
+                    mask_uint8 = np.zeros_like(buff, dtype="uint8")
                     if normalize:
                         buff_den = np.zeros(size, dtype="float64")
 
                     for chunk in data_source.chunks([], "io"):
+                        hsmlname = "smoothing_length"
                         pixelize_sph_kernel_slice(
                             buff,
-                            chunk[ptype, px_name].to("code_length"),
-                            chunk[ptype, py_name].to("code_length"),
-                            chunk[ptype, "smoothing_length"].to("code_length"),
-                            chunk[ptype, "mass"].to("code_mass"),
-                            chunk[ptype, "density"].to("code_density"),
-                            chunk[field].in_units(ounits),
+                            mask_uint8,
+                            chunk[ptype, px_name].to("code_length").v,
+                            chunk[ptype, py_name].to("code_length").v,
+                            chunk[ptype, pz_name].to("code_length").v,
+                            chunk[ptype, hsmlname].to("code_length").v,
+                            chunk[ptype, "mass"].to("code_mass").v,
+                            chunk[ptype, "density"].to("code_density").v,
+                            chunk[field].in_units(ounits).v,
                             bnds,
-                            check_period=int(periodic),
-                            period=period,
+                            data_source.coord.to("code_length").v,
+                            _check_period=_periodic.astype("int"),
+                            period=period3,
+                            kernel_name=kernel_name,
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
                                 buff_den,
-                                chunk[ptype, px_name].to("code_length"),
-                                chunk[ptype, py_name].to("code_length"),
-                                chunk[ptype, "smoothing_length"].to("code_length"),
-                                chunk[ptype, "mass"].to("code_mass"),
-                                chunk[ptype, "density"].to("code_density"),
+                                mask_uint8,
+                                chunk[ptype, px_name].to("code_length").v,
+                                chunk[ptype, py_name].to("code_length").v,
+                                chunk[ptype, pz_name].to("code_length").v,
+                                chunk[ptype, hsmlname].to("code_length").v,
+                                chunk[ptype, "mass"].to("code_mass").v,
+                                chunk[ptype, "density"].to("code_density").v,
                                 np.ones(chunk[ptype, "density"].shape[0]),
                                 bnds,
-                                check_period=int(periodic),
-                                period=period,
+                                data_source.coord.to("code_length").v,
+                                _check_period=_periodic.astype("int"),
+                                period=period3,
+                                kernel_name=kernel_name,
                             )
 
                     if normalize:
                         normalization_2d_utility(buff, buff_den)
+
+                    mask = mask_uint8.astype("bool", copy=False)
 
                 if smoothing_style == "gather":
                     # Here we find out which axis are going to be the "x" and
@@ -502,7 +611,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     all_fields = all_data(self.ds, ptype, fields_to_get, kdtree=True)
 
                     num_neighbors = getattr(self.ds, "num_neighbors", 32)
-                    interpolate_sph_grid_gather(
+                    mask_temp = interpolate_sph_grid_gather(
                         buff_temp,
                         all_fields["particle_position"].to("code_length"),
                         buff_bounds,
@@ -513,31 +622,36 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         self.ds.index.kdtree,
                         num_neigh=num_neighbors,
                         use_normalization=normalize,
+                        return_mask=True,
                     )
 
                     # We swap the axes back so the axis which was sliced over
                     # is the last axis, as this is the "z" axis of the plots.
                     if z != 2:
                         buff_temp = buff_temp.swapaxes(2, z)
+                        mask_temp = mask_temp.swapaxes(2, z)
                         if x == 2:
                             x = z
                         else:
                             y = z
 
                     buff = buff_temp[:, :, 0]
+                    mask = mask_temp[:, :, 0]
 
                     # Then we just transpose if the buffer x and y are
                     # different than the plot x and y
                     if y < x:
                         buff = buff.transpose()
+                        mask = mask.transpose()
             else:
                 raise NotImplementedError(
-                    "A pixelization routine has not been implemented for %s "
-                    "data objects" % str(type(data_source))
+                    "A pixelization routine has not been implemented for "
+                    f"{type(data_source)} data objects"
                 )
             buff = buff.transpose()
+            mask = mask.transpose()
         else:
-            pixelize_cartesian(
+            mask = pixelize_cartesian(
                 buff,
                 data_source["px"],
                 data_source["py"],
@@ -546,36 +660,139 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 data_source[field],
                 bounds,
                 int(antialias),
-                period,
+                period2,
                 int(periodic),
+                return_mask=True,
             )
-        return buff
+        assert mask is None or mask.dtype == bool
+        return buff, mask
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
+        from yt.data_objects.selection_objects.slices import YTCuttingPlane
+        from yt.frontends.sph.data_structures import ParticleDataset
+        from yt.frontends.stream.data_structures import StreamParticlesDataset
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 
-        indices = np.argsort(data_source["pdx"])[::-1].astype(np.int_)
-        buff = np.full((size[1], size[0]), np.nan, dtype="float64")
-        ftype = "index"
-        if isinstance(data_source.ds, YTSpatialPlotDataset):
-            ftype = "gas"
-        pixelize_off_axis_cartesian(
-            buff,
-            data_source[ftype, "x"],
-            data_source[ftype, "y"],
-            data_source[ftype, "z"],
-            data_source["px"],
-            data_source["py"],
-            data_source["pdx"],
-            data_source["pdy"],
-            data_source["pdz"],
-            data_source.center,
-            data_source._inv_mat,
-            indices,
-            data_source[field],
-            bounds,
-        )
-        return buff
+        # Determine what sort of data we're dealing with
+        # -> what backend to use
+        # copied from the _ortho_pixelize method
+        field = data_source._determine_fields(field)[0]
+        _finfo = data_source.ds.field_info[field]
+        is_sph_field = _finfo.is_sph_field
+        particle_datasets = (ParticleDataset, StreamParticlesDataset)
+        # finfo = self.ds._get_field_info(field)
+
+        # SPH data
+        # only for slices: a function in off_axis_projection.py
+        # handles projections
+        if (
+            isinstance(data_source.ds, particle_datasets)
+            and is_sph_field
+            and isinstance(data_source, YTCuttingPlane)
+        ):
+            normalize = getattr(self.ds, "use_sph_normalization", True)
+            le = data_source.ds.domain_left_edge.to("code_length")
+            re = data_source.ds.domain_right_edge.to("code_length")
+            boxbounds = np.array([le[0], re[0], le[1], re[1], le[2], re[2]])
+            periodic = data_source.ds.periodicity
+            ptype = field[0]
+            if ptype == "gas":
+                ptype = data_source.ds._sph_ptypes[0]
+            axorder = data_source.ds.coordinates.axis_order
+            ounits = data_source.ds.field_info[field].output_units
+            # input bounds are in code length units already
+            widthxy = np.array((bounds[1] - bounds[0], bounds[3] - bounds[2]))
+            kernel_name = None
+            if hasattr(data_source.ds, "kernel_name"):
+                kernel_name = data_source.ds.kernel_name
+            if kernel_name is None:
+                kernel_name = "cubic"
+            # data_source should be a YTCuttingPlane object
+            # dimensionless unyt normal/north
+            # -> numpy array cython can deal with
+            normal_vector = data_source.normal.v
+            north_vector = data_source._y_vec.v
+            center = data_source.center.to("code_length")
+
+            buff = np.zeros(size, dtype="float64")
+            mask_uint8 = np.zeros_like(buff, dtype="uint8")
+            if normalize:
+                buff_den = np.zeros(size, dtype="float64")
+
+            for chunk in data_source.chunks([], "io"):
+                pixelize_sph_kernel_cutting(
+                    buff,
+                    mask_uint8,
+                    chunk[ptype, axorder[0]].to("code_length").v,
+                    chunk[ptype, axorder[1]].to("code_length").v,
+                    chunk[ptype, axorder[2]].to("code_length").v,
+                    chunk[ptype, "smoothing_length"].to("code_length").v,
+                    chunk[ptype, "mass"].to("code_mass"),
+                    chunk[ptype, "density"].to("code_density"),
+                    chunk[field].in_units(ounits),
+                    center,
+                    widthxy,
+                    normal_vector,
+                    north_vector,
+                    boxbounds,
+                    periodic,
+                    kernel_name=kernel_name,
+                    check_period=1,
+                )
+                if normalize:
+                    pixelize_sph_kernel_cutting(
+                        buff_den,
+                        mask_uint8,
+                        chunk[ptype, axorder[0]].to("code_length"),
+                        chunk[ptype, axorder[1]].to("code_length"),
+                        chunk[ptype, axorder[2]].to("code_length"),
+                        chunk[ptype, "smoothing_length"].to("code_length"),
+                        chunk[ptype, "mass"].to("code_mass"),
+                        chunk[ptype, "density"].to("code_density"),
+                        np.ones(chunk[ptype, "density"].shape[0]),
+                        center,
+                        widthxy,
+                        normal_vector,
+                        north_vector,
+                        boxbounds,
+                        periodic,
+                        kernel_name=kernel_name,
+                        check_period=1,
+                    )
+
+            if normalize:
+                normalization_2d_utility(buff, buff_den)
+
+            mask = mask_uint8.astype("bool", copy=False)
+            # swap axes for image plotting
+            mask = mask.swapaxes(0, 1)
+            buff = buff.swapaxes(0, 1)
+
+        # whatever other data this code could handle before the
+        # SPH option was added
+        else:
+            indices = np.argsort(data_source["pdx"])[::-1].astype("int64", copy=False)
+            buff = np.full((size[1], size[0]), np.nan, dtype="float64")
+            ftype = "index"
+            if isinstance(data_source.ds, YTSpatialPlotDataset):
+                ftype = "gas"
+            mask = pixelize_off_axis_cartesian(
+                buff,
+                data_source[ftype, "x"],
+                data_source[ftype, "y"],
+                data_source[ftype, "z"],
+                data_source["px"],
+                data_source["py"],
+                data_source["pdx"],
+                data_source["pdy"],
+                data_source["pdz"],
+                data_source.center,
+                data_source._inv_mat,
+                indices,
+                data_source[field],
+                bounds,
+            )
+        return buff, mask
 
     def convert_from_cartesian(self, coord):
         return coord

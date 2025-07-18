@@ -9,14 +9,14 @@
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "The `ParticleIndex` class is used by all of the frontends that have particles as their principle component.  In `yt`, there are basically four main management classes for a given dataset -- the `Dataset` object itself, which contains metadata and pointers to the other managers, along with a `FieldInfoContainer` that describes the different \"fields\" that `yt` knows how to generate, an `IOHandler` that manages access to the actual data, and -- most relevant for our purposes today! -- the `Index` object.\n\nThere are a few different types, but the one we're going to look at today is the `ParticleIndex` class.",
-      "line": 17,
+      "line": 18,
       "selection": {
         "start": {
-          "line": 17,
+          "line": 18,
           "character": 1
         },
         "end": {
-          "line": 17,
+          "line": 18,
           "character": 28
         }
       }
@@ -24,53 +24,53 @@
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "The `_initialize_index` method is called only once on each `Index` object.  It's where we set up the in-memory data structures that tell us how to map spatial regions in the domain of the dataset to places \"on disk\" (but not necessarily on an actual disk!  They could be in dictionaries, in remote URLs, etc) that the data can be found.  This is where the bulk of the operations occur, and it can be expensive for some situations, so we try to minimize the incurred cost of time.",
-      "line": 109
+      "line": 110
     },
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "With particle datasets, if we can't guess the left and right edges, we do a pass over the data to figure them out.\n\nThis isn't amazing!  It's definitely not my personal favorite.  But, it is what we do.  There are ways out there of avoiding this -- in fact, it would be completely feasible to just set the domain to be all the way from the minimum double precision representation to the maximum double precision representation, and then only occupy a small portion in a hierarchical mapping.  But we don't do this now.",
-      "line": 120
+      "line": 121
     },
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "When we don't have a lot of data, for instance if the `data_files` attribute only contains one thing, we don't do any indexing.  We'll have to read the whole thing anyway, so, whatever, right?\n\nOne thing that's worth keeping in mind here is that `data_files` are not always just the \"files\" that live on disk.  Some data formats, for instance, use just a single file, but include a huge number of particles in it.  We sub-chunk these so they appear as several \"virtual\" data files.\n\nThis helps us keep our indexing efficient, since there's no point to doing a potentially-expensive indexing operation on a small dataset, and we also don't want to give up all of our ability to set the size we read from disk.",
-      "line": 144
+      "line": 145
     },
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "And here's where we start actually setting up our index.\n\nBecause the indexing operation can be expensive, we build in ways of caching.  That way, the *second* time you load a dataset, it won't have to conduct the indexing operation unless it really needs to -- it'll just use what it came up with the first time.",
-      "line": 183
+      "line": 190
     },
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "This is where we build our new index.  Let's take a look at what that looks like!\n\nWe have two steps to this process.  The first is to build a \"coarse\" index -- this is a reasonably low-resolution index to let us know, \"Hey, this bit might be relevant!\") and the second is a much more \"refined\" index for when we need to do very detail-oriented subselection.",
-      "line": 193
+      "line": 200
     },
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "To generate a coarse index, we loop over all of our files, and look at the particles.  (This sure does sound expensive, right?  Good thing we're going to cache the results!)\n\nEach `IOHandler` for the particle objects has to provide a `_yield_coordinates` method.  This method just has to yield a bunch of tuples of the particle types and their positions.",
-      "line": 207
+      "line": 214
     },
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "We won't be diving in to this routine, but let's talk about what it does.\n\nThe `regions` attribute on a `ParticleIndex` object is where we set \"on\" and \"off\" bits that correspond between spatial locations and `data_file` objects.\n\nIf we think about our domain as a big 3D volume, we could divide it up into a grid of positions.  Each of these positions -- `i, j, k` -- can be turned into a single number.  To do this we use a morton index, a way of mapping regions of physical space to unique binary representations of each `i, j, k`.\n\nThe purpose of this loop is to turn each `data_file` into a set of \"on\" and \"off\" marks, where \"off\" indicates that no particles exist, and \"on\" indicates they do.\n\nSo, going *in*, each `data_file` is given an array of all zeros, and the array has `I*J*K` *bits*, where `I` is the number of subdivisions in x, `J` is the number in y and `K` is the number in z.  The way we set it up, these are always the same, and they are always equal to `2**index_order1`.  So if your `index_order1` is 3, this would be `I==J==K==8`, and you'd have a total of `8*8*8` bits in the array, corresponding to a total size of 64 bytes.\n\nOne important thing to keep in mind is that we save on memory by only storing the *bits*, not the counts!  That's because this is just an indexing system meant to tell us where to look, so we want to keep it as lightweight as possible.",
-      "line": 217
+      "line": 224
     },
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "This line, which happens *outside* the loop over particle positions, compresses the bitarrays.  That way we keep our memory usage to a minimum.",
-      "line": 218
+      "line": 225
     },
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "This line is crucial for the next step of computing the refined indexes.  It conducts a set of logical operations to see which bits in the array are set *more than once* -- which means that there's more than one place you'll have to look if you're looking for particles in that region.  It's in those places that we make a second, more refined index.",
-      "line": 220
+      "line": 227
     },
     {
       "file": "yt/geometry/particle_geometry_handler.py",
       "description": "This is the tricky part, where we conduct a second bitmapping operation.\n\nHere, we look at those places where collisions in the coarse index have occurred.  We want to do our best to disambiguate the regions that different data files encompass, so in all of those regions, we insert a new *subdivided* region.  So for instance, if the region in `i,j,k` of the coarse index is touched by a couple files, we insert in `i,j,k` a whole new index, this time based on `index_order2`.  And, we index that.  Because we're using compressed indexes, this usually does not take up that much memory, but it can get unwieldy in those cases where you have particles with big smoothing lengths that need to be taken into account.\n\nThis loop requires a bit more of a dance, because for each collision in the coarse index, we have to construct a refined index.  So the memory usage is a bit higher here, because we can't compress the arrays until we're totally done with them.\n\nBut, at the end of this, what we have is a set of bitmaps -- one for each data file -- that tell us where the data file exerts its influence.  And then, wherever more than one data file exerts its influence, we have *another* set of bitmaps for each of *those* data files that tell us which sub-regions are impacted.\n\nThis then gets used whenever we want to read data, to tell us which data files we have to look at.  For sub-selecting from a really big set of particles, we can save an awful lot of time and IO!",
-      "line": 244
+      "line": 251
     }
   ],
-  "ref": "ca72f3cbd2303fdaa9e77fa5e85d91792217f366"
+  "ref": "511c82da16e8b86e09a45ac9bb108bc0c47dd87c"
 }

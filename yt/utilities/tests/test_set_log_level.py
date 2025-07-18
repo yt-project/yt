@@ -1,5 +1,19 @@
-from yt.testing import assert_raises
+from numpy.testing import assert_raises
+
 from yt.utilities.logger import set_log_level
+
+old_level = None
+
+
+def setup_module():
+    global old_level
+    from yt.utilities.logger import ytLogger
+
+    old_level = ytLogger.level
+
+
+def teardown_module():
+    set_log_level(old_level)
 
 
 def test_valid_level():

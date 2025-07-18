@@ -11,7 +11,7 @@ With support from `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_,
 ``yt`` now supports these projection
 types for geographically loaded data.
 Underlying data is assumed to have a transform of `PlateCarree
-<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`__,
+<https://scitools.org.uk/cartopy/docs/latest/reference/projections.html#platecarree>`__,
 which is data on a flattened, rectangular, latitude/longitude grid. This is a
 a typical format for geographic data.
 
@@ -33,29 +33,8 @@ Installing Cartopy
 ^^^^^^^^^^^^^^^^^^
 
 In order to access the geographic projection functionality, you will need to have an
-installation of ``cartopy`` available on your machine. If you're using conda as
-your package manager, this should be sufficient:
-
-.. code-block:: bash
-
-    conda install cartopy
-
-If you're on a mac and are using pip, there can be conflicts with the GEOS
-library and cartopy / cartopy dependencies. To avoid these issues use your
-package manager of choice to install proj4 and geos (``proj`` and ``geos``).
-Following that, build cartopy and shapely from source.
-For example, a user using homebrew and pip
-would execute the following commands:
-
-.. code-block:: bash
-
-    $ brew install proj geos
-    $ brew upgrade proj geos
-    $ python -m pip install --no-binary :all: shapely cartopy
-
-
-On ubuntu you'll need to install the following packages: ``libproj-dev``,
-``proj-data``, ``proj-bin``, and ``libgeos-dev``.
+installation of ``cartopy`` available on your machine. Please refer to `Cartopy's
+documentation for detailed instructions <https://scitools.org.uk/cartopy/docs/latest/installing.html>`_
 
 Using Basic Transforms
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -99,7 +78,7 @@ with this functionality.
 
 The next few examples will use a GEOS dataset accessible from the ``yt`` data
 downloads page. For details about loading this data, please
-see :ref:`cookbook-geographic_projections`.
+see :doc:`../cookbook/geographic_xforms_and_projections`.
 
 If a geographic dataset is loaded without any defined projection the default
 option of ``Mollweide`` will be displayed.
@@ -128,12 +107,12 @@ available with matplotlib should be available for customization. Here a
 .. code-block:: python
 
     p.set_mpl_projection("Robinson")
-    p._setup_plots()
+    p.render()
     p.plots["AIRDENS"].axes.set_global()
     p.plots["AIRDENS"].axes.coastlines()
     p.show()
 
-``p._setup_plots()`` is required here to access the plot axes. When a new
+``p.render()`` is required here to access the plot axes. When a new
 projection is called the plot axes are reset and are not available unless set
 up again.
 
@@ -162,4 +141,4 @@ levels of customization:
     set_mpl_projection(cartopy.crs.PlateCarree())
 
 Further examples of using the geographic transforms with this dataset
-can be found in :ref:`cookbook-geographic_projections`.
+can be found in :doc:`../cookbook/geographic_xforms_and_projections`.

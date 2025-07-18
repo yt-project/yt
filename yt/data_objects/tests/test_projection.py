@@ -3,14 +3,15 @@ import tempfile
 from unittest import mock
 
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal, assert_rel_equal, fake_amr_ds, fake_random_ds
+from yt.testing import assert_rel_equal, fake_amr_ds, fake_random_ds
 from yt.units.unit_object import Unit
 
 LENGTH_UNIT = 2.0
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
@@ -24,7 +25,7 @@ def teardown_func(fns):
             pass
 
 
-@mock.patch("yt.visualization._mpl_imports.FigureCanvasAgg.print_figure")
+@mock.patch("matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure")
 def test_projection(pf):
     fns = []
     for nprocs in [8, 1]:
@@ -61,17 +62,17 @@ def test_projection(pf):
                 )
                 if wf is None:
                     assert_equal(
-                        proj[("index", "ones")].sum(),
-                        LENGTH_UNIT * proj[("index", "ones")].size,
+                        proj["index", "ones"].sum(),
+                        LENGTH_UNIT * proj["index", "ones"].size,
                     )
-                    assert_equal(proj[("index", "ones")].min(), LENGTH_UNIT)
-                    assert_equal(proj[("index", "ones")].max(), LENGTH_UNIT)
+                    assert_equal(proj["index", "ones"].min(), LENGTH_UNIT)
+                    assert_equal(proj["index", "ones"].max(), LENGTH_UNIT)
                 else:
                     assert_equal(
-                        proj[("index", "ones")].sum(), proj[("index", "ones")].size
+                        proj["index", "ones"].sum(), proj["index", "ones"].size
                     )
-                    assert_equal(proj[("index", "ones")].min(), 1.0)
-                    assert_equal(proj[("index", "ones")].max(), 1.0)
+                    assert_equal(proj["index", "ones"].min(), 1.0)
+                    assert_equal(proj["index", "ones"].max(), 1.0)
                 assert_equal(np.unique(proj["px"]), uc[xax])
                 assert_equal(np.unique(proj["py"]), uc[yax])
                 assert_equal(np.unique(proj["pdx"]), 1.0 / (dims[xax] * 2.0))
@@ -122,25 +123,57 @@ def test_projection(pf):
                         )
             # wf == None
             assert_equal(wf, None)
-            v1 = proj[("gas", "density")].sum()
-            v2 = (dd[("gas", "density")] * dd[("index", f"d{an}")]).sum()
+            v1 = proj["gas", "density"].sum()
+            v2 = (dd["gas", "density"] * dd["index", f"d{an}"]).sum()
             assert_rel_equal(v1, v2.in_units(v1.units), 10)
+
+        # Test moment projections
+        def make_vsq_field(aname):
+            def _vsquared(field, data):
+                return data["gas", f"velocity_{aname}"] ** 2
+
+            return _vsquared
+
+        for ax, an in enumerate("xyz"):
+            ds.add_field(
+                ("gas", f"velocity_{an}_squared"),
+                make_vsq_field(an),
+                sampling_type="local",
+                units="cm**2/s**2",
+            )
+            proj1 = ds.proj(
+                [("gas", f"velocity_{an}"), ("gas", f"velocity_{an}_squared")],
+                ax,
+                weight_field=("gas", "density"),
+                moment=1,
+            )
+            proj2 = ds.proj(
+                ("gas", f"velocity_{an}"), ax, weight_field=("gas", "density"), moment=2
+            )
+            assert_rel_equal(
+                np.sqrt(
+                    proj1["gas", f"velocity_{an}_squared"]
+                    - proj1["gas", f"velocity_{an}"] ** 2
+                ),
+                proj2["gas", f"velocity_{an}"],
+                10,
+            )
     teardown_func(fns)
 
 
 def test_max_level():
     ds = fake_amr_ds(fields=[("gas", "density")], units=["mp/cm**3"])
     proj = ds.proj(("gas", "density"), 2, method="max", max_level=2)
-    assert proj[("index", "grid_level")].max() == 2
+    assert proj["index", "grid_level"].max() == 2
 
     proj = ds.proj(("gas", "density"), 2, method="max")
-    assert proj[("index", "grid_level")].max() == ds.index.max_level
+    assert proj["index", "grid_level"].max() == ds.index.max_level
 
 
 def test_min_level():
     ds = fake_amr_ds(fields=[("gas", "density")], units=["mp/cm**3"])
     proj = ds.proj(("gas", "density"), 2, method="min")
-    assert proj[("index", "grid_level")].min() == 0
+    assert proj["index", "grid_level"].min() == 0
 
     proj = ds.proj(("gas", "density"), 2, method="max")
-    assert proj[("index", "grid_level")].min() == ds.index.min_level
+    assert proj["index", "grid_level"].min() == ds.index.min_level

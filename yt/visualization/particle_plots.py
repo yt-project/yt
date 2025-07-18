@@ -1,41 +1,55 @@
-from typing import List
+import warnings
+from typing import Union
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.profiles import create_profile
-from yt.funcs import fix_axis, iter_fields
+from yt.data_objects.static_output import Dataset
+from yt.funcs import fix_axis, iter_fields, mylog
 from yt.units.yt_array import YTArray
+from yt.utilities.orientation import Orientation
 from yt.visualization.fixed_resolution import ParticleImageBuffer
 from yt.visualization.profile_plotter import PhasePlot
 
-from .plot_window import PWViewerMPL, get_axes_unit, get_window_parameters
+from .plot_window import (
+    NormalPlot,
+    PWViewerMPL,
+    get_axes_unit,
+    get_oblique_window_parameters,
+    get_window_parameters,
+)
 
 
-class ParticleAxisAlignedDummyDataSource:
+class ParticleDummyDataSource:
     _type_name = "Particle"
     _dimensionality = 2
     _con_args = ("center", "axis", "width", "fields", "weight_field")
     _tds_attrs = ()
-    _key_fields: List[str] = []
+    _key_fields: list[str] = []
 
     def __init__(
         self,
         center,
         ds,
-        axis,
         width,
         fields,
+        dd,
+        *,
         weight_field=None,
         field_parameters=None,
-        data_source=None,
         deposition="ngp",
         density=False,
     ):
         self.center = center
         self.ds = ds
-        self.axis = axis
         self.width = width
+        self.dd = dd
+
+        if weight_field is not None:
+            weight_field = self._determine_fields(weight_field)[0]
         self.weight_field = weight_field
+
         self.deposition = deposition
         self.density = density
 
@@ -44,23 +58,7 @@ class ParticleAxisAlignedDummyDataSource:
         else:
             self.field_parameters = field_parameters
 
-        LE = center - 0.5 * YTArray(width)
-        RE = center + 0.5 * YTArray(width)
-        for ax in range(3):
-            if not ds.periodicity[ax]:
-                LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
-                RE[ax] = min(RE[ax], ds.domain_right_edge[ax])
-
-        self.dd = ds.region(
-            center,
-            LE,
-            RE,
-            fields,
-            field_parameters=field_parameters,
-            data_source=data_source,
-        )
-
-        fields = self.dd._determine_fields(fields)
+        fields = self._determine_fields(fields)
         self.fields = fields
 
     def _determine_fields(self, *args):
@@ -77,10 +75,112 @@ class ParticleAxisAlignedDummyDataSource:
             return default
 
 
-class ParticleProjectionPlot(PWViewerMPL):
+class ParticleAxisAlignedDummyDataSource(ParticleDummyDataSource):
+    def __init__(
+        self,
+        center,
+        ds,
+        axis,
+        width,
+        fields,
+        *,
+        weight_field=None,
+        field_parameters=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+    ):
+        self.axis = axis
+
+        LE = center - 0.5 * YTArray(width)
+        RE = center + 0.5 * YTArray(width)
+        for ax in range(3):
+            if not ds.periodicity[ax]:
+                LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
+                RE[ax] = min(RE[ax], ds.domain_right_edge[ax])
+
+        dd = ds.region(
+            center,
+            LE,
+            RE,
+            fields,
+            field_parameters=field_parameters,
+            data_source=data_source,
+        )
+
+        super().__init__(
+            center,
+            ds,
+            width,
+            fields,
+            dd,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            deposition=deposition,
+            density=density,
+        )
+
+
+class ParticleOffAxisDummyDataSource(ParticleDummyDataSource):
+    def __init__(
+        self,
+        center,
+        ds,
+        normal_vector,
+        width,
+        fields,
+        *,
+        weight_field=None,
+        field_parameters=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+        north_vector=None,
+    ):
+        self.axis = None  # always true for oblique data objects
+        normal = np.array(normal_vector)
+        normal = normal / np.linalg.norm(normal)
+
+        # If north_vector is None, we set the default here.
+        # This is chosen so that if normal_vector is one of the
+        # cartesian coordinate axes, the projection will match
+        # the corresponding on-axis projection.
+        if north_vector is None:
+            vecs = np.identity(3)
+            t = np.cross(vecs, normal).sum(axis=1)
+            ax = t.argmax()
+            east_vector = np.cross(vecs[ax, :], normal).ravel()
+            north = np.cross(normal, east_vector).ravel()
+        else:
+            north = np.array(north_vector)
+            north = north / np.linalg.norm(north)
+        self.normal_vector = normal
+        self.north_vector = north
+
+        if data_source is None:
+            dd = ds.all_data()
+        else:
+            dd = data_source
+
+        self.orienter = Orientation(normal_vector, north_vector=north_vector)
+
+        super().__init__(
+            center,
+            ds,
+            width,
+            fields,
+            dd,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            deposition=deposition,
+            density=density,
+        )
+
+
+class ParticleProjectionPlot(NormalPlot):
     r"""Creates a particle plot from a dataset
 
-    Given a ds object, an axis to slice along, and a field name
+    Given a ds object, a normal to project along, and a field name
     string, this will return a PWViewerMPL object containing
     the plot.
 
@@ -92,9 +192,12 @@ class ParticleProjectionPlot(PWViewerMPL):
     ds : `Dataset`
          This is the dataset object corresponding to the
          simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
-         An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
-         or the axis name itself
+    normal : int, str, or 3-element sequence of floats
+        This specifies the normal vector to the projection.
+        Valid int values are 0, 1 and 2. Corresponding str values depend on the
+        geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
+        E.g. in cartesian they are 'x', 'y' and 'z'.
+        An arbitrary normal vector may be specified as a 3-element sequence of floats.
     fields : string, list or None
          If a string or list, the name of the particle field(s) to be used
          on the colorbar. The color shown will correspond to the sum of the
@@ -105,16 +208,27 @@ class ParticleProjectionPlot(PWViewerMPL):
          The color that will indicate the particle locations
          on the mesh. This argument is ignored if z_fields is
          not None. Default is 'b'.
-    center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
+        The coordinate of the selection's center.
+        Defaults to the 'center', i.e. center of the domain.
+
+        Centering on the min or max of a field is supported by passing a tuple
+        such as ('min', ('gas', 'density')) or ('max', ('gas', 'temperature'). A
+        single string may also be used (e.g. "min_density" or
+        "max_temperature"), though it's not as flexible and does not allow to
+        select an exact field/particle type. With this syntax, the first field
+        matching the provided name is selected.
+        'max' or 'm' can be used as a shortcut for ('max', ('gas', 'density'))
+        'min' can be used as a shortcut for ('min', ('gas', 'density'))
+
+        One can also select an exact point as a 3 element coordinate sequence,
+        e.g. [0.5, 0.5, 0]
+        Units can be specified by passing in *center* as a tuple containing a
+        3-element coordinate sequence and string unit name, e.g. ([0, 0.5, 0.5], "cm"),
+        or by passing in a YTArray. Code units are assumed if unspecified.
+
+        The domain edges along the selected *axis* can be selected with
+        'left'/'l' and 'right'/'r' respectively.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -130,8 +244,8 @@ class ParticleProjectionPlot(PWViewerMPL):
 
          For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
          wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
+         window that is 10 kiloparsecs wide along the x-axis and 15
+         kiloparsecs wide along the y-axis. In the other two examples, code
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
@@ -153,7 +267,7 @@ class ParticleProjectionPlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain'
+         'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
          'right', 'domain'] both place the origin in the upper right hand
@@ -185,8 +299,8 @@ class ParticleProjectionPlot(PWViewerMPL):
         including the margins but not the colorbar.
     aspect : float
          The aspect ratio of the plot.  Set to None for 1.
-    data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults to a region covering
+    data_source : YTSelectionContainer object
+         The object to be used for data selection.  Defaults to a region covering
          the entire simulation.
     deposition : string
         Controls the order of the interpolation of the particles onto the
@@ -196,11 +310,16 @@ class ParticleProjectionPlot(PWViewerMPL):
         If True, the quantity to be projected will be divided by the area of
         the cells, to make a projected density of the quantity. The plot
         name and units will also reflect this. Default: False
+    north_vector : a sequence of floats
+        A vector defining the 'up' direction in off-axis particle projection plots;
+        not used if the plot is on-axis. This option sets the orientation of the
+        projected plane.  If not set, an arbitrary grid-aligned north-vector is
+        chosen.
 
     Examples
     --------
 
-    This will save an image the the file
+    This will save an image to the file
     'galaxy0030_Particle_z_particle_mass.png'
 
     >>> from yt import load
@@ -209,16 +328,58 @@ class ParticleProjectionPlot(PWViewerMPL):
     >>> p.save()
 
     """
+
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
+        cls, ds, normal=None, *args, axis=None, **kwargs
+    ) -> Union["AxisAlignedParticleProjectionPlot", "OffAxisParticleProjectionPlot"]:
+        # TODO: when axis' deprecation expires,
+        # remove default value for normal
+
+        normal = cls._handle_normalaxis_parameters(normal=normal, axis=axis)
+        if cls is ParticleProjectionPlot:
+            normal = cls.sanitize_normal_vector(ds, normal)
+            if isinstance(normal, str):
+                cls = AxisAlignedParticleProjectionPlot
+            else:
+                cls = OffAxisParticleProjectionPlot
+        self = object.__new__(cls)
+        return self  # type: ignore [return-value]
+
+    @staticmethod
+    def _handle_normalaxis_parameters(*, normal, axis) -> None:
+        # TODO: when axis' deprecation expires,
+        # remove this method entirely
+        if axis is not None:
+            issue_deprecation_warning(
+                "Argument 'axis' is a deprecated alias for 'normal'.",
+                since="4.2",
+                stacklevel=4,
+            )
+            if normal is not None:
+                raise TypeError("Received incompatible arguments 'axis' and 'normal'")
+            normal = axis
+
+        if normal is None:
+            raise TypeError("missing required positional argument: 'normal'")
+
+        return normal
+
+
+class AxisAlignedParticleProjectionPlot(ParticleProjectionPlot, PWViewerMPL):
     _plot_type = "Particle"
     _frb_generator = ParticleImageBuffer
 
     def __init__(
         self,
         ds,
-        axis,
+        normal=None,
         fields=None,
         color="b",
-        center="c",
+        center="center",
         width=None,
         depth=(1, "1"),
         weight_field=None,
@@ -231,42 +392,57 @@ class ParticleProjectionPlot(PWViewerMPL):
         data_source=None,
         deposition="ngp",
         density=False,
+        *,
+        north_vector=None,
+        axis=None,
     ):
+        if north_vector is not None:
+            # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
+            mylog.warning(
+                "Ignoring 'north_vector' keyword as it is ill-defined for "
+                "an AxisAlignedParticleProjectionPlot object."
+            )
+            del north_vector
+
+        normal = self._handle_normalaxis_parameters(normal=normal, axis=axis)
+
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
         ds = self.ds = ts[0]
-        axis = fix_axis(axis, ds)
-        (bounds, center, display_center) = get_window_parameters(
-            axis, center, width, ds
-        )
+        normal = self.sanitize_normal_vector(ds, normal)
         if field_parameters is None:
             field_parameters = {}
 
-        if axes_unit is None:
-            axes_unit = get_axes_unit(width, ds)
+        self.set_axes_unit(axes_unit or get_axes_unit(width, ds))
 
         # if no fields are passed in, we simply mark the x and
         # y fields using a given color. Use the 'particle_ones'
         # field to do this. We also turn off the colorbar in
         # this case.
-        self._use_cbar = True
+        use_cbar = True
         splat_color = None
         if fields is None:
             fields = [("all", "particle_ones")]
             weight_field = ("all", "particle_ones")
-            self._use_cbar = False
+            use_cbar = False
             splat_color = color
 
-        depth = ds.coordinates.sanitize_depth(depth)
-
+        axis = fix_axis(normal, ds)
+        (bounds, center, display_center) = get_window_parameters(
+            axis, center, width, ds
+        )
         x_coord = ds.coordinates.x_axis[axis]
         y_coord = ds.coordinates.y_axis[axis]
+
+        depth = ds.coordinates.sanitize_depth(depth)
 
         width = np.zeros_like(center)
         width[x_coord] = bounds[1] - bounds[0]
         width[y_coord] = bounds[3] - bounds[2]
         width[axis] = depth[0].in_units(width[x_coord].units)
+
+        self.projected = weight_field is None
 
         ParticleSource = ParticleAxisAlignedDummyDataSource(
             center,
@@ -274,14 +450,12 @@ class ParticleProjectionPlot(PWViewerMPL):
             axis,
             width,
             fields,
-            weight_field,
+            weight_field=weight_field,
             field_parameters=field_parameters,
             data_source=data_source,
             deposition=deposition,
             density=density,
         )
-
-        self.projected = weight_field is None
 
         PWViewerMPL.__init__(
             self,
@@ -294,11 +468,118 @@ class ParticleProjectionPlot(PWViewerMPL):
             aspect=aspect,
             splat_color=splat_color,
             geometry=ds.geometry,
+            periodic=True,
+            oblique=False,
         )
 
-        self.set_axes_unit(axes_unit)
+        if not use_cbar:
+            self.hide_colorbar()
 
-        if not self._use_cbar:
+
+class OffAxisParticleProjectionPlot(ParticleProjectionPlot, PWViewerMPL):
+    _plot_type = "Particle"
+    _frb_generator = ParticleImageBuffer
+
+    def __init__(
+        self,
+        ds,
+        normal=None,
+        fields=None,
+        color="b",
+        center="center",
+        width=None,
+        depth=(1, "1"),
+        weight_field=None,
+        axes_unit=None,
+        origin="center-window",
+        fontsize=18,
+        field_parameters=None,
+        window_size=8.0,
+        aspect=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+        *,
+        north_vector=None,
+        axis=None,
+    ):
+        if data_source is not None:
+            warnings.warn(
+                "The 'data_source' argument has no effect for "
+                "off-axis particle projections (not implemented)",
+                stacklevel=2,
+            )
+            del data_source
+        if origin != "center-window":
+            warnings.warn(
+                "The 'origin' argument is ignored for off-axis "
+                "particle projections, it is always 'center-window'",
+                stacklevel=2,
+            )
+            del origin
+
+        normal = self._handle_normalaxis_parameters(normal=normal, axis=axis)
+
+        # this will handle time series data and controllers
+        ts = self._initialize_dataset(ds)
+        self.ts = ts
+        ds = self.ds = ts[0]
+        normal = self.sanitize_normal_vector(ds, normal)
+        if field_parameters is None:
+            field_parameters = {}
+
+        self.set_axes_unit(axes_unit or get_axes_unit(width, ds))
+
+        # if no fields are passed in, we simply mark the x and
+        # y fields using a given color. Use the 'particle_ones'
+        # field to do this. We also turn off the colorbar in
+        # this case.
+        use_cbar = True
+        splat_color = None
+        if fields is None:
+            fields = [("all", "particle_ones")]
+            weight_field = ("all", "particle_ones")
+            use_cbar = False
+            splat_color = color
+
+        (bounds, center_rot) = get_oblique_window_parameters(
+            normal, center, width, ds, depth=depth
+        )
+
+        width = ds.coordinates.sanitize_width(normal, width, depth)
+
+        self.projected = weight_field is None
+
+        ParticleSource = ParticleOffAxisDummyDataSource(
+            center_rot,
+            ds,
+            normal,
+            width,
+            fields,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            data_source=None,
+            deposition=deposition,
+            density=density,
+            north_vector=north_vector,
+        )
+
+        PWViewerMPL.__init__(
+            self,
+            ParticleSource,
+            bounds,
+            origin="center-window",
+            fontsize=fontsize,
+            fields=fields,
+            window_size=window_size,
+            aspect=aspect,
+            splat_color=splat_color,
+            geometry=ds.geometry,
+            periodic=False,
+            oblique=True,
+        )
+
+        if not use_cbar:
             self.hide_colorbar()
 
 
@@ -314,9 +595,9 @@ class ParticlePhasePlot(PhasePlot):
 
     Parameters
     ----------
-    data_source : YTSelectionContainer Object
+    data_source : YTSelectionContainer or Dataset
         The data object to be profiled, such as all_data, region, or
-        sphere.
+        sphere. If data_source is a Dataset, data_source.all_data() will be used.
     x_field : str
         The x field for the mesh.
     y_field : str
@@ -385,6 +666,7 @@ class ParticlePhasePlot(PhasePlot):
     >>> plot.set_unit("particle_mass", "Msun")
 
     """
+
     _plot_type = "ParticlePhase"
 
     def __init__(
@@ -402,7 +684,8 @@ class ParticlePhasePlot(PhasePlot):
         figure_size=8.0,
         shading="nearest",
     ):
-
+        if isinstance(data_source, Dataset):
+            data_source = data_source.all_data()
         # if no z_fields are passed in, use a constant color
         if z_fields is None:
             self.use_cbar = False
@@ -470,16 +753,29 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
-    center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed. This argument is only accepted by ``ParticleProjectionPlot``.
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
+        The coordinate of the selection's center.
+        Defaults to the 'center', i.e. center of the domain.
+
+        Centering on the min or max of a field is supported by passing a tuple
+        such as ('min', ('gas', 'density')) or ('max', ('gas', 'temperature'). A
+        single string may also be used (e.g. "min_density" or
+        "max_temperature"), though it's not as flexible and does not allow to
+        select an exact field/particle type. With this syntax, the first field
+        matching the provided name is selected.
+        'max' or 'm' can be used as a shortcut for ('max', ('gas', 'density'))
+        'min' can be used as a shortcut for ('min', ('gas', 'density'))
+
+        One can also select an exact point as a 3 element coordinate sequence,
+        e.g. [0.5, 0.5, 0]
+        Units can be specified by passing in *center* as a tuple containing a
+        3-element coordinate sequence and string unit name, e.g. ([0, 0.5, 0.5], "cm"),
+        or by passing in a YTArray. Code units are assumed if unspecified.
+
+        The domain edges along the selected *axis* can be selected with
+        'left'/'l' and 'right'/'r' respectively.
+
+        This argument is only accepted by ``ParticleProjectionPlot``.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:

@@ -1,4 +1,5 @@
-from yt.testing import assert_allclose, assert_equal
+from numpy.testing import assert_allclose, assert_equal
+
 from yt.utilities.chemical_formulas import ChemicalFormula, compute_mu
 from yt.utilities.periodic_table import periodic_table
 
@@ -18,7 +19,7 @@ def test_formulas():
         w = sum(n * periodic_table[e].weight for e, n in components)
         assert_equal(f.charge, charge)
         assert_equal(f.weight, w)
-        for (n, c1), (e, c2) in zip(components, f.elements):
+        for (n, c1), (e, c2) in zip(components, f.elements, strict=True):
             assert_equal(n, e.symbol)
             assert_equal(c1, c2)
 

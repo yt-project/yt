@@ -1,13 +1,12 @@
 import copy
 from contextlib import contextmanager
-from typing import Dict
 
 from yt.fields.field_info_container import NullFunc, TranslationFunc
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTIllDefinedFilter
 
 # One to one mapping
-filter_registry: Dict[str, "ParticleFilter"] = {}
+filter_registry: dict[str, "ParticleFilter"] = {}
 
 
 class DummyFieldInfo:
@@ -52,11 +51,11 @@ class ParticleFilter:
         return all((self.filtered_type, field) in field_list for field in self.requires)
 
     def missing(self, field_list):
-        return list(
+        return [
             (self.filtered_type, field)
             for field in self.requires
             if (self.filtered_type, field) not in field_list
-        )
+        ]
 
     def wrap_func(self, field_name, old_fi):
         new_fi = copy.copy(old_fi)
@@ -103,7 +102,7 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     >>> import yt
 
     >>> def _stars(pfilter, data):
-    ...     return data[(pfilter.filtered_type, "particle_type")] == 2
+    ...     return data[pfilter.filtered_type, "particle_type"] == 2
 
     >>> yt.add_particle_filter(
     ...     "stars", function=_stars, filtered_type="all", requires=["particle_type"]
@@ -157,7 +156,7 @@ def particle_filter(name=None, requires=None, filtered_type="all"):
     >>> # define a filter named "stars"
     >>> @yt.particle_filter(requires=["particle_type"], filtered_type="all")
     ... def stars(pfilter, data):
-    ...     return data[(pfilter.filtered_type, "particle_type")] == 2
+    ...     return data[pfilter.filtered_type, "particle_type"] == 2
 
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ds.add_particle_filter("stars")

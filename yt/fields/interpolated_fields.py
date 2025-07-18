@@ -23,7 +23,6 @@ def add_interpolated_field(
     validators=None,
     truncate=True,
 ):
-
     if len(table_data.shape) not in _int_class:
         raise RuntimeError(
             "Interpolated field can only be created from 1d, 2d, or 3d data."
@@ -31,9 +30,9 @@ def add_interpolated_field(
 
     if len(axes_fields) != len(axes_data) or len(axes_fields) != len(table_data.shape):
         raise RuntimeError(
-            "Data dimension mismatch: data is %d, "
-            "%d axes data provided, and %d axes fields provided."
-            % (len(table_data.shape), len(axes_data), len(axes_fields))
+            f"Data dimension mismatch: data is {len(table_data.shape)}, "
+            f"{len(axes_data)} axes data provided, "
+            f"and {len(axes_fields)} axes fields provided."
         )
 
     int_class = _int_class[len(table_data.shape)]

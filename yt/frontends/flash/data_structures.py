@@ -1,16 +1,17 @@
 import os
 import weakref
-from typing import Type
+from pathlib import Path
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
-from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
+from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import Index
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
-from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
+from yt.utilities.file_handler import HDF5FileHandler, valid_hdf5_signature
 from yt.utilities.physical_ratios import cm_per_mpc
 
 from .fields import FLASHFieldInfo
@@ -28,7 +29,6 @@ class FLASHGrid(AMRGridPatch):
 
 
 class FLASHHierarchy(GridIndex):
-
     grid = FLASHGrid
     _preload_implemented = True
 
@@ -164,7 +164,8 @@ class FLASHHierarchy(GridIndex):
 
 
 class FLASHDataset(Dataset):
-    _index_class: Type[Index] = FLASHHierarchy
+    _load_requirements = ["h5py"]
+    _index_class: type[Index] = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
     _handle = None
 
@@ -178,7 +179,6 @@ class FLASHDataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         self.fluid_types += ("flash",)
         if self._handle is not None:
             return
@@ -186,17 +186,27 @@ class FLASHDataset(Dataset):
 
         self.particle_filename = particle_filename
 
+        filepath = Path(filename)
+
         if self.particle_filename is None:
             # try to guess the particle filename
-            try:
-                self._particle_handle = HDF5FileHandler(
-                    filename.replace("plt_cnt", "part")
-                )
-                self.particle_filename = filename.replace("plt_cnt", "part")
-                mylog.info(
-                    "Particle file found: %s", self.particle_filename.split("/")[-1]
-                )
-            except OSError:
+            if "hdf5_plt_cnt" in filepath.name:
+                # We have a plotfile, look for the particle file
+                try:
+                    pfn = str(
+                        filepath.parent.resolve()
+                        / filepath.name.replace("plt_cnt", "part")
+                    )
+                    self._particle_handle = HDF5FileHandler(pfn)
+                    self.particle_filename = pfn
+                    mylog.info(
+                        "Particle file found: %s",
+                        os.path.basename(self.particle_filename),
+                    )
+                except OSError:
+                    self._particle_handle = self._handle
+            elif "hdf5_chk" in filepath.name:
+                # This is a checkpoint file, should have the particles in it
                 self._particle_handle = self._handle
         else:
             # particle_filename is specified by user
@@ -204,9 +214,10 @@ class FLASHDataset(Dataset):
 
         # Check if the particle file has the same time
         if self._particle_handle != self._handle:
-            part_time = self._particle_handle.handle.get("real scalars")[0][1]
-            plot_time = self._handle.handle.get("real scalars")[0][1]
-            if not np.isclose(part_time, plot_time):
+            plot_time = self._handle.handle.get("real scalars")
+            if (part_time := self._particle_handle.handle.get("real scalars")) is None:
+                raise RuntimeError("FLASH 2.x particle files are not supported!")
+            if not np.isclose(part_time[0][1], plot_time[0][1]):
                 self._particle_handle = self._handle
                 mylog.warning(
                     "%s and %s are not at the same time. "
@@ -234,7 +245,6 @@ class FLASHDataset(Dataset):
         self.parameters["Time"] = 1.0  # default unit is 1...
 
     def _set_code_unit_attributes(self):
-
         if "unitsystem" in self.parameters:
             # Some versions of FLASH inject quotes in the runtime parameters
             # See issue #1721
@@ -248,7 +258,7 @@ class FLASHDataset(Dataset):
             else:
                 raise RuntimeError(
                     "Runtime parameter unitsystem with "
-                    "value %s is unrecognized" % self["unitsystem"]
+                    f"value {self['unitsystem']} is unrecognized"
                 )
         else:
             b_factor = 1.0
@@ -276,7 +286,9 @@ class FLASHDataset(Dataset):
         if nn not in self._handle:
             raise KeyError(nn)
         for tpname, pval in zip(
-            self._handle[nn][:, "name"], self._handle[nn][:, "value"]
+            self._handle[nn][:, "name"],
+            self._handle[nn][:, "value"],
+            strict=True,
         ):
             if tpname.decode("ascii", "ignore").strip() == pname:
                 if hasattr(pval, "decode"):
@@ -289,11 +301,11 @@ class FLASHDataset(Dataset):
 
     def _parse_parameter_file(self):
         if "file format version" in self._handle:
-            self._flash_version = int(self._handle["file format version"][:])
+            self._flash_version = self._handle["file format version"][:].item()
         elif "sim info" in self._handle:
-            self._flash_version = int(
-                self._handle["sim info"][:]["file format version"]
-            )
+            self._flash_version = self._handle["sim info"][:][
+                "file format version"
+            ].item()
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         # First we load all of the parameters
@@ -308,7 +320,9 @@ class FLASHDataset(Dataset):
                 if hn not in self._handle:
                     continue
                 for varname, val in zip(
-                    self._handle[hn][:, "name"], self._handle[hn][:, "value"]
+                    self._handle[hn][:, "name"],
+                    self._handle[hn][:, "value"],
+                    strict=True,
                 ):
                     vn = varname.strip()
                     if hn.startswith("string"):
@@ -335,7 +349,9 @@ class FLASHDataset(Dataset):
                     )
                 else:
                     zipover = zip(
-                        self._handle[hn][:, "name"], self._handle[hn][:, "value"]
+                        self._handle[hn][:, "name"],
+                        self._handle[hn][:, "value"],
+                        strict=True,
                     )
                 for varname, val in zipover:
                     vn = varname.strip()
@@ -379,12 +395,16 @@ class FLASHDataset(Dataset):
 
         self.dimensionality = dimensionality
 
-        self.geometry = self.parameters["geometry"]
+        self.geometry = Geometry(self.parameters["geometry"])
         # Determine base grid parameters
         if "lrefine_min" in self.parameters.keys():  # PARAMESH
             nblockx = self.parameters["nblockx"]
             nblocky = self.parameters["nblocky"]
             nblockz = self.parameters["nblockz"]
+        elif self.parameters["globalnumblocks"] == 1:  # non-fixed block size UG
+            nblockx = 1
+            nblocky = 1
+            nblockz = 1
         else:  # Uniform Grid
             nblockx = self.parameters["iprocs"]
             nblocky = self.parameters["jprocs"]
@@ -400,7 +420,7 @@ class FLASHDataset(Dataset):
         dle = np.array([self.parameters[f"{ax}min"] for ax in "xyz"]).astype("float64")
         dre = np.array([self.parameters[f"{ax}max"] for ax in "xyz"]).astype("float64")
         if self.dimensionality < 3:
-            for d in [dimensionality] + list(range(3 - dimensionality)):
+            for d in range(self.dimensionality, 3):
                 if dle[d] == dre[d]:
                     mylog.warning(
                         "Identical domain left edge and right edges "
@@ -408,18 +428,22 @@ class FLASHDataset(Dataset):
                         d,
                     )
                     dre[d] = dle[d] + 1.0
-        if self.dimensionality < 3 and self.geometry == "cylindrical":
-            mylog.warning("Extending theta dimension to 2PI + left edge.")
-            dre[2] = dle[2] + 2 * np.pi
-        elif self.dimensionality < 3 and self.geometry == "polar":
-            mylog.warning("Extending theta dimension to 2PI + left edge.")
-            dre[1] = dle[1] + 2 * np.pi
-        elif self.dimensionality < 3 and self.geometry == "spherical":
-            mylog.warning("Extending phi dimension to 2PI + left edge.")
-            dre[2] = dle[2] + 2 * np.pi
-        if self.dimensionality == 1 and self.geometry == "spherical":
-            mylog.warning("Extending theta dimension to PI + left edge.")
-            dre[1] = dle[1] + np.pi
+
+        if self.dimensionality < 3:
+            match self.geometry:
+                case Geometry.CYLINDRICAL:
+                    mylog.warning("Extending theta dimension to 2PI + left edge.")
+                    dre[2] = dle[2] + 2 * np.pi
+                case Geometry.POLAR:
+                    mylog.warning("Extending theta dimension to 2PI + left edge.")
+                    dre[1] = dle[1] + 2 * np.pi
+                case Geometry.SPHERICAL:
+                    mylog.warning("Extending phi dimension to 2PI + left edge.")
+                    dre[2] = dle[2] + 2 * np.pi
+                    if self.dimensionality == 1:
+                        mylog.warning("Extending theta dimension to PI + left edge.")
+                        dre[1] = dle[1] + np.pi
+
         self.domain_left_edge = dle
         self.domain_right_edge = dre
         self.domain_dimensions = np.array([nblockx * nxb, nblocky * nyb, nblockz * nzb])
@@ -458,12 +482,15 @@ class FLASHDataset(Dataset):
             self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             fileh = HDF5FileHandler(filename)
             if "bounding box" in fileh["/"].keys():
                 return True
-        except (OSError, ImportError):
+        except OSError:
             pass
         return False
 
@@ -484,6 +511,7 @@ class FLASHParticleFile(ParticleFile):
 
 
 class FLASHParticleDataset(FLASHDataset):
+    _load_requirements = ["h5py"]
     _index_class = ParticleIndex
     filter_bbox = False
     _file_class = FLASHParticleFile
@@ -498,7 +526,7 @@ class FLASHParticleDataset(FLASHDataset):
         index_filename=None,
         unit_system="cgs",
     ):
-        self.index_order = validate_index_order(index_order)
+        self.index_order = index_order
         self.index_filename = index_filename
 
         if self._handle is not None:
@@ -525,8 +553,13 @@ class FLASHParticleDataset(FLASHDataset):
         self.file_count = 1
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        warn_h5py(filename)
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if not valid_hdf5_signature(filename):
+            return False
+
+        if cls._missing_load_requirements():
+            return False
+
         try:
             fileh = HDF5FileHandler(filename)
             if (
@@ -534,7 +567,7 @@ class FLASHParticleDataset(FLASHDataset):
                 and "localnp" in fileh["/"].keys()
             ):
                 return True
-        except (OSError, ImportError):
+        except OSError:
             pass
         return False
 

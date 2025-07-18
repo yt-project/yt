@@ -65,7 +65,7 @@ Gallery Images and Videos
 -------------------------
 
 If you have an image or video you'd like to display in the image or video
-galleries, getting it included it easy!  You can either fork the `yt homepage
+galleries, getting it included is easy!  You can either fork the `yt homepage
 repository <https://github.com/yt-project/website>`_ and add it there, or
 email it to us and we'll add it to the `Gallery
 <https://yt-project.org/gallery.html>`_.
@@ -273,10 +273,9 @@ How To Get The Source Code For Editing
 ++++++++++++++++++++++++++++++++++++++
 
 yt is hosted on GitHub, and you can see all of the yt repositories at
-https://github.com/yt-project/.  With the yt installation script you should have a
-copy of git for checking out pieces of code.  Make sure you have followed
-the steps above for bootstrapping your development (to assure you have a
-GitHub account, etc.)
+https://github.com/yt-project/. To fetch and modify source code, make sure you
+have followed the steps above for bootstrapping your development (to assure you
+have a GitHub account, etc.).
 
 In order to modify the source code for yt, we ask that you make a "fork" of the
 main yt repository on GitHub.  A fork is simply an exact copy of the main
@@ -340,25 +339,13 @@ branch.
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
 you run yt from the command line or the one that is loaded when you do ``import
-yt``), then you must "activate" it using the following commands from within the
-repository directory.
-
-.. code-block:: bash
-
-   $ python setup.py develop
-
-This will rebuild all C modules as well.
+yt``), then you must "activate" by building yt from source as described in
+:ref:`install-from-source`.
 
 .. _reading-source:
 
 How To Read The Source Code
 +++++++++++++++++++++++++++
-
-If you just want to *look* at the source code, you may already have it on your
-computer.  If you build yt using the install script, the source is available at
-``$YT_DEST/src/yt-git``.  See :ref:`install-from-source` for more details about
-to obtain the yt source code if you did not build yt using the install
-script.
 
 The root directory of the yt git repository contains a number of
 subdirectories with different components of the code.  Most of the yt source
@@ -439,7 +426,7 @@ which have different requirements for acceptance into the code base.  These
 requirements are in place for a few reasons -- to make sure that the code is
 maintainable, testable, and that we can easily include information about
 changes in changelogs during the release procedure.  (See `YTEP-0008
-<https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0008.html>`_ for more
+<https://ytep.readthedocs.io/en/master/YTEPs/YTEP-0008.html>`_ for more
 detail.)
 
 For all types of contributions, it is required that all tests pass, or that all non-passing tests are specifically accounted for.
@@ -463,7 +450,7 @@ For all types of contributions, it is required that all tests pass, or that all 
     future. (See :ref:`testing`)
   * At a minimum, a minimal, self-contained example demonstrating the bug should
     because included in the body of the Pull Request, or as part of an
-    indepedent issue.
+    independent issue.
 
 When submitting, you will be asked to make sure that your changes meet all of
 these requirements.  They are pretty easy to meet, and we're also happy to help
@@ -553,10 +540,8 @@ Here's a more detailed flowchart of how to submit changes.
 
 #. Fork yt on GitHub.  (This step only has to be done once.)  You can do
    this at: https://github.com/yt-project/yt/fork.
-#. If you have used the installation script, the source code for yt can be
-   found in ``$YT_DEST/src/yt-git``.  Alternatively see
-   :ref:`install-from-source` for instructions on how to build yt from the
-   git repository. (Below, in :ref:`reading-source`, we describe how to
+#. Follow :ref:`install-from-source` for instructions on how to build yt
+   from the git repository. (Below, in :ref:`reading-source`, we describe how to
    find items of interest.) If you have already forked the repository then
    you can clone your fork locally::
 
@@ -698,16 +683,12 @@ So that our hooks will run and update your changes on every commit.
 If you do not want to/are unable to configure ``pre-commit`` on your machine, note that
 after opening a pull request, it will still be run as a static checker as part of our CI.
 Some hooks also come with auto-fixing capabilities, which you can trigger manually in a
-PR by commenting ``pre-commit.ci run`` (see ` <https://pre-commit.ci/#features>`_).
+PR by commenting ``pre-commit.ci autofix`` (see ` <https://pre-commit.ci/#features>`_).
 
-Here's a list of the main automated formatters we use along with a short description
-
-- `black <https://black.readthedocs.io/en/stable/>`_ (overall coding style)
-- `isort <https://pycqa.github.io/isort/>`_ (import statements ordering)
-- `pyupgrade <https://github.com/asottile/pyupgrade>`_ (enforce modern python idioms)
-- `flake8 <https://flake8.pycqa.org/en/latest/>`_ + `bugbear <https://github.com/PyCQA/flake8-bugbear>`_ (static code smells detection)
-
-The complete configuration is located in ``.pre-commit-config.yaml``.
+We use a combination of `black <https://black.readthedocs.io/en/stable/>`_,
+`ruff <https://beta.ruff.rs/docs//>`_ and `cython-lint
+<https://github.com/MarcoGorelli/cython-lint>`_. See ``.pre-commit-config.yaml``
+and ``pyproject.toml`` for the complete configuration details.
 
 Note that formatters should not be run directly on the command line as, for instance
 

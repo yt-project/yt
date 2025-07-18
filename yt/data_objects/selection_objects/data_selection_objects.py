@@ -1,11 +1,13 @@
 import abc
 import itertools
+import sys
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
 
 import numpy as np
 from more_itertools import always_iterable
+from unyt import unyt_array
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry
@@ -14,6 +16,7 @@ from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
 from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
+from yt.geometry.api import Geometry
 from yt.geometry.selection_routines import compose_selector
 from yt.units import YTArray
 from yt.utilities.exceptions import (
@@ -30,6 +33,11 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
 
 
 class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
@@ -58,8 +66,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
             if data_source._dimensionality < self._dimensionality:
                 raise RuntimeError(
                     "Attempted to construct a DataContainer with a data_source "
-                    "of lower dimensionality (%u vs %u)"
-                    % (data_source._dimensionality, self._dimensionality)
+                    "of lower dimensionality "
+                    f"({data_source._dimensionality} vs {self._dimensionality})"
                 )
             self.field_parameters.update(data_source.field_parameters)
         self.quantities = DerivedQuantityCollection(self)
@@ -107,7 +115,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
             if inspected >= len(fields_to_get):
                 break
             inspected += 1
-            fi = self.ds._get_field_info(*field)
+            fi = self.ds._get_field_info(field)
             fd = self.ds.field_dependencies.get(
                 field, None
             ) or self.ds.field_dependencies.get(field[1], None)
@@ -165,7 +173,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         for field in self._determine_fields(fields):
             if field in self.field_data:
                 continue
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             try:
                 finfo.check_available(self)
             except NeedsGridType:
@@ -183,13 +191,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         # We now split up into readers for the types of fields
         fluids, particles = [], []
         finfos = {}
-        for ftype, fname in fields_to_get:
-            finfo = self.ds._get_field_info(ftype, fname)
-            finfos[ftype, fname] = finfo
+        for field_key in fields_to_get:
+            finfo = self.ds._get_field_info(field_key)
+            finfos[field_key] = finfo
             if finfo.sampling_type == "particle":
-                particles.append((ftype, fname))
-            elif (ftype, fname) not in fluids:
-                fluids.append((ftype, fname))
+                particles.append(field_key)
+            elif field_key not in fluids:
+                fluids.append(field_key)
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
@@ -216,6 +224,17 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
 
     def _generate_fields(self, fields_to_generate):
         index = 0
+
+        def dimensions_compare_equal(a, b, /) -> bool:
+            if a == b:
+                return True
+            try:
+                if (a == 1 and b.is_dimensionless) or (a.is_dimensionless and b == 1):
+                    return True
+            except AttributeError:
+                return False
+            return False
+
         with self._field_lock():
             # At this point, we assume that any fields that are necessary to
             # *generate* a field are in fact already available to us.  Note
@@ -228,7 +247,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                 index += 1
                 if field in self.field_data:
                     continue
-                fi = self.ds._get_field_info(*field)
+                fi = self.ds._get_field_info(field)
                 try:
                     fd = self._generate_field(field)
                     if hasattr(fd, "units"):
@@ -253,11 +272,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         if fi.dimensions is None:
                             mylog.warning(
                                 "Field %s was added without specifying units or dimensions, "
-                                "auto setting units to %s",
+                                "auto setting units to %r",
                                 fi.name,
-                                sunits,
+                                sunits or "dimensionless",
                             )
-                        elif fi.dimensions != dimensions:
+                        elif not dimensions_compare_equal(fi.dimensions, dimensions):
                             raise YTDimensionalityError(fi.dimensions, dimensions)
                         fi.units = sunits
                         fi.dimensions = dimensions
@@ -587,26 +606,25 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
         >>> proj = ds.proj(("gas", "density"), 0)
         >>> frb = proj.to_frb((100.0, "kpc"), 1024)
-        >>> write_image(np.log10(frb[("gas", "density")]), "density_100kpc.png")
+        >>> write_image(np.log10(frb["gas", "density"]), "density_100kpc.png")
         """
 
-        if (self.ds.geometry == "cylindrical" and self.axis == 1) or (
-            self.ds.geometry == "polar" and self.axis == 2
-        ):
-            if center is not None and center != (0.0, 0.0):
-                raise NotImplementedError(
-                    "Currently we only support images centered at R=0. "
-                    + "We plan to generalize this in the near future"
+        match (self.ds.geometry, self.axis):
+            case (Geometry.CYLINDRICAL, 1) | (Geometry.POLAR, 2):
+                if center is not None and center != (0.0, 0.0):
+                    raise NotImplementedError(
+                        "Currently we only support images centered at R=0. "
+                        + "We plan to generalize this in the near future"
+                    )
+                from yt.visualization.fixed_resolution import (
+                    CylindricalFixedResolutionBuffer,
                 )
-            from yt.visualization.fixed_resolution import (
-                CylindricalFixedResolutionBuffer,
-            )
 
-            validate_width_tuple(width)
-            if is_sequence(resolution):
-                resolution = max(resolution)
-            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
-            return frb
+                validate_width_tuple(width)
+                if is_sequence(resolution):
+                    resolution = max(resolution)
+                frb = CylindricalFixedResolutionBuffer(self, width, resolution)
+                return frb
 
         if center is None:
             center = self.center
@@ -677,7 +695,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
            A list of conditionals that will be evaluated. In the namespace
            available, these conditionals will have access to 'obj' which is a
            data object of unknown shape, and they must generate a boolean array.
-           For instance, conditionals = ["obj[('gas', 'temperature')] < 1e3"]
+           For instance, conditionals = ["obj['gas', 'temperature'] < 1e3"]
         field_parameters : dictionary
            A dictionary of field parameters to be used when applying the field
            cuts.
@@ -691,7 +709,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.cut_region(["obj[('gas', 'temperature')] > 1e6"])
+        >>> cr = ad.cut_region(["obj['gas', 'temperature'] > 1e6"])
         >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         if locals is None:
@@ -712,7 +730,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds._build_operator_cut(">", ("gas", "density"), 1e-24)
         ... # is equivalent to
-        ... ds.cut_region(['obj[("gas", "density")] > 1e-24'])
+        ... ds.cut_region(['obj["gas", "density"] > 1e-24'])
         """
         ftype, fname = self._determine_fields(field)[0]
         if units is None:
@@ -734,7 +752,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds._build_function_cut("np.isnan", ("gas", "density"), locals={"np": np})
         ... # is equivalent to
-        ... ds.cut_region(['np.isnan(obj[("gas", "density")])'], locals={"np": np})
+        ... ds.cut_region(['np.isnan(obj["gas", "density"])'], locals={"np": np})
         """
         ftype, fname = self._determine_fields(field)[0]
         if units is None:
@@ -1304,7 +1322,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
     def _calculate_flux_in_grid(
         self, grid, mask, field, value, field_x, field_y, field_z, fluxing_field=None
     ):
-
         vc_fields = [field, field_x, field_y, field_z]
         if fluxing_field is not None:
             vc_fields.append(fluxing_field)
@@ -1379,18 +1396,30 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         return self.ds.domain_left_edge, self.ds.domain_right_edge
 
-    def get_bbox(self):
+    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
         """
         Return the bounding box for this data container.
         """
-        if self.ds.geometry != "cartesian":
-            raise NotImplementedError(
-                "get_bbox is currently only implemented for cartesian geometries!"
-            )
-        le, re = self._get_bbox()
-        le.convert_to_units("code_length")
-        re.convert_to_units("code_length")
-        return le, re
+        match self.ds.geometry:
+            case Geometry.CARTESIAN:
+                le, re = self._get_bbox()
+                le.convert_to_units("code_length")
+                re.convert_to_units("code_length")
+                return le, re
+            case (
+                Geometry.CYLINDRICAL
+                | Geometry.POLAR
+                | Geometry.SPHERICAL
+                | Geometry.GEOGRAPHIC
+                | Geometry.INTERNAL_GEOGRAPHIC
+                | Geometry.SPECTRAL_CUBE
+            ):
+                geometry = self.ds.geometry
+                raise NotImplementedError(
+                    f"get_bbox is currently not implemented for {geometry=}!"
+                )
+            case _:
+                assert_never(self.ds.geometry)
 
     def volume(self):
         """

@@ -52,7 +52,7 @@ class TestYTConfig(unittest.TestCase):
         os.environ["XDG_CONFIG_HOME"] = self.tmpdir
         os.mkdir(os.path.join(self.tmpdir, "yt"))
 
-        # run inside another temporary directory to avoid poluting the
+        # run inside another temporary directory to avoid polluting the
         # local space when we dump configuration to a local yt.toml file
         self.origin = os.getcwd()
         os.chdir(tempfile.mkdtemp())
@@ -69,9 +69,11 @@ class TestYTConfig(unittest.TestCase):
         args = ["yt", "config"] + args
         retcode = 0
 
-        with mock.patch.object(sys, "argv", args), mock.patch(
-            "sys.exit", side_effect=SysExitException
-        ) as exit, captureOutput() as output:
+        with (
+            mock.patch.object(sys, "argv", args),
+            mock.patch("sys.exit", side_effect=SysExitException) as exit,
+            captureOutput() as output,
+        ):
             try:
                 yt.utilities.command_line.run_main()
             except SysExitException:

@@ -1,5 +1,6 @@
 import json
 import time
+from functools import cached_property
 
 import numpy as np
 
@@ -14,6 +15,7 @@ class HTTPParticleFile(ParticleFile):
 
 
 class HTTPStreamDataset(ParticleDataset):
+    _load_requirements = ["requests"]
     _index_class = ParticleIndex
     _file_class = HTTPParticleFile
     _field_info_class = SPHFieldInfo
@@ -42,6 +44,10 @@ class HTTPStreamDataset(ParticleDataset):
     def __str__(self):
         return self.base_url
 
+    @cached_property
+    def unique_identifier(self) -> str:
+        return str(self.parameters.get("unique_identifier", time.time()))
+
     def _parse_parameter_file(self):
         self.dimensionality = 3
         self.refine_by = 2
@@ -64,7 +70,6 @@ class HTTPStreamDataset(ParticleDataset):
         self._periodicity = (True, True, True)
 
         self.current_time = header["current_time"]
-        self.unique_identifier = header.get("unique_identifier", time.time())
         self.cosmological_simulation = int(header["cosmological_simulation"])
         for attr in (
             "current_redshift",
@@ -91,11 +96,11 @@ class HTTPStreamDataset(ParticleDataset):
         self.conversion_factors["density"] = density_unit
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.startswith("http://"):
             return False
-        try:
-            return requests.get(filename + "/yt_index.json").status_code == 200
-        except ImportError:
-            # requests is not installed
+
+        if cls._missing_load_requirements():
             return False
+
+        return requests.get(filename + "/yt_index.json").status_code == 200

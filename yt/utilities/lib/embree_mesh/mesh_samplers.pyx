@@ -12,11 +12,8 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 
 
 cimport cython
-cimport numpy as np
-cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
-from libc.math cimport fabs, fmax
-from pyembree.rtcore cimport Triangle, Vec3f, Vertex
+from pyembree.rtcore cimport Triangle
 
 from yt.utilities.lib.element_mappings cimport (
     ElementSampler,
@@ -43,7 +40,7 @@ cdef ElementSampler Tet2Sampler = Tet2Sampler3D()
 @cython.cdivision(True)
 cdef void get_hit_position(double* position,
                            void* userPtr,
-                           rtcr.RTCRay& ray) nogil:
+                           rtcr.RTCRay& ray) noexcept nogil:
     cdef int primID, i
     cdef double[3][3] vertex_positions
     cdef Triangle tri
@@ -75,7 +72,7 @@ cdef void get_hit_position(double* position,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void sample_hex(void* userPtr,
-                     rtcr.RTCRay& ray) nogil:
+                     rtcr.RTCRay& ray) noexcept nogil:
     cdef int ray_id, elem_id, i
     cdef double val
     cdef double[8] field_data
@@ -126,7 +123,7 @@ cdef void sample_hex(void* userPtr,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void sample_wedge(void* userPtr,
-                       rtcr.RTCRay& ray) nogil:
+                       rtcr.RTCRay& ray) noexcept nogil:
     cdef int ray_id, elem_id, i
     cdef double val
     cdef double[6] field_data
@@ -174,8 +171,8 @@ cdef void sample_wedge(void* userPtr,
 @cython.initializedcheck(False)
 @cython.cdivision(True)
 cdef void sample_hex20(void* userPtr,
-                       rtcr.RTCRay& ray) nogil:
-    cdef int ray_id, elem_id, i
+                       rtcr.RTCRay& ray) noexcept nogil:
+    cdef int ray_id, i
     cdef double val
     cdef double[3] position
     cdef float[3] pos
@@ -191,7 +188,6 @@ cdef void sample_hex20(void* userPtr,
     # embree, in which the primitives are patches. Here,
     # we convert this to the element id by dividing by the
     # number of patches per element.
-    elem_id = ray_id / 6
 
     # fills "position" with the physical position of the hit
     patchSurfaceFunc(data[ray_id].v, ray.u, ray.v, pos)
@@ -210,7 +206,7 @@ cdef void sample_hex20(void* userPtr,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void sample_tetra(void* userPtr,
-                       rtcr.RTCRay& ray) nogil:
+                       rtcr.RTCRay& ray) noexcept nogil:
 
     cdef int ray_id, elem_id, i
     cdef double val
@@ -257,8 +253,8 @@ cdef void sample_tetra(void* userPtr,
 @cython.initializedcheck(False)
 @cython.cdivision(True)
 cdef void sample_tet10(void* userPtr,
-                       rtcr.RTCRay& ray) nogil:
-    cdef int ray_id, elem_id, i
+                       rtcr.RTCRay& ray) noexcept nogil:
+    cdef int ray_id, i
     cdef double val
     cdef double[3] position
     cdef float[3] pos
@@ -274,7 +270,6 @@ cdef void sample_tet10(void* userPtr,
     # embree, in which the primitives are patches. Here,
     # we convert this to the element id by dividing by the
     # number of patches per element.
-    elem_id = ray_id / 4
 
     # fills "position" with the physical position of the hit
     tet_patchSurfaceFunc(data[ray_id].v, ray.u, ray.v, pos)

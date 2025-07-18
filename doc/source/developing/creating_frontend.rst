@@ -3,10 +3,6 @@
 Creating A New Code Frontend
 ============================
 
-.. warning: This section is not yet updated to work with yt 3.0.  If you
-            have a question about making a custom derived quantity, please
-            contact the mailing list.
-
 yt is designed to support analysis and visualization of data from
 multiple different simulation codes. For a list of codes and the level
 of support they enjoy, see :ref:`code-support`.
@@ -27,6 +23,10 @@ be classified into a couple categories:
  * Data reading: This is the set of routines that actually perform a read of
    either all data in a region or a subset of that data.
 
+
+Note that a frontend can be built as an external package. This is useful to
+develop and maintain a maturing frontend at your own pace. For technical details, see
+:ref:`frontends-as-extensions`.
 
 If you are interested in adding a new code, be sure to drop us a line on
 `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_!
@@ -56,7 +56,7 @@ called ``_is_valid()`` that lets the ``yt.load`` method help identify an
 input file as belonging to *this* particular ``Dataset`` subclass
 (see :ref:`data-format-detection`).
 For the most part, the examples of
-``yt.frontends.boxlib.data_structures.OrionDataset`` and
+``yt.frontends.amrex.data_structures.OrionDataset`` and
 ``yt.frontends.enzo.data_structures.EnzoDataset`` should be followed,
 but ``yt.frontends.chombo.data_structures.ChomboDataset``, as a
 slightly newer addition, can also be used as an instructive example.
@@ -64,7 +64,8 @@ slightly newer addition, can also be used as an instructive example.
 A new set of fields must be added in the file ``fields.py`` in your
 new directory.  For the most part this means subclassing
 ``FieldInfoContainer`` and adding the necessary fields specific to
-your code. Here is a snippet from the base BoxLib field container:
+your code. Here is a snippet from the base BoxLib field container (defined in
+``yt.frontends.amrex.fields``):
 
 .. code-block:: python
 
@@ -135,7 +136,7 @@ positional and keyword arguments. On call, ``yt.load`` attempts to determine
 what ``Dataset`` subclasses are compatible with the set of arguments it
 received. It does so by passing its arguments to *every* ``Dataset`` subclasses'
 ``_is_valid`` method. These methods are intended to be heuristics that quickly
-determine wether the arguments (in particular the file/directory) can be loaded
+determine whether the arguments (in particular the file/directory) can be loaded
 with their respective classes. In some cases, more than one class might be
 detected as valid. If all candidate classes are siblings, ``yt.load`` will
 select the most specialized one.
@@ -170,7 +171,7 @@ example of how this is implemented in the FLASH frontend:
 
     class FLASHFieldInfo(FieldInfoContainer):
         known_other_fields = (
-            ...("magx", (b_units, [], "B_x")),  # Note there is no alias here
+            ("magx", (b_units, [], "B_x")),  # Note there is no alias here
             ("magy", (b_units, [], "B_y")),
             ("magz", (b_units, [], "B_z")),
             ...,
@@ -273,7 +274,7 @@ that is needed:
 
 
 Even one of the more complex grid objects,
-``yt.frontends.boxlib.BoxlibGrid``, is still relatively simple.
+``yt.frontends.amrex.BoxlibGrid``, is still relatively simple.
 
 Data Reading Functions
 ----------------------
@@ -310,10 +311,36 @@ At a minimum, one should also override the following methods
 If your dataset has particle information, you'll want to override the
 ``_read_particle_coords()`` and ``read_particle_fields()`` methods as
 well.  Each code is going to read data from disk in a different
-fashion, but the ``yt.frontends.boxlib.io.IOHandlerBoxlib`` is a
+fashion, but the ``yt.frontends.amrex.io.IOHandlerBoxlib`` is a
 decent place to start.
 
 And that just about covers it. Please feel free to email
 `yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_ or
 `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ with
 any questions, or to let us know you're thinking about adding a new code to yt.
+
+
+How to add extra dependencies ?
+-------------------------------
+
+.. note:: This section covers the technical details of how optional runtime
+   dependencies are implemented and used in yt.
+   If your frontend has specific or complicated dependencies other than yt's,
+   we advise writing your frontend as an extension package :ref:`frontends-as-extensions`
+
+It is required that a specific target be added to ``pyproject.toml`` to define a list
+of additional requirements (even if empty), see :ref:`install-additional`.
+
+At runtime, extra third party dependencies should be loaded lazily, meaning their import
+needs to be delayed until actually needed. This is achieved by importing a wrapper from
+``yt.utitilies.on_demand_imports.py``, instead of the actual package like so
+
+.. code-block:: python
+
+    from yt.utilities.on_demand_imports import _mypackage as mypackage
+
+Such import statements can live at the top of a module without generating overhead or errors
+in case the actual package isn't installed.
+
+If the extra third party dependency is new, a new import wrapper must also be added. To do so,
+follow the example of the existing wrappers in ``yt.utilities.on_demand_imports.py``.

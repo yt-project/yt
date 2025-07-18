@@ -1,10 +1,9 @@
 import weakref
-from typing import List, Tuple
 
 import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
-from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.config import ytcfg
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -78,7 +77,7 @@ class AMRGridPatch(YTSelectionContainer):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.ds._get_field_info(*fields[0])
+        finfo = self.ds._get_field_info(fields[0])
         if not finfo.sampling_type == "particle":
             num_nodes = 2 ** sum(finfo.nodal_flag)
             new_shape = list(self.ActiveDimensions)
@@ -270,20 +269,10 @@ class AMRGridPatch(YTSelectionContainer):
 
     def get_vertex_centered_data(
         self,
-        fields: List[Tuple[str, str]],
+        fields: list[FieldKey],
         smoothed: bool = True,
         no_ghost: bool = False,
     ):
-        _old_api = isinstance(fields, (str, tuple))
-        if _old_api:
-            issue_deprecation_warning(
-                "get_vertex_centered_data() requires list of fields, rather than "
-                "a single field as an argument.",
-                since="3.3",
-                removal="4.2",
-            )
-            fields = [fields]  # type: ignore
-
         # Make sure the field list has only unique entries
         fields = list(set(fields))
         new_fields = {}
@@ -320,8 +309,6 @@ class AMRGridPatch(YTSelectionContainer):
                 np.add(dest, src[:-1, :-1, :-1], dest)
                 np.multiply(dest, 0.125, dest)
 
-        if _old_api:
-            return new_fields[fields[0]]
         return new_fields
 
     def select_icoords(self, dobj):
@@ -338,8 +325,8 @@ class AMRGridPatch(YTSelectionContainer):
             return np.empty((0, 3), dtype="float64")
         coords = convert_mask_to_indices(mask, self._last_count).astype("float64")
         coords += 0.5
-        coords *= self.dds[None, :]
-        coords += self.LeftEdge[None, :]
+        coords *= self.dds.d[None, :]
+        coords += self.LeftEdge.d[None, :]
         return coords
 
     def select_fwidth(self, dobj):
@@ -348,7 +335,7 @@ class AMRGridPatch(YTSelectionContainer):
             return np.empty((0, 3), dtype="float64")
         coords = np.empty((count, 3), dtype="float64")
         for axis in range(3):
-            coords[:, axis] = self.dds[axis]
+            coords[:, axis] = self.dds.d[axis]
         return coords
 
     def select_ires(self, dobj):
@@ -401,14 +388,14 @@ class AMRGridPatch(YTSelectionContainer):
         if self._cache_mask and hash(selector) == self._last_selector_id:
             mask = self._last_mask
         else:
-            mask = selector.fill_mask(self)
+            mask, count = selector.fill_mask_regular_grid(self)
             if self._cache_mask:
                 self._last_mask = mask
             self._last_selector_id = hash(selector)
             if mask is None:
                 self._last_count = 0
             else:
-                self._last_count = mask.sum()
+                self._last_count = count
         return mask
 
     def select(self, selector, source, dest, offset):

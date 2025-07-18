@@ -152,6 +152,21 @@ More pytest options can be found by using the ``--help`` flag
 
 Answer Testing
 --------------
+.. note::
+    This section documents answer tests run with ``pytest``. The plan is to
+    switch to using ``pytest`` for answer tests at some point in the future,
+    but currently (July 2024), answer tests are still implemented and run with
+    ``nose``. We generally encourage developers to use ``pytest`` for any new
+    tests, but if you need to change or update one of the older ``nose``
+    tests, or are, e.g., writing a new frontend,
+    an `older version of this documentation <https://yt-project.org/docs/4.0.0/developing/testing.html#answer-testing>`_
+    decribes how the ``nose`` tests work.
+
+.. note::
+    Given that nose never had support for Python 3.10 (which as of yt 4.4 is our
+    oldest supported version), it is necessary to patch it to get tests running.
+    This is the command we run on CI to this end
+    ``find .venv/lib/python3.10/site-packages/nose -name '*.py' -exec sed -i -e s/collections.Callable/collections.abc.Callable/g '{}' ';'``
 
 What Do Answer Tests Do
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -171,8 +186,7 @@ In order to run the answer tests locally:
 
 * Add folders of the required data to this directory. Other yt data, such as ``IsolatedGalaxy``, can be downloaded to this directory as well.
 
-* Tell yt where it can find the data. This is done by setting the config parameter ``test_data_dir`` to the path of the
-directory with the test data downloaded from https://yt-project.org/data/. For example,
+* Tell yt where it can find the data. This is done by setting the config parameter ``test_data_dir`` to the path of the directory with the test data downloaded from https://yt-project.org/data/. For example,
 
 .. code-block:: bash
 
@@ -285,8 +299,75 @@ Here is what a minimal example might look like for a new frontend:
 Answer test examples can be found in ``yt/frontends/enzo/tests/test_outputs.py``.
 
 
-How to Write Image Comparison Tests
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _update_image_tests:
+
+Creating and Updating Image Baselines for pytest-mpl Tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We use `pytest-mpl <https://pytest-mpl.readthedocs.io/en/latest/>`_ for image comparison
+tests. These tests take the form of functions, which must be decorated with
+``@pytest.mark.mpl_image_compare`` and return a ``matplotlib.figure.Figure`` object.
+
+The collection of reference images is kept as git submodule in ``tests/pytest_mpl_baseline/``.
+
+There are 4 situations where updating reference images may be necessary
+
+- adding new tests
+- bugfixes
+- intentional change of style in yt
+- old baseline fails with a new version of matplotlib, but changes are not noticeable to the human eye
+
+The process of updating images is the same in all cases. It involves opening two Pull Requests (PR)
+that we'll number PR1 and PR2.
+
+1. open a Pull Request (PR1) to yt's main repo with the code changes
+2. wait for tests jobs to complete
+3. go to the "Checks" tab on the PR page (``https://github.com/yt-project/yt/pull/<PR number>/checks``)
+4. if all tests passed, you're done !
+5. if tests other than image tests failed, fix them, and go back to step 2.
+  Otherwise, if only image tests failed, navigate to the "Build and Tests" job summary page.
+6. at the bottom of the page, you'll find "Artifacts".
+   Download ``yt_pytest_mpl_results.zip``, unzip it and open ``fig_comparison.html`` therein;
+   This document is an interactive report of the test job.
+   Inspect failed tests results and verify that any differences are either intended or insignificant.
+   If they are not, fix the code and go back to step 2
+7. clone ``https://github.com/yt-project/yt_pytest_mpl_baseline.git`` and unzip the new baseline
+8. Download the other artifact (``yt_pytest_mpl_new_baseline.zip``),
+   unzip it within your clone of ``yt_pytest_mpl_baseline``.
+9. create a branch, commit all changes, and open a Pull Request (PR2) to ``https://github.com/yt-project/yt_pytest_mpl_baseline``
+   (PR2 should link to PR1)
+10. wait for this second PR to be merged
+11. Now it's time to update PR1: navigate back to your local copy of ``yt``'s main repository.
+12. run the following commands
+
+.. code-block:: bash
+
+  $ git submodule update --init
+  $ cd tests/pytest_mpl_baseline
+  $ git checkout main
+  $ git pull
+  $ cd ../
+  $ git add pytest_mpl_baseline
+  $ git commit -m "update image test baseline"
+  $ git push
+
+13. go back to step 2. This time everything should pass. If not, ask for help !
+
+.. note::
+    Though it is technically possible to (re)generate reference images locally, it is
+    best not to, because at a pixel level, matplotlib's behaviour is platform-dependent.
+    By letting CI runners generate images, we ensure pixel-perfect comparison is possible
+    in CI, which is where image comparison tests are most often run.
+
+
+.. _deprecated_generic_image:
+
+How to Write Image Comparison Tests (deprecated API)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+    this section describes deprecated API. New test code should follow :ref:`_update_image_tests`
+
 
 Many of yt's operations involve creating and manipulating images. As such, we have a number of tests designed to compare images. These tests employ functionality from matplotlib to automatically compare images and detect
 differences, if any. Image comparison tests are used in the plotting and volume
@@ -347,6 +428,7 @@ test is more useful if you are finding yourself writing a ton of boilerplate
 code to get your image comparison test working.  The ``generic_image`` function is
 more useful if you only need to do a one-off image comparison test.
 
+
 Updating Answers
 ~~~~~~~~~~~~~~~~
 
@@ -364,25 +446,27 @@ the answers. This way, we can avoid accidentally covering up test breakages.
 Handling yt Dependencies
 ------------------------
 
-Our dependencies are specified in ``setup.cfg``. Hard dependencies are found in
-``options.install_requires``, while optional dependencies are specified in
-``options.extras_require``. The ``full`` target contains the specs to run our
+Our dependencies are specified in ``pyproject.toml``. Hard dependencies are found in
+``project.dependencies``, while optional dependencies are specified in
+``project.optional-dependencies``. The ``full`` target contains the specs to run our
 test suite, which are intended to be as modern as possible (we don't set upper
-limits to versions unless we need to). The ``minimal`` target is used to check
-that we don't break backward compatibility with old versions of upstream
-projects by accident. It is intended to pin stricly our minimal supported
-versions. The ``test`` target specifies the tools neeed to run the tests, but
+limits to versions unless we need to).
+
+The ``test`` target specifies the tools needed to run the tests, but
 not needed by yt itself.
 
+Documentation and typechecking requirements are found in ``requirements/``,
+and used in ``tests/ci_install.sh``.
+
 **Python version support.**
-When a new Python version is released, it takes about
-a month or two for yt to support it, since we're dependent on bigger projects
-like numpy and matplotlib. We vow to follow numpy's deprecation plan regarding
-our supported versions for Python and numpy, defined formally in `NEP 29
-<https://numpy.org/neps/nep-0029-deprecation_policy.html>`_. However, we try to
-avoid bumping our minimal requirements shortly before a yt release.
+We vow to follow numpy's deprecation plan regarding our supported versions for Python
+and numpy, defined formally in
+`NEP 29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_, but generally
+support larger version intervals than recommended in this document.
 
 **Third party dependencies.**
+We attempt to make yt compatible with a wide variety of upstream software
+versions.
 However, sometimes a specific version of a project that yt depends on
 causes some breakage and must be blacklisted in the tests or a more
 experimental project that yt depends on optionally might change sufficiently
@@ -390,29 +474,20 @@ that the yt community decides not to support an old version of that project.
 
 **Note.**
 Some of our optional dependencies are not trivial to install and their support
-may vary across platforms. To manage such issue, we currently use requirement
-files in additions to ``setup.cfg``. They are found in
-``tests/*requirements.txt`` and used in ``tests/ci_install.sh``.
-
-We attempt to make yt compatible with a wide variety of upstream software
-versions. However, sometimes a specific version of a project that yt depends on
-causes some breakage and must be blacklisted in the tests or a more
-experimental project that yt depends on optionally might change sufficiently
-that the yt community decides not to support an old version of that project.
-
-To handle cases like this, the versions of upstream software projects installed
-on the machines running the yt test suite are pinned to specific version
-numbers that must be updated manually. This prevents breaking the yt tests when
-a new version of an upstream dependency is released and allows us to manage
-updates in upstream projects at our pace.
+may vary across platforms.
 
 If you would like to add a new dependency for yt (even an optional dependency)
 or would like to update a version of a yt dependency, you must edit the
-``tests/test_requirements.txt`` file, this path is relative to the root of the
-repository. This file contains an enumerated list of direct dependencies and
-pinned version numbers. For new dependencies, simply append the name of the new
+``pyproject.toml`` file. For new dependencies, simply append the name of the new
 dependency to the end of the file, along with a pin to the latest version
 number of the package. To update a package's version, simply update the version
 number in the entry for that package.
 
-Finally, we also run a set of tests with "minimal" dependencies installed. When adding tests that depend on an optional dependency, you can wrap the test with the ``yt.testing.requires_module decorator`` to ensure it does not run during the minimal dependency tests (see yt/frontends/amrvac/tests/test_read_amrvac_namelist.py for a good example). If for some reason you need to update the listing of packages that are installed for the "minimal" dependency tests, you will need to edit ``tests/test_minimal_requirements.txt``.
+Finally, we also run a set of tests with "minimal" dependencies installed.
+When adding tests that depend on an optional dependency, you can wrap the test
+with the ``yt.testing.requires_module decorator`` to ensure it does not run
+during the minimal dependency tests (see
+``yt/frontends/amrvac/tests/test_read_amrvac_namelist.py`` for a good example).
+If for some reason you need to update the listing of packages that are installed
+for the "minimal" dependency tests, you will need to update
+``minimal_requirements.txt``.

@@ -16,13 +16,13 @@ cdef class DiskSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         return self.select_point(pos)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef np.float64_t h, d, r2, temp
         cdef int i
         h = d = 0
@@ -37,7 +37,7 @@ cdef class DiskSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         cdef np.float64_t h, d, r2, temp
         cdef int i
         h = d = 0
@@ -54,7 +54,7 @@ cdef class DiskSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         # Until we can get our OBB/OBB intersection correct, disable this.
         return 1
         # cdef np.float64_t *arr[2]
@@ -104,7 +104,7 @@ cdef class DiskSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         # Until we can get our OBB/OBB intersection correct, disable this.
         return 2
         # cdef np.float64_t *arr[2]

@@ -4,7 +4,6 @@ on cloud platforms like Travis
 
 """
 
-
 import argparse
 import base64
 import collections
@@ -13,6 +12,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
@@ -332,7 +332,7 @@ def parse_nose_xml(nose_xml):
 
     """
     missing_answers = set()
-    failed_answers = collections.defaultdict(lambda: dict())
+    failed_answers = collections.defaultdict(lambda: {})
     missing_errors = ["No such file or directory", "There is no old answer available"]
     tree = ET.parse(nose_xml)
     testsuite = tree.getroot()
@@ -402,7 +402,7 @@ if __name__ == "__main__":
     COLOR_PURPLE = "\x1b[35;1m"
     COLOR_CYAN = "\x1b[36;1m"
     COLOR_RESET = "\x1b[0m"
-    FLAG_EMOJI = " \U0001F6A9 "
+    FLAG_EMOJI = " \U0001f6a9 "
 
     failed_answers = missing_answers = None
     if args.upload_failed_tests or args.upload_missing_answers:
@@ -425,6 +425,9 @@ if __name__ == "__main__":
                 + "\n"
             )
         response = upload_answers(failed_answers)
+        if response is None:
+            log.error("Failed to upload answers for failed tests !")
+            sys.exit(1)
         if response.ok:
             msg += (
                 FLAG_EMOJI
@@ -438,6 +441,9 @@ if __name__ == "__main__":
 
     if args.upload_missing_answers and missing_answers:
         response = upload_answers(missing_answers)
+        if response is None:
+            log.error("Failed to upload missing answers !")
+            sys.exit(1)
         if response.ok:
             msg = (
                 FLAG_EMOJI

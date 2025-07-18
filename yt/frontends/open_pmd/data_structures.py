@@ -2,7 +2,6 @@ from functools import reduce
 from operator import mul
 from os import listdir, path
 from re import match
-from typing import List, Optional
 
 import numpy as np
 from packaging.version import Version
@@ -14,7 +13,7 @@ from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
 from yt.frontends.open_pmd.misc import get_component, is_const_component
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
+from yt.utilities.file_handler import HDF5FileHandler, valid_hdf5_signature
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -34,8 +33,8 @@ class OpenPMDGrid(AMRGridPatch):
     __slots__ = ["_level_id"]
     # Every particle species and mesh might have different hdf5-indices and offsets
 
-    ftypes: Optional[List[str]] = []
-    ptypes: Optional[List[str]] = []
+    ftypes: list[str] | None = []
+    ptypes: list[str] | None = []
     findex = 0
     foffset = 0
     pindex = 0
@@ -58,7 +57,7 @@ class OpenPMDGrid(AMRGridPatch):
         self.Level = level
 
     def __str__(self):
-        return "OpenPMDGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+        return f"OpenPMDGrid_{self.id:04} ({self.ActiveDimensions})"
 
 
 class OpenPMDHierarchy(GridIndex):
@@ -102,7 +101,7 @@ class OpenPMDHierarchy(GridIndex):
                     result[ptype] = pos.attrs["shape"]
                 else:
                     result[ptype] = pos.len()
-        except (KeyError):
+        except KeyError:
             result["io"] = 0
 
         return result
@@ -231,7 +230,7 @@ class OpenPMDHierarchy(GridIndex):
             for pname in particles.keys():
                 species = particles[pname]
                 if "particlePatches" in species.keys():
-                    for (patch, size) in enumerate(
+                    for patch, size in enumerate(
                         species["/particlePatches/numParticles"]
                     ):
                         self.numparts[f"{pname}#{patch}"] = size
@@ -258,7 +257,7 @@ class OpenPMDHierarchy(GridIndex):
         # Same goes for particle chunks if they are not inside particlePatches
         patches = {}
         no_patches = {}
-        for (k, v) in self.numparts.items():
+        for k, v in self.numparts.items():
             if "#" in k:
                 patches[k] = v
             else:
@@ -318,7 +317,7 @@ class OpenPMDHierarchy(GridIndex):
                 + gle[0]
             )
             mesh_names = []
-            for (mname, mdata) in self.meshshapes.items():
+            for mname, mdata in self.meshshapes.items():
                 if mesh == mdata:
                     mesh_names.append(str(mname))
             prev = 0
@@ -346,13 +345,13 @@ class OpenPMDHierarchy(GridIndex):
         handled_ptypes = []
 
         # Particle grids
-        for (species, count) in self.numparts.items():
+        for species, count in self.numparts.items():
             if "#" in species:
                 # This is a particlePatch
                 spec = species.split("#")
                 patch = f[bp + pp + "/" + spec[0] + "/particlePatches"]
                 domain_dimension = np.ones(3, dtype=np.int32)
-                for (ind, axis) in enumerate(list(patch["extent"].keys())):
+                for ind, axis in enumerate(list(patch["extent"].keys())):
                     domain_dimension[ind] = patch["extent/" + axis][()][int(spec[1])]
                 num_grids = int(np.ceil(count * self.vpg**-1))
                 gle = []
@@ -382,7 +381,7 @@ class OpenPMDHierarchy(GridIndex):
                 gre = self.dataset.domain_right_edge
                 particle_count = np.linspace(0, count, num_grids + 1, dtype=np.int32)
                 particle_names = []
-                for (pname, size) in self.numparts.items():
+                for pname, size in self.numparts.items():
                     if size == count:
                         # Since this is not part of a particlePatch,
                         # we can include multiple same-sized ptypes
@@ -431,6 +430,7 @@ class OpenPMDDataset(Dataset):
     - particle and mesh positions are *absolute* with respect to the simulation origin.
     """
 
+    _load_requirements = ["h5py"]
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
@@ -509,7 +509,7 @@ class OpenPMDDataset(Dataset):
         try:
             self.meshes_path = self._handle["/"].attrs["meshesPath"].decode()
             handle[self.base_path + self.meshes_path]
-        except (KeyError):
+        except KeyError:
             if self.standard_version <= Version("1.1.0"):
                 mylog.info(
                     "meshesPath not present in file. "
@@ -521,7 +521,7 @@ class OpenPMDDataset(Dataset):
         try:
             self.particles_path = self._handle["/"].attrs["particlesPath"].decode()
             handle[self.base_path + self.particles_path]
-        except (KeyError):
+        except KeyError:
             if self.standard_version <= Version("1.1.0"):
                 mylog.info(
                     "particlesPath not present in file."
@@ -550,7 +550,6 @@ class OpenPMDDataset(Dataset):
         bp = self.base_path
         mp = self.meshes_path
 
-        self.unique_identifier = 0
         self.parameters = 0
         self._periodicity = np.zeros(3, dtype="bool")
         self.refine_by = 1
@@ -602,9 +601,14 @@ class OpenPMDDataset(Dataset):
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         """Checks whether the supplied file can be read by this frontend."""
-        warn_h5py(filename)
+        if not valid_hdf5_signature(filename):
+            return False
+
+        if cls._missing_load_requirements():
+            return False
+
         try:
             with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
@@ -619,7 +623,7 @@ class OpenPMDDataset(Dataset):
                     return True
 
                 return False
-        except (OSError, ImportError):
+        except OSError:
             return False
 
 
@@ -657,6 +661,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
 
 
 class OpenPMDGroupBasedDataset(Dataset):
+    _load_requirements = ["h5py"]
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
@@ -666,8 +671,13 @@ class OpenPMDGroupBasedDataset(Dataset):
         return ret
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        warn_h5py(filename)
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if not valid_hdf5_signature(filename):
+            return False
+
+        if cls._missing_load_requirements():
+            return False
+
         try:
             with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
@@ -682,5 +692,5 @@ class OpenPMDGroupBasedDataset(Dataset):
                     return True
 
                 return False
-        except (OSError, ImportError):
+        except OSError:
             return False

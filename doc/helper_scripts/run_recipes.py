@@ -25,7 +25,6 @@ BADF = [
 ]
 CWD = os.getcwd()
 ytcfg["yt", "serialize"] = False
-PARALLEL_TEST = {"rockstar_nest": "3"}
 BLACKLIST = ["opengl_ipython", "opengl_vr"]
 
 
@@ -45,17 +44,13 @@ def run_recipe(payload):
         tmpdir = tempfile.mkdtemp()
         os.chdir(tmpdir)
         prep_dirs()
-        if module_name in PARALLEL_TEST:
-            cmd = ["mpiexec", "-n", PARALLEL_TEST[module_name], "python2", recipe]
-        else:
-            cmd = ["python", recipe]
         try:
-            subprocess.check_call(cmd)
-        except Exception:
+            subprocess.check_call(["python", recipe])
+        except Exception as exc:
             trace = "".join(traceback.format_exception(*sys.exc_info()))
             trace += f" in module: {module_name}\n"
             trace += f" recipe: {recipe}\n"
-            raise Exception(trace)
+            raise Exception(trace) from exc
         open(f"{CWD}/_temp/{module_name}.done", "wb").close()
         for pattern in FPATTERNS:
             for fname in glob.glob(pattern):

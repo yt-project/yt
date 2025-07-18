@@ -1,7 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
-from functools import partial
+from functools import cached_property, partial
 
 import numpy as np
 
@@ -137,6 +137,7 @@ class GadgetFOFHDF5File(HaloCatalogFile):
 
 
 class GadgetFOFDataset(ParticleDataset):
+    _load_requirements = ["h5py"]
     _index_class = GadgetFOFParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFFieldInfo
@@ -182,13 +183,9 @@ class GadgetFOFDataset(ParticleDataset):
     def halos_derived_field_list(self):
         return self._halos_ds.derived_field_list
 
-    _instantiated_halo_ds = None
-
-    @property
+    @cached_property
     def _halos_ds(self):
-        if self._instantiated_halo_ds is None:
-            self._instantiated_halo_ds = GadgetFOFHaloDataset(self)
-        return self._instantiated_halo_ds
+        return GadgetFOFHaloDataset(self)
 
     def _setup_classes(self):
         super()._setup_classes()
@@ -236,7 +233,7 @@ class GadgetFOFDataset(ParticleDataset):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
             only_on_root(mylog.info, "Assuming length units are in Mpc/h (comoving)")
-            self._unit_base = dict(length=(1.0, "Mpccm/h"))
+            self._unit_base = {"length": (1.0, "Mpccm/h")}
         # The other same defaults we will use from the standard Gadget
         # defaults.
         unit_base = self._unit_base or {}
@@ -295,7 +292,10 @@ class GadgetFOFDataset(ParticleDataset):
         return self.basename.split(".", 1)[0]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = ["Group", "Header", "Subhalo"]
         veto_groups = ["FOF"]
         valid = True
@@ -434,7 +434,7 @@ class GadgetFOFHaloDataset(HaloDataset):
         super().__init__(ds, dataset_type)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # This class is not meant to be instantiated by yt.load()
         return False
 
@@ -540,8 +540,8 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
 
         if self.particle_identifier >= self.index.particle_count[ptype]:
             raise RuntimeError(
-                "%s %d requested, but only %d %s objects exist."
-                % (ptype, particle_identifier, self.index.particle_count[ptype], ptype)
+                f"{ptype} {particle_identifier} requested, "
+                f"but only {self.index.particle_count[ptype]} {ptype} objects exist."
             )
 
         # Find the file that has the scalar values for this halo.
@@ -651,4 +651,4 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
             setattr(self, attr, self[self.ptype, f"particle_{attr}"][0])
 
     def __repr__(self):
-        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+        return f"{self.ds}_{self.ptype}_{self.particle_identifier:09}"

@@ -23,12 +23,6 @@ from libc.stdlib cimport free, malloc
 
 from yt.utilities.lib.image_samplers cimport ImageSampler
 
-from cython.parallel import parallel, prange, threadid
-
-from yt.visualization.image_writer import apply_colormap
-
-from yt.utilities.lib.bounding_volume_hierarchy cimport BVH, Ray
-
 rtc.rtcInit(NULL)
 rtc.rtcSetErrorFunction(error_printer)
 

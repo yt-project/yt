@@ -2,7 +2,8 @@ import os
 
 import numpy as np
 import pyx
-from matplotlib import cm, pyplot as plt
+from matplotlib import pyplot as plt
+from matplotlib.colors import LogNorm, Normalize
 
 from yt.config import ytcfg
 from yt.units.unit_object import Unit  # type: ignore
@@ -596,7 +597,7 @@ class DualEPS:
         For best results, set use_colorbar=False when creating the yt
         image.
         """
-        from ._mpl_imports import FigureCanvasAgg
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
@@ -638,7 +639,7 @@ class DualEPS:
         _p1.set_facecolor("w")  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
-        size = (_p1.get_size_inches() * _p1.dpi).astype("int")
+        size = (_p1.get_size_inches() * _p1.dpi).astype("int64")
 
         # Account for non-square images after removing the colorbar.
         scale *= 1.0 - 1.0 / (_p1.dpi * self.figsize[0])
@@ -744,7 +745,7 @@ class DualEPS:
 
         # Convert the colormap into a string
         x = np.linspace(1, 0, 256)
-        cm_string = cm.get_cmap(name)(x, bytes=True)[:, 0:3].tobytes()
+        cm_string = plt.get_cmap(name)(x, bytes=True)[:, 0:3].tobytes()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
@@ -861,7 +862,7 @@ class DualEPS:
         if field is not None:
             self.field = plot.data_source._determine_fields(field)[0]
         if isinstance(plot, (PlotWindow, PhasePlot)):
-            _cmap = plot._colormap_config[self.field]
+            _cmap = plot[self.field].colorbar_handler.cmap
         else:
             if plot.cmap is not None:
                 _cmap = plot.cmap.name
@@ -885,16 +886,21 @@ class DualEPS:
                 _, _, z_title = plot._get_field_title(self.field, plot.profile)
                 _zlabel = pyxize_label(z_title)
             _zlabel = _zlabel.replace("_", r"\;")
-            _zlog = plot.get_log(self.field)[self.field]
-            if plot.plots[self.field].zmin is None:
-                zmin = plot.plots[self.field].image._A.min()
+
+            _p = plot.plots[self.field]
+            _norm = _p.norm_handler.get_norm(plot.frb[self.field])
+            norm_type = type(_norm)
+            if norm_type is LogNorm:
+                _zlog = True
+            elif norm_type is Normalize:
+                # linear scaling
+                _zlog = False
             else:
-                zmin = plot.plots[self.field].zmin
-            if plot.plots[self.field].zmax is None:
-                zmax = plot.plots[self.field].image._A.max()
-            else:
-                zmax = plot.plots[self.field].zmax
-            _zrange = (zmin, zmax)
+                raise RuntimeError(
+                    "eps_writer is not compatible with scalings other than linear and log, "
+                    f"received {norm_type}"
+                )
+            _zrange = (_norm.vmin, _norm.vmax)
         else:
             _zlabel = plot._z_label.replace("_", r"\;")
             _zlog = plot._log_z
@@ -1274,8 +1280,8 @@ def multiplot(
     if images is not None:
         if len(images) != npanels:
             raise RuntimeError(
-                "Number of images (%d) doesn't match nrow(%d)"
-                " x ncol(%d)." % (len(images), nrow, ncol)
+                f"Number of images ({len(images)}) doesn't match "
+                f"nrow({nrow}) x ncol({ncol})."
             )
     if yt_plots is None and images is None:
         raise RuntimeError("Must supply either yt_plots or image filenames.")
@@ -1537,15 +1543,15 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
             fields = plots.fields
         if len(fields) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({}) is less "
-                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
+                f"Number of plots ({len(fields)}) is less "
+                f"than nrow({nrow}) x ncol({ncol})."
             )
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({}) is less "
-                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
+                f"Number of plots ({len(fields)}) is less "
+                f"than nrow({nrow}) x ncol({ncol})."
             )
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:

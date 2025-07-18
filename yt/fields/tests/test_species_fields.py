@@ -1,10 +1,11 @@
-from yt.testing import assert_allclose_units, assert_equal, fake_random_ds
+from numpy.testing import assert_equal
+
+from yt.testing import assert_allclose_units, fake_random_ds
 from yt.utilities.chemical_formulas import ChemicalFormula
 from yt.utilities.physical_ratios import _primordial_mass_fraction
 
 
 def test_default_species_fields():
-
     # Test default case (no species fields)
 
     ds = fake_random_ds(32)
@@ -25,7 +26,7 @@ def test_default_species_fields():
     # Test fully ionized case
     dsi = fake_random_ds(32, default_species_fields="ionized")
     spi = dsi.sphere("c", (0.2, "unitary"))
-    amu_cgs = dsi.units.physical_constants.amu_cgs
+    amu_cgs = dsi.quan(1.0, "amu").in_cgs()
 
     mueinv = 1.0 * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
     mueinv *= spi["index", "ones"]
@@ -55,7 +56,7 @@ def test_default_species_fields():
 
     dsn = fake_random_ds(32, default_species_fields="neutral")
     spn = dsn.sphere("c", (0.2, "unitary"))
-    amu_cgs = dsn.units.physical_constants.amu_cgs
+    amu_cgs = dsn.quan(1.0, "amu").in_cgs()
 
     assert ("gas", "El_number_density") not in ds.derived_field_list
 

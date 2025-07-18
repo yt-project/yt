@@ -1,7 +1,16 @@
-from nose.tools import assert_raises
+import os
 
-from yt.funcs import just_one, levenshtein_distance, validate_axis, validate_center
-from yt.testing import assert_equal, fake_amr_ds
+from nose.tools import assert_raises
+from numpy.testing import assert_equal
+
+from yt.funcs import (
+    just_one,
+    levenshtein_distance,
+    simple_download_file,
+    validate_axis,
+    validate_center,
+)
+from yt.testing import fake_amr_ds
 from yt.units import YTArray, YTQuantity
 
 
@@ -16,11 +25,10 @@ def test_validate_axis():
         # default geometry is cartesian
         ds = fake_amr_ds()
         ds.slice("r", 0.25)
-    desired = (
-        "Expected axis of int or char type (can be "
-        "[0, 'x', 'X', 1, 'y', 'Y', 2, 'z', 'Z']), received 'r'."
-    )
-    assert_equal(str(ex.exception)[:40], desired[:40])
+    desired = "Expected axis to be any of [0, 1, 2, 'x', 'y', 'z', 'X', 'Y', 'Z'], received 'r'"
+
+    actual = str(ex.exception)
+    assert actual == desired
 
 
 def test_validate_center():
@@ -96,3 +104,24 @@ def test_levenshtein():
     assert_equal(levenshtein_distance("abcd", "ad", max_dist=2), 2)
     assert_equal(levenshtein_distance("abcd", "abd", max_dist=2), 1)
     assert_equal(levenshtein_distance("abcd", "abcd", max_dist=2), 0)
+
+
+def test_simple_download_file():
+    fn = simple_download_file("http://yt-project.org", "simple-download-file")
+    try:
+        assert fn == "simple-download-file"
+        assert os.path.exists("simple-download-file")
+    finally:
+        # Clean up after ourselves.
+        try:
+            os.unlink("simple-download-file")
+        except FileNotFoundError:
+            pass
+
+    with assert_raises(RuntimeError) as ex:
+        simple_download_file("http://yt-project.org/404", "simple-download-file")
+
+    desired = "Attempt to download file from http://yt-project.org/404 failed with error 404: Not Found."
+    actual = str(ex.exception)
+    assert actual == desired
+    assert not os.path.exists("simple-download-file")

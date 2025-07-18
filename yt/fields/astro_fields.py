@@ -145,7 +145,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
 
         return _four_velocity
 
-    for u in "xyz":
+    for u in registry.ds.coordinates.axis_order:
         registry.add_field(
             ("gas", f"four_velocity_{u}"),
             sampling_type="local",

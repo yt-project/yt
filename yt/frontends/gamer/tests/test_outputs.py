@@ -1,5 +1,7 @@
+from numpy.testing import assert_array_almost_equal, assert_equal
+
 from yt.frontends.gamer.api import GAMERDataset
-from yt.testing import assert_equal, requires_file, units_override_check
+from yt.testing import requires_file, units_override_check
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,
@@ -97,3 +99,46 @@ def test_jiw():
     for test in small_patch_amr(ds, _fields_jiw):
         test_jiw.__name__ = test.description
         yield test
+
+
+@requires_ds(jiw, big_data=True)
+def test_stress_energy():
+    axes = "txyz"
+    ds = data_dir_load(jiw)
+    center = ds.arr([3.0, 10.0, 10.0], "kpc")
+    sp = ds.sphere(center, (1.0, "kpc"))
+    c2 = ds.units.clight**2
+    inv_c2 = 1.0 / c2
+    rho = sp["gas", "density"]
+    p = sp["gas", "pressure"]
+    e = sp["gas", "thermal_energy_density"]
+    h = rho + (e + p) * inv_c2
+    for mu in range(4):
+        for nu in range(4):
+            # matrix is symmetric so only do the upper-right part
+            if nu >= mu:
+                Umu = sp[f"four_velocity_{axes[mu]}"]
+                Unu = sp[f"four_velocity_{axes[nu]}"]
+                Tmunu = h * Umu * Unu
+                if mu != nu:
+                    assert_array_almost_equal(sp[f"T{mu}{nu}"], sp[f"T{nu}{mu}"])
+                else:
+                    Tmunu += p
+                assert_array_almost_equal(sp[f"T{mu}{nu}"], Tmunu)
+
+
+cr_shock = "CRShockTube/Data_000005"
+
+
+@requires_ds(cr_shock)
+def test_cosmic_rays():
+    ds = data_dir_load(cr_shock)
+    assert_array_almost_equal(ds.gamma_cr, 4.0 / 3.0)
+    ad = ds.all_data()
+    p_cr = ad["gas", "cosmic_ray_pressure"]
+    e_cr = ad["gas", "cosmic_ray_energy_density"]
+    assert_array_almost_equal(p_cr, e_cr / 3.0)
+    e_kin = ad["gas", "kinetic_energy_density"]
+    e_int = ad["gas", "thermal_energy_density"]
+    e_tot = ad["gas", "total_energy_density"]
+    assert_array_almost_equal(e_tot, e_kin + e_int + e_cr)

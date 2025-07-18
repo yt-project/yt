@@ -1,12 +1,13 @@
 import os
 
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 import yt.units.dimensions as dimensions
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.particle_oct_container import ParticleBitmap, ParticleOctreeContainer
 from yt.geometry.selection_routines import RegionSelector
-from yt.testing import assert_array_equal, assert_equal, assert_true
+from yt.testing import requires_module
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import (
@@ -25,7 +26,7 @@ dx = DW / (2**_ORDER_MAX)
 
 
 def test_add_particles_random():
-    np.random.seed(int(0x4D3D3D3))
+    np.random.seed(0x4D3D3D3)
     pos = np.random.normal(0.5, scale=0.05, size=(NPART, 3)) * (DRE - DLE) + DLE
     # Now convert to integers
     for i in range(3):
@@ -201,8 +202,8 @@ def test_bitmap_no_collisions():
     mask = reg.masks.sum(axis=1).astype("uint8")
     ncoll = np.sum(mask > 1)
     nc, nm = reg.find_collisions_coarse()
-    assert_equal(nc, 0, "%d coarse collisions" % nc)
-    assert_equal(ncoll, nc, "%d in mask, %d in bitmap" % (ncoll, nc))
+    assert_equal(nc, 0, f"{nc} coarse collisions")
+    assert_equal(ncoll, nc, f"{ncoll} in mask, {nc} in bitmap")
     # Refined index
     sub_mi1 = np.zeros(max_npart, "uint64")
     sub_mi2 = np.zeros(max_npart, "uint64")
@@ -224,7 +225,7 @@ def test_bitmap_no_collisions():
         reg.bitmasks.append(i, coll)
         assert_equal(reg.count_refined(i), 0)
     nr, nm = reg.find_collisions_refined()
-    assert_equal(nr, 0, "%d collisions" % nr)
+    assert_equal(nr, 0, f"{nr} collisions")
 
 
 def test_bitmap_collisions():
@@ -252,8 +253,8 @@ def test_bitmap_collisions():
     mask = reg.masks.sum(axis=1).astype("uint8")
     ncoll = np.sum(mask > 1)
     nc, nm = reg.find_collisions_coarse()
-    assert_equal(ncoll, nc, "%d in mask, %d in bitmap" % (ncoll, nc))
-    assert_equal(nc, 2 ** (3 * order1), "%d coarse collisions" % nc)
+    assert_equal(ncoll, nc, f"{ncoll} in mask, {nc} in bitmap")
+    assert_equal(nc, 2 ** (3 * order1), f"{nc} coarse collisions")
     # Refined index
     sub_mi1 = np.zeros(max_npart, "uint64")
     sub_mi2 = np.zeros(max_npart, "uint64")
@@ -273,9 +274,10 @@ def test_bitmap_collisions():
         reg.bitmasks.append(i, coll)
         assert_equal(reg.count_refined(i), ncoll)
     nr, nm = reg.find_collisions_refined()
-    assert_equal(nr, 2 ** (3 * (order1 + order2)), "%d collisions" % nr)
+    assert_equal(nr, 2 ** (3 * (order1 + order2)), f"{nr} collisions")
 
 
+@requires_module("h5py")
 def test_bitmap_save_load():
     # Test init for slabs of points in x
     left_edge = np.array([0.0, 0.0, 0.0])
@@ -294,19 +296,19 @@ def test_bitmap_save_load():
         fname = fname_fmt.format(i)
     # Create bitmap and save to file
     reg0 = FakeBitmap(npart, nfiles, order1, order2, left_edge, right_edge, periodicity)
-    reg0.save_bitmasks(fname)
+    reg0.save_bitmasks(fname, 0.0)
     # Attempt to load bitmap
     reg1 = ParticleBitmap(
         left_edge, right_edge, periodicity, file_hash, nfiles, order1, order2
     )
     reg1.load_bitmasks(fname)
-    assert_true(reg0.iseq_bitmask(reg1))
+    assert reg0.iseq_bitmask(reg1)
     # Remove file
     os.remove(fname)
 
 
 def test_bitmap_select():
-    np.random.seed(int(0x4D3D3D3))
+    np.random.seed(0x4D3D3D3)
     dx = 0.1
     for periodic in [False, True]:
         for nfiles in [2, 15, 31, 32, 33]:
@@ -410,7 +412,7 @@ def cell_centers(order, left_edge, right_edge):
 
 
 def fake_decomp_random(npart, nfiles, ifile, DLE, DRE, buff=0.0):
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     nPF = int(npart / nfiles)
     nR = npart % nfiles
     if ifile == 0:
@@ -422,7 +424,7 @@ def fake_decomp_random(npart, nfiles, ifile, DLE, DRE, buff=0.0):
 
 
 def fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, buff=0.0):
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     DW = DRE - DLE
     div = DW / nfiles
     nPF = int(npart / nfiles)
@@ -459,7 +461,7 @@ def makeall_decomp_hilbert_gaussian(
 ):
     import pickle
 
-    np.random.seed(int(0x4D3D3D3))
+    np.random.seed(0x4D3D3D3)
     DW = DRE - DLE
     if fname_base is None:
         fname_base = f"hilbert{order}_gaussian_np{npart}_nf{nfiles}_"
@@ -528,7 +530,7 @@ def makeall_decomp_hilbert_gaussian(
 def fake_decomp_hilbert_gaussian(
     npart, nfiles, ifile, DLE, DRE, buff=0.0, order=6, verbose=False, fname=None
 ):
-    np.random.seed(int(0x4D3D3D3))
+    np.random.seed(0x4D3D3D3)
     DW = DRE - DLE
     dim_hilbert = 1 << order
     nH = dim_hilbert**3
@@ -566,7 +568,7 @@ def fake_decomp_hilbert_gaussian(
 def fake_decomp_hilbert_uniform(
     npart, nfiles, ifile, DLE, DRE, buff=0.0, order=6, verbose=False
 ):
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     DW = DRE - DLE
     dim_hilbert = 1 << order
     nH = dim_hilbert**3
@@ -607,7 +609,7 @@ def fake_decomp_hilbert_uniform(
 def fake_decomp_morton(
     npart, nfiles, ifile, DLE, DRE, buff=0.0, order=6, verbose=False
 ):
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     DW = DRE - DLE
     dim_morton = 1 << order
     nH = dim_morton**3
@@ -647,7 +649,7 @@ def fake_decomp_morton(
 
 def fake_decomp_grid(npart, nfiles, ifile, DLE, DRE, buff=0.0, verbose=False):
     # TODO: handle 'remainder' particles
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     DW = DRE - DLE
     nYZ = int(np.sqrt(npart / nfiles))
     div = DW / nYZ

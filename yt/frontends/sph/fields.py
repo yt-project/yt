@@ -4,7 +4,6 @@ from yt.fields.species_fields import setup_species_fields
 
 
 class SPHFieldInfo(FieldInfoContainer):
-
     known_particle_fields: KnownFieldsT = (
         ("Mass", ("code_mass", ["particle_mass"], None)),
         ("Masses", ("code_mass", ["particle_mass"], None)),
@@ -22,12 +21,16 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
         ("Potential", ("code_velocity**2", ["gravitational_potential"], None)),
-        ("StarFormationRate", ("Msun / yr", [], None)),
+        ("StarFormationRate", ("Msun / yr", ["star_formation_rate"], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
         ("Metallicity_00", ("", ["metallicity"], None)),
         ("InitialMass", ("code_mass", [], None)),
         ("TrueMass", ("code_mass", [], None)),
         ("ElevenMetalMasses", ("code_mass", [], None)),
+        ("ColdFraction", ("", ["cold_fraction"], None)),
+        ("HotTemperature", ("code_temperature", ["hot_temperature"], None)),
+        ("CloudFraction", ("", ["cold_fraction"], None)),
+        ("HotPhaseTemperature", ("code_temperature", ["hot_temperature"], None)),
     )
 
     def setup_particle_fields(self, ptype, *args, **kwargs):

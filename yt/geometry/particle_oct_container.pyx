@@ -1,55 +1,39 @@
-# distutils: include_dirs = LIB_DIR_EWAH
 # distutils: language = c++
 # distutils: extra_compile_args = CPP14_FLAG
-# distutils: libraries = STD_LIBS
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = EWAH_LIBS
 """
 Oct container tuned for Particles
 
 
 
-
 """
 
 
-from libc.math cimport ceil, floor, fmod, log2
-from libc.stdlib cimport free, malloc, qsort
-from libc.string cimport memset
-from libcpp.map cimport map as cmap
-from libcpp.vector cimport vector
-
-from yt.utilities.lib.ewah_bool_array cimport (
+from ewah_bool_utils.ewah_bool_array cimport (
     bool_array,
     ewah_bool_array,
     ewah_bool_iterator,
-    ewah_map,
     ewah_word_type,
 )
+from libc.math cimport ceil, log2
+from libc.stdlib cimport free, malloc
+from libcpp.map cimport map as cmap
+from libcpp.vector cimport vector
 
 import numpy as np
 
 cimport cython
 cimport numpy as np
-cimport oct_visitors
 from cpython.exc cimport PyErr_CheckSignals
-from cython cimport floating
 from cython.operator cimport dereference, preincrement
-from oct_container cimport (
-    ORDER_MAX,
-    Oct,
-    OctAllocationContainer,
-    OctInfo,
-    OctKey,
-    OctreeContainer,
-    SparseOctreeContainer,
-)
-from oct_visitors cimport OctVisitor, cind
-from selection_routines cimport AlwaysSelector, SelectorObject
 
+from yt.geometry cimport oct_visitors
+from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport (
     bounded_morton,
     bounded_morton_dds,
-    bounded_morton_relative_dds,
     bounded_morton_split_dds,
     bounded_morton_split_relative_dds,
     decode_morton_64bit,
@@ -58,32 +42,32 @@ from yt.utilities.lib.geometry_utils cimport (
     morton_neighbors_refined,
 )
 
-from collections import defaultdict
+from .oct_container cimport (
+    ORDER_MAX,
+    Oct,
+    OctKey,
+    OctreeContainer,
+    SparseOctreeContainer,
+)
+from .oct_visitors cimport cind
+from .selection_routines cimport AlwaysSelector, SelectorObject
 
 from yt.funcs import get_pbar
 
-from particle_deposit cimport gind
-
-#from yt.utilities.lib.ewah_bool_wrap cimport \
-from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
+from ewah_bool_utils.ewah_bool_wrap cimport BoolArrayCollection
 
 import os
-import struct
 
-# If set to 1, ghost cells are added at the refined level regardless of if the
-# coarse cell containing it is refined in the selector.
-# If set to 0, ghost cells are only added at the refined level if the coarse
-# index for the ghost cell is refined in the selector.
-DEF RefinedExternalGhosts = 1
+from ewah_bool_utils.ewah_bool_wrap cimport (
+    BoolArrayCollectionUncompressed as BoolArrayColl,
+    FileBitmasks,
+    SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask,
+)
+
 
 _bitmask_version = np.uint64(5)
 
-from ..utilities.lib.ewah_bool_wrap cimport (
-    BoolArrayCollectionUncompressed as BoolArrayColl,
-    FileBitmasks,
-    SparseUnorderedBitmaskSet as SparseUnorderedBitmask,
-    SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask,
-)
+
 
 ctypedef cmap[np.uint64_t, bool_array] CoarseRefinedSets
 
@@ -91,7 +75,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
     #The starting oct index of each domain
     cdef np.int64_t *dom_offsets
-    cdef public int max_level
     #How many particles do we keep before refining
     cdef public int n_ref
 
@@ -382,7 +365,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(self.nocts):
             if ind[i] < 0: continue
             self.oct_list[i].domain = domain_id
-        ind_out = super(ParticleOctreeContainer,self).domain_ind(selector, domain_id = domain_id)
+        super(ParticleOctreeContainer,self).domain_ind(selector, domain_id = domain_id)
 
     def domain_ind(self, selector, int domain_id = -1,
                    BoolArrayCollection mask = None, int masklevel = 99):
@@ -403,7 +386,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             if o != NULL:
                 _mask_children(oct_mask, o)
                 coct += 1
-            cmi += 1;
+            cmi += 1
             preincrement(iter_set[0])
         # Get domain ind
         cdef np.ndarray[np.int64_t, ndim=1] ind
@@ -441,6 +424,7 @@ cdef class ParticleBitmap:
     cdef np.int32_t dims[3]
     cdef np.int64_t file_hash
     cdef np.uint64_t directional_max2[3]
+    cdef np.int64_t hash_value
     cdef public np.uint64_t nfiles
     cdef public np.int32_t index_order1
     cdef public np.int32_t index_order2
@@ -494,6 +478,15 @@ cdef class ParticleBitmap:
         self.particle_counts = np.zeros(1 << (index_order1 * 3), dtype="uint64")
         self.bitmasks = FileBitmasks(self.nfiles)
         self.collisions = BoolArrayCollection()
+        hash_data = bytearray()
+        hash_data.extend(self.file_hash.to_bytes(8, "little", signed=True))
+        hash_data.extend(np.array(self.left_edge).tobytes())
+        hash_data.extend(np.array(self.right_edge).tobytes())
+        hash_data.extend(np.array(self.periodicity).tobytes())
+        hash_data.extend(self.nfiles.to_bytes(8, "little", signed=False))
+        hash_data.extend(self.index_order1.to_bytes(4, "little", signed=True))
+        hash_data.extend(self.index_order2.to_bytes(4, "little", signed=True))
+        self.hash_value = fnv_hash(hash_data)
 
     def _bitmask_logicaland(self, ifile, bcoll, out):
         self.bitmasks._logicaland(ifile, bcoll, out)
@@ -538,8 +531,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def _coarse_index_data_file(self,
-                                np.ndarray[floating, ndim=2] pos,
-                                np.ndarray[floating, ndim=1] hsml,
+                                np.ndarray[cython.floating, ndim=2] pos,
+                                np.ndarray[cython.floating, ndim=1] hsml,
                                 np.uint64_t file_id):
         return self.__coarse_index_data_file(pos, hsml, file_id)
 
@@ -547,8 +540,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void __coarse_index_data_file(self,
-                                       np.ndarray[floating, ndim=2] pos,
-                                       np.ndarray[floating, ndim=1] hsml,
+                                       np.ndarray[cython.floating, ndim=2] pos,
+                                       np.ndarray[cython.floating, ndim=1] hsml,
                                        np.uint64_t file_id) except *:
         # Initialize
         cdef np.int64_t i, p
@@ -668,8 +661,8 @@ cdef class ParticleBitmap:
     @cython.initializedcheck(False)
     def _refined_index_data_file(self,
                                  BoolArrayCollection in_collection,
-                                 np.ndarray[floating, ndim=2] pos,
-                                 np.ndarray[floating, ndim=1] hsml,
+                                 np.ndarray[cython.floating, ndim=2] pos,
+                                 np.ndarray[cython.floating, ndim=1] hsml,
                                  np.ndarray[np.uint8_t, ndim=1] mask,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
@@ -691,8 +684,8 @@ cdef class ParticleBitmap:
     cdef BoolArrayCollection __refined_index_data_file(
         self,
         BoolArrayCollection in_collection,
-        np.ndarray[floating, ndim=2] pos,
-        np.ndarray[floating, ndim=1] hsml,
+        np.ndarray[cython.floating, ndim=2] pos,
+        np.ndarray[cython.floating, ndim=1] hsml,
         np.ndarray[np.uint8_t, ndim=1] mask,
         np.uint64_t count_threshold, np.uint8_t mask_threshold
     ):
@@ -724,8 +717,6 @@ cdef class ParticleBitmap:
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
         cdef np.uint64_t nfully_enclosed = 0, n_calls = 0
-        mi1_max = (1 << self.index_order1) - 1
-        mi2_max = (1 << self.index_order2) - 1
         cdef np.uint64_t max_mi1_elements = 1 << (3*self.index_order1)
         cdef np.uint64_t max_mi2_elements = 1 << (3*self.index_order2)
         cdef np.ndarray[np.uint64_t, ndim=1] refined_count = np.zeros(max_mi1_elements, dtype="uint64")
@@ -874,7 +865,8 @@ cdef class ParticleBitmap:
                                            np.float64_t dds1[3], np.uint64_t xex, np.uint64_t yex, np.uint64_t zex,
                                            np.float64_t dds2[3], bool_array &refined_set) except -1:
         cdef int i
-        cdef np.uint64_t bounds_l[3], bounds_r[3]
+        cdef np.uint64_t bounds_l[3]
+        cdef np.uint64_t bounds_r[3]
         cdef np.uint64_t miex2, miex2_min, miex2_max
         cdef np.float64_t clip_pos_l[3]
         cdef np.float64_t clip_pos_r[3]
@@ -942,7 +934,6 @@ cdef class ParticleBitmap:
                                             np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                             np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                             np.uint64_t file_id, np.int64_t nsub_mi):
-        cdef np.int64_t i, p
         cdef FileBitmasks bitmasks = self.bitmasks
         bitmasks._set_refined_index_array(file_id, nsub_mi, sub_mi1, sub_mi2)
 
@@ -997,47 +988,39 @@ cdef class ParticleBitmap:
         nc, nm = self.bitmasks._find_collisions_refined(self.collisions,verbose)
         return nc, nm
 
-    def calcsize_bitmasks(self):
-        # TODO: All cython
-        cdef bytes serial_BAC
-        cdef np.uint64_t ifile
-        cdef int out = 0
-        out += struct.calcsize('Q')
-        # Bitmaps for each file
-        for ifile in range(self.nfiles):
-            serial_BAC = self.bitmasks._dumps(ifile)
-            out += struct.calcsize('Q')
-            out += len(serial_BAC)
-        # Bitmap for collisions
-        serial_BAC = self.collisions._dumps()
-        out += struct.calcsize('Q')
-        out += len(serial_BAC)
-        return out
-
     def get_bitmasks(self):
         return self.bitmasks
 
     def iseq_bitmask(self, solf):
         return self.bitmasks._iseq(solf.get_bitmasks())
 
-    def save_bitmasks(self, fname):
+    def save_bitmasks(self, fname, max_hsml):
+        import h5py
         cdef bytes serial_BAC
         cdef np.uint64_t ifile
-        f = open(fname,'wb')
-        # Header
-        f.write(struct.pack('Q', _bitmask_version))
-        f.write(struct.pack('q', self.file_hash))
-        f.write(struct.pack('Q', self.nfiles))
-        # Bitmap for each file
-        for ifile in range(self.nfiles):
-            serial_BAC = self.bitmasks._dumps(ifile)
-            f.write(struct.pack('Q', len(serial_BAC)))
-            f.write(serial_BAC)
-        # Collisions
-        serial_BAC = self.collisions._dumps()
-        f.write(struct.pack('Q', len(serial_BAC)))
-        f.write(serial_BAC)
-        f.close()
+        with h5py.File(fname, mode="a") as fp:
+            try:
+                grp = fp[str(self.hash_value)]
+                grp.clear()
+            except KeyError:
+                grp = fp.create_group(str(self.hash_value))
+
+            grp.attrs["bitmask_version"] = _bitmask_version
+            grp.attrs["nfiles"] = self.nfiles
+            grp.attrs["max_hsml"] = max_hsml
+            # Add some attrs for convenience. They're not read back.
+            grp.attrs["file_hash"] = self.file_hash
+            grp.attrs["left_edge"] = self.left_edge
+            grp.attrs["right_edge"] = self.right_edge
+            grp.attrs["periodicity"] = self.periodicity
+            grp.attrs["index_order1"] = self.index_order1
+            grp.attrs["index_order2"] = self.index_order2
+
+            for ifile in range(self.nfiles):
+                serial_BAC = self.bitmasks._dumps(ifile)
+                grp.create_dataset(f"nfile_{ifile:05}", data=np.void(serial_BAC))
+            serial_BAC = self.collisions._dumps()
+            grp.create_dataset("collisions", data=np.void(serial_BAC))
 
     def check_bitmasks(self):
         return self.bitmasks._check()
@@ -1046,54 +1029,50 @@ cdef class ParticleBitmap:
         self.bitmasks._reset()
 
     def load_bitmasks(self, fname):
+        import h5py
         cdef bint read_flag = 1
         cdef bint irflag
         cdef np.uint64_t ver
-        cdef np.uint64_t nfiles = 0
-        cdef np.int64_t file_hash
-        cdef np.uint64_t size_serial
         cdef bint overwrite = 0
         # Verify that file is correct version
         if not os.path.isfile(fname):
             raise OSError
-        f = open(fname,'rb')
-        ver, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-        if ver == self.nfiles and ver != _bitmask_version:
-            overwrite = 1
-            nfiles = ver
-            ver = 0 # Original bitmaps had number of files first
-        if ver != _bitmask_version:
-            raise OSError("The file format of the index has changed since "
-                          "this file was created. It will be replaced with an "
-                          "updated version.")
-        # Read file hash
-        file_hash, = struct.unpack('q', f.read(struct.calcsize('q')))
-        if file_hash != self.file_hash:
-            raise OSError
-        # Read number of bitmaps
-        if nfiles == 0:
-            nfiles, = struct.unpack('Q', f.read(struct.calcsize('Q')))
-            if nfiles != self.nfiles:
-                raise OSError(
-                    "Number of bitmasks ({}) conflicts with number of files "
-                    "({})".format(nfiles, self.nfiles))
-        # Read bitmap for each file
-        pb = get_pbar("Loading particle index", nfiles)
-        for ifile in range(nfiles):
-            pb.update(ifile+1)
-            size_serial, = struct.unpack('Q', f.read(struct.calcsize('Q')))
-            irflag = self.bitmasks._loads(ifile, f.read(size_serial))
+        with h5py.File(fname, mode="r") as fp:
+            try:
+                grp = fp[str(self.hash_value)]
+            except KeyError:
+                raise OSError(f"Index not found in the {fname}")
+
+            ver = grp.attrs["bitmask_version"]
+            try:
+                max_hsml = grp.attrs["max_hsml"]
+            except KeyError:
+                raise OSError(f"'max_hsml' not found in the {fname}")
+            if ver == self.nfiles and ver != _bitmask_version:
+                overwrite = 1
+                ver = 0 # Original bitmaps had number of files first
+            if ver != _bitmask_version:
+                raise OSError("The file format of the index has changed since "
+                              "this file was created. It will be replaced with an "
+                              "updated version.")
+
+            # Read bitmap for each file
+            pb = get_pbar("Loading particle index", self.nfiles)
+            for ifile in range(self.nfiles):
+                pb.update(ifile+1)
+                irflag = self.bitmasks._loads(ifile, grp[f"nfile_{ifile:05}"][...].tobytes())
+                if irflag == 0:
+                    read_flag = 0
+            pb.finish()
+            # Collisions
+            irflag = self.collisions._loads(grp["collisions"][...].tobytes())
             if irflag == 0:
                 read_flag = 0
-        pb.finish()
-        # Collisions
-        size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-        irflag = self.collisions._loads(f.read(size_serial))
-        f.close()
+
         # Save in correct format
         if overwrite == 1:
-            self.save_bitmasks(fname)
-        return read_flag
+            self.save_bitmasks(fname, max_hsml)
+        return read_flag, max_hsml
 
     def print_info(self):
         cdef np.uint64_t ifile
@@ -1160,7 +1139,7 @@ cdef class ParticleBitmap:
         # self.index_octree = ParticleOctreeContainer([1,1,1],
         #     [self.left_edge[0], self.left_edge[1], self.left_edge[2]],
         #     [self.right_edge[0], self.right_edge[1], self.right_edge[2]],
-        #     over_refine = 0
+        #     num_zones = 1
         # )
         # self.index_octree.n_ref = 1
         # mi = (<ewah_bool_array*> self.collisions.ewah_keys)[0].toArray()
@@ -1203,7 +1182,7 @@ cdef class ParticleBitmap:
         gmask = BoolArrayCollection()
         dmask._get_ghost_zones(ngz, self.index_order1, self.index_order2,
                                periodicity, gmask, <bint>coarse_ghosts)
-        dfiles, gfiles = self.masks_to_files(dmask, gmask)
+        _dfiles, gfiles = self.masks_to_files(dmask, gmask)
         out = BoolArrayCollection()
         gmask._logicalor(dmask, out)
         return gfiles, out
@@ -1328,11 +1307,11 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def construct_octree(self, index, io_handler, data_files,
-                         over_refine_factor,
+                         num_zones,
                          BoolArrayCollection selector_mask,
                          BoolArrayCollection base_mask = None):
         cdef np.uint64_t total_pcount
-        cdef np.uint64_t i, j, k, n
+        cdef np.uint64_t i, j, k
         cdef int ind[3]
         cdef np.uint64_t ind64[3]
         cdef ParticleBitmapOctreeContainer octree
@@ -1349,15 +1328,13 @@ cdef class ParticleBitmap:
             DRE[i] = self.right_edge[i]
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
         # Determine cells that need to be added to the octree
-        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_p
-        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_g
         cdef np.uint64_t nroot = selector_mask._count_total()
         # Now we can actually create a sparse octree.
         octree = ParticleBitmapOctreeContainer(
             (self.dims[0], self.dims[1], self.dims[2]),
             (self.left_edge[0], self.left_edge[1], self.left_edge[2]),
             (self.right_edge[0], self.right_edge[1], self.right_edge[2]),
-            nroot, over_refine_factor)
+            nroot, num_zones)
         octree.n_ref = index.dataset.n_ref
         octree.level_offset = self.index_order1
         octree.allocate_domains()
@@ -1705,16 +1682,22 @@ cdef class ParticleBitmapSelector:
             mi1_n = self.neighbor_list1[m]
             mi2_n = self.neighbor_list2[m]
             self.coarse_ghosts_bool[mi1_n] = 1
-            IF RefinedExternalGhosts == 1:
-                if mi1_n == mi1:
-                    self.refined_ghosts_bool[mi2_n] = 1
-                else:
-                    self.refined_ghosts_list._set(mi1_n, mi2_n)
-            ELSE:
-                if mi1_n == mi1:
-                    self.refined_ghosts_bool[mi2_n] = 1
-                elif self.is_refined(mi1_n) == 1:
-                    self.refined_ghosts_list._set(mi1_n, mi2_n)
+
+            # Ghost cells are added at the refined level regardless of if the
+            # coarse cell containing it is refined in the selector.
+            if mi1_n == mi1:
+                self.refined_ghosts_bool[mi2_n] = 1
+            else:
+                self.refined_ghosts_list._set(mi1_n, mi2_n)
+
+            # alternative implementation by Meagan Lang
+            # see ed95b1ac2f7105092b1116f9c76568ae27024751
+            # Ghost cells are only added at the refined level if the coarse
+            # index for the ghost cell is refined in the selector.
+            #if mi1_n == mi1:
+            #    self.refined_ghosts_bool[mi2_n] = 1
+            #elif self.is_refined(mi1_n) == 1:
+            #    self.refined_ghosts_list._set(mi1_n, mi2_n)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1793,7 +1776,7 @@ cdef class ParticleBitmapSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void add_ghost_zones(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
-        cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
+        cdef np.uint64_t mi1, mi2
         # Get ghost zones, unordered
         for mi1 in range(self.s1):
             if mm_s._get_coarse(mi1):
@@ -1855,11 +1838,9 @@ cdef class ParticleBitmapSelector:
         cdef np.float64_t rpos[3]
         cdef np.float64_t ndds[3]
         cdef np.uint64_t nlevel
-        cdef np.uint64_t ind1[3]
-        cdef np.uint64_t ind2[3]
         cdef np.uint64_t ncur_ind[3]
         cdef np.uint64_t* zeros = [0, 0, 0]
-        cdef int i, j, k, m, sbbox
+        cdef int i, j, k, sbbox
         PyErr_CheckSignals()
         for i in range(3):
             ndds[i] = dds[i]/2
@@ -1929,7 +1910,6 @@ cdef class ParticleBitmapSelector:
         cdef np.uint64_t nlevel
         cdef np.float64_t DLE[3]
         cdef np.uint64_t ind1[3]
-        cdef np.uint64_t ind2[3]
         cdef int i, j, k, m
         for i in range(3):
             ndds[i] = dds[i]/2
@@ -1964,7 +1944,6 @@ cdef class ParticleBitmapSelector:
 
 cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef Oct** oct_list
-    cdef public int max_level
     cdef public int n_ref
     cdef int loaded # Loaded with load_octree?
     cdef np.uint8_t* _ptr_index_base_roots
@@ -1975,10 +1954,10 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef np.uint64_t[:] _octs_per_root
     cdef public int overlap_cells
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
-                 int num_root, over_refine = 1):
+                 int num_root, num_zones = 2):
         super(ParticleBitmapOctreeContainer, self).__init__(
             domain_dimensions, domain_left_edge, domain_right_edge,
-            over_refine)
+            num_zones)
         self.loaded = 0
         self.fill_style = "o"
         self.partial_coverage = 2
@@ -2104,7 +2083,6 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef int i, j, k
         cdef int ind[3]
         cdef Oct *noct
-        cdef Oct *noct_ch
         beg = end = 0
         if level > max_level[0]: max_level[0] = level
         # Initialize children
@@ -2157,8 +2135,8 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
         cdef Oct *root = NULL
-        cdef np.int64_t no = indices.shape[0], beg, end, index, nind
-        cdef int i, level
+        cdef np.int64_t no = indices.shape[0], beg, end, index
+        cdef int i
         cdef int ind[3]
         cdef np.uint64_t ind64[3]
         cdef int max_level = self.max_level
@@ -2177,7 +2155,6 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             index = (indices[beg] >> ((ORDER_MAX - self.level_offset)*3))
             while (end < no) and (index == (indices[end] >> ((ORDER_MAX - self.level_offset)*3))):
                 end += 1
-            nind = (end - beg)
             # Find root for prefix
             decode_morton_64bit(index, ind64)
             for i in range(3):

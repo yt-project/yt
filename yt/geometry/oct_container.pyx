@@ -15,15 +15,15 @@ cimport numpy as np
 
 import numpy as np
 
-from libc.math cimport ceil, floor
-from selection_routines cimport AlwaysSelector, SelectorObject
+from libc.math cimport floor
 
-from yt.geometry.oct_visitors cimport (
+from .oct_visitors cimport (
     NeighbourCellIndexVisitor,
     NeighbourCellVisitor,
     OctPadded,
     StoreIndex,
 )
+from .selection_routines cimport AlwaysSelector, SelectorObject
 
 ORDER_MAX = 20
 _ORDER_MAX = ORDER_MAX
@@ -47,17 +47,16 @@ cdef class OctreeContainer:
 
     def __init__(self, oct_domain_dimensions, domain_left_edge,
                  domain_right_edge, partial_coverage = 0,
-                 over_refine = 1):
+                 num_zones = 2):
         # This will just initialize the root mesh octs
-        self.oref = over_refine
+        self.nz = num_zones
         self.partial_coverage = partial_coverage
-        cdef int i, j, k, p
+        cdef int i
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
         self.num_domains = 0
         self.level_offset = 0
         self.domains = OctObjectPool()
-        p = 0
         self.nocts = 0 # Increment when initialized
         for i in range(3):
             self.DLE[i] = domain_left_edge[i] #0
@@ -83,20 +82,20 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         ref_mask = header['octree']
         cdef OctreeContainer obj = cls(header['dims'], header['left_edge'],
-                header['right_edge'], over_refine = header['over_refine'],
+                header['right_edge'], num_zones = header['num_zones'],
                 partial_coverage = header['partial_coverage'])
         # NOTE: We do not allow domain/file indices to be specified.
         cdef SelectorObject selector = AlwaysSelector(None)
         cdef oct_visitors.LoadOctree visitor
         visitor = oct_visitors.LoadOctree(obj, -1)
-        cdef int i, j, k, n
+        cdef int i, j, k
         visitor.global_index = -1
         visitor.level = 0
-        visitor.oref = 0
-        visitor.nz = 1
-        assert(ref_mask.shape[0] / float(visitor.nz) ==
-            <int>(ref_mask.shape[0]/float(visitor.nz)))
-        obj.allocate_domains([ref_mask.shape[0] / visitor.nz])
+        visitor.nz = visitor.nzones = 1
+        visitor.max_level = 0
+        assert(ref_mask.shape[0] / float(visitor.nzones) ==
+            <int>(ref_mask.shape[0]/float(visitor.nzones)))
+        obj.allocate_domains([ref_mask.shape[0] / visitor.nzones])
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
         # This dds is the oct-width
@@ -135,8 +134,9 @@ cdef class OctreeContainer:
             pos[0] += dds[0]
         obj.nocts = cur.n_assigned
         if obj.nocts * visitor.nz != ref_mask.size:
-            raise KeyError(ref_mask.size, obj.nocts, obj.oref,
-                obj.partial_coverage, visitor.nz)
+            raise KeyError(ref_mask.size, obj.nocts, obj.nz,
+                obj.partial_coverage, visitor.nzones)
+        obj.max_level = visitor.max_level
         return obj
 
     def __dealloc__(self):
@@ -154,7 +154,7 @@ cdef class OctreeContainer:
     cdef void visit_all_octs(self, SelectorObject selector,
                         OctVisitor visitor, int vc = -1,
                         np.int64_t *indices = NULL):
-        cdef int i, j, k, n
+        cdef int i, j, k
         if vc == -1:
             vc = self.partial_coverage
         visitor.global_index = -1
@@ -172,7 +172,7 @@ cdef class OctreeContainer:
                 pos[2] = self.DLE[2] + dds[2]/2.0
                 for k in range(self.nn[2]):
                     if self.root_mesh[i][j][k] == NULL:
-                        raise RuntimeError
+                        raise KeyError(i,j,k)
                     visitor.pos[0] = i
                     visitor.pos[1] = j
                     visitor.pos[2] = k
@@ -186,7 +186,17 @@ cdef class OctreeContainer:
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return 0
 
-    cdef int get_root(self, int ind[3], Oct **o) nogil:
+    def _check_root_mesh(self):
+        cdef count = 0
+        for i in range(self.nn[0]):
+            for j in range(self.nn[1]):
+                for k in range(self.nn[2]):
+                    if self.root_mesh[i][j][k] == NULL:
+                        print("Missing ", i, j, k)
+                        count += 1
+        print("Missing total of %s out of %s" % (count, self.nn[0] * self.nn[1] * self.nn[2]))
+
+    cdef int get_root(self, int ind[3], Oct **o) noexcept nogil:
         cdef int i
         for i in range(3):
             if ind[i] < 0 or ind[i] >= self.nn[i]:
@@ -199,7 +209,7 @@ cdef class OctreeContainer:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = NULL,
-                  int max_level = 99) nogil:
+                  int max_level = 99) noexcept nogil:
         #Given a floating point position, retrieve the most
         #refined oct at that time
         cdef int ind32[3]
@@ -238,9 +248,7 @@ cdef class OctreeContainer:
             else:
                 next = NULL
         if oinfo == NULL: return cur
-        cdef int ncells = (1 << self.oref)
-        cdef np.float64_t factor = 1.0 / (1 << (self.oref-1))
-        if self.oref == 0: factor = 2.0
+        cdef np.float64_t factor = 1.0 / self.nz * 2
         for i in range(3):
             # We don't normally need to change dds[i] as it has been halved
             # from the oct width, thus making it already the cell width.
@@ -248,7 +256,7 @@ cdef class OctreeContainer:
             # width of the oct, we need to apply "factor".
             oinfo.dds[i] = dds[i] * factor # Cell width
             oinfo.ipos[i] = ipos[i]
-            oinfo.left_edge[i] = oinfo.ipos[i] * (oinfo.dds[i] * ncells) + self.DLE[i]
+            oinfo.left_edge[i] = oinfo.ipos[i] * (oinfo.dds[i] * self.nz) + self.DLE[i]
         oinfo.level = level
         return cur
 
@@ -258,7 +266,7 @@ cdef class OctreeContainer:
         list of oct IDs and a dictionary of Oct info for all the positions
         supplied.  Positions must be in code_length.
         """
-        cdef np.float64_t factor = (1 << self.oref)
+        cdef np.float64_t factor = self.nz
         cdef dict all_octs = {}
         cdef OctInfo oi
         cdef Oct* o = NULL
@@ -267,7 +275,7 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.int64_t, ndim=1] oct_id
         oct_id = np.ones(positions.shape[0], dtype="int64") * -1
         recorded = np.zeros(self.nocts, dtype="uint8")
-        cdef np.int64_t i, j, k
+        cdef np.int64_t i, j
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i,j]
@@ -326,7 +334,7 @@ cdef class OctreeContainer:
         for i in range(3):
             ndim[i] = <np.int64_t> ((self.DRE[i] - self.DLE[i]) / oi.dds[i])
             # Here we adjust for oi.dds meaning *cell* width.
-            ndim[i] = (ndim[i] >> self.oref)
+            ndim[i] = (ndim[i] / self.nz)
         my_list = olist = OctList_append(NULL, o)
         for i in range(3):
             npos[0] = (oi.ipos[0] + (1 - i))
@@ -392,7 +400,7 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.uint8_t, ndim=4] mask
         cdef oct_visitors.MaskOcts visitor
         visitor = oct_visitors.MaskOcts(self, domain_id)
-        cdef int ns = 1 << self.oref
+        cdef int ns = self.nz
         mask = np.zeros((num_cells, ns, ns, ns), dtype="uint8")
         visitor.mask = mask
         self.visit_all_octs(selector, visitor)
@@ -479,16 +487,15 @@ cdef class OctreeContainer:
         header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
                       right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]),
-                      over_refine = self.oref,
+                      num_zones = self.nz,
                       partial_coverage = self.partial_coverage)
         cdef SelectorObject selector = AlwaysSelector(None)
         # domain_id = -1 here, because we want *every* oct
         cdef oct_visitors.StoreOctree visitor
         visitor = oct_visitors.StoreOctree(self, -1)
-        visitor.oref = 0
         visitor.nz = 1
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
-        ref_mask = np.zeros(self.nocts * visitor.nz, dtype="uint8") - 1
+        ref_mask = np.zeros(self.nocts * visitor.nzones, dtype="uint8") - 1
         visitor.ref_mask = ref_mask
         # Enforce partial_coverage here
         self.visit_all_octs(selector, visitor, 1)
@@ -540,15 +547,15 @@ cdef class OctreeContainer:
         # We only need this so we can continue calculating the offset
         visitor.dims = dims
         self.visit_all_octs(selector, visitor)
-        if (visitor.global_index + 1) * visitor.nz * visitor.dims > source.size:
+        if (visitor.global_index + 1) * visitor.nzones * visitor.dims > source.size:
             print("GLOBAL INDEX RAN AHEAD.",)
-            print (visitor.global_index + 1) * visitor.nz * visitor.dims - source.size
+            print (visitor.global_index + 1) * visitor.nzones * visitor.dims - source.size
             print(dest.size, source.size, num_cells)
             raise RuntimeError
         if visitor.index > dest.size:
             print("DEST INDEX RAN AHEAD.",)
             print(visitor.index - dest.size)
-            print (visitor.global_index + 1) * visitor.nz * visitor.dims, source.size
+            print (visitor.global_index + 1) * visitor.nzones * visitor.dims, source.size
             print(num_cells)
             raise RuntimeError
         if num_cells >= 0:
@@ -571,7 +578,11 @@ cdef class OctreeContainer:
     def add(self, int curdom, int curlevel,
             np.ndarray[np.float64_t, ndim=2] pos,
             int skip_boundary = 1,
-            int count_boundary = 0):
+            int count_boundary = 0,
+            np.ndarray[np.uint64_t, ndim=1, cast=True] levels = None
+            ):
+        # In this function, if we specify curlevel = -1, then we query the
+        # (optional) levels array for the oct level.
         cdef int no, p, i
         cdef int ind[3]
         cdef int nb = 0
@@ -586,6 +597,12 @@ cdef class OctreeContainer:
         cdef int in_boundary = 0
         # How do we bootstrap ourselves?
         for p in range(no):
+            # We allow specifying curlevel = -1 to query from the levels array
+            # instead.
+            if curlevel == -1:
+                this_level = levels[p]
+            else:
+                this_level = curlevel
             #for every oct we're trying to add find the
             #floating point unitary position on this level
             in_boundary = 0
@@ -603,7 +620,7 @@ cdef class OctreeContainer:
             if cur == NULL: raise RuntimeError
             # Now we find the location we want
             # Note that RAMSES I think 1-findiceses levels, but we don't.
-            for _ in range(curlevel):
+            for _ in range(this_level):
                 # At every level, find the cell this oct
                 # lives inside
                 for i in range(3):
@@ -665,7 +682,6 @@ cdef class OctreeContainer:
     def file_index_octs(self, SelectorObject selector, int domain_id,
                         num_cells = -1):
         # We create oct arrays of the correct size
-        cdef np.int64_t i
         cdef np.ndarray[np.uint8_t, ndim=1] levels
         cdef np.ndarray[np.uint8_t, ndim=1] cell_inds
         cdef np.ndarray[np.int64_t, ndim=1] file_inds
@@ -726,14 +742,18 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_level(self, int level,
-                   np.ndarray[np.uint8_t, ndim=1] levels,
-                   np.ndarray[np.uint8_t, ndim=1] cell_inds,
-                   np.ndarray[np.int64_t, ndim=1] file_inds,
-                   dest_fields, source_fields,
-                   np.int64_t offset = 0):
-        cdef np.ndarray[np.float64_t, ndim=2] source
-        cdef np.ndarray[np.float64_t, ndim=1] dest
+    cpdef void fill_level(
+        self,
+        const int level,
+        const np.uint8_t[::1] levels,
+        const np.uint8_t[::1] cell_inds,
+        const np.int64_t[::1] file_inds,
+        dict dest_fields,
+        dict source_fields,
+        np.int64_t offset = 0
+    ):
+        cdef np.float64_t[:, :] source
+        cdef np.float64_t[::1] dest
         cdef int i, lvl
 
         for key in dest_fields:
@@ -808,25 +828,26 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_level_with_domain(
-                   self, int level,
-                   np.uint8_t[:] levels,
-                   np.uint8_t[:] cell_inds,
-                   np.int64_t[:] file_inds,
-                   np.int32_t[:] domains,
-                   dict dest_fields,
-                   dict source_fields,
-                   np.int32_t domain,
-                   np.int64_t offset = 0
-                   ):
+    cpdef int fill_level_with_domain(
+        self,
+        const int level,
+        const np.uint8_t[::1] level_inds,
+        const np.uint8_t[::1] cell_inds,
+        const np.int64_t[::1] file_inds,
+        const np.int32_t[::1] domain_inds,
+        dict dest_fields,
+        dict source_fields,
+        const np.int32_t domain,
+        np.int64_t offset = 0
+    ):
         """Similar to fill_level but accepts a domain argument.
 
         This is particularly useful for frontends that have buffer zones at CPU boundaries.
         These buffer oct cells have a different domain than the local one and
         are usually not read, but one has to read them e.g. to compute ghost zones.
         """
-        cdef np.ndarray[np.float64_t, ndim=2] source
-        cdef np.ndarray[np.float64_t, ndim=1] dest
+        cdef np.float64_t[:, :] source
+        cdef np.float64_t[::1] dest
         cdef int i, count, lev
         cdef np.int32_t dom
 
@@ -834,9 +855,9 @@ cdef class OctreeContainer:
             dest = dest_fields[key]
             source = source_fields[key]
             count = 0
-            for i in range(levels.shape[0]):
-                lev = levels[i]
-                dom = domains[i]
+            for i in range(level_inds.shape[0]):
+                lev = level_inds[i]
+                dom = domain_inds[i]
                 if lev != level or dom != domain: continue
                 count += 1
                 if file_inds[i] < 0:
@@ -897,7 +918,6 @@ cdef class OctreeContainer:
         +---+---+---+---+
 
         """
-        cdef np.int64_t i
         cdef int num_octs
         if num_cells < 0:
             num_octs = selector.count_octs(self, domain_id)
@@ -933,9 +953,9 @@ cdef class OctreeContainer:
         cdef oct_visitors.AssignDomainInd visitor
         visitor = oct_visitors.AssignDomainInd(self, 1)
         self.visit_all_octs(selector, visitor)
-        assert ((visitor.global_index+1)*visitor.nz == visitor.index)
+        assert ((visitor.global_index+1)*visitor.nzones == visitor.index)
 
-cdef int root_node_compare(const void *a, const void *b) nogil:
+cdef int root_node_compare(const void *a, const void *b) noexcept nogil:
     cdef OctKey *ao
     cdef OctKey *bo
     ao = <OctKey *>a
@@ -950,10 +970,10 @@ cdef int root_node_compare(const void *a, const void *b) nogil:
 cdef class SparseOctreeContainer(OctreeContainer):
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
-                 over_refine = 1):
+                 num_zones = 2):
         cdef int i
         self.partial_coverage = 1
-        self.oref = over_refine
+        self.nz = num_zones
         for i in range(3):
             self.nn[i] = domain_dimensions[i]
         self.domains = OctObjectPool()
@@ -978,7 +998,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
     def save_octree(self):
         raise NotImplementedError
 
-    cdef int get_root(self, int ind[3], Oct **o) nogil:
+    cdef int get_root(self, int ind[3], Oct **o) noexcept nogil:
         o[0] = NULL
         cdef np.int64_t key = self.ipos_to_key(ind)
         cdef OctKey okey
@@ -1002,7 +1022,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
             pos[2 - j] = (<np.int64_t>(key & ukey))
             key = key >> 20
 
-    cdef np.int64_t ipos_to_key(self, int pos[3]) nogil:
+    cdef np.int64_t ipos_to_key(self, int pos[3]) noexcept nogil:
         # We (hope) that 20 bits is enough for each index.
         cdef int i
         cdef np.int64_t key = 0
@@ -1016,8 +1036,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
                         OctVisitor visitor,
                         int vc = -1,
                         np.int64_t *indices = NULL):
-        cdef int i, j, k, n
-        cdef np.int64_t key, ukey
+        cdef int i, j
+        cdef np.int64_t key
         visitor.global_index = -1
         visitor.level = 0
         if vc == -1:
@@ -1077,15 +1097,20 @@ cdef class SparseOctreeContainer(OctreeContainer):
     def __dealloc__(self):
         # This gets called BEFORE the superclass deallocation.  But, both get
         # called.
+        cdef OctKey *ikey
+        for i in range(self.num_root):
+            ikey = &self.root_nodes[i]
+            tdelete(<void *>ikey, &self.tree_root, root_node_compare)
+
         if self.root_nodes != NULL: free(self.root_nodes)
 
 cdef class ARTOctreeContainer(OctreeContainer):
     def __init__(self, oct_domain_dimensions, domain_left_edge,
                  domain_right_edge, partial_coverage = 0,
-                 over_refine = 1):
+                 num_zones = 2):
         OctreeContainer.__init__(self, oct_domain_dimensions,
                 domain_left_edge, domain_right_edge, partial_coverage,
-                 over_refine)
+                 num_zones)
         self.fill_style = "r"
 
 cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
@@ -1174,7 +1199,6 @@ cdef class OctObjectPool(ObjectPool):
 
     cdef void setup_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
                          np.int64_t con_id):
-        cdef np.uint64_t i
         cdef Oct* octs = <Oct *> obj
         for n in range(n):
             octs[n].file_ind = octs[n].domain = - 1
@@ -1183,7 +1207,7 @@ cdef class OctObjectPool(ObjectPool):
 
     cdef void teardown_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
                            np.int64_t con_id):
-        cdef np.uint64_t i, j
+        cdef np.uint64_t i
         cdef Oct *my_octs = <Oct *> obj
         for i in range(n):
             if my_octs[i].children != NULL:

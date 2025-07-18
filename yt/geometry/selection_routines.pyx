@@ -13,22 +13,13 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-cimport oct_visitors
-from cython cimport floating
 from libc.math cimport sqrt
 from libc.stdlib cimport free, malloc
 
-from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
+from yt.utilities.lib.bitarray cimport ba_get_value
 from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
-from yt.utilities.lib.geometry_utils cimport (
-    bounded_morton_dds,
-    decode_morton_64bit,
-    encode_morton_64bit,
-    morton_neighbors_coarse,
-    morton_neighbors_refined,
-)
-from yt.utilities.lib.grid_traversal cimport sampler_function, walk_volume
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip
+from yt.utilities.lib.grid_traversal cimport walk_volume
 from yt.utilities.lib.volume_container cimport VolumeContainer
 
 from .oct_container cimport Oct, OctreeContainer
@@ -36,15 +27,15 @@ from .oct_visitors cimport cind
 
 
 cdef extern from "math.h":
-    double exp(double x) nogil
-    float expf(float x) nogil
-    long double expl(long double x) nogil
-    double floor(double x) nogil
-    double ceil(double x) nogil
-    double fmod(double x, double y) nogil
-    double log2(double x) nogil
-    long int lrint(double x) nogil
-    double fabs(double x) nogil
+    double exp(double x) noexcept nogil
+    float expf(float x) noexcept nogil
+    long double expl(long double x) noexcept nogil
+    double floor(double x) noexcept nogil
+    double ceil(double x) noexcept nogil
+    double fmod(double x, double y) noexcept nogil
+    double log2(double x) noexcept nogil
+    long int lrint(double x) noexcept nogil
+    double fabs(double x) noexcept nogil
 
 # use this as an epsilon test for grids aligned with selector
 # define here to avoid the gil later
@@ -52,10 +43,10 @@ cdef np.float64_t grid_eps = np.finfo(np.float64).eps
 grid_eps = 0.0
 
 cdef inline np.float64_t dot(np.float64_t* v1,
-                             np.float64_t* v2) nogil:
+                             np.float64_t* v2) noexcept nogil:
     return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
 
-cdef inline np.float64_t norm(np.float64_t* v) nogil:
+cdef inline np.float64_t norm(np.float64_t* v) noexcept nogil:
     return sqrt(dot(v, v))
 
 # These routines are separated into a couple different categories:
@@ -100,7 +91,7 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
 cdef _mask_fill(np.ndarray[np.float64_t, ndim=1] out,
                 np.int64_t offset,
                 np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
-                np.ndarray[floating, ndim=3] vals):
+                np.ndarray[cython.floating, ndim=3] vals):
     cdef np.int64_t count = 0
     cdef int i, j, k
     for i in range(mask.shape[0]):
@@ -156,6 +147,32 @@ def points_in_cells(
                 break
 
     return mask
+
+def bbox_intersects(
+    SelectorObject selector,
+    np.float64_t[::1] left_edges,
+    np.float64_t dx
+):
+    cdef np.float64_t[3] right_edges
+    right_edges[0] = left_edges[0] + dx
+    right_edges[1] = left_edges[1] + dx
+    right_edges[2] = left_edges[2] + dx
+    return selector.select_bbox(&left_edges[0], right_edges) == 1
+
+def fully_contains(
+    SelectorObject selector,
+    np.float64_t[::1] left_edges,
+    np.float64_t dx,
+):
+    cdef np.float64_t[3] right_edges
+
+    right_edges[0] = left_edges[0] + dx
+    right_edges[1] = left_edges[1] + dx
+    right_edges[2] = left_edges[2] + dx
+
+    return selector.select_bbox_edge(&left_edges[0], right_edges) == 1
+
+
 
 include "_selection_routines/selector_object.pxi"
 include "_selection_routines/point_selector.pxi"

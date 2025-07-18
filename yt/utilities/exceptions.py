@@ -3,11 +3,11 @@ import os.path
 
 from unyt.exceptions import UnitOperationError
 
+from yt._typing import FieldKey
+
 
 class YTException(Exception):
-    def __init__(self, message=None, ds=None):
-        Exception.__init__(self, message)
-        self.ds = ds
+    pass
 
 
 # Data access exceptions:
@@ -20,11 +20,29 @@ class YTUnidentifiedDataType(YTException):
         self.kwargs = kwargs
 
     def __str__(self):
+        from yt.utilities.hierarchy_inspection import (
+            get_classes_with_missing_requirements,
+        )
+
         msg = f"Could not determine input format from {self.filename!r}"
         if self.args:
             msg += ", " + (", ".join(f"{a!r}" for a in self.args))
         if self.kwargs:
             msg += ", " + (", ".join(f"{k}={v!r}" for k, v in self.kwargs.items()))
+
+        msg += "\n"
+
+        if len(unusable_classes := get_classes_with_missing_requirements()) > 0:
+            msg += (
+                "The following types could not be thorougly checked against your data because "
+                "their requirements are missing. "
+                "You may want to inspect this list and check your installation:"
+            )
+            for cls, missing in unusable_classes.items():
+                requirements_str = ", ".join(missing)
+                msg += f"\n- {cls.__name__} (requires: {requirements_str})"
+            msg += "\n\n"
+        msg += "Please make sure you are running a sufficiently recent version of yt."
         return msg
 
 
@@ -46,7 +64,7 @@ class YTAmbiguousDataType(YTUnidentifiedDataType):
 
 class YTSphereTooSmall(YTException):
     def __init__(self, ds, radius, smallest_cell):
-        YTException.__init__(self, ds=ds)
+        self.ds = ds
         self.radius = radius
         self.smallest_cell = smallest_cell
 
@@ -77,15 +95,8 @@ class YTFieldNotFound(YTException):
     def __init__(self, field, ds):
         self.field = field
         self.ds = ds
-        self.suggestions = []
-        try:
-            self._find_suggestions()
-        except AttributeError:
-            # This may happen if passing a field that is e.g. an Ellipsis
-            # e.g. when using ds.r[...]
-            pass
 
-    def _find_suggestions(self):
+    def _get_suggestions(self) -> list[FieldKey]:
         from yt.funcs import levenshtein_distance
 
         field = self.field
@@ -127,16 +138,22 @@ class YTFieldNotFound(YTException):
                     suggestions[ft, fn] = distance
 
         # Return suggestions sorted by increasing distance (first are most likely)
-        self.suggestions = [
+        return [
             (ft, fn)
             for (ft, fn), distance in sorted(suggestions.items(), key=lambda v: v[1])
         ]
 
     def __str__(self):
-        msg = f"Could not find field {self.field} in {self.ds}."
-        if self.suggestions:
+        msg = f"Could not find field {self.field!r} in {self.ds}."
+        try:
+            suggestions = self._get_suggestions()
+        except AttributeError:
+            # This may happen if passing a field that is e.g. an Ellipsis
+            # e.g. when using ds.r[...]
+            suggestions = []
+        if suggestions:
             msg += "\nDid you mean:\n\t"
-            msg += "\n\t".join(str(_) for _ in self.suggestions)
+            msg += "\n\t".join(str(_) for _ in suggestions)
         return msg
 
 
@@ -176,11 +193,15 @@ class YTFieldTypeNotFound(YTException):
 
 class YTSimulationNotIdentified(YTException):
     def __init__(self, sim_type):
-        YTException.__init__(self)
         self.sim_type = sim_type
 
     def __str__(self):
-        return f"Simulation time-series type {self.sim_type!r} not defined."
+        from yt.utilities.object_registries import simulation_time_series_registry
+
+        return (
+            f"Simulation time-series type {self.sim_type!r} not defined. "
+            f"Supported types are {list(simulation_time_series_registry)}"
+        )
 
 
 class YTCannotParseFieldDisplayName(YTException):
@@ -219,7 +240,7 @@ class InvalidSimulationTimeSeries(YTException):
 
 class MissingParameter(YTException):
     def __init__(self, ds, parameter):
-        YTException.__init__(self, ds=ds)
+        self.ds = ds
         self.parameter = parameter
 
     def __str__(self):
@@ -228,7 +249,7 @@ class MissingParameter(YTException):
 
 class NoStoppingCondition(YTException):
     def __init__(self, ds):
-        YTException.__init__(self, ds=ds)
+        self.ds = ds
 
     def __str__(self):
         return f"Simulation {self.ds} has no stopping condition. StopTime or StopCycle should be set."
@@ -237,14 +258,6 @@ class NoStoppingCondition(YTException):
 class YTNotInsideNotebook(YTException):
     def __str__(self):
         return "This function only works from within an IPython Notebook."
-
-
-class YTGeometryNotSupported(YTException):
-    def __init__(self, geom):
-        self.geom = geom
-
-    def __str__(self):
-        return f"We don't currently support {self.geom!r} geometry"
 
 
 class YTCoordinateNotImplemented(YTException):
@@ -348,7 +361,7 @@ class YTCloudError(YTException):
 
 class YTEllipsoidOrdering(YTException):
     def __init__(self, ds, A, B, C):
-        YTException.__init__(self, ds=ds)
+        self.ds = ds
         self._A = A
         self._B = B
         self._C = C
@@ -409,7 +422,7 @@ class YTFieldNotParseable(YTException):
         self.field = field
 
     def __str__(self):
-        return f"Cannot identify field {self.field}"
+        return f"Cannot identify field {self.field!r}"
 
 
 class YTDataSelectorNotImplemented(YTException):
@@ -539,7 +552,7 @@ class YTElementTypeNotRecognized(YTException):
         return f"Element type not recognized - dim = {self.dim}, num_nodes = {self.num_nodes}"
 
 
-class YTDuplicateFieldInProfile(Exception):
+class YTDuplicateFieldInProfile(YTException):
     def __init__(self, field, new_spec, old_spec):
         self.field = field
         self.new_spec = new_spec
@@ -553,7 +566,7 @@ class YTDuplicateFieldInProfile(Exception):
         return r
 
 
-class YTInvalidPositionArray(Exception):
+class YTInvalidPositionArray(YTException):
     def __init__(self, shape, dimensions):
         self.shape = shape
         self.dimensions = dimensions
@@ -564,7 +577,7 @@ class YTInvalidPositionArray(Exception):
         return r
 
 
-class YTIllDefinedCutRegion(Exception):
+class YTIllDefinedCutRegion(YTException):
     def __init__(self, conditions):
         self.conditions = conditions
 
@@ -577,7 +590,7 @@ class YTIllDefinedCutRegion(Exception):
         return r
 
 
-class YTMixedCutRegion(Exception):
+class YTMixedCutRegion(YTException):
     def __init__(self, conditions, field):
         self.conditions = conditions
         self.field = field
@@ -590,7 +603,7 @@ class YTMixedCutRegion(Exception):
         return r
 
 
-class YTGDFAlreadyExists(Exception):
+class YTGDFAlreadyExists(YTException):
     def __init__(self, filename):
         self.filename = filename
 
@@ -603,25 +616,28 @@ class YTNonIndexedDataContainer(YTException):
         self.cont = cont
 
     def __str__(self):
+        class_name = self.cont.__class__.__name__
         return (
-            f"The data container type ({type(self.cont)}) is an unindexed type. "
-            "Operations such as ires, icoords, fcoords and fwidth will not work on it."
+            f"The data container type ({class_name}) is an unindexed type. "
+            "Operations such as ires, icoords, fcoords and fwidth will not work on it.\n"
+            "Did you just attempt to perform an off-axis operation ? "
+            "Be sure to consult the latest documentation to see whether the operation "
+            "you tried is actually supported for your data type."
         )
 
 
-class YTGDFUnknownGeometry(Exception):
+class YTGDFUnknownGeometry(YTException):
     def __init__(self, geometry):
         self.geometry = geometry
 
     def __str__(self):
         return (
-            """Unknown geometry %i. Please refer to GDF standard
-                  for more information"""
-            % self.geometry
+            f"Unknown geometry {self.geometry} . "
+            "Please refer to GDF standard for more information"
         )
 
 
-class YTInvalidUnitEquivalence(Exception):
+class YTInvalidUnitEquivalence(YTException):
     def __init__(self, equiv, unit1, unit2):
         self.equiv = equiv
         self.unit1 = unit1
@@ -631,7 +647,7 @@ class YTInvalidUnitEquivalence(Exception):
         return f"The unit equivalence {self.equiv!r} does not exist for the units {self.unit1!r} and {self.unit2!r}."
 
 
-class YTPlotCallbackError(Exception):
+class YTPlotCallbackError(YTException):
     def __init__(self, callback):
         self.callback = "annotate_" + callback
 
@@ -876,14 +892,14 @@ class YTCommandRequiresModule(YTException):
         return msg
 
 
-class YTModuleRemoved(Exception):
+class YTModuleRemoved(YTException):
     def __init__(self, name, new_home=None, info=None):
         message = f"The {name} module has been removed from yt."
         if new_home is not None:
             message += f"\nIt has been moved to {new_home}."
         if info is not None:
             message += f"\nFor more information, see {info}."
-        Exception.__init__(self, message)
+        super().__init__(message)
 
 
 class YTArrayTooLargeToDisplay(YTException):
@@ -898,10 +914,13 @@ class YTArrayTooLargeToDisplay(YTException):
         return msg
 
 
+class YTConfigurationError(YTException):
+    pass
+
+
 class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
-        super().__init__()
 
 
 class MountError(Exception):

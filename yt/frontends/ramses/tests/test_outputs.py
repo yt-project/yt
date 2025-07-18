@@ -1,19 +1,18 @@
 import os
+from contextlib import contextmanager
+from pathlib import Path
+from shutil import copytree
+from tempfile import TemporaryDirectory
 
 import numpy as np
+from numpy.testing import assert_equal, assert_raises
 
 import yt
 from yt.config import ytcfg
 from yt.fields.field_detector import FieldDetector
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
-from yt.testing import (
-    assert_equal,
-    assert_raises,
-    requires_file,
-    requires_module,
-    units_override_check,
-)
+from yt.testing import requires_file, requires_module, units_override_check
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     PixelizedProjectionValuesTest,
@@ -48,7 +47,7 @@ def test_output_00080():
                     )
             yield FieldValuesTest(output_00080, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj[("index", "ones")].sum()
+        s1 = dobj["index", "ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
@@ -124,11 +123,13 @@ def test_unit_cosmo():
         # expected_raw_time = 1.119216564055017 # in ramses unit
         # expected_time = 3.756241729312462e17 # in seconds
 
-        expected_raw_time = 1.121279694787743  # in ramses unit
-        assert_equal(ds.current_time.value, expected_raw_time)
+        expected_raw_time = 1.1213297131656712  # in ramses unit
+        np.testing.assert_equal(
+            ds.current_time.to("code_time").value, expected_raw_time
+        )
 
-        expected_time = 3.7631658742904595e17  # in seconds
-        assert_equal(ds.current_time.in_units("s").value, expected_time)
+        expected_time = 3.7633337427123904e17  # in seconds
+        np.testing.assert_equal(ds.current_time.to("s").value, expected_time)
 
 
 ramsesExtraFieldsSmall = "ramses_extra_fields_small/output_00001"
@@ -148,7 +149,7 @@ def test_extra_fields():
 
     # Check the family (they should equal 100, for tracer particles)
     dd = ds.all_data()
-    families = dd[("all", "particle_family")]
+    families = dd["all", "particle_family"]
     assert all(families == 100)
 
 
@@ -156,6 +157,13 @@ def test_extra_fields():
 def test_extra_fields_2():
     extra_fields = [f"particle_extra_field_{i + 1}" for i in range(2)]
     ds = yt.load(os.path.join(ramsesExtraFieldsSmall, "info_00001.txt"))
+
+    # When migrating to pytest, uncomment this
+    # with pytest.warns(
+    #     UserWarning,
+    #     match=r"Field (.*) has a length \d+, but expected a length of \d+.()",
+    # ):
+    #     ds.index
 
     # the dataset should contain the fields
     for field in extra_fields:
@@ -316,9 +324,7 @@ def test_ramses_part_count():
 @requires_file(ramsesCosmo)
 def test_custom_particle_def():
     ytcfg.add_section("ramses-particles")
-    ytcfg[
-        "ramses-particles", "fields"
-    ] = """particle_position_x, d
+    ytcfg["ramses-particles", "fields"] = """particle_position_x, d
          particle_position_y, d
          particle_position_z, d
          particle_velocity_x, d
@@ -384,8 +390,8 @@ def test_ramses_field_detection():
     fields_1 = set(DETECTED_FIELDS[ds1.unique_identifier]["ramses"])
 
     # Check the right number of variables has been loaded
-    assert P1["nvar"] == 10
-    assert len(fields_1) == P1["nvar"]
+    assert P1[ds1.unique_identifier]["nvar"] == 10
+    assert len(fields_1) == P1[ds1.unique_identifier]["nvar"]
 
     # Now load another dataset
     ds2 = yt.load(output_00080)
@@ -394,8 +400,8 @@ def test_ramses_field_detection():
     fields_2 = set(DETECTED_FIELDS[ds2.unique_identifier]["ramses"])
 
     # Check the right number of variables has been loaded
-    assert P2["nvar"] == 6
-    assert len(fields_2) == P2["nvar"]
+    assert P2[ds2.unique_identifier]["nvar"] == 6
+    assert len(fields_2) == P2[ds2.unique_identifier]["nvar"]
 
 
 @requires_file(ramses_new_format)
@@ -414,14 +420,14 @@ def test_formation_time():
     assert ("io", "particle_metallicity") in ds.field_list
 
     ad = ds.all_data()
-    whstars = ad[("io", "conformal_birth_time")] != 0
-    assert np.all(ad[("io", "star_age")][whstars] > 0)
+    whstars = ad["io", "conformal_birth_time"] != 0
+    assert np.all(ad["io", "star_age"][whstars] > 0)
 
     # test semantics for non-cosmological new-style output format
     ds = yt.load(ramses_new_format)
     ad = ds.all_data()
     assert ("io", "particle_birth_time") in ds.field_list
-    assert np.all(ad[("io", "particle_birth_time")] > 0)
+    assert np.all(ad["io", "particle_birth_time"] > 0)
 
     # test semantics for non-cosmological old-style output format
     ds = yt.load(ramsesNonCosmo, extra_particle_fields=extra_particle_fields)
@@ -429,14 +435,13 @@ def test_formation_time():
     assert ("io", "particle_birth_time") in ds.field_list
     # the dataset only includes particles with arbitrarily old ages
     # and particles that formed in the very first timestep
-    assert np.all(ad[("io", "particle_birth_time")] <= 0)
-    whdynstars = ad[("io", "particle_birth_time")] == 0
-    assert np.all(ad[("io", "star_age")][whdynstars] == ds.current_time)
+    assert np.all(ad["io", "particle_birth_time"] <= 0)
+    whdynstars = ad["io", "particle_birth_time"] == 0
+    assert np.all(ad["io", "star_age"][whdynstars] == ds.current_time)
 
 
 @requires_file(ramses_new_format)
 def test_cooling_fields():
-
     # Test the field is being loaded correctly
     ds = yt.load(ramses_new_format)
 
@@ -470,11 +475,11 @@ def test_cooling_fields():
     def check_unit(array, unit):
         assert str(array.in_cgs().units) == unit
 
-    check_unit(ds.r[("gas", "cooling_total")], "cm**5*g/s**3")
-    check_unit(ds.r[("gas", "cooling_primordial_prime")], "cm**5*g/(K*s**3)")
-    check_unit(ds.r[("gas", "number_density")], "cm**(-3)")
-    check_unit(ds.r[("gas", "mu")], "dimensionless")
-    check_unit(ds.r[("gas", "Electron_number_density")], "cm**(-3)")
+    check_unit(ds.r["gas", "cooling_total"], "cm**5*g/s**3")
+    check_unit(ds.r["gas", "cooling_primordial_prime"], "cm**5*g/(K*s**3)")
+    check_unit(ds.r["gas", "number_density"], "cm**(-3)")
+    check_unit(ds.r["gas", "mu"], "dimensionless")
+    check_unit(ds.r["gas", "Electron_number_density"], "cm**(-3)")
 
 
 @requires_file(ramses_rt)
@@ -489,7 +494,7 @@ def test_ramses_mixed_files():
     ds.add_field(("gas", "mixed_files"), function=_mixed_field, sampling_type="cell")
 
     # Access the field
-    ds.r[("gas", "mixed_files")]
+    ds.r["gas", "mixed_files"]
 
 
 ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
@@ -504,7 +509,7 @@ def test_ramses_empty_record():
     ds.index
 
     # Access some field
-    ds.r[("gas", "density")]
+    ds.r["gas", "density"]
 
 
 @requires_file(ramses_new_format)
@@ -524,7 +529,6 @@ def test_namelist_reading():
 @requires_file(output_00080)
 @requires_module("f90nml")
 def test_namelist_reading_should_not_fail():
-
     for ds_name in (ramses_empty_record, output_00080):
         # Test that the reading does not fail for malformed namelist.txt files
         ds = data_dir_load(ds_name)
@@ -548,7 +552,7 @@ def test_magnetic_field_aliasing():
         "magnetic_field_divergence",
     ]:
         assert ("gas", field) in ds.derived_field_list
-        ad[("gas", field)]
+        ad["gas", field]
 
 
 @requires_file(output_00080)
@@ -646,3 +650,165 @@ def test_print_stats():
     ds.print_stats()
 
     # FIXME #3197: use `capsys` with pytest to make sure the print_stats function works as intended
+
+
+@requires_file(output_00080)
+def test_reading_order():
+    # This checks the bug unvovered in #4880
+    # This checks that the result of field accession doesn't
+    # depend on the order
+
+    def _dummy_field(field, data):
+        # Note: this is a dummy field
+        # that doesn't really have any physical meaning
+        # but may trigger some bug in the field
+        # handling.
+        T = data["gas", "temperature"]
+        Z = data["gas", "metallicity"]
+        return T * 1**Z
+
+    fields = [
+        "Density",
+        "x-velocity",
+        "y-velocity",
+        "z-velocity",
+        "Pressure",
+        "Metallicity",
+    ]
+    ds = yt.load(output_00080, fields=fields)
+
+    ds.add_field(
+        ("gas", "test"), function=_dummy_field, units=None, sampling_type="cell"
+    )
+
+    ad = ds.all_data()
+    v0 = ad["gas", "test"]
+
+    ad = ds.all_data()
+    ad["gas", "temperature"]
+    v1 = ad["gas", "test"]
+
+    np.testing.assert_allclose(v0, v1)
+
+
+# Simple context manager that overrides the value of
+# the self_shielding flag in the namelist.txt file
+@contextmanager
+def override_self_shielding(root: Path, section: str, val: bool):
+    # Copy content of root in a temporary folder
+    with TemporaryDirectory() as tmp:
+        tmpdir = Path(tmp) / root.name
+        tmpdir.mkdir()
+
+        # Copy content of `root` in `tmpdir` recursively
+        copytree(root, tmpdir, dirs_exist_ok=True)
+
+        fname = Path(tmpdir) / "namelist.txt"
+
+        with open(fname) as f:
+            namelist_data = f90nml.read(f).todict()
+            sec = namelist_data.get(section, {})
+            sec["self_shielding"] = val
+            namelist_data[section] = sec
+
+        with open(fname, "w") as f:
+            new_nml = f90nml.Namelist(namelist_data)
+            new_nml.write(f)
+
+        yield tmpdir
+
+
+@requires_file(ramses_new_format)
+@requires_module("f90nml")
+def test_self_shielding_logic():
+    ##################################################
+    # Check that the self_shielding flag is correctly read
+    ds = yt.load(ramses_new_format)
+
+    assert ds.parameters["namelist"] is not None
+    assert ds.self_shielding is False
+
+    ##################################################
+    # Modify the namelist in-situ, reload and check
+    root_folder = Path(ds.root_folder)
+    for section in ("physics_params", "cooling_params"):
+        for val in (True, False):
+            with override_self_shielding(root_folder, section, val) as tmp_output:
+                # Autodetection should work
+                ds = yt.load(tmp_output)
+                assert ds.parameters["namelist"] is not None
+                assert ds.self_shielding is val
+
+                # Manually set should ignore the namelist
+                ds = yt.load(tmp_output, self_shielding=True)
+                assert ds.self_shielding is True
+
+                ds = yt.load(tmp_output, self_shielding=False)
+                assert ds.self_shielding is False
+
+    ##################################################
+    # Manually set should work, even if namelist does not contain the flag
+    ds = yt.load(ramses_new_format, self_shielding=True)
+    assert ds.self_shielding is True
+
+    ds = yt.load(ramses_new_format, self_shielding=False)
+    assert ds.self_shielding is False
+
+
+ramses_star_formation = "ramses_star_formation/output_00013"
+
+
+@requires_file(ramses_star_formation)
+@requires_module("f90nml")
+def test_self_shielding_loading():
+    ds_off = yt.load(ramses_star_formation, self_shielding=False)
+    ds_on = yt.load(ramses_star_formation, self_shielding=True)
+
+    # We do not expect any significant change at densities << 1e-2
+    reg_on = ds_on.all_data().cut_region(
+        ["obj['gas', 'density'].to('mp/cm**3') < 1e-6"]
+    )
+    reg_off = ds_off.all_data().cut_region(
+        ["obj['gas', 'density'].to('mp/cm**3') < 1e-6"]
+    )
+
+    np.testing.assert_allclose(
+        reg_on["gas", "cooling_total"],
+        reg_off["gas", "cooling_total"],
+        rtol=1e-5,
+    )
+
+    # We expect large differences from 1e-2 mp/cc
+    reg_on = ds_on.all_data().cut_region(
+        ["obj['gas', 'density'].to('mp/cm**3') > 1e-2"]
+    )
+    reg_off = ds_off.all_data().cut_region(
+        ["obj['gas', 'density'].to('mp/cm**3') > 1e-2"]
+    )
+    # Primordial cooling decreases with density (except at really high temperature)
+    # so we expect the boosted version to cool *less* efficiently
+    diff = (
+        reg_on["gas", "cooling_primordial"] - reg_off["gas", "cooling_primordial"]
+    ) / reg_off["gas", "cooling_primordial"]
+    assert (np.isclose(diff, 0, atol=1e-5) | (diff < 0)).all()
+
+    # Also make sure the difference is large for some cells
+    assert (np.abs(diff) > 0.1).any()
+
+
+@requires_file(output_00080)
+@requires_file(ramses_mhd_128)
+def test_order_does_not_matter():
+    for order in (1, 2):
+        ds0 = yt.load(output_00080)
+        ds1 = yt.load(ramses_mhd_128)
+
+        # This should not raise any exception
+        if order == 1:
+            _sp1 = ds1.all_data()
+            sp0 = ds0.all_data()
+        else:
+            sp0 = ds0.all_data()
+            _sp1 = ds1.all_data()
+
+        sp0["gas", "velocity_x"].max().to("km/s")

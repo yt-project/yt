@@ -1,7 +1,9 @@
 import numpy as np
+from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
 
-from yt import SlicePlot
-from yt.testing import assert_equal, fake_sph_grid_ds, fake_sph_orientation_ds
+from yt import SlicePlot, add_particle_filter
+from yt.loaders import load
+from yt.testing import fake_sph_grid_ds, fake_sph_orientation_ds, requires_file
 
 
 def test_point():
@@ -62,6 +64,16 @@ REGION_ANSWERS = {
 }
 
 
+def test_slice_to_frb():
+    ds = fake_sph_orientation_ds()
+    frb = ds.slice(0, 0.5).to_frb(ds.domain_width[0], (64, 64))
+    ref_vals = frb["gas", "density"]
+    for center in ((0.5, "code_length"), (0.5, "cm"), ds.quan(0.5, "code_length")):
+        frb = ds.slice(0, center).to_frb(ds.domain_width[0], (64, 64))
+        vals = frb["gas", "density"]
+        assert_equal(vals, ref_vals)
+
+
 def test_region():
     ds = fake_sph_orientation_ds()
     for (left_edge, right_edge), answer in REGION_ANSWERS.items():
@@ -80,6 +92,21 @@ def test_region():
 
                 reg = ds.box(le, re)
                 assert_equal(reg["gas", "density"].shape[0], answer)
+
+
+def test_periodic_region():
+    ds = fake_sph_grid_ds(10.0)
+    coords = [0.7, 1.4, 2.8]
+
+    for x in coords:
+        for y in coords:
+            for z in coords:
+                center = np.array([x, y, z])
+                for n, w in [(8, 1.0), (27, 2.0)]:
+                    le = center - 0.5 * w
+                    re = center + 0.5 * w
+                    box = ds.box(le, re)
+                    assert box["io", "particle_ones"].size == n
 
 
 SPHERE_ANSWERS = {
@@ -286,7 +313,7 @@ def test_gather_slice():
     p.set_buff_size(3)
     buff_gather = p.frb.data[field].d
 
-    assert_equal(buff_scatter, buff_gather)
+    assert_allclose(buff_scatter, buff_gather, rtol=3e-16)
 
 
 def test_gather_grid():
@@ -301,7 +328,7 @@ def test_gather_grid():
     ag = ds.arbitrary_grid([0, 0, 0], [3, 3, 3], dims=[3, 3, 3])
     gather = ag[field]
 
-    assert_equal(gather, scatter)
+    assert_allclose(gather, scatter, rtol=3e-16)
 
 
 def test_covering_grid_scatter():
@@ -332,3 +359,29 @@ def test_covering_grid_gather():
     cg_dens = cg[field].to("g*cm**-3").d
 
     assert_equal(ag_dens, cg_dens)
+
+
+@requires_file("TNGHalo/halo_59.hdf5")
+def test_covering_grid_derived_fields():
+    def hot_gas(pfilter, data):
+        return data[pfilter.filtered_type, "temperature"] > 1.0e6
+
+    add_particle_filter(
+        "hot_gas",
+        function=hot_gas,
+        filtered_type="gas",
+        requires=["temperature"],
+    )
+    bbox = [[40669.34, 56669.34], [45984.04, 61984.04], [54114.9, 70114.9]]
+    ds = load("TNGHalo/halo_59.hdf5", bounding_box=bbox)
+    ds.add_particle_filter("hot_gas")
+    w = ds.quan(0.2, "Mpc")
+    le = ds.domain_center - 0.5 * w
+    re = ds.domain_center + 0.5 * w
+    g = ds.r[le[0] : re[0] : 128j, le[1] : re[1] : 128j, le[2] : re[2] : 128j]
+    T1 = g["gas", "temperature"].to("keV", "thermal")
+    T2 = g["gas", "kT"]
+    assert_almost_equal(T1, T2)
+    T3 = g["hot_gas", "temperature"].to("keV", "thermal")
+    T4 = g["hot_gas", "kT"]
+    assert_almost_equal(T3, T4)

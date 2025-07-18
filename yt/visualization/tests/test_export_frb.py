@@ -1,9 +1,10 @@
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_allclose_units, assert_equal, fake_random_ds
+from yt.testing import assert_allclose_units, fake_random_ds
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 
@@ -22,7 +23,7 @@ def test_export_frb():
     assert_equal(frb_ds.domain_width.v, np.array([0.5, 0.5, 1.0]))
     assert_equal(frb_ds.domain_dimensions, np.array([64, 64, 1], dtype="int64"))
     assert_allclose_units(
-        frb[("gas", "density")].sum(),
+        frb["gas", "density"].sum(),
         dd_frb.quantities.total_quantity(("gas", "density")),
     )
     assert_equal(frb_ds.index.num_grids, 8)

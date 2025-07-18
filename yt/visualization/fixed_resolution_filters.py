@@ -12,6 +12,7 @@ def apply_filter(f):
         "The apply_filter decorator is not used in yt any more and "
         "will be removed in a future version. "
         "Please do not use it.",
+        stacklevel=3,
         since="4.1",
     )
 
@@ -26,14 +27,12 @@ def apply_filter(f):
 
 
 class FixedResolutionBufferFilter(ABC):
-
     """
     This object allows to apply data transformation directly to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     """
 
     def __init_subclass__(cls, *args, **kwargs):
-
         if cls.__init__.__doc__ is None:
             # allow docstring definition at the class level instead of __init__
             cls.__init__.__doc__ = cls.__doc__
@@ -70,7 +69,6 @@ class FixedResolutionBufferFilter(ABC):
 
 
 class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
-
     """
     This filter convolves
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer` with
@@ -104,7 +102,6 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
 
 
 class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
-
     """
     This filter adds white noise with the amplitude "bg_lvl" to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`.
@@ -123,4 +120,5 @@ class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
         else:
             amp = self.bg_lvl
         npm, nqm = np.shape(buff)
-        return buff + np.random.randn(npm, nqm) * amp
+        rng = np.random.default_rng()
+        return buff + rng.standard_normal((npm, nqm)) * amp

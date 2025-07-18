@@ -1,16 +1,19 @@
 import contextlib
 import inspect
 import re
-from typing import Optional, Tuple, Union
+from collections.abc import Iterable
+from typing import Optional
 
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.funcs import iter_fields, validate_field_key
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.logger import ytLogger as mylog
+from yt.visualization._commons import _get_units_label
 
 from .field_detector import FieldDetector
 from .field_exceptions import (
@@ -41,13 +44,13 @@ def DeprecatedFieldFunc(ret_field, func, since, removal):
         # Only log a warning if we've already done
         # field detection
         if data.ds.fields_detected:
-            args = [field.name, since, removal]
-            msg = (
-                "The Derived Field %s is deprecated as of yt v%s "
-                "and will be removed in yt v%s. "
-            )
+            args = [field.name, since]
+            msg = "The Derived Field %s is deprecated as of yt v%s "
+            if removal is not None:
+                msg += "and will be removed in yt v%s "
+                args.append(removal)
             if ret_field != field.name:
-                msg += "Use %s instead."
+                msg += ", use %s instead"
                 args.append(ret_field)
             mylog.warning(msg, *args)
         return func(field, data)
@@ -109,10 +112,10 @@ class DerivedField:
 
     def __init__(
         self,
-        name: Tuple[str, str],
+        name: FieldKey,
         sampling_type,
         function,
-        units: Optional[Union[str, bytes, Unit]] = None,
+        units: str | bytes | Unit | None = None,
         take_log=True,
         validators=None,
         vector_field=False,
@@ -125,7 +128,6 @@ class DerivedField:
         nodal_flag=None,
         *,
         alias: Optional["DerivedField"] = None,
-        particle_type=None,
     ):
         validate_field_key(name)
         self.name = name
@@ -133,14 +135,6 @@ class DerivedField:
         self.display_name = display_name
         self.not_in_all = not_in_all
         self.display_field = display_field
-        if particle_type is not None:
-            issue_deprecation_warning(
-                "The 'particle_type' keyword argument is deprecated. "
-                "Please use sampling_type='particle' instead.",
-                since="3.2",
-                removal="4.2",
-            )
-            sampling_type = "particle"
         self.sampling_type = sampling_type
         self.vector_field = vector_field
         self.ds = ds
@@ -160,7 +154,7 @@ class DerivedField:
         self.validators = list(always_iterable(validators))
 
         # handle units
-        self.units: Optional[Union[str, bytes, Unit]]
+        self.units: str | bytes | Unit | None
         if units in (None, "auto"):
             self.units = None
         elif isinstance(units, str):
@@ -171,9 +165,8 @@ class DerivedField:
             self.units = units.decode("utf-8")
         else:
             raise FieldUnitsError(
-                "Cannot handle units '%s' (type %s). "
-                "Please provide a string or Unit "
-                "object." % (units, type(units))
+                f"Cannot handle units {units!r} (type {type(units)}). "
+                "Please provide a string or Unit object."
             )
         if output_units is None:
             output_units = self.units
@@ -262,7 +255,7 @@ class DerivedField:
             else:
                 params.extend(val.parameters)
                 values.extend([fd.get_field_parameter(fp) for fp in val.parameters])
-        return dict(zip(params, values)), permute_params
+        return dict(zip(params, values, strict=True)), permute_params
 
     _unit_registry = None
 
@@ -310,7 +303,7 @@ class DerivedField:
             name = self.display_name
 
         # Start with the field name
-        data_label = r"$\rm{%s}" % name
+        data_label = rf"$\rm{{{name}}}"
 
         # Grab the correct units
         if projected:
@@ -322,7 +315,7 @@ class DerivedField:
                 units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
-            data_label += r"\ \ \left(%s\right)" % (units.latex_representation())
+            data_label += _get_units_label(units.latex_representation()).strip("$")
 
         data_label += r"$"
         return data_label
@@ -331,7 +324,8 @@ class DerivedField:
     def alias_field(self) -> bool:
         issue_deprecation_warning(
             "DerivedField.alias_field is a deprecated equivalent to DerivedField.is_alias ",
-            since="4.1.0",
+            stacklevel=3,
+            since="4.1",
         )
         return self.is_alias
 
@@ -343,7 +337,7 @@ class DerivedField:
         return self._shared_aliases_list is other._shared_aliases_list
 
     @property
-    def alias_name(self) -> Optional[Tuple[str, str]]:
+    def alias_name(self) -> FieldKey | None:
         if self.is_alias:
             return self._shared_aliases_list[0].name
         return None
@@ -396,13 +390,22 @@ class DerivedField:
             "17": "XVIII",
             "18": "XIX",
             "19": "XX",
+            "20": "XXI",
+            "21": "XXII",
+            "22": "XXIII",
+            "23": "XXIV",
+            "24": "XXV",
+            "25": "XXVI",
+            "26": "XXVII",
+            "27": "XXVIII",
+            "28": "XXIX",
+            "29": "XXX",
         }
 
         # first look for charge to decide if it is an ion
         p = re.compile("_p[0-9]+_")
         m = p.search(self.name[1])
         if m is not None:
-
             # Find the ionization state
             pstr = m.string[m.start() + 1 : m.end() - 1]
             segments = self.name[1].split("_")
@@ -497,17 +500,37 @@ class DerivedField:
 
 
 class FieldValidator:
-    pass
+    """
+    Base class for FieldValidator objects. Available subclasses include:
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        # add the new subclass to the list of subclasses in the docstring
+        class_str = f":class:`{cls.__name__}`"
+        if ":class:" in FieldValidator.__doc__:
+            class_str = ", " + class_str
+        FieldValidator.__doc__ += class_str
 
 
 class ValidateParameter(FieldValidator):
-    def __init__(self, parameters, parameter_values=None):
-        """
-        This validator ensures that the dataset has a given parameter.
+    """
+    A :class:`FieldValidator` that ensures the dataset has a given parameter.
 
-        If *parameter_values* is supplied, this will also ensure that the field
+    Parameters
+    ----------
+    parameters: str, iterable[str]
+        a single parameter or list of parameters to require
+    parameter_values: dict
+        If *parameter_values* is supplied, this dict should map from field
+        parameter to a value or list of values. It will ensure that the field
         is available for all permutations of the field parameter.
-        """
+    """
+
+    def __init__(
+        self,
+        parameters: str | Iterable[str],
+        parameter_values: dict | None = None,
+    ):
         FieldValidator.__init__(self)
         self.parameters = list(always_iterable(parameters))
         self.parameter_values = parameter_values
@@ -523,11 +546,17 @@ class ValidateParameter(FieldValidator):
 
 
 class ValidateDataField(FieldValidator):
+    """
+    A :class:`FieldValidator` that ensures the output file has a given data field stored
+    in it.
+
+    Parameters
+    ----------
+    field: str, tuple[str, str], or any iterable of the previous types.
+        the field or fields to require
+    """
+
     def __init__(self, field):
-        """
-        This validator ensures that the output file has a given data field stored
-        in it.
-        """
         FieldValidator.__init__(self)
         self.fields = list(iter_fields(field))
 
@@ -544,29 +573,42 @@ class ValidateDataField(FieldValidator):
 
 
 class ValidateProperty(FieldValidator):
-    def __init__(self, prop):
-        """
-        This validator ensures that the data object has a given python attribute.
-        """
+    """
+    A :class:`FieldValidator` that ensures the data object has a given python attribute.
+
+    Parameters
+    ----------
+    prop: str, iterable[str]
+        the required property or properties to require
+    """
+
+    def __init__(self, prop: str | Iterable[str]):
         FieldValidator.__init__(self)
         self.prop = list(always_iterable(prop))
 
     def __call__(self, data):
-        doesnt_have = []
-        for p in self.prop:
-            if not hasattr(data, p):
-                doesnt_have.append(p)
+        doesnt_have = [p for p in self.prop if not hasattr(data, p)]
         if len(doesnt_have) > 0:
             raise NeedsProperty(doesnt_have)
         return True
 
 
 class ValidateSpatial(FieldValidator):
-    def __init__(self, ghost_zones=0, fields=None):
-        """
-        This validator ensures that the data handed to the field is of spatial
-        nature -- that is to say, 3-D.
-        """
+    """
+    A :class:`FieldValidator` that ensures the data handed to the field is of spatial
+    nature -- that is to say, 3-D.
+
+    Parameters
+    ----------
+    ghost_zones: int
+        If supplied, will validate that the number of ghost zones required
+        for the field is <= the available ghost zones. Default is 0.
+    fields: Optional str, tuple[str, str], or any iterable of the previous types.
+        The field or fields to validate.
+
+    """
+
+    def __init__(self, ghost_zones: int | None = 0, fields=None):
         FieldValidator.__init__(self)
         self.ghost_zones = ghost_zones
         self.fields = fields
@@ -574,7 +616,6 @@ class ValidateSpatial(FieldValidator):
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
-        # if isinstance(data, FieldDetector): return True
         if not getattr(data, "_spatial", False):
             raise NeedsGridType(self.ghost_zones, self.fields)
         if self.ghost_zones <= data._num_ghost_zones:
@@ -583,11 +624,12 @@ class ValidateSpatial(FieldValidator):
 
 
 class ValidateGridType(FieldValidator):
+    """
+    A :class:`FieldValidator` that ensures the data handed to the field is an actual
+    grid patch, not a covering grid of any kind. Does not accept parameters.
+    """
+
     def __init__(self):
-        """
-        This validator ensures that the data handed to the field is an actual
-        grid patch, not a covering grid of any kind.
-        """
         FieldValidator.__init__(self)
 
     def __call__(self, data):

@@ -1,8 +1,9 @@
 # Some tests for the Cartesian coordinates handler
 
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal, fake_amr_ds
+from yt.testing import fake_amr_ds
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.
@@ -26,5 +27,5 @@ def test_cartesian_coordinates():
         assert_equal(dd[fd].max(), (ds.domain_width / ds.domain_dimensions)[i])
         assert_equal(dd[fd], dd[fp])
     assert_equal(
-        dd[("index", "cell_volume")].sum(dtype="float64"), ds.domain_width.prod()
+        dd["index", "cell_volume"].sum(dtype="float64"), ds.domain_width.prod()
     )

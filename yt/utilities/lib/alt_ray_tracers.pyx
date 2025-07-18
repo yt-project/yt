@@ -91,7 +91,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
         indexes into the grid cells which the ray crosses in order.
 
     """
-    cdef np.int_t i, I
+    cdef np.int64_t i, I
     cdef np.float64_t a, b, bsqrd, twoa
     cdef np.ndarray[np.float64_t, ndim=1] p1cart, p2cart, dpcart, t, s, \
                                           rleft, rright, zleft, zright, \

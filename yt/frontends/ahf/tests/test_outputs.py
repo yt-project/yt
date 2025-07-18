@@ -1,7 +1,9 @@
 import os.path
 
+from numpy.testing import assert_equal
+
 from yt.frontends.ahf.api import AHFHalosDataset
-from yt.testing import ParticleSelectionComparison, assert_equal, requires_file
+from yt.testing import ParticleSelectionComparison, requires_file
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     data_dir_load,
@@ -35,6 +37,6 @@ def test_AHFHalosDataset():
     ds = load(ahf_halos)
     assert isinstance(ds, AHFHalosDataset)
     ad = ds.all_data()
-    ad[("all", "particle_mass")]
+    ad["all", "particle_mass"]
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()

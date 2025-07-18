@@ -1,210 +1,338 @@
-from nose.plugins.attrib import attr
+import matplotlib.pyplot as plt
+import pytest
 
 from yt.config import ytcfg
 from yt.testing import (
-    ANSWER_TEST_TAG,
     fake_hexahedral_ds,
     fake_tetrahedral_ds,
+    requires_file,
     requires_module,
 )
-from yt.utilities.answer_testing.framework import (
-    GenericImageTest,
-    data_dir_load,
-    requires_ds,
-)
+from yt.utilities.answer_testing.framework import data_dir_load, data_dir_load_v2
 from yt.visualization.volume_rendering.api import MeshSource, Scene, create_scene
+from yt.visualization.volume_rendering.render_source import set_raytracing_engine
 
 
-def compare(ds, im, test_prefix, test_name=None, decimals=12):
-    def mesh_render_image_func(filename_prefix):
-        return im.write_image(filename_prefix)
-
-    mesh_render_image_func.__name__ = f"func_{test_prefix}"
-    test = GenericImageTest(ds, mesh_render_image_func, decimals)
-    test.prefix = test_prefix
-    test.answer_name = test_name
-    return test
-
-
-def surface_mesh_render():
-    images = []
-
-    ds = fake_tetrahedral_ds()
-    for field in ds.field_list:
-        if field[0] == "all":
-            continue
-        sc = Scene()
-        sc.add_source(MeshSource(ds, field))
-        sc.add_camera()
-        im = sc.render()
-        images.append(im)
-
-    ds = fake_hexahedral_ds()
-    for field in ds.field_list:
-        if field[0] == "all":
-            continue
-        sc = Scene()
-        sc.add_source(MeshSource(ds, field))
-        sc.add_camera()
-        im = sc.render()
-        images.append(im)
-
-    return images
-
-
+@pytest.fixture
 @requires_module("pyembree")
-def test_surface_mesh_render_pyembree():
-    ytcfg["yt", "ray_tracing_engine"] = "embree"
-    surface_mesh_render()
+def with_pyembree_ray_tracing_engine():
+    old = ytcfg["yt", "ray_tracing_engine"]
+
+    # the @requires_module decorator only guards against pyembree not being
+    # available for import, but it might not be installed properly regardless
+    # so we need to be extra careful not to run tests with the default engine
+    try:
+        set_raytracing_engine("embree")
+    except UserWarning as exc:
+        pytest.skip(str(exc))
+    else:
+        if ytcfg["yt", "ray_tracing_engine"] != "embree":
+            pytest.skip("Error while setting embree raytracing engine")
+
+    yield
+
+    set_raytracing_engine(old)
 
 
-def test_surface_mesh_render():
-    ytcfg["yt", "ray_tracing_engine"] = "yt"
-    surface_mesh_render()
+@pytest.fixture
+def with_default_ray_tracing_engine():
+    old = ytcfg["yt", "ray_tracing_engine"]
+    set_raytracing_engine("yt")
+    yield
+    set_raytracing_engine(old)
 
 
-@attr(ANSWER_TEST_TAG)
-def test_fake_hexahedral_ds_render():
-    ds = fake_hexahedral_ds()
-    field_list = [("connect1", "elem"), ("connect1", "test")]
-    for field in field_list:
-        sc = create_scene(ds, field)
-        im = sc.render()
-        test_prefix = f"yt_render_fake_hexahedral_{field[0]}_{field[1]}"
-        yield compare(
-            ds, im, test_prefix=test_prefix, test_name="fake_hexahedral_ds_render"
-        )
+@pytest.mark.usefixtures("with_default_ray_tracing_engine")
+class TestMeshRenderDefaultEngine:
+    @classmethod
+    def setup_class(cls):
+        cls.images = {}
+
+        cls.ds_t = fake_tetrahedral_ds()
+        for field in cls.ds_t.field_list:
+            if field[0] == "all":
+                continue
+            sc = Scene()
+            sc.add_source(MeshSource(cls.ds_t, field))
+            sc.add_camera()
+            im = sc.render()
+            cls.images["tetrahedral_" + "_".join(field)] = im
+
+        cls.ds_h = fake_hexahedral_ds()
+        for field in cls.ds_t.field_list:
+            if field[0] == "all":
+                continue
+            sc = Scene()
+            sc.add_source(MeshSource(cls.ds_h, field))
+            sc.add_camera()
+            im = sc.render()
+            cls.images["hexahedral_" + "_".join(field)] = im
+
+    @pytest.mark.parametrize("kind", ["tetrahedral", "hexahedral"])
+    @pytest.mark.parametrize("fname", ["elem", "test"])
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_default_engine(self, kind, fname):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images[f"{kind}_connect1_{fname}"])
+        return fig
+
+
+@pytest.mark.usefixtures("with_pyembree_ray_tracing_engine")
+class TestMeshRenderPyembreeEngine:
+    @classmethod
+    def setup_class(cls):
+        cls.images = {}
+
+        cls.ds_t = fake_tetrahedral_ds()
+        for field in cls.ds_t.field_list:
+            if field[0] == "all":
+                continue
+            sc = Scene()
+            sc.add_source(MeshSource(cls.ds_t, field))
+            sc.add_camera()
+            im = sc.render()
+            cls.images["tetrahedral_" + "_".join(field)] = im
+
+        cls.ds_h = fake_hexahedral_ds()
+        for field in cls.ds_t.field_list:
+            if field[0] == "all":
+                continue
+            sc = Scene()
+            sc.add_source(MeshSource(cls.ds_h, field))
+            sc.add_camera()
+            im = sc.render()
+            cls.images["hexahedral_" + "_".join(field)] = im
+
+    @pytest.mark.parametrize("kind", ["tetrahedral", "hexahedral"])
+    @pytest.mark.parametrize("fname", ["elem", "test"])
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_pyembree_engine(self, kind, fname):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images[f"{kind}_connect1_{fname}"])
+        return fig
 
 
 hex8 = "MOOSE_sample_data/out.e-s010"
-hex8_fields = [("connect1", "diffused"), ("connect2", "convected")]
 
 
-def hex8_render(engine, field):
-    ytcfg["yt", "ray_tracing_engine"] = engine
-    ds = data_dir_load(hex8, kwargs={"step": -1})
-    sc = create_scene(ds, field)
-    im = sc.render()
-    return compare(ds, im, f"{engine}_render_answers_hex8_{field[0]}_{field[1]}")
+@pytest.mark.usefixtures("with_default_ray_tracing_engine")
+class TestHex8DefaultEngine:
+    @requires_file(hex8)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(hex8, step=-1)
+        cls.images = {}
+        for field in [("connect1", "diffused"), ("connect2", "convected")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
+
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_default_engine_hex8_connect1_diffused(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect1_diffused"])
+        return fig
+
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_default_engine_hex8_connect2_convected(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect2_convected"])
+        return fig
 
 
-@requires_ds(hex8)
-@requires_module("pyembree")
-def test_hex8_render_pyembree():
-    for field in hex8_fields:
-        yield hex8_render("embree", field)
+@pytest.mark.usefixtures("with_pyembree_ray_tracing_engine")
+class TestHex8PyembreeEngine:
+    @requires_file(hex8)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(hex8, step=-1)
+        cls.images = {}
+        for field in [("connect1", "diffused"), ("connect2", "convected")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
 
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_pyembree_engine_hex8_connect1_diffused(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect1_diffused"])
+        return fig
 
-@requires_ds(hex8)
-def test_hex8_render():
-    for field in hex8_fields:
-        yield hex8_render("yt", field)
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_pyembree_engine_hex8_connect2_convected(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect2_convected"])
+        return fig
 
 
 tet4 = "MOOSE_sample_data/high_order_elems_tet4_refine_out.e"
-tet4_fields = [("connect1", "u")]
 
 
-def tet4_render(engine, field):
-    ytcfg["yt", "ray_tracing_engine"] = engine
-    ds = data_dir_load(tet4, kwargs={"step": -1})
-    sc = create_scene(ds, field)
-    im = sc.render()
-    return compare(ds, im, f"{engine}_render_answers_tet4_{field[0]}_{field[1]}")
+@pytest.mark.usefixtures("with_default_ray_tracing_engine")
+class TestTet4DefaultEngine:
+    @requires_file(tet4)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(tet4, step=-1)
+        cls.images = {}
+        for field in [("connect1", "u")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
+
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_default_engine_tet4(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect1_u"])
+        return fig
 
 
-@requires_ds(tet4)
-@requires_module("pyembree")
-def test_tet4_render_pyembree():
-    for field in tet4_fields:
-        yield tet4_render("embree", field)
+@pytest.mark.usefixtures("with_pyembree_ray_tracing_engine")
+class TestTet4PyembreeEngine:
+    @requires_file(tet4)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(tet4, step=-1)
+        cls.images = {}
+        for field in [("connect1", "u")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
 
-
-@requires_ds(tet4)
-def test_tet4_render():
-    for field in tet4_fields:
-        yield tet4_render("yt", field)
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_pyembree_engine_tet4(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect1_u"])
+        return fig
 
 
 hex20 = "MOOSE_sample_data/mps_out.e"
-hex20_fields = [("connect2", "temp")]
 
 
-def hex20_render(engine, field):
-    ytcfg["yt", "ray_tracing_engine"] = engine
-    ds = data_dir_load(hex20, kwargs={"step": -1})
-    sc = create_scene(ds, field)
-    im = sc.render()
-    return compare(ds, im, f"{engine}_render_answers_hex20_{field[0]}_{field[1]}")
+@pytest.mark.usefixtures("with_default_ray_tracing_engine")
+class TestHex20DefaultEngine:
+    @requires_file(hex20)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(hex20, step=-1)
+        cls.images = {}
+        for field in [("connect2", "temp")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
+
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_default_engine_hex20(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect2_temp"])
+        return fig
 
 
-@requires_ds(hex20)
-@requires_module("pyembree")
-def test_hex20_render_pyembree():
-    for field in hex20_fields:
-        yield hex20_render("embree", field)
+@pytest.mark.usefixtures("with_pyembree_ray_tracing_engine")
+class TestHex20PyembreeEngine:
+    @requires_file(hex20)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(hex20, step=-1)
+        cls.images = {}
+        for field in [("connect2", "temp")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
 
-
-@requires_ds(hex20)
-def test_hex20_render():
-    for field in hex20_fields:
-        yield hex20_render("yt", field)
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_pyembree_engine_hex20(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect2_temp"])
+        return fig
 
 
 wedge6 = "MOOSE_sample_data/wedge_out.e"
-wedge6_fields = [("connect1", "diffused")]
 
 
-def wedge6_render(engine, field):
-    ytcfg["yt", "ray_tracing_engine"] = engine
-    ds = data_dir_load(wedge6, kwargs={"step": -1})
-    sc = create_scene(ds, field)
-    im = sc.render()
-    return compare(ds, im, f"{engine}_render_answers_wedge6_{field[0]}_{field[1]}")
+@pytest.mark.usefixtures("with_default_ray_tracing_engine")
+class TestWedge6DefaultEngine:
+    @requires_file(wedge6)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(wedge6, step=-1)
+        cls.images = {}
+        for field in [("connect1", "diffused")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
+
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_default_engine_wedge6(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect1_diffused"])
+        return fig
 
 
-@requires_ds(wedge6)
-@requires_module("pyembree")
-def test_wedge6_render_pyembree():
-    for field in wedge6_fields:
-        yield wedge6_render("embree", field)
+@pytest.mark.usefixtures("with_pyembree_ray_tracing_engine")
+class TestWedge6PyembreeEngine:
+    @requires_file(wedge6)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(wedge6, step=-1)
+        cls.images = {}
+        for field in [("connect1", "diffused")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
 
-
-@requires_ds(wedge6)
-def test_wedge6_render():
-    for field in wedge6_fields:
-        yield wedge6_render("yt", field)
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_pyembree_engine_wedge6(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect1_diffused"])
+        return fig
 
 
 tet10 = "SecondOrderTets/tet10_unstructured_out.e"
-tet10_fields = [("connect1", "uz")]
 
 
-def tet10_render(engine, field):
-    ytcfg["yt", "ray_tracing_engine"] = engine
-    ds = data_dir_load(tet10, kwargs={"step": -1})
-    sc = create_scene(ds, field)
-    ms = sc.get_source(0)
-    ms.color_bounds = (-0.01, 0.2)
-    im = sc.render()
-    return compare(ds, im, f"{engine}_render_answers_tet10_{field[0]}_{field[1]}")
+@pytest.mark.usefixtures("with_default_ray_tracing_engine")
+class TestTet10DefaultEngine:
+    @requires_file(tet10)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(tet10, step=-1)
+        cls.images = {}
+        for field in [("connect1", "uz")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
+
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_default_engine_tet10(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect1_uz"])
+        return fig
 
 
-@requires_ds(tet10)
-@requires_module("pyembree")
-def test_tet10_render_pyembree():
-    for field in tet10_fields:
-        yield tet10_render("embree", field)
+@pytest.mark.usefixtures("with_pyembree_ray_tracing_engine")
+class TestTet10PyembreeEngine:
+    @requires_file(tet10)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load_v2(tet10, step=-1)
+        cls.images = {}
+        for field in [("connect1", "uz")]:
+            sc = create_scene(cls.ds, field)
+            im = sc.render()
+            cls.images["_".join(field)] = im
+
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_mesh_render_pyembree_engine_tet10(self):
+        fig, ax = plt.subplots()
+        ax.imshow(self.images["connect1_uz"])
+        return fig
 
 
-@requires_ds(tet10)
-def test_tet10_render():
-    for field in tet10_fields:
-        yield tet10_render("yt", field)
-
-
-def perspective_mesh_render(engine):
-    ytcfg["yt", "ray_tracing_engine"] = engine
+@requires_file(hex8)
+@pytest.mark.usefixtures("with_default_ray_tracing_engine")
+@pytest.mark.mpl_image_compare
+def test_perspective_mesh_render_default():
     ds = data_dir_load(hex8)
     sc = create_scene(ds, ("connect2", "diffused"))
     cam = sc.add_camera(ds, lens_type="perspective")
@@ -214,22 +342,35 @@ def perspective_mesh_render(engine):
     cam.set_position(cam_pos, north_vector)
     cam.resolution = (800, 800)
     im = sc.render()
-    return compare(ds, im, f"{engine}_perspective_mesh_render")
+
+    fig, ax = plt.subplots()
+    ax.imshow(im)
+    return fig
 
 
-@requires_ds(hex8)
-@requires_module("pyembree")
+@requires_file(hex8)
+@pytest.mark.usefixtures("with_pyembree_ray_tracing_engine")
+@pytest.mark.mpl_image_compare
 def test_perspective_mesh_render_pyembree():
-    yield perspective_mesh_render("embree")
+    ds = data_dir_load(hex8)
+    sc = create_scene(ds, ("connect2", "diffused"))
+    cam = sc.add_camera(ds, lens_type="perspective")
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam_pos = ds.arr([-4.5, 4.5, -4.5], "code_length")
+    north_vector = ds.arr([0.0, -1.0, -1.0], "dimensionless")
+    cam.set_position(cam_pos, north_vector)
+    cam.resolution = (800, 800)
+    im = sc.render()
+
+    fig, ax = plt.subplots()
+    ax.imshow(im)
+    return fig
 
 
-@requires_ds(hex8)
-def test_perspective_mesh_render():
-    yield perspective_mesh_render("yt")
-
-
-def composite_mesh_render(engine):
-    ytcfg["yt", "ray_tracing_engine"] = engine
+@requires_file(hex8)
+@pytest.mark.usefixtures("with_default_ray_tracing_engine")
+@pytest.mark.mpl_image_compare
+def test_composite_mesh_render_default():
     ds = data_dir_load(hex8)
     sc = Scene()
     cam = sc.add_camera(ds)
@@ -245,15 +386,32 @@ def composite_mesh_render(engine):
     sc.add_source(ms1)
     sc.add_source(ms2)
     im = sc.render()
-    return compare(ds, im, f"{engine}_composite_mesh_render")
+
+    fig, ax = plt.subplots()
+    ax.imshow(im)
+    return fig
 
 
-@requires_ds(hex8)
-@requires_module("pyembree")
+@requires_file(hex8)
+@pytest.mark.usefixtures("with_pyembree_ray_tracing_engine")
+@pytest.mark.mpl_image_compare
 def test_composite_mesh_render_pyembree():
-    yield composite_mesh_render("embree")
+    ds = data_dir_load(hex8)
+    sc = Scene()
+    cam = sc.add_camera(ds)
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam.set_position(
+        ds.arr([-3.0, 3.0, -3.0], "code_length"),
+        ds.arr([0.0, -1.0, 0.0], "dimensionless"),
+    )
+    cam.set_width = ds.arr([8.0, 8.0, 8.0], "code_length")
+    cam.resolution = (800, 800)
+    ms1 = MeshSource(ds, ("connect1", "diffused"))
+    ms2 = MeshSource(ds, ("connect2", "diffused"))
+    sc.add_source(ms1)
+    sc.add_source(ms2)
+    im = sc.render()
 
-
-@requires_ds(hex8)
-def test_composite_mesh_render():
-    yield composite_mesh_render("yt")
+    fig, ax = plt.subplots()
+    ax.imshow(im)
+    return fig

@@ -12,10 +12,10 @@ from yt.utilities.on_demand_imports import _astropy
 
 def _make_counts(emin, emax):
     def _counts(field, data):
-        e = data[("all", "event_energy")].in_units("keV")
+        e = data["all", "event_energy"].in_units("keV")
         mask = np.logical_and(e >= emin, e < emax)
-        x = data[("all", "event_x")][mask]
-        y = data[("all", "event_y")][mask]
+        x = data["all", "event_x"][mask]
+        y = data["all", "event_y"][mask]
         z = np.ones(x.shape)
         pos = np.array([x, y, z]).transpose()
         img = data.deposit(pos, method="count")
@@ -51,7 +51,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
     >>> ebounds = [(0.1, 2.0), (2.0, 3.0)]
     >>> setup_counts_fields(ds, ebounds)
     """
-    for (emin, emax) in ebounds:
+    for emin, emax in ebounds:
         cfunc = _make_counts(emin, emax)
         fname = f"counts_{emin}-{emax}"
         mylog.info("Creating counts field %s.", fname)
@@ -135,8 +135,8 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
 
 def ds9_region(ds, reg, obj=None, field_parameters=None):
     r"""
-    Create a data container from a ds9 region file. Requires the pyregion
-    package (https://pyregion.readthedocs.io/en/latest/) to be installed.
+    Create a data container from a ds9 region file. Requires the regions
+    package (https://astropy-regions.readthedocs.io/) to be installed.
 
     Parameters
     ----------
@@ -157,29 +157,37 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     >>> circle_region = ds9_region(ds, "circle.reg")
     >>> print(circle_region.quantities.extrema("flux"))
     """
-    import pyregion
+    from yt.utilities.on_demand_imports import _astropy, _regions
+
+    Regions = _regions.Regions
+
+    WCS = _astropy.WCS
 
     from yt.frontends.fits.api import EventsFITSDataset
 
     if os.path.exists(reg):
-        r = pyregion.open(reg)
+        method = Regions.read
     else:
-        r = pyregion.parse(reg)
+        method = Regions.parse
+    r = method(reg, format="ds9").regions[0]
+
     reg_name = reg
     header = ds.wcs_2d.to_header()
     # The FITS header only contains WCS-related keywords
-    header["NAXIS1"] = nx = ds.domain_dimensions[ds.lon_axis]
-    header["NAXIS2"] = ny = ds.domain_dimensions[ds.lat_axis]
-    filter = r.get_filter(header=header)
-    mask = filter.mask((ny, nx)).transpose()
+    header["NAXIS1"] = ds.domain_dimensions[ds.lon_axis]
+    header["NAXIS2"] = ds.domain_dimensions[ds.lat_axis]
+
+    pixreg = r.to_pixel(WCS(header))
+    mask = pixreg.to_mask().to_image((header["NAXIS1"], header["NAXIS2"])).astype(bool)
+
     if isinstance(ds, EventsFITSDataset):
         prefix = "event_"
     else:
         prefix = ""
 
     def _reg_field(field, data):
-        i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int") - 1
-        j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int") - 1
+        i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int64") - 1
+        j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int64") - 1
         new_mask = mask[i, j]
         ret = np.zeros(data[prefix + "x"].shape)
         ret[new_mask] = 1.0
@@ -268,7 +276,7 @@ class PlotWindowWCS:
         self.pw.save(name=name, mpl_kwargs=mpl_kwargs)
 
     def _repr_html_(self):
-        from yt.visualization._mpl_imports import FigureCanvasAgg
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
         ret = ""
         for v in self.plots.values():
@@ -279,6 +287,6 @@ class PlotWindowWCS:
             img = base64.b64encode(f.read()).decode()
             ret += (
                 r'<img style="max-width:100%%;max-height:100%%;" '
-                r'src="data:image/png;base64,%s"><br>' % img
+                rf'src="data:image/png;base64,{img}"><br>'
             )
         return ret

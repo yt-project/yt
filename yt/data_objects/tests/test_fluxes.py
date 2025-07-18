@@ -4,11 +4,12 @@ import tempfile
 from unittest import TestCase
 
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
-from yt.testing import assert_almost_equal, assert_equal, fake_random_ds
+from yt.testing import fake_random_ds
 
 
-def setup():
+def setup_module():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
@@ -18,12 +19,17 @@ def test_flux_calculation():
     ds = fake_random_ds(64, nprocs=4)
     dd = ds.all_data()
     surf = ds.surface(dd, ("index", "x"), 0.51)
-    assert_equal(surf[("index", "x")], 0.51)
+    assert_equal(surf["index", "x"], 0.51)
     flux = surf.calculate_flux(
         ("index", "ones"), ("index", "zeros"), ("index", "zeros"), ("index", "ones")
     )
     assert_almost_equal(flux.value, 1.0, 12)
     assert_equal(str(flux.units), "cm**2")
+    flux2 = surf.calculate_flux(
+        ("index", "ones"), ("index", "zeros"), ("index", "zeros")
+    )
+    assert_almost_equal(flux2.value, 1.0, 12)
+    assert_equal(str(flux2.units), "cm**2")
 
 
 def test_sampling():
@@ -34,7 +40,7 @@ def test_sampling():
         surf.get_data(ax, sample_type="vertex")
         assert_equal(surf.vertex_samples[ax], surf.vertices[i, :])
         assert_equal(str(surf.vertices.units), "code_length")
-        dens = surf[("gas", "density")]
+        dens = surf["gas", "density"]
         vert_shape = surf.vertices.shape
         assert_equal(dens.shape[0], vert_shape[1] // vert_shape[0])
         assert_equal(str(dens.units), "g/cm**3")
@@ -134,7 +140,7 @@ def test_correct_output_unit_fake_ds():
     sp1 = ds.sphere((x, y, z), (300, "kpc"))
     Nmax = sp1.max(("gas", "density"))
     sur = ds.surface(sp1, ("gas", "density"), 0.5 * Nmax)
-    sur[("index", "x")][0]
+    sur["index", "x"][0]
 
 
 def test_radius_surface():

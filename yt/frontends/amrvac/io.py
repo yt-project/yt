@@ -4,6 +4,7 @@ AMRVAC-specific IO functions
 
 
 """
+
 import os
 
 import numpy as np
@@ -40,6 +41,9 @@ def read_amrvac_namelist(parfiles):
     unified_namelist = f90nml.Namelist()
     for nml in namelists:
         unified_namelist.patch(nml)
+
+    if "filelist" not in unified_namelist:
+        return unified_namelist
 
     # accumulate `&filelist:base_filename`
     base_filename = "".join(

@@ -2,6 +2,7 @@ import os
 import re
 
 import pytest
+from PIL import Image
 
 import yt
 from yt.testing import fake_amr_ds
@@ -21,6 +22,16 @@ def test_save_to_path(simple_sliceplot, tmp_path):
     p = simple_sliceplot
     p.save(f"{tmp_path}/")
     assert len(list((tmp_path).glob("*.png"))) == 1
+
+
+def test_metadata(simple_sliceplot, tmp_path):
+    simple_sliceplot.save(tmp_path / "ala.png")
+    with Image.open(tmp_path / "ala.png") as img:
+        assert "Software" in img.info
+        assert "yt-" in img.info["Software"]
+    simple_sliceplot.save(tmp_path / "ala.pdf")
+    with open(tmp_path / "ala.pdf", "rb") as f:
+        assert b"|yt-" in f.read()
 
 
 def test_save_to_missing_path(simple_sliceplot, tmp_path):
@@ -65,8 +76,8 @@ def test_suffix_clashing(ext, simple_sliceplot, tmp_path):
 
     target = (tmp_path / "myfile").with_suffix(ext)
     expected_warning = re.compile(
-        r"Received two valid image formats '%s' \(from filename\) "
-        r"and 'png' \(from suffix\)\. The former is ignored\." % ext[1:]
+        rf"Received two valid image formats {ext.removeprefix('.')!r} "
+        r"\(from filename\) and 'png' \(from suffix\)\. The former is ignored\."
     )
 
     with pytest.warns(UserWarning, match=expected_warning):
@@ -85,7 +96,7 @@ def test_invalid_format_from_filename(simple_sliceplot, tmp_path):
     output_files = list(tmp_path.glob("*"))
     assert len(output_files) == 1
     # the output filename may contain a generated part
-    # it's not exactly clear if it's desirable or intented in this case
+    # it's not exactly clear if it's desirable or intended in this case
     # so we just check conditions that should hold in any case
     assert output_files[0].name.startswith("myfile.nope")
     assert output_files[0].name.endswith(".png")

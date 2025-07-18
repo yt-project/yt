@@ -5,15 +5,61 @@ import struct
 import weakref
 
 import numpy as np
+from ewah_bool_utils.ewah_bool_wrap import BoolArrayCollection
 
 from yt.data_objects.index_subobjects.particle_container import ParticleContainer
-from yt.funcs import get_pbar, only_on_root
+from yt.funcs import get_pbar, is_sequence, only_on_root
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import ParticleBitmap
-from yt.utilities.lib.ewah_bool_wrap import BoolArrayCollection
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
+
+
+def validate_index_order(index_order):
+    if index_order is None:
+        index_order = (6, 2)
+    elif not is_sequence(index_order):
+        index_order = (int(index_order), 1)
+    else:
+        if len(index_order) != 2:
+            raise RuntimeError(
+                f"Tried to load a dataset with index_order={index_order}, but "
+                "index_order\nmust be an integer or a two-element tuple of "
+                "integers."
+            )
+        index_order = tuple(int(o) for o in index_order)
+    return index_order
+
+
+class ParticleIndexInfo:
+    def __init__(self, order1, order2, filename, mutable_index):
+        self._order1 = order1
+        self._order2 = order2
+        self._order2_orig = order2
+        self.filename = filename
+        self.mutable_index = mutable_index
+        self._is_loaded = False
+
+    @property
+    def order1(self):
+        return self._order1
+
+    @property
+    def order2(self):
+        return self._order2
+
+    @order2.setter
+    def order2(self, value):
+        if value == self._order2:
+            # do nothing if nothing changes
+            return
+        mylog.debug("Updating index_order2 from %s to %s", self._order2, value)
+        self._order2 = value
+
+    @property
+    def order2_orig(self):
+        return self._order2_orig
 
 
 class ParticleIndex(Index):
@@ -110,7 +156,7 @@ class ParticleIndex(Index):
         ds = self.dataset
         only_on_root(
             mylog.info,
-            "Allocating for %0.3e particles",
+            "Allocating for %0.4g particles",
             self.total_particles,
             global_rootonly=True,
         )
@@ -133,8 +179,8 @@ class ParticleIndex(Index):
                     max_ppos = np.nanmax(np.vstack([max_ppos, ppos]), axis=0)
             only_on_root(
                 mylog.info,
-                "Load this dataset with bounding_box=[%s, %s] to avoid I/O "
-                "overhead from inferring bounding_box." % (min_ppos, max_ppos),
+                f"Load this dataset with bounding_box=[{min_ppos}, {max_ppos}] "
+                "to avoid I/O overhead from inferring bounding_box.",
             )
             ds.domain_left_edge = ds.arr(1.05 * min_ppos, "code_length")
             ds.domain_right_edge = ds.arr(1.05 * max_ppos, "code_length")
@@ -144,22 +190,25 @@ class ParticleIndex(Index):
         if len(self.data_files) == 1:
             order1 = 1
             order2 = 1
+            mutable_index = False
         else:
-            order1 = ds.index_order[0]
-            order2 = ds.index_order[1]
+            mutable_index = ds.index_order is None
+            index_order = validate_index_order(ds.index_order)
+            order1 = index_order[0]
+            order2 = index_order[1]
 
         if order1 == 1 and order2 == 1:
             dont_cache = True
         else:
             dont_cache = False
 
-        # If we have applied a bounding box then we can't cache the
-        # ParticleBitmap because it is domain dependent
-        if getattr(ds, "_domain_override", False):
-            dont_cache = True
-
         if not hasattr(self.ds, "_file_hash"):
             self.ds._file_hash = self._generate_hash()
+
+        # Load Morton index from file if provided
+        fname = getattr(ds, "index_filename", None) or f"{ds.parameter_filename}.ewah"
+
+        self.pii = ParticleIndexInfo(order1, order2, fname, mutable_index)
 
         self.regions = ParticleBitmap(
             ds.domain_left_edge,
@@ -167,46 +216,49 @@ class ParticleIndex(Index):
             ds.periodicity,
             self.ds._file_hash,
             len(self.data_files),
-            index_order1=order1,
-            index_order2=order2,
+            index_order1=self.pii.order1,
+            index_order2=self.pii.order2_orig,
         )
-
-        # Load Morton index from file if provided
-        def _current_fname():
-            if getattr(ds, "index_filename", None) is None:
-                fname = ds.parameter_filename + ".index{}_{}.ewah".format(
-                    self.regions.index_order1, self.regions.index_order2
-                )
-            else:
-                fname = ds.index_filename
-            return fname
-
-        fname = _current_fname()
 
         dont_load = dont_cache and not hasattr(ds, "index_filename")
         try:
             if dont_load:
                 raise OSError
-            rflag = self.regions.load_bitmasks(fname)
+            rflag, max_hsml = self.regions.load_bitmasks(fname)
+            if max_hsml > 0.0 and self.pii.mutable_index:
+                self._order2_update(max_hsml)
             rflag = self.regions.check_bitmasks()
             self._initialize_frontend_specific()
             if rflag == 0:
                 raise OSError
+            self.pii._is_loaded = True
         except (OSError, struct.error):
             self.regions.reset_bitmasks()
-            self._initialize_coarse_index()
+            max_hsml = self._initialize_coarse_index()
             self._initialize_refined_index()
-            # We now update fname since index_order2 may have changed
-            fname = _current_fname()
             wdir = os.path.dirname(fname)
             if not dont_cache and os.access(wdir, os.W_OK):
                 # Sometimes os mis-reports whether a directory is writable,
                 # So pass if writing the bitmask file fails.
                 try:
-                    self.regions.save_bitmasks(fname)
+                    self.regions.save_bitmasks(fname, max_hsml)
                 except OSError:
                     pass
             rflag = self.regions.check_bitmasks()
+
+        self.ds.index_order = (self.pii.order1, self.pii.order2)
+
+    def _order2_update(self, max_hsml):
+        # By passing this in, we only allow index_order2 to be increased by
+        # two at most, never increased.  One place this becomes particularly
+        # useful is in the case of an extremely small section of gas
+        # particles embedded in a much much larger domain.  The max
+        # smoothing length will be quite small, so based on the larger
+        # domain, it will correspond to a very very high index order, which
+        # is a large amount of memory!  Having multiple indexes, one for
+        # each particle type, would fix this.
+        new_order2 = self.regions.update_mi2(max_hsml, self.pii.order2 + 2)
+        self.pii.order2 = new_order2
 
     def _initialize_coarse_index(self):
         max_hsml = 0.0
@@ -232,20 +284,9 @@ class ParticleIndex(Index):
         for data_file in self.data_files:
             self.regions._set_coarse_index_data_file(data_file.file_id)
         self.regions.find_collisions_coarse()
-        if max_hsml > 0.0 and len(self.data_files) > 1:
-            # By passing this in, we only allow index_order2 to be increased by
-            # two at most, never increased.  One place this becomes particularly
-            # useful is in the case of an extremely small section of gas
-            # particles embedded in a much much larger domain.  The max
-            # smoothing length will be quite small, so based on the larger
-            # domain, it will correspond to a very very high index order, which
-            # is a large amount of memory!  Having multiple indexes, one for
-            # each particle type, would fix this.
-            new_order2 = self.regions.update_mi2(max_hsml, ds.index_order[1] + 2)
-            mylog.info(
-                "Updating index_order2 from %s to %s", ds.index_order[1], new_order2
-            )
-            self.ds.index_order = (self.ds.index_order[0], new_order2)
+        if max_hsml > 0.0 and self.pii.mutable_index:
+            self._order2_update(max_hsml)
+        return max_hsml
 
     def _initialize_refined_index(self):
         mask = self.regions.masks.sum(axis=1).astype("uint8")
@@ -407,7 +448,6 @@ class ParticleIndex(Index):
         # every output file
         ret = bytearray()
         for pfile in self.data_files:
-
             # only look at "real" files, not "fake" files generated by the
             # chunking system
             if pfile.start not in (0, None):

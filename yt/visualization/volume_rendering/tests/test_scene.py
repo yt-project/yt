@@ -13,7 +13,7 @@ from yt.visualization.volume_rendering.api import (
 )
 
 
-def setup():
+def setup_module():
     """Test specific setup."""
     from yt.config import ytcfg
 
@@ -21,7 +21,6 @@ def setup():
 
 
 class RotationTest(TestCase):
-
     # This toggles using a temporary directory. Turn off to examine images.
     use_tmpdir = True
 

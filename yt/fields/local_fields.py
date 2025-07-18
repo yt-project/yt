@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from yt.funcs import is_sequence
 from yt.utilities.logger import ytLogger as mylog
@@ -7,7 +8,7 @@ from yt.utilities.logger import ytLogger as mylog
 from .field_info_container import FieldInfoContainer
 from .field_plugin_registry import register_field_plugin
 
-# workaround mypy not being confortable around decorator preserving signatures
+# workaround mypy not being comfortable around decorator preserving signatures
 # adapted from
 # https://github.com/python/mypy/issues/1551#issuecomment-253978622
 TFun = TypeVar("TFun", bound=Callable[..., Any])
@@ -17,6 +18,9 @@ class LocalFieldInfoContainer(FieldInfoContainer):
     def add_field(
         self, name, function, sampling_type, *, force_override=False, **kwargs
     ):
+        from yt.fields.field_functions import validate_field_function
+
+        validate_field_function(function)
         if isinstance(name, str) or not is_sequence(name):
             # the base method only accepts proper tuple field keys
             # and is only used internally, while this method is exposed to users

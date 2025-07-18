@@ -1,18 +1,12 @@
 import os
-import sys
 from collections import defaultdict
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
-from typing import DefaultDict, Dict, List, Tuple
-
-if sys.version_info >= (3, 9):
-    from collections.abc import Iterator, Mapping
-else:
-    from typing import Iterator, Mapping
 
 import numpy as np
 
-from yt._typing import ParticleCoordinateTuple
+from yt._typing import FieldKey, ParticleCoordinateTuple
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -28,7 +22,7 @@ def _make_io_key(args, *_args, **kwargs):
 
 
 class BaseIOHandler:
-    _vector_fields: Dict[str, int] = {}
+    _vector_fields: dict[str, int] = {}
     _dataset_type: str
     _particle_reader = False
     _cache_on = False
@@ -55,7 +49,7 @@ class BaseIOHandler:
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
     @contextmanager
-    def preload(self, chunk, fields: List[Tuple[str, str]], max_size):
+    def preload(self, chunk, fields: list[FieldKey], max_size):
         yield self
 
     def peek(self, grid, field):
@@ -70,7 +64,7 @@ class BaseIOHandler:
         if os.path.exists(backup_file):
             fhandle = h5py.File(backup_file, mode="r")
             g = fhandle["data"]
-            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+            grid_group = g[f"grid_{grid.id - grid._id_offset:010}"]
             if field_name in grid_group:
                 return_val = True
             else:
@@ -89,7 +83,7 @@ class BaseIOHandler:
         elif self._field_in_backup(grid, backup_filename, field):
             fhandle = h5py.File(backup_filename, mode="r")
             g = fhandle["data"]
-            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+            grid_group = g[f"grid_{grid.id - grid._id_offset:010}"]
             data = grid_group[field][:]
             fhandle.close()
             return data
@@ -101,8 +95,8 @@ class BaseIOHandler:
         pass
 
     def _read_fluid_selection(
-        self, chunks, selector, fields: List[Tuple[str, str]], size
-    ) -> Mapping[Tuple[str, str], np.ndarray]:
+        self, chunks, selector, fields: list[FieldKey], size
+    ) -> Mapping[FieldKey, np.ndarray]:
         # This function has an interesting history.  It previously was mandate
         # to be defined by all of the subclasses.  But, to avoid having to
         # rewrite a whole bunch of IO handlers all at once, and to allow a
@@ -119,7 +113,7 @@ class BaseIOHandler:
                 nodal_fields.append(field)
             else:
                 rv[field] = np.empty(size, dtype="=f8")
-        ind = {field: 0 for field in fields}
+        ind = dict.fromkeys(fields, 0)
         for field, obj, data in self.io_iter(chunks, fields):
             if data is None:
                 continue
@@ -130,7 +124,7 @@ class BaseIOHandler:
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
-    def io_iter(self, chunks, fields: List[Tuple[str, str]]):
+    def io_iter(self, chunks, fields: list[FieldKey]):
         raise NotImplementedError(
             "subclassing Dataset.io_iter this is required in order to use the default "
             "implementation of Dataset._read_fluid_selection. "
@@ -156,7 +150,7 @@ class BaseIOHandler:
         return {}
 
     def _read_particle_coords(
-        self, chunks, ptf: DefaultDict[str, List[str]]
+        self, chunks, ptf: defaultdict[str, list[str]]
     ) -> Iterator[ParticleCoordinateTuple]:
         # An iterator that yields particle coordinates for each chunk by particle
         # type. Must be implemented by each frontend. Must yield a tuple of
@@ -170,17 +164,15 @@ class BaseIOHandler:
         raise NotImplementedError
 
     def _read_particle_selection(
-        self, chunks, selector, fields: List[Tuple[str, str]]
-    ) -> Dict[Tuple[str, str], np.ndarray]:
-        data: Dict[Tuple[str, str], List[np.ndarray]] = {}
+        self, chunks, selector, fields: list[FieldKey]
+    ) -> dict[FieldKey, np.ndarray]:
+        data: dict[FieldKey, list[np.ndarray]] = {}
 
         # Initialize containers for tracking particle, field information
         # ptf (particle field types) maps particle type to list of on-disk fields to read
         # field_maps stores fields, accounting for field unions
-        ptf: DefaultDict[str, List[str]] = defaultdict(list)
-        field_maps: DefaultDict[Tuple[str, str], List[Tuple[str, str]]] = defaultdict(
-            list
-        )
+        ptf: defaultdict[str, list[str]] = defaultdict(list)
+        field_maps: defaultdict[FieldKey, list[FieldKey]] = defaultdict(list)
 
         # We first need a set of masks for each particle type
         chunks = list(chunks)
@@ -204,7 +196,7 @@ class BaseIOHandler:
             for field_f in field_maps[field_r]:
                 data[field_f].append(vals)
 
-        rv: Dict[Tuple[str, str], np.ndarray] = {}  # the return dictionary
+        rv: dict[FieldKey, np.ndarray] = {}  # the return dictionary
         fields = list(data.keys())
         for field_f in fields:
             # We need to ensure the arrays have the right shape if there are no
@@ -212,6 +204,8 @@ class BaseIOHandler:
             total = sum(_.size for _ in data[field_f])
             if total > 0:
                 vals = data.pop(field_f)
+                # note: numpy.concatenate has a dtype argument that would avoid
+                # a copy using .astype(...), available in numpy>=1.20
                 rv[field_f] = np.concatenate(vals, axis=0).astype("float64")
             else:
                 shape = [0]
@@ -224,33 +218,35 @@ class BaseIOHandler:
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             data_file_data = self._read_particle_data_file(data_file, ptf, selector)
             # temporary trickery so it's still an iterator, need to adjust
             # the io_handler.BaseIOHandler.read_particle_selection() method
             # to not use an iterator.
             yield from data_file_data.items()
 
-
-# As a note: we don't *actually* want this to be how it is forever.  There's no
-# reason we need to have the fluid and particle IO handlers separated.  But,
-# for keeping track of which frontend is which, this is a useful abstraction.
-class BaseParticleIOHandler(BaseIOHandler):
-    def _sorted_chunk_iterator(self, chunks):
+    @staticmethod
+    def _get_data_files(chunks):
         chunks = list(chunks)
         data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
+        return data_files
+
+    def _sorted_chunk_iterator(self, chunks):
+        data_files = self._get_data_files(chunks)
         yield from sorted(data_files, key=lambda x: (x.filename, x.start))
 
 
-class IOHandlerExtracted(BaseIOHandler):
+# As a note: we don't *actually* want this to be how it is forever.  There's no
+# reason we need to have the fluid and particle IO handlers separated.  But,
+# for keeping track of which frontend is which, this is a useful abstraction.
+class BaseParticleIOHandler(BaseIOHandler):
+    pass
 
+
+class IOHandlerExtracted(BaseIOHandler):
     _dataset_type = "extracted"
 
     def _read_data_set(self, grid, field):

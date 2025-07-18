@@ -1,6 +1,6 @@
 import numpy as np
+from numpy.testing import assert_array_equal
 
-from yt.testing import assert_array_equal
 from yt.utilities.lib.bounded_priority_queue import (
     validate,
     validate_nblist,

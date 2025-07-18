@@ -5,8 +5,9 @@ import unittest
 
 import numpy as np
 from nose.tools import assert_raises
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal, fake_random_ds
+from yt.testing import fake_random_ds
 from yt.visualization.image_writer import (
     apply_colormap,
     multi_image_composite,
@@ -34,7 +35,7 @@ class TestImageWriter(unittest.TestCase):
         cut = ds.cutting(normal, center)
         frb = cut.to_frb((0.75, "unitary"), 64)
         multi_image_composite(
-            "multi_channel1.png", frb[("index", "x")], frb[("index", "y")]
+            "multi_channel1.png", frb["index", "x"], frb["index", "y"]
         )
 
         # Test multi_image_composite with user specified scaling values
@@ -42,10 +43,10 @@ class TestImageWriter(unittest.TestCase):
         ma = ds.quan(0.9, "code_length")
         multi_image_composite(
             "multi_channel2.png",
-            (frb[("index", "x")], mi, ma),
-            [frb[("index", "y")], mi, None],
-            green_channel=frb[("index", "z")],
-            alpha_channel=frb[("gas", "density")],
+            (frb["index", "x"], mi, ma),
+            [frb["index", "y"], mi, None],
+            green_channel=frb["index", "z"],
+            alpha_channel=frb["gas", "density"],
         )
 
         # Test with numpy integer array

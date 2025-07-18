@@ -1,7 +1,7 @@
 import abc
 import glob
 import os
-from typing import List, Optional, Set, Tuple, Type
+from functools import cached_property
 
 from yt.config import ytcfg
 from yt.funcs import mylog
@@ -10,7 +10,7 @@ from yt.utilities.cython_fortran_utils import FortranFile
 from .io import _read_fluid_file_descriptor
 from .io_utils import read_offset
 
-FIELD_HANDLERS: Set[Type["FieldFileHandler"]] = set()
+FIELD_HANDLERS: set[type["FieldFileHandler"]] = set()
 
 
 def get_field_handlers():
@@ -42,6 +42,7 @@ class HandlerMixin:
         self.ds = ds = domain.ds
         self.domain = domain
         self.domain_id = domain.domain_id
+
         basename = os.path.abspath(ds.root_folder)
         iout = int(os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1])
 
@@ -141,15 +142,14 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
     _file_type = "field"
 
     # These properties are static properties
-    ftype: Optional[str] = None  # The name to give to the field type
-    fname: Optional[str] = None  # The name of the file(s)
-    attrs: Optional[
-        Tuple[Tuple[str, int, str], ...]
-    ] = None  # The attributes of the header
+    ftype: str | None = None  # The name to give to the field type
+    fname: str | None = None  # The name of the file(s)
+    # The attributes of the header
+    attrs: tuple[tuple[str, int, str], ...] | None = None
     known_fields = None  # A list of tuple containing the field name and its type
-    config_field: Optional[str] = None  # Name of the config section (if any)
+    config_field: str | None = None  # Name of the config section (if any)
 
-    file_descriptor: Optional[str] = None  # The name of the file descriptor (if any)
+    file_descriptor: str | None = None  # The name of the file descriptor (if any)
 
     # These properties are computed dynamically
     field_offsets = None  # Mapping from field to offset in file
@@ -167,6 +167,9 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
             register_field_handler(cls)
 
         cls._unique_registry = {}
+        cls.parameters = {}
+        cls.rt_parameters = {}
+        cls._detected_field_list = {}
         return cls
 
     def __init__(self, domain):
@@ -233,6 +236,10 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         return self._level_count
 
     @property
+    def field_list(self):
+        return self._detected_field_list[self.ds.unique_identifier]
+
+    @cached_property
     def offset(self):
         """
         Compute the offsets of the fields.
@@ -243,11 +250,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         It should be generic enough for most of the cases, but if the
         *structure* of your fluid file is non-canonical, change this.
         """
-
-        if getattr(self, "_offset", None) is not None:
-            return self._offset
-
-        nvars = len(self.field_list)
+        nvars = len(self._detected_field_list[self.ds.unique_identifier])
         with FortranFile(self.fname) as fd:
             # Skip headers
             nskip = len(self.attrs)
@@ -270,17 +273,16 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 fd,
                 min_level,
                 self.domain.domain_id,
-                self.parameters["nvar"],
+                self.parameters[self.ds.unique_identifier]["nvar"],
                 self.domain.amr_header,
-                skip_len=nvars * 8,
+                Nskip=nvars * 8,
             )
 
-        self._offset = offset
         self._level_count = level_count
-        return self._offset
+        return offset
 
     @classmethod
-    def load_fields_from_yt_config(cls) -> List[str]:
+    def load_fields_from_yt_config(cls) -> list[str]:
         if cls.config_field and ytcfg.has_section(cls.config_field):
             cfg = ytcfg.get(cls.config_field, "fields")
             fields = [_.strip() for _ in cfg if _.strip() != ""]
@@ -313,15 +315,14 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         num = os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1]
         testdomain = 1  # Just pick the first domain file to read
-        basepath = os.path.abspath(os.path.dirname(ds.parameter_filename))
-        basename = "%s/%%s_%s.out%05i" % (basepath, num, testdomain)
+        basename = os.path.join(ds.directory, f"%s_{num}.out{testdomain:05}")
         fname = basename % "hydro"
-        fname_desc = os.path.join(basepath, cls.file_descriptor)
+        fname_desc = os.path.join(ds.directory, cls.file_descriptor)
 
         attrs = cls.attrs
         with FortranFile(fname) as fd:
             hvals = fd.read_attrs(attrs)
-        cls.parameters = hvals
+        cls.parameters[ds.unique_identifier] = hvals
 
         # Store some metadata
         ds.gamma = hvals["gamma"]
@@ -343,7 +344,9 @@ class HydroFieldFileHandler(FieldFileHandler):
             # Or there is an hydro file descriptor
             mylog.debug("Reading hydro file descriptor.")
             # For now, we can only read double precision fields
-            fields = [e[0] for e in _read_fluid_file_descriptor(fname_desc)]
+            fields = [
+                e[0] for e in _read_fluid_file_descriptor(fname_desc, prefix="hydro")
+            ]
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
@@ -450,7 +453,9 @@ class HydroFieldFileHandler(FieldFileHandler):
             count_extra += 1
         if count_extra > 0:
             mylog.debug("Detected %s extra fluid fields.", count_extra)
-        cls.field_list = [(cls.ftype, e) for e in fields]
+        cls._detected_field_list[ds.unique_identifier] = [
+            (cls.ftype, e) for e in fields
+        ]
 
         cls.set_detected_fields(ds, fields)
 
@@ -471,14 +476,19 @@ class GravFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
+        # Try to get the detected fields
+        detected_fields = cls.get_detected_fields(ds)
+        if detected_fields:
+            return detected_fields
+
         ndim = ds.dimensionality
         iout = int(str(ds).split("_")[1])
         basedir = os.path.split(ds.parameter_filename)[0]
         fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
         with FortranFile(fname) as fd:
-            cls.parameters = fd.read_attrs(cls.attrs)
+            cls.parameters[ds.unique_identifier] = fd.read_attrs(cls.attrs)
 
-        nvar = cls.parameters["nvar"]
+        nvar = cls.parameters[ds.unique_identifier]["nvar"]
         ndim = ds.dimensionality
 
         fields = cls.load_fields_from_yt_config()
@@ -497,7 +507,11 @@ class GravFieldFileHandler(FieldFileHandler):
                 for i in range(nvar - ndetected):
                     fields.append(f"var{i}")
 
-        cls.field_list = [(cls.ftype, e) for e in fields]
+        cls._detected_field_list[ds.unique_identifier] = [
+            (cls.ftype, e) for e in fields
+        ]
+
+        cls.set_detected_fields(ds, fields)
 
         return fields
 
@@ -505,6 +519,7 @@ class GravFieldFileHandler(FieldFileHandler):
 class RTFieldFileHandler(FieldFileHandler):
     ftype = "ramses-rt"
     fname = "rt_{iout:05d}.out{icpu:05d}"
+    file_descriptor = "rt_file_descriptor.txt"
     config_field = "ramses-rt"
 
     attrs = (
@@ -569,19 +584,39 @@ class RTFieldFileHandler(FieldFileHandler):
             # Touchy part, we have to read the photon group properties
             mylog.debug("Not reading photon group properties")
 
-            cls.rt_parameters = rheader
+            cls.rt_parameters[ds.unique_identifier] = rheader
 
         ngroups = rheader["nGroups"]
 
         iout = int(str(ds).split("_")[1])
         basedir = os.path.split(ds.parameter_filename)[0]
         fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
+        fname_desc = os.path.join(basedir, cls.file_descriptor)
         with FortranFile(fname) as fd:
-            cls.parameters = fd.read_attrs(cls.attrs)
+            cls.parameters[ds.unique_identifier] = fd.read_attrs(cls.attrs)
 
-        fields = cls.load_fields_from_yt_config()
+        ok = False
 
-        if not fields:
+        if ds._fields_in_file is not None:
+            # Case 1: fields are provided by users on construction of dataset
+            fields = list(ds._fields_in_file)
+            ok = True
+        else:
+            # Case 2: fields are provided by users in the config
+            fields = cls.load_fields_from_yt_config()
+            ok = len(fields) > 0
+
+        if not ok and os.path.exists(fname_desc):
+            # Case 3: there is a file descriptor
+            # Or there is an hydro file descriptor
+            mylog.debug("Reading rt file descriptor.")
+            # For now, we can only read double precision fields
+            fields = [
+                e[0] for e in _read_fluid_file_descriptor(fname_desc, prefix="rt")
+            ]
+            ok = len(fields) > 0
+
+        if not ok:
             fields = []
             tmp = [
                 "Photon_density_%s",
@@ -592,16 +627,18 @@ class RTFieldFileHandler(FieldFileHandler):
             for ng in range(ngroups):
                 fields.extend([t % (ng + 1) for t in tmp])
 
-        cls.field_list = [(cls.ftype, e) for e in fields]
+        cls._detected_field_list[ds.unique_identifier] = [
+            (cls.ftype, e) for e in fields
+        ]
 
         cls.set_detected_fields(ds, fields)
         return fields
 
     @classmethod
     def get_rt_parameters(cls, ds):
-        if cls.rt_parameters:
-            return cls.rt_parameters
+        if cls.rt_parameters[ds.unique_identifier]:
+            return cls.rt_parameters[ds.unique_identifier]
 
         # Call detect fields to get the rt_parameters
         cls.detect_fields(ds)
-        return cls.rt_parameters
+        return cls.rt_parameters[ds.unique_identifier]

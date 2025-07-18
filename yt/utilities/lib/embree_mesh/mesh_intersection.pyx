@@ -12,26 +12,15 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 
 
 cimport cython
-cimport numpy as np
-cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
-from libc.math cimport fabs, fmax, fmin, sqrt
-from pyembree.rtcore cimport Vec3f
+from libc.math cimport fabs, fmax, fmin
 
-from yt.utilities.lib.bounding_volume_hierarchy cimport BBox
 from yt.utilities.lib.primitives cimport (
     RayHitData,
     compute_patch_hit,
     compute_tet_patch_hit,
-    patchSurfaceDerivU,
-    patchSurfaceDerivV,
-    patchSurfaceFunc,
-    tet_patchSurfaceDerivU,
-    tet_patchSurfaceDerivV,
-    tet_patchSurfaceFunc,
 )
-from yt.utilities.lib.vec3_ops cimport cross, distance, dot, subtract
 
 from .mesh_samplers cimport sample_hex20, sample_tet10
 
@@ -41,7 +30,7 @@ from .mesh_samplers cimport sample_hex20, sample_tet10
 @cython.cdivision(True)
 cdef void patchBoundsFunc(Patch* patches,
                           size_t item,
-                          rtcg.RTCBounds* bounds_o) nogil:
+                          rtcg.RTCBounds* bounds_o) noexcept nogil:
 
     cdef Patch patch = patches[item]
 
@@ -75,7 +64,7 @@ cdef void patchBoundsFunc(Patch* patches,
 @cython.cdivision(True)
 cdef void patchIntersectFunc(Patch* patches,
                              rtcr.RTCRay& ray,
-                             size_t item) nogil:
+                             size_t item) noexcept nogil:
 
     cdef Patch patch = patches[item]
 
@@ -104,7 +93,7 @@ cdef void patchIntersectFunc(Patch* patches,
 @cython.cdivision(True)
 cdef void tet_patchBoundsFunc(Tet_Patch* tet_patches,
                           size_t item,
-                          rtcg.RTCBounds* bounds_o) nogil:
+                          rtcg.RTCBounds* bounds_o) noexcept nogil:
 
     cdef Tet_Patch tet_patch = tet_patches[item]
 
@@ -138,7 +127,7 @@ cdef void tet_patchBoundsFunc(Tet_Patch* tet_patches,
 @cython.cdivision(True)
 cdef void tet_patchIntersectFunc(Tet_Patch* tet_patches,
                              rtcr.RTCRay& ray,
-                             size_t item) nogil:
+                             size_t item) noexcept nogil:
 
     cdef Tet_Patch tet_patch = tet_patches[item]
 

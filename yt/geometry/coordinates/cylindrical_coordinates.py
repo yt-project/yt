@@ -1,13 +1,8 @@
-import sys
+from functools import cached_property
 
 import numpy as np
 
 from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 from .coordinate_handler import (
     CoordinateHandler,
@@ -26,8 +21,9 @@ from .coordinate_handler import (
 
 class CylindricalCoordinateHandler(CoordinateHandler):
     name = "cylindrical"
+    _default_axis_order = ("r", "z", "theta")
 
-    def __init__(self, ds, ordering=("r", "z", "theta")):
+    def __init__(self, ds, ordering=None):
         super().__init__(ds, ordering)
         self.image_units = {}
         self.image_units[self.axis_id["r"]] = ("rad", None)
@@ -91,6 +87,8 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         size,
         antialias=True,
         periodic=False,
+        *,
+        return_mask=False,
     ):
         # Note that above, we set periodic by default to be *false*.  This is
         # because our pixelizers, at present, do not handle periodicity
@@ -98,7 +96,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         # double-counts in the edge buffers.  See, for instance, issue 1669.
         ax_name = self.axis_name[dimension]
         if ax_name in ("r", "theta"):
-            return self._ortho_pixelize(
+            buff, mask = self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
             )
         elif ax_name == "z":
@@ -109,10 +107,16 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             # not having a solution ?
             # see https://github.com/yt-project/yt/pull/3533
             bounds = (*bounds[2:4], *bounds[:2])
-            return self._cyl_pixelize(data_source, field, bounds, size, antialias)
+            buff, mask = self._cyl_pixelize(data_source, field, bounds, size, antialias)
         else:
             # Pixelizing along a cylindrical surface is a bit tricky
             raise NotImplementedError
+
+        if return_mask:
+            assert mask is None or mask.dtype == bool
+            return buff, mask
+        else:
+            return buff
 
     def pixelize_line(self, field, start_point, end_point, npoints):
         raise NotImplementedError
@@ -126,7 +130,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
         buff = np.full(size, np.nan, dtype="float64")
-        pixelize_cartesian(
+        mask = pixelize_cartesian(
             buff,
             data_source["px"],
             data_source["py"],
@@ -138,11 +142,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             period,
             int(periodic),
         )
-        return buff
+        return buff, mask
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
         buff = np.full((size[1], size[0]), np.nan, dtype="f8")
-        pixelize_cylinder(
+        mask = pixelize_cylinder(
             buff,
             data_source["px"],
             data_source["pdx"],
@@ -150,9 +154,9 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             data_source["pdy"],
             data_source[field],
             bounds,
+            return_mask=True,
         )
-        self.sanitize_buffer_fill_values(buff)
-        return buff
+        return buff, mask
 
     _x_pairs = (("r", "theta"), ("z", "r"), ("theta", "r"))
     _y_pairs = (("r", "z"), ("z", "theta"), ("theta", "z"))

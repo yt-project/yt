@@ -1,11 +1,11 @@
 import logging
 import sys
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from yt.utilities.configure import YTConfig, configuration_callbacks
 
-_yt_sh: Optional[logging.StreamHandler] = None
-_original_emitter: Optional[Callable[[logging.LogRecord], None]] = None
+_yt_sh: logging.StreamHandler | None = None
+_original_emitter: Callable[[logging.LogRecord], None] | None = None
 
 
 def set_log_level(level):
@@ -128,7 +128,7 @@ def disable_stream_logging():
 
 
 def _runtime_configuration(ytcfg: YTConfig) -> None:
-    # only run this at the end of yt.__init__, after yt.config.ytcfg was instanciated
+    # only run this at the end of yt.__init__, after yt.config.ytcfg was instantiated
 
     global _original_emitter, _yt_sh
 

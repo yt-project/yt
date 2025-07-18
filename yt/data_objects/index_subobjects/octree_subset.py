@@ -1,6 +1,7 @@
+import abc
 from contextlib import contextmanager
+from functools import cached_property
 from itertools import product, repeat
-from typing import Tuple
 
 import numpy as np
 from unyt import unyt_array
@@ -33,32 +34,34 @@ def cell_count_cache(func):
     return cc_cache_func
 
 
-class OctreeSubset(YTSelectionContainer):
+class OctreeSubset(YTSelectionContainer, abc.ABC):
     _spatial = True
     _num_ghost_zones = 0
     _type_name = "octree_subset"
     _skip_add = True
-    _con_args: Tuple[str, ...] = ("base_region", "domain", "ds")
+    _con_args: tuple[str, ...] = ("base_region", "domain", "ds")
     _domain_offset = 0
     _cell_count = -1
     _block_order = "C"
 
-    def __init__(
-        self, base_region, domain, ds, over_refine_factor=1, num_ghost_zones=0
-    ):
+    def __init__(self, base_region, domain, ds, num_zones=2, num_ghost_zones=0):
         super().__init__(ds, None)
-        self._num_zones = 1 << (over_refine_factor)
+        self._num_zones = num_zones
         self._num_ghost_zones = num_ghost_zones
-        self._oref = over_refine_factor
         self.domain = domain
         self.domain_id = domain.domain_id
         self.ds = domain.ds
         self._index = self.ds.index
-        self.oct_handler = domain.oct_handler
         self._last_mask = None
         self._last_selector_id = None
         self.base_region = base_region
         self.base_selector = base_region.selector
+
+    @property
+    @abc.abstractmethod
+    def oct_handler(self):
+        # In charge of returning the oct_handler
+        pass
 
     def __getitem__(self, key):
         tr = super().__getitem__(key)
@@ -66,7 +69,7 @@ class OctreeSubset(YTSelectionContainer):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.ds._get_field_info(*fields[0])
+        finfo = self.ds._get_field_info(fields[0])
         if not finfo.sampling_type == "particle":
             # We may need to reshape the field, if it is being queried from
             # field_data.  If it's already cached, it just passes through.
@@ -100,8 +103,6 @@ class OctreeSubset(YTSelectionContainer):
         arr = arr.reshape(new_shape, order="F")
         return arr
 
-    _domain_ind = None
-
     def mask_refinement(self, selector):
         mask = self.oct_handler.mask(selector, domain_id=self.domain_id)
         return mask
@@ -125,12 +126,9 @@ class OctreeSubset(YTSelectionContainer):
             return np.empty(0, "f8"), np.empty(0, "f8")
         return np.concatenate(dts), np.concatenate(ts)
 
-    @property
+    @cached_property
     def domain_ind(self):
-        if self._domain_ind is None:
-            di = self.oct_handler.domain_ind(self.selector)
-            self._domain_ind = di
-        return self._domain_ind
+        return self.oct_handler.domain_ind(self.selector)
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with
@@ -174,9 +172,7 @@ class OctreeSubset(YTSelectionContainer):
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
         if np.max(self.domain_ind) >= nvals[-1]:
             print(
-                "nocts, domain_ind >= 0, max {} {} {}".format(
-                    self.oct_handler.nocts, nvals[-1], np.max(self.domain_ind)
-                )
+                f"nocts, domain_ind >= 0, max {self.oct_handler.nocts} {nvals[-1]} {np.max(self.domain_ind)}"
             )
             raise Exception()
         # We allocate number of zones, not number of octs
@@ -241,7 +237,7 @@ class OctreeSubset(YTSelectionContainer):
             positions.shape[0],
             positions.shape[0] ** 0.3333333,
         )
-        pos = positions.to("code_length").value.astype("float64")
+        pos = positions.to_value("code_length").astype("float64", copy=False)
 
         op.process_octree(
             self.oct_handler,
@@ -336,7 +332,7 @@ class OctreeSubset(YTSelectionContainer):
                 [1, 1, 1],
                 self.ds.domain_left_edge,
                 self.ds.domain_right_edge,
-                over_refine=self._oref,
+                num_zones=self._nz,
             )
             # This should ensure we get everything within one neighbor of home.
             particle_octree.n_ref = nneighbors * 2
@@ -443,7 +439,7 @@ class OctreeSubset(YTSelectionContainer):
             [1, 1, 1],
             self.ds.domain_left_edge,
             self.ds.domain_right_edge,
-            over_refine=1,
+            num_zones=2,
         )
         particle_octree.n_ref = nneighbors * 2
         particle_octree.add(morton)
@@ -671,7 +667,7 @@ class YTPositionArray(unyt_array):
         morton = compute_morton(self[:, 0], self[:, 1], self[:, 2], LE, RE)
         return morton
 
-    def to_octree(self, over_refine_factor=1, dims=(1, 1, 1), n_ref=64):
+    def to_octree(self, num_zones=2, dims=(1, 1, 1), n_ref=64):
         mi = self.morton
         mi.sort()
         eps = np.finfo(self.dtype).eps
@@ -679,7 +675,7 @@ class YTPositionArray(unyt_array):
         LE -= np.abs(LE) * eps
         RE = self.max(axis=0)
         RE += np.abs(RE) * eps
-        octree = ParticleOctreeContainer(dims, LE, RE, over_refine=over_refine_factor)
+        octree = ParticleOctreeContainer(dims, LE, RE, num_zones=num_zones)
         octree.n_ref = n_ref
         octree.add(mi)
         octree.finalize()

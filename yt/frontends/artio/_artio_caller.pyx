@@ -1,5 +1,6 @@
 # distutils: sources = ARTIO_SOURCE
 # distutils: include_dirs = LIB_DIR_GEOM_ARTIO
+# distutils: libraries = STD_LIBS
 cimport cython
 
 import numpy as np
@@ -14,14 +15,9 @@ from libc.string cimport memcpy
 from yt.geometry.oct_container cimport OctObjectPool, SparseOctreeContainer
 from yt.geometry.oct_visitors cimport Oct
 from yt.geometry.particle_deposit cimport ParticleDepositOperation
-from yt.geometry.selection_routines cimport (
-    AlwaysSelector,
-    OctreeSubsetSelector,
-    SelectorObject,
-)
+from yt.geometry.selection_routines cimport AlwaysSelector, SelectorObject
 from yt.utilities.lib.fp_utils cimport imax
 
-import data_structures
 
 from yt.utilities.lib.misc_utilities import OnceIndirect
 
@@ -44,19 +40,19 @@ cdef extern from "cosmology.h":
     void cosmology_set_h(CosmologyParameters *c, double value)
     void cosmology_set_DeltaDC(CosmologyParameters *c, double value)
 
-    double abox_from_auni(CosmologyParameters *c, double a) nogil
-    double tcode_from_auni(CosmologyParameters *c, double a) nogil
-    double tphys_from_auni(CosmologyParameters *c, double a) nogil
+    double abox_from_auni(CosmologyParameters *c, double a) noexcept nogil
+    double tcode_from_auni(CosmologyParameters *c, double a) noexcept nogil
+    double tphys_from_auni(CosmologyParameters *c, double a) noexcept nogil
 
-    double auni_from_abox(CosmologyParameters *c, double v) nogil
-    double auni_from_tcode(CosmologyParameters *c, double v) nogil
-    double auni_from_tphys(CosmologyParameters *c, double v) nogil
+    double auni_from_abox(CosmologyParameters *c, double v) noexcept nogil
+    double auni_from_tcode(CosmologyParameters *c, double v) noexcept nogil
+    double auni_from_tphys(CosmologyParameters *c, double v) noexcept nogil
 
-    double abox_from_tcode(CosmologyParameters *c, double tcode) nogil
-    double tcode_from_abox(CosmologyParameters *c, double abox) nogil
+    double abox_from_tcode(CosmologyParameters *c, double tcode) noexcept nogil
+    double tcode_from_abox(CosmologyParameters *c, double abox) noexcept nogil
 
-    double tphys_from_abox(CosmologyParameters *c, double abox) nogil
-    double tphys_from_tcode(CosmologyParameters *c, double tcode) nogil
+    double tphys_from_abox(CosmologyParameters *c, double abox) noexcept nogil
+    double tphys_from_tcode(CosmologyParameters *c, double tcode) noexcept nogil
 
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
@@ -156,8 +152,8 @@ cdef extern from "artio.h":
 
 
 cdef extern from "artio_internal.h":
-    np.int64_t artio_sfc_index( artio_fileset_handle *handle, int coords[3] ) nogil
-    void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) nogil
+    np.int64_t artio_sfc_index( artio_fileset_handle *handle, int coords[3] ) noexcept nogil
+    void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) noexcept nogil
 
 cdef void check_artio_status(int status, char *fname="[unknown]"):
     if status != ARTIO_SUCCESS:
@@ -446,7 +442,6 @@ cdef class artio_fileset :
         cdef int subspecies
         cdef int64_t pid
 
-        cdef int num_fields = len(fields)
         cdef np.float64_t pos[3]
 
         # since RuntimeErrors are not fatal, ensure no artio_particles* functions
@@ -469,20 +464,20 @@ cdef class artio_fileset :
             if self.parameters["num_primary_variables"][species] > 0 and \
                     field in self.parameters["species_%02u_primary_variable_labels"%(species,)] :
                 selected_primary[species].append((self.parameters["species_%02u_primary_variable_labels"%(species,)].index(field),(species,field)))
-                data[(species,field)] = np.empty(0,dtype="float64")
+                data[species,field] = np.empty(0,dtype="float64")
             elif self.parameters["num_secondary_variables"][species] > 0 and \
                     field in self.parameters["species_%02u_secondary_variable_labels"%(species,)] :
                 selected_secondary[species].append((self.parameters["species_%02u_secondary_variable_labels"%(species,)].index(field),(species,field)))
-                data[(species,field)] = np.empty(0,dtype="float64")
+                data[species,field] = np.empty(0,dtype="float64")
             elif field == "MASS" :
                 selected_mass[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="float64")
+                data[species,field] = np.empty(0,dtype="float64")
             elif field == "PID" :
                 selected_pid[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="int64")
+                data[species,field] = np.empty(0,dtype="int64")
             elif field == "SPECIES" :
                 selected_species[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="int8")
+                data[species,field] = np.empty(0,dtype="int8")
             else :
                 raise RuntimeError("invalid field name provided to read_particle_chunk")
 
@@ -552,7 +547,6 @@ cdef class artio_fileset :
         cdef int refined[8]
         cdef int status
         cdef int64_t count
-        cdef int64_t max_octs
         cdef double dpos[3]
         cdef np.float64_t left[3]
         cdef np.float64_t right[3]
@@ -667,7 +661,6 @@ cdef class artio_fileset :
         cdef int64_t sfc_start, sfc_end
         cdef np.float64_t left[3]
         cdef np.float64_t right[3]
-        cdef np.float64_t dds[3]
         cdef artio_selection *selection
         cdef int i, j, k
 
@@ -939,15 +932,10 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                               np.int64_t sfc):
         # We actually will not be initializing the root mesh here, we will be
         # initializing the entire mesh between sfc_start and sfc_end.
-        cdef np.int64_t oct_ind, tot_octs, ipos, nadded
-        cdef int i, status, level, num_root, num_octs
-        cdef int num_level_octs
+        cdef np.int64_t oct_ind, ipos, nadded
+        cdef int i, status, level
         cdef artio_fileset_handle *handle = self.artio_handle.handle
-        cdef int coords[3]
-        cdef int max_level = self.artio_handle.max_level
         cdef double dpos[3]
-        cdef np.float64_t f64pos[3]
-        cdef np.float64_t dds[3]
         cdef np.ndarray[np.float64_t, ndim=2] pos
         # NOTE: We do not cache any SFC ranges here, as we should only ever be
         # called from within a pre-cached operation in the SFC handler.
@@ -992,10 +980,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
              field_indices, dest_fields):
         cdef np.ndarray[np.float32_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
+        cdef int status, i, num_oct_levels, nf, ngv, max_level
         cdef int level, j, oct_ind, si
         cdef np.int64_t sfc, ipos
-        cdef np.float64_t val
         cdef artio_fileset_handle *handle = self.artio_handle.handle
         cdef double dpos[3]
         # We duplicate some of the grid_variables stuff here so that we can
@@ -1098,7 +1085,6 @@ cdef read_sfc_particles(artio_fileset artio_handle,
     cdef np.int64_t sfc, particle, pid, ind, vind
     cdef int num_species = artio_handle.num_species
     cdef artio_fileset_handle *handle = artio_handle.handle
-    cdef int num_oct_levels
     cdef int *num_particles_per_species =  <int *>malloc(
         sizeof(int)*num_species)
     cdef int *accessed_species =  <int *>malloc(
@@ -1108,7 +1094,6 @@ cdef read_sfc_particles(artio_fileset artio_handle,
     cdef particle_var_pointers *vpoints = <particle_var_pointers *> malloc(
         sizeof(particle_var_pointers)*num_species)
     cdef double *primary_variables
-    cdef double dpos[3]
     cdef float *secondary_variables
     cdef np.int64_t tp
     cdef int max_level = artio_handle.max_level
@@ -1169,32 +1154,32 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         vp = &vpoints[species]
         if field == "PID":
             vp.n_pid = 1
-            data[(species, field)] = np.zeros(tp, dtype="int64")
-            npi64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="int64")
+            npi64arr = data[species, field]
             vp.pid = <np.int64_t*> npi64arr.data
         elif field == "SPECIES":
             vp.n_species = 1
-            data[(species, field)] = np.zeros(tp, dtype="int8")
-            npi8arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="int8")
+            npi8arr = data[species, field]
             # We fill this *now*
             npi8arr += species
             vp.species = <np.int8_t*> npi8arr.data
         elif npri_vars[species] > 0 and field in pri_vars :
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="float64")
+            npf64arr = data[species, field]
             vp.p_ind[vp.n_p] = pri_vars.index(field)
             vp.pvars[vp.n_p] = <np.float64_t *> npf64arr.data
             vp.n_p += 1
         elif nsec_vars[species] > 0 and field in sec_vars :
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="float64")
+            npf64arr = data[species, field]
             vp.s_ind[vp.n_s] = sec_vars.index(field)
             vp.svars[vp.n_s] = <np.float64_t *> npf64arr.data
             vp.n_s += 1
         elif field == "MASS":
             vp.n_mass = 1
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
+            data[species, field] = np.zeros(tp, dtype="float64")
+            npf64arr = data[species, field]
             # We fill this *now*
             npf64arr += params["particle_species_mass"][species]
             vp.mass = <np.float64_t*> npf64arr.data
@@ -1218,7 +1203,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         check_artio_status(status)
         for ispec in range(num_species) :
             if accessed_species[ispec] == 0: continue
-            status = artio_particle_read_species_begin(handle, ispec);
+            status = artio_particle_read_species_begin(handle, ispec)
             check_artio_status(status)
             vp = &vpoints[ispec]
 
@@ -1309,7 +1294,7 @@ cdef class ARTIORootMeshContainer:
         free(self.sfc_mask)
 
     @cython.cdivision(True)
-    cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
+    cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) noexcept nogil:
         # Calculate the index
         cdef int coords[3]
         cdef int i
@@ -1320,7 +1305,7 @@ cdef class ARTIORootMeshContainer:
         return sfc
 
     @cython.cdivision(True)
-    cdef void sfc_to_pos(self, np.int64_t sfc, np.float64_t pos[3]) nogil:
+    cdef void sfc_to_pos(self, np.int64_t sfc, np.float64_t pos[3]) noexcept nogil:
         cdef int coords[3]
         cdef int i
         artio_sfc_coords(self.handle, sfc, coords)
@@ -1330,11 +1315,6 @@ cdef class ARTIORootMeshContainer:
     cdef np.int64_t count_cells(self, SelectorObject selector):
         # We visit each cell if it is not refined and determine whether it is
         # included or not.
-        cdef np.int64_t sfc
-        cdef np.float64_t pos[3]
-        cdef np.float64_t right_edge[3]
-        cdef int num_cells = 0
-        cdef int i
         return self.mask(selector).sum()
 
     @cython.boundscheck(False)
@@ -1373,7 +1353,6 @@ cdef class ARTIORootMeshContainer:
         # Note that num_cells does not have to equal sfc_end - sfc_start + 1.
         cdef np.int64_t sfc, sfci = -1
         cdef np.float64_t pos[3]
-        cdef int acoords[3]
         cdef int i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
@@ -1400,8 +1379,6 @@ cdef class ARTIORootMeshContainer:
     def fwidth(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         cdef int i
-        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
-        mask = self.mask(selector)
         num_cells = self._last_mask_sum
         cdef np.ndarray[np.float64_t, ndim=2] width
         width = np.zeros((num_cells, 3), dtype="float64")
@@ -1414,8 +1391,8 @@ cdef class ARTIORootMeshContainer:
     @cython.cdivision(True)
     def ires(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
-        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
-        mask = self.mask(selector)
+        # Note: self.mask has a side effect of setting self._last_mask_sum
+        self.mask(selector)
         num_cells = self._last_mask_sum
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.zeros(num_cells, dtype="int64")
@@ -1434,13 +1411,7 @@ cdef class ARTIORootMeshContainer:
         cdef np.int64_t num_cells = -1
         cdef np.int64_t ind
         cdef np.int64_t sfc, sfci = -1
-        cdef np.float64_t pos[3]
-        cdef np.float64_t dpos[3]
-        cdef int dim, status, filled = 0
-        cdef int num_oct_levels, level
-        cdef int max_level = self.artio_handle.max_level
-        cdef int *num_octs_per_level = <int *>malloc(
-            (max_level + 1)*sizeof(int))
+        cdef int filled = 0
         cdef char *sdata = <char*> source.data
         cdef char *ddata
         cdef int ss = source.dtype.itemsize
@@ -1476,7 +1447,6 @@ cdef class ARTIORootMeshContainer:
     def mask(self, SelectorObject selector, np.int64_t num_cells = -1,
              int domain_id = -1):
         # We take a domain_id here to avoid subclassing
-        cdef int i
         cdef np.float64_t pos[3]
         cdef np.int64_t sfc, sfci = -1
         if self._last_selector_id == hash(selector):
@@ -1508,9 +1478,8 @@ cdef class ARTIORootMeshContainer:
     @cython.cdivision(True)
     def fill_sfc(self, SelectorObject selector, field_indices):
         cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
+        cdef int status, i, num_oct_levels, nf, ngv, max_level
         cdef np.int64_t sfc, num_cells, sfci = -1
-        cdef np.float64_t val
         cdef double dpos[3]
         max_level = self.artio_handle.max_level
         cdef int *num_octs_per_level = <int *>malloc(
@@ -1611,8 +1580,7 @@ cdef class ARTIORootMeshContainer:
         cdef int coords[3]
         cdef int dims[3]
         dims[0] = dims[1] = dims[2] = 1
-        cdef np.int64_t offset, moff
-        cdef np.int64_t numpart = positions.shape[0]
+        cdef np.int64_t offset
         for i in range(positions.shape[0]):
             for j in range(nf):
                 field_vals[j] = field_pointers[j][i]
@@ -1658,19 +1626,19 @@ cdef class SFCRangeSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         return 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         return self.select_point(pos)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef np.int64_t sfc = self.mesh_container.pos_to_sfc(pos)
         if sfc > self.sfc_end: return 0
         cdef np.int64_t oc = self.range_handler.doct_count[
@@ -1682,7 +1650,7 @@ cdef class SFCRangeSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         return self.base_selector.select_bbox(left_edge, right_edge)
 
     @cython.boundscheck(False)
@@ -1690,7 +1658,7 @@ cdef class SFCRangeSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
+                         Oct *o = NULL) noexcept nogil:
         # Because visitors now use select_grid, we should be explicitly
         # checking this.
         return self.base_selector.select_grid(left_edge, right_edge, level, o)

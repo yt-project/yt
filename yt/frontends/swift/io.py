@@ -40,7 +40,7 @@ class IOHandlerSwift(IOHandlerSPH):
     def _yield_coordinates(self, sub_file, needed_ptype=None):
         si, ei = sub_file.start, sub_file.end
         f = h5py.File(sub_file.filename, mode="r")
-        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int64")
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
         for key in f.keys():
@@ -63,10 +63,16 @@ class IOHandlerSwift(IOHandlerSPH):
         ind = int(ptype[-1])
         si, ei = sub_file.start, sub_file.end
         with h5py.File(sub_file.filename, mode="r") as f:
-            pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
+            pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int64")
             pcount = np.clip(pcount - si, 0, ei - si)
+            keys = f[ptype].keys()
+            # SWIFT commit a94cc81 changed from "SmoothingLength" to "SmoothingLengths"
+            # between SWIFT versions 0.8.2 and 0.8.3
+            if "SmoothingLengths" in keys:
+                hsml = f[ptype]["SmoothingLengths"][si:ei, ...]
+            else:
+                hsml = f[ptype]["SmoothingLength"][si:ei, ...]
             # we upscale to float64
-            hsml = f[ptype]["SmoothingLength"][si:ei, ...]
             hsml = hsml.astype("float64", copy=False)
             return hsml
 
@@ -108,7 +114,7 @@ class IOHandlerSwift(IOHandlerSPH):
 
                 data.astype("float64", copy=False)
 
-                return_data[(ptype, field)] = data
+                return_data[ptype, field] = data
         f.close()
 
         return return_data
@@ -116,7 +122,7 @@ class IOHandlerSwift(IOHandlerSPH):
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename, mode="r")
-        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int64")
         f.close()
         # if this data_file was a sub_file, then we just extract the region
         # defined by the subfile

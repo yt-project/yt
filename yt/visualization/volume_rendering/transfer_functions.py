@@ -1,5 +1,4 @@
 import numpy as np
-from matplotlib.cm import get_cmap
 from more_itertools import always_iterable
 
 from yt.funcs import mylog
@@ -38,7 +37,7 @@ class TransferFunction:
         # Strip units off of x_bounds, if any
         x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
-        self.x = np.linspace(x_bounds[0], x_bounds[1], nbins).astype("float64")
+        self.x = np.linspace(x_bounds[0], x_bounds[1], nbins, dtype="float64")
         self.y = np.zeros(nbins, dtype="float64")
         self.grad_field = -1
         self.light_source_v = self.light_source_c = np.zeros(3, "float64")
@@ -162,6 +161,8 @@ class TransferFunction:
         )
 
     def add_filtered_planck(self, wavelength, trans):
+        from yt._maintenance.numpy2_compat import trapezoid
+
         vals = np.zeros(self.x.shape, "float64")
         nu = clight / (wavelength * 1e-8)
         nu = nu[::-1]
@@ -175,10 +176,10 @@ class TransferFunction:
             # transmission
             f = Bnu * trans[::-1]
             # integrate transmission over nu
-            vals[i] = np.trapz(f, nu)
+            vals[i] = trapezoid(f, nu)
 
         # normalize by total transmission over filter
-        self.y = vals / trans.sum()  # /np.trapz(trans[::-1],nu)
+        self.y = vals / trans.sum()
         # self.y = np.clip(np.maximum(vals, self.y), 0.0, 1.0)
 
     def plot(self, filename):
@@ -239,8 +240,8 @@ class TransferFunction:
     def __repr__(self):
         disp = (
             "<Transfer Function Object>: "
-            "x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s"
-            % (self.x_bounds[0], self.x_bounds[1], self.nbins, self.features)
+            f"x_bounds:({self.x_bounds[0]:3.2g}, {self.x_bounds[1]:3.2g}) "
+            f"nbins:{self.nbins:3.2g} features:{self.features}"
         )
         return disp
 
@@ -432,15 +433,14 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-9.0, 0.01, [1.0, 0.0, 0.0, 1.0])
         """
-        for tf, v in zip(self.funcs, height):
+        for tf, v in zip(self.funcs, height, strict=True):
             tf.add_gaussian(location, width, v)
         self.features.append(
             (
                 "gaussian",
                 f"location(x):{location:3.2g}",
                 f"width(x):{width:3.2g}",
-                "height(y):(%3.2g, %3.2g, %3.2g, %3.2g)"
-                % (height[0], height[1], height[2], height[3]),
+                f"height(y):({height[0]:3.2g}, {height[1]:3.2g}, {height[2]:3.2g}, {height[3]:3.2g})",
             )
         )
 
@@ -474,15 +474,14 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_step(-6.0, -5.0, [1.0, 1.0, 1.0, 1.0])
         """
-        for tf, v in zip(self.funcs, value):
+        for tf, v in zip(self.funcs, value, strict=True):
             tf.add_step(start, stop, v)
         self.features.append(
             (
                 "step",
                 f"start(x):{start:3.2g}",
                 f"stop(x):{stop:3.2g}",
-                "value(y):(%3.2g, %3.2g, %3.2g, %3.2g)"
-                % (value[0], value[1], value[2], value[3]),
+                f"value(y):({value[0]:3.2g}, {value[1]:3.2g}, {value[2]:3.2g}, {value[3]:3.2g})",
             )
         )
 
@@ -606,7 +605,15 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlabel("Value")
 
     def vert_cbar(
-        self, resolution, log_scale, ax, label=None, label_fmt=None, *, size=10
+        self,
+        resolution,
+        log_scale,
+        ax,
+        label=None,
+        label_fmt=None,
+        *,
+        label_fontsize=10,
+        size=10,
     ):
         r"""Display an image of the transfer function
 
@@ -666,9 +673,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 if abs(val) < 1.0e-3 or abs(val) > 1.0e4:
                     if not val == 0.0:
                         e = np.floor(np.log10(abs(val)))
-                        return r"${:.2f}\times 10^{{ {:d} }}$".format(
-                            val / 10.0**e, int(e)
-                        )
+                        return rf"${val / 10.0**e:.2f}\times 10^{{ {int(e):d} }}$"
                     else:
                         return r"$0$"
                 else:
@@ -688,8 +693,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.xaxis.set_major_formatter(FuncFormatter(y_format))
         ax.set_xlim(0.0, max_alpha)
         ax.get_xaxis().set_ticks([])
-        ax.set_ylim(visible[0], visible[-1])
-        ax.tick_params(axis="y", colors="white", size=10)
+        ax.set_ylim(visible[0].item(), visible[-1].item())
+        ax.tick_params(axis="y", colors="white", labelsize=label_fontsize)
         ax.set_ylabel(label, color="white", size=size * resolution / 512.0)
 
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
@@ -728,12 +733,14 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.sample_colormap(-7.0, 0.01, colormap="cmyt.arbre")
         """
+        import matplotlib as mpl
+
         v = np.float64(v)
         if col_bounds is None:
             rel = (v - self.x_bounds[0]) / (self.x_bounds[1] - self.x_bounds[0])
         else:
             rel = (v - col_bounds[0]) / (col_bounds[1] - col_bounds[0])
-        cmap = get_cmap(colormap)
+        cmap = mpl.colormaps[colormap]
         r, g, b, a = cmap(rel)
         if alpha is None:
             alpha = a
@@ -780,6 +787,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ...     -6.0, -5.0, scale=10.0, colormap="cmyt.arbre", scale_func=linramp
         ... )
         """
+        import matplotlib as mpl
+
         mi = np.float64(mi)
         ma = np.float64(ma)
         rel0 = int(
@@ -791,7 +800,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         rel0 = max(rel0, 0)
         rel1 = min(rel1, self.nbins - 1) + 1
         tomap = np.linspace(0.0, 1.0, num=rel1 - rel0)
-        cmap = get_cmap(colormap)
+        cmap = mpl.colormaps[colormap]
         cc = cmap(tomap)
         if scale_func is None:
             scale_mult = 1.0
@@ -881,7 +890,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             alpha = np.ones(N, dtype="float64")
         elif alpha is None and not self.grey_opacity:
             alpha = np.logspace(-3, 0, N)
-        for v, a in zip(np.mgrid[mi : ma : N * 1j], alpha):
+        for v, a in zip(np.mgrid[mi : ma : N * 1j], alpha, strict=True):
             self.sample_colormap(v, w, a, colormap=colormap, col_bounds=col_bounds)
 
     def get_colormap_image(self, height, width):
@@ -901,8 +910,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     def __repr__(self):
         disp = (
             "<Color Transfer Function Object>:\n"
-            + "x_bounds:[%3.2g, %3.2g] nbins:%i features:\n"
-            % (self.x_bounds[0], self.x_bounds[1], self.nbins)
+            f"x_bounds:[{self.x_bounds[0]:3.2g}, {self.x_bounds[1]:3.2g}] "
+            f"nbins:{self.nbins} features:\n"
         )
         for f in self.features:
             disp += f"\t{str(f)}\n"

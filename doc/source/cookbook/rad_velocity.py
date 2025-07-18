@@ -44,9 +44,9 @@ ax = fig.add_subplot(111)
 
 ax.plot(
     rp0.x.value,
-    rp0[("gas", "radial_velocity")].in_units("km/s").value,
+    rp0["gas", "radial_velocity"].in_units("km/s").value,
     rp1.x.value,
-    rp1[("gas", "radial_velocity")].in_units("km/s").value,
+    rp1["gas", "radial_velocity"].in_units("km/s").value,
 )
 
 ax.set_xlabel(r"$\mathrm{r\ (kpc)}$")

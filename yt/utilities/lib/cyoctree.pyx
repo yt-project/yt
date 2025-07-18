@@ -102,7 +102,7 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
         sx = tree.size[0] * inv_size
         sy = tree.size[1] * inv_size
         sz = tree.size[2] * inv_size
-        lx = tree.node_positions[(3*node_idx)] - sx/2.
+        lx = tree.node_positions[3*node_idx] - sx/2.
         ly = tree.node_positions[(3*node_idx)+1] - sy/2.
         lz = tree.node_positions[(3*node_idx)+2] - sz/2.
 
@@ -118,7 +118,7 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
                     # Store the child location
                     tree.children[8*node_idx + n] = child
 
-                    tree.node_positions[(child*3)] = lx + sx*i
+                    tree.node_positions[child*3] = lx + sx*i
                     tree.node_positions[(child*3)+1] = ly + sy*j
                     tree.node_positions[(child*3)+2] = lz + sz*k
 
@@ -595,7 +595,7 @@ cdef class CyOctree:
         """
 
         cdef Octree * tree = self.c_octree
-        cdef double q_ij, diff_x, diff_y, diff_z, diff, sx, sy, sz, size
+        cdef double q_ij, diff_x, diff_y, diff_z, diff, sx, sy, sz
         cdef int i
         cdef long int child_node
 
@@ -676,7 +676,7 @@ cdef class CyOctree:
         """
         self.kernel = get_kernel_func(kernel_name)
 
-        cdef int i, j
+        cdef int i
         cdef double prefactor, prefactor_norm
         for i in range(posx.shape[0]):
             prefactor = pmass[i] / pdens[i] / hsml[i]**3
@@ -697,7 +697,7 @@ cdef np.int64_t separate(
         double value,
         np.int64_t start,
         np.int64_t end
-    ) nogil:
+    ) noexcept nogil:
     """
     This is a simple utility function which takes a selection of particles and
     re-arranges them such that values below `value` are to the left of split and
@@ -757,7 +757,7 @@ cdef void split_helper(Octree * tree, np.int64_t node_idx, np.int64_t * splits):
     splits[8] = tree.pend[node_idx]
 
     splits[4] = separate(
-        tree.pposx, tree.pidx, tree.node_positions[(3*node_idx)], splits[0], splits[8])
+        tree.pposx, tree.pidx, tree.node_positions[3*node_idx], splits[0], splits[8])
 
     splits[2] = separate(
         tree.pposy, tree.pidx, tree.node_positions[(3*node_idx)+1], splits[0], splits[4])
@@ -783,7 +783,7 @@ cdef np.int64_t select(
         np.float64_t[::1] right_edge,
         np.int64_t start,
         np.int64_t end
-    ) nogil:
+    ) noexcept nogil:
     """
     Re-arrange the input particles such that those outside the bounds of the
     tree occur after the split index and can thus be ignored for the remainder

@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from yt.data_objects.static_output import Dataset
@@ -95,6 +97,10 @@ def ambiguous_dataset_classes():
             self.mass_unit = self.quan(1, "kg")
             self.time_unit = self.quan(1, "s")
 
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
     class AlphaDataset(MockDataset):
         @classmethod
         def _is_valid(cls, *args, **kwargs):
@@ -138,6 +144,8 @@ def test_load_ambiguous_data(tmp_path):
         ("beta", "BetaDataset"),
         ("BeTA", "BetaDataset"),
         ("b", "BetaDataset"),
+        ("mock", "MockDataset"),
+        ("MockDataset", "MockDataset"),
     ],
 )
 @pytest.mark.usefixtures("ambiguous_dataset_classes")
@@ -158,3 +166,136 @@ def test_load_ambiguous_data_with_hint(hint, expected_type, tmp_path):
 
     ds = ts[1]
     assert type(ds).__name__ == expected_type
+
+
+@pytest.fixture()
+def catchall_dataset_class():
+    # define a Dataset class matching any input,
+    # just so that we don't have to require an actual
+    # dataset for some tests
+    class MockHierarchy(GridIndex):
+        pass
+
+    class MockDataset(Dataset):
+        _index_class = MockHierarchy
+
+        def _parse_parameter_file(self, *args, **kwargs):
+            self.current_time = -1.0
+            self.cosmological_simulation = 0
+
+        def _set_code_unit_attributes(self, *args, **kwargs):
+            self.length_unit = self.quan(1, "m")
+            self.mass_unit = self.quan(1, "kg")
+            self.time_unit = self.quan(1, "s")
+
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
+    yield
+
+    # teardown to avoid possible breakage in following tests
+    output_type_registry.pop("MockDataset")
+
+
+@pytest.mark.usefixtures("catchall_dataset_class")
+def test_depr_load_keyword(tmp_path):
+    with pytest.deprecated_call(
+        match=r"Using the 'fn' argument as keyword \(on position 0\) is deprecated\.",
+    ):
+        load(fn=tmp_path)
+
+
+@pytest.fixture()
+def invalid_dataset_class_with_missing_requirements():
+    # define a Dataset class matching any input,
+    # just so that we don't have to require an actual
+    # dataset for some tests
+    class MockHierarchy(GridIndex):
+        pass
+
+    class MockDataset(Dataset):
+        _load_requirements = ["mock_package_name"]
+        _index_class = MockHierarchy
+
+        def _parse_parameter_file(self, *args, **kwargs):
+            self.current_time = -1.0
+            self.cosmological_simulation = 0
+
+        def _set_code_unit_attributes(self, *args, **kwargs):
+            self.length_unit = self.quan(1, "m")
+            self.mass_unit = self.quan(1, "kg")
+            self.time_unit = self.quan(1, "s")
+
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return False
+
+    yield
+
+    # teardown to avoid possible breakage in following tests
+    output_type_registry.pop("MockDataset")
+
+
+@pytest.mark.usefixtures("invalid_dataset_class_with_missing_requirements")
+def test_all_invalid_with_missing_requirements(tmp_path):
+    with pytest.raises(
+        YTUnidentifiedDataType,
+        match=re.compile(
+            re.escape(f"Could not determine input format from {tmp_path!r}\n")
+            + "The following types could not be thorougly checked against your data because "
+            "their requirements are missing. "
+            "You may want to inspect this list and check your installation:\n"
+            r".*"
+            r"- MockDataset \(requires: mock_package_name\)"
+            r".*"
+            "\n\n"
+            "Please make sure you are running a sufficiently recent version of yt.",
+            re.DOTALL,
+        ),
+    ):
+        load(tmp_path)
+
+
+@pytest.fixture()
+def valid_dataset_class_with_missing_requirements():
+    # define a Dataset class matching any input,
+    # just so that we don't have to require an actual
+    # dataset for some tests
+    class MockHierarchy(GridIndex):
+        pass
+
+    class MockDataset(Dataset):
+        _load_requirements = ["mock_package_name"]
+        _index_class = MockHierarchy
+
+        def _parse_parameter_file(self, *args, **kwargs):
+            self.current_time = -1.0
+            self.cosmological_simulation = 0
+
+        def _set_code_unit_attributes(self, *args, **kwargs):
+            self.length_unit = self.quan(1, "m")
+            self.mass_unit = self.quan(1, "kg")
+            self.time_unit = self.quan(1, "s")
+
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
+    yield
+
+    # teardown to avoid possible breakage in following tests
+    output_type_registry.pop("MockDataset")
+
+
+@pytest.mark.usefixtures("valid_dataset_class_with_missing_requirements")
+def test_single_valid_with_missing_requirements(tmp_path):
+    with pytest.warns(
+        UserWarning,
+        match=(
+            "This dataset appears to be of type MockDataset, "
+            "but the following requirements are currently missing: mock_package_name\n"
+            "Please verify your installation."
+        ),
+    ):
+        load(tmp_path)

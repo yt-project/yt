@@ -1,12 +1,12 @@
 import numpy as np
-
-from yt.testing import (
+from numpy.testing import (
     assert_array_equal,
     assert_array_less,
     assert_equal,
     assert_raises,
-    fake_random_ds,
 )
+
+from yt.testing import fake_random_ds
 from yt.utilities.lib.misc_utilities import (
     obtain_position_vector,
     obtain_relative_velocity_vector,
@@ -978,6 +978,6 @@ def test_obtain_relative_velocity_vector():
 
     vels = obtain_relative_velocity_vector(dd)
 
-    assert_array_equal(vels[0, :], dd[("gas", "velocity_x")])
-    assert_array_equal(vels[1, :], dd[("gas", "velocity_y")])
-    assert_array_equal(vels[2, :], dd[("gas", "velocity_z")])
+    assert_array_equal(vels[0, :], dd["gas", "velocity_x"])
+    assert_array_equal(vels[1, :], dd["gas", "velocity_y"])
+    assert_array_equal(vels[2, :], dd["gas", "velocity_z"])

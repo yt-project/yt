@@ -164,13 +164,18 @@ If supplied without units, the center is assumed by in code units.  There are al
 the following alternative options for the ``center`` keyword:
 
 * ``"center"``, ``"c"``: the domain center
+* ``"left"``, ``"l"``, ``"right"`` ``"r"``: the domain's left/right edge along the normal direction
+  (``SlicePlot``'s second argument). Remaining axes use their respective domain center values.
+* ``"min"``: the position of the minimum density
 * ``"max"``, ``"m"``: the position of the maximum density
+* ``"min/max_<field name>"``: the position of the minimum/maximum in the first field matching field name
 * ``("min", field)``: the position of the minimum of ``field``
 * ``("max", field)``: the position of the maximum of ``field``
 
 where for the last two objects any spatial field, such as ``"density"``,
 ``"velocity_z"``,
 etc., may be used, e.g. ``center=("min", ("gas", "temperature"))``.
+``"left"`` and ``"right"`` are not allowed for off-axis slices.
 
 The effective resolution of the plot (i.e. the number of resolution elements
 in the image itself) can be controlled with the ``buff_size`` argument:
@@ -287,6 +292,10 @@ In this case, a normal vector for the cutting plane is supplied in the second
 argument. Optionally, a ``north_vector`` can be specified to fix the orientation
 of the image plane.
 
+.. note:: Not every data types have support for off-axis slices yet.
+   Currently, this operation is supported for grid based and SPH data with cartesian geometry.
+   In some cases an off-axis projection over a thin region might be used instead.
+
 .. _projection-plots:
 
 Projection Plots
@@ -329,52 +338,89 @@ If you want to project through a subset of the full dataset volume,
 you can use the ``data_source`` keyword with a :ref:`data object <data-objects>`.
 The :ref:`thin-slice-projections` recipes demonstrates this functionality.
 
+.. note:: Not every data types have support for off-axis projections yet.
+   Currently, this operation is supported for grid based data with cartesian geometry,
+   as well as SPH particles data.
+
 .. _projection-types:
 
 Types of Projections
 """"""""""""""""""""
 
 There are several different methods of projections that can be made either
-when creating a projection with ds.proj() or when making a ProjectionPlot.
+when creating a projection with :meth:`~yt.static_output.Dataset.proj` or
+when making a :class:`~yt.visualization.plot_window.ProjectionPlot`.
 In either construction method, set the ``method`` keyword to be one of the
 following:
 
-``integrate`` (unweighted)
-    This is the default projection method. It simply integrates the
-    requested field  :math:`f(x)` along a line of sight  :math:`\hat{n}` ,
-    given by the axis parameter (e.g. :math:`\hat{i},\hat{j},` or
-    :math:`\hat{k}`).  The units of the projected field
-    :math:`g(X)` will be the units of the unprojected field  :math:`f(x)`
-    multiplied by the appropriate length unit, e.g., density in
-    :math:`\mathrm{g\ cm^{-3}}` will be projected to  :math:`\mathrm{g\ cm^{-2}}`.
+``integrate`` (unweighted):
++++++++++++++++++++++++++++
+
+This is the default projection method. It simply integrates the
+requested field :math:`f({\bf x})` along a line of sight :math:`\hat{\bf n}` ,
+given by the axis parameter (e.g. :math:`\hat{\bf i},\hat{\bf j},` or
+:math:`\hat{\bf k}`). The units of the projected field
+:math:`g({\bf X})` will be the units of the unprojected field :math:`f({\bf x})`
+multiplied by the appropriate length unit, e.g., density in
+:math:`\mathrm{g\ cm^{-3}}` will be projected to  :math:`\mathrm{g\ cm^{-2}}`.
 
 .. math::
 
-    g(X) = {\int\ {f(x)\hat{n}\cdot{dx}}}
+    g({\bf X}) = {\int\ {f({\bf x})\hat{\bf n}\cdot{d{\bf x}}}}
 
-``integrate`` (weighted)
-    When using the ``integrate``  method, a ``weight_field`` argument may also
-    be specified, which will produce a weighted projection.  :math:`w(x)`
-    is the field used as a weight. One common example would
-    be to weight the "temperature" field by the "density" field. In this case,
-    the units of the projected field are the same as the unprojected field.
+``integrate`` (weighted):
++++++++++++++++++++++++++
+
+When using the ``integrate``  method, a ``weight_field`` argument may also
+be specified, which will produce a weighted projection. :math:`w({\bf x})`
+is the field used as a weight. One common example would
+be to weight the "temperature" field by the "density" field. In this case,
+the units of the projected field are the same as the unprojected field.
 
 .. math::
 
-    g(X) = \frac{\int\ {f(x)w(x)\hat{n}\cdot{dx}}}{\int\ {w(x)\hat{n}\cdot{dx}}}
+    g({\bf X}) = \int\ {f({\bf x})\tilde{w}({\bf x})\hat{\bf n}\cdot{d{\bf x}}}
 
-``mip``
-    This method picks out the maximum value of a field along the line of
-    sight given by the axis parameter.
+where the "~" over :math:`w({\bf x})` reflects the fact that it has been normalized
+like so:
 
-``sum``
-    This method is the same as ``integrate``, except that it does not
-    multiply by a path length when performing the integration, and is just a
-    straight summation of the field along the given axis. The units of the
-    projected field will be the same as those of the unprojected field. This
-    method is typically only useful for datasets such as 3D FITS cubes where
-    the third axis of the dataset is something like velocity or frequency, and
-    should _only_ be used with fixed-resolution grid-based datasets.
+.. math::
+
+    \tilde{w}({\bf x}) = \frac{w({\bf x})}{\int\ {w({\bf x})\hat{\bf n}\cdot{d{\bf x}}}}
+
+For weighted projections using the ``integrate`` method, it is also possible
+to project the standard deviation of a field. In this case, the projected
+field is mathematically given by:
+
+.. math::
+
+    g({\bf X}) = \left[\int\ {f({\bf x})^2\tilde{w}({\bf x})\hat{\bf n}\cdot{d{\bf x}}} - \left(\int\ {f({\bf x})\tilde{w}({\bf x})\hat{\bf n}\cdot{d{\bf x}}}\right)^2\right]^{1/2}
+
+in order to make a weighted projection of the standard deviation of a field
+along a line of sight, the ``moment`` keyword argument should be set to 2.
+
+``max``:
+++++++++
+
+This method picks out the maximum value of a field along the line of
+sight given by the axis parameter.
+
+``min``:
+++++++++
+
+This method picks out the minimum value of a field along the line of
+sight given by the axis parameter.
+
+``sum``:
+++++++++
+
+This method is the same as ``integrate``, except that it does not
+multiply by a path length when performing the integration, and is just a
+straight summation of the field along the given axis. The units of the
+projected field will be the same as those of the unprojected field. This
+method is typically only useful for datasets such as 3D FITS cubes where
+the third axis of the dataset is something like velocity or frequency, and
+should *only* be used with fixed-resolution grid-based datasets.
 
 .. _off-axis-projections:
 
@@ -387,6 +433,8 @@ by applying the
 In this use case, the volume renderer casts a set of plane parallel rays, one
 for each pixel in the image.  The data values along each ray are summed,
 creating the final image buffer.
+For SPH datsets, the coordinates are instead simply rotated before the axis-aligned
+projection function is applied.
 
 .. _off-axis-projection-function:
 
@@ -406,7 +454,6 @@ projection through a simulation.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1, 1, 0]  # vector normal to cutting plane
-   north_vector = [-1, 1, 0]
    W = [0.02, 0.02, 0.02]
    c = [0.5, 0.5, 0.5]
    N = 512
@@ -436,8 +483,11 @@ to project along, and a field to project.  For example:
 
 ``OffAxisProjectionPlot`` objects can also be created with a number of
 keyword arguments, as described in
-:class:`~yt.visualization.plot_window.OffAxisProjectionPlot`
+:class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.
 
+Like on-axis projections, the projection of the standard deviation
+of a weighted field can be created by setting ``moment=2`` in the call
+to :class:`~yt.visualization.plot_window.ProjectionPlot`.
 
 .. _slices-and-projections-in-spherical-geometry:
 
@@ -603,16 +653,9 @@ simply pass ``all`` as the first argument of the field tuple:
 Additional Notes for Plotting Particle Data
 -------------------------------------------
 
-Below are some important caveats to note when visualizing particle data.
-
-1. Off axis slice plotting is not available for any particle data.
-   However, axis-aligned slice plots (as described in :ref:`slice-plots`)
-   will work.
-
-2. Off axis projections (as in :ref:`off-axis-projections`) will only work
-   for SPH particles, i.e., particles that have a defined smoothing length.
-
-Two workaround methods are available for plotting non-SPH particles with off-axis
+Since version 4.2.0, off-axis projections ares supported for non-SPH particle data.
+Previous to that, this operation was only supported for SPH particles. Two historical
+workaround methods were available for plotting non-SPH particles with off-axis
 projections.
 
 1. :ref:`smooth-non-sph` - this method involves extracting particle data to be
@@ -723,6 +766,9 @@ the axes unit labels.
 
 The same result could have been accomplished by explicitly setting the ``width``
 to ``(.01, 'Mpc')``.
+
+
+.. _set-image-units:
 
 Set image units
 ~~~~~~~~~~~~~~~
@@ -905,7 +951,7 @@ customization.
 Colormaps
 ~~~~~~~~~
 
-Each of these functions accept two arguments.  In all cases the first argument
+Each of these functions accepts at least two arguments.  In all cases the first argument
 is a field name.  This makes it possible to use different custom colormaps for
 different fields tracked by the plot object.
 
@@ -922,10 +968,38 @@ Use any of the colormaps listed in the :ref:`colormaps` section.
    slc.set_cmap(("gas", "density"), "RdBu_r")
    slc.save()
 
-The :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_log` function
-accepts a field name and a boolean.  If the boolean is ``True``, the colormap
-for the field will be log scaled.  If it is ``False`` the colormap will be
-linear.
+Colorbar Normalization / Scaling
+""""""""""""""""""""""""""""""""
+
+For a general introduction to the topic of colorbar scaling, see
+`<https://matplotlib.org/stable/tutorials/colors/colormapnorms.html>`_. Here we
+will focus on the defaults, and the ways to customize them, of yt plot classes.
+In this section, "norm" is used as short for "normalization", and is
+interchangeable with "scaling".
+
+Map-like plots e.g., ``SlicePlot``, ``ProjectionPlot`` and ``PhasePlot``,
+default to `logarithmic (log)
+<https://matplotlib.org/stable/tutorials/colors/colormapnorms.html#logarithmic>`_
+normalization when all values are strictly positive, and `symmetric log (symlog)
+<https://matplotlib.org/stable/tutorials/colors/colormapnorms.html#symmetric-logarithmic>`_
+otherwise. yt supports two different interfaces to move away from the defaults.
+See **constrained norms** and **arbitrary norm** hereafter.
+
+.. note:: defaults can be configured on a per-field basis, see :ref:`per-field-plotconfig`
+
+**Constrained norms**
+
+The standard way to change colorbar scalings between linear, log, and symmetric
+log (symlog).  Colorbar properties can be constrained via two methods:
+
+- :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim` controls the limits
+  of the colorbar range: ``zmin`` and ``zmax``.
+- :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_log` allows switching to
+  linear or symlog normalization. With symlog, the linear threshold can be set
+  explicitly. Otherwise, yt will dynamically determine a reasonable value.
+
+Use the :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim`
+method to set a custom colormap range.
 
 .. python-script::
 
@@ -933,42 +1007,112 @@ linear.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
-   slc.set_log(("gas", "density"), False)
+   slc.set_zlim(("gas", "density"), zmin=(1e-30, "g/cm**3"), zmax=(1e-25, "g/cm**3"))
    slc.save()
 
-Specifically, a field containing both positive and negative values can be plotted
-with symlog scale, by setting the boolean to be ``True`` and either providing an extra
-parameter ``linthresh`` or setting ``symlog_auto = True``. In the region around zero
-(when the log scale approaches to infinity), the linear scale will be applied to the
-region ``(-linthresh, linthresh)`` and stretched relative to the logarithmic range.
-In some cases, if yt detects zeros present in the dataset and the user has selected
-``log`` scaling, yt automatically switches to ``symlog`` scaling and automatically
-chooses a ``linthresh`` value to avoid errors.  This is the same behavior you can
-achieve by setting the keyword ``symlog_auto`` to ``True``. In these cases, yt will
-choose the smallest non-zero value in a dataset to be the ``linthresh`` value.
-As an example,
+Units can be left out, in which case they implicitly match the current display
+units of the colorbar (controlled with the ``set_unit`` method, see
+:ref:`set-image-units`).
 
-.. python-script::
+It is not required to specify both ``zmin`` and ``zmax``. Left unset, they will
+default to the extreme values in the current view. This default behavior can be
+enforced or restored by passing ``zmin="min"`` (reps. ``zmax="max"``)
+explicitly.
 
-   import yt
 
-   ds = yt.load_sample("FIRE_M12i_ref11")
-   p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
-   p.set_log(("gas", "density"), True, symlog_auto=True)
-   p.save()
-
-Symlog is very versatile, and will work with positive or negative dataset ranges.
-Here is an example using symlog scaling to plot a positive field with a linear range of
-``(0, linthresh)``.
+:meth:`~yt.visualization.plot_container.ImagePlotContainer.set_log` takes a boolean argument
+to select log (``True``) or linear (``False``) scalings.
 
 .. python-script::
 
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(30, "kpc"))
-   slc.set_log(("gas", "velocity_x"), True, linthresh=1.0e1)
+   slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
+   slc.set_log(("gas", "density"), False) # switch to linear scaling
    slc.save()
+
+One can switch to `symlog
+<https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.SymLogNorm.html?highlight=symlog#matplotlib.colors.SymLogNorm>`_
+by providing a "linear threshold" (``linthresh``) value.
+With ``linthresh="auto"`` yt will switch to symlog norm and guess an appropriate value
+automatically, with different behavior depending on the dynamic range of the data.
+When the dynamic range of the symlog scale is less than 15 orders of magnitude, the
+linthresh value will be the minimum absolute nonzero value, as in
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load_sample("IsolatedGalaxy")
+   slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
+   slc.set_log(("gas", "density"), linthresh="auto")
+   slc.save()
+
+When the dynamic range of the symlog scale exceeds 15 orders of magnitude, the
+linthresh value is calculated as 1/10\ :sup:`15` of the maximum nonzero value in
+order to avoid possible floating point precision issues. The following plot
+triggers the dynamic range cutoff
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load_sample("FIRE_M12i_ref11")
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"), width=(30, "Mpc"))
+   p.set_log(("gas", "density"), linthresh="auto")
+   p.save()
+
+In the previous example, it is actually safe to expand the dynamic range and in
+other cases you may find that the selected linear threshold is not well suited to
+your dataset. To pass an explicit value instead
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load_sample("FIRE_M12i_ref11")
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"), width=(30, "Mpc"))
+   p.set_log(("gas", "density"), linthresh=(1e-22, "g/cm**2"))
+   p.save()
+
+Similar to the ``zmin`` and ``zmax`` arguments of the ``set_zlim`` method, units
+can be left out in ``linthresh``.
+
+
+**Arbitrary norms**
+
+Alternatively, arbitrary `matplotlib norms
+<https://matplotlib.org/stable/tutorials/colors/colormapnorms.html>`_ can be
+passed via the :meth:`~yt.visualization.plot_container.PlotContainer.set_norm`
+method. In that case, any numeric value is treated as having implicit units,
+matching the current display units. This alternative interface is more flexible,
+but considered experimental as of yt 4.1. Don't forget that with great power
+comes great responsibility.
+
+
+.. python-script::
+
+   import yt
+   from matplotlib.colors import TwoSlopeNorm
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(30, "kpc"))
+   slc.set_norm(("gas", "velocity_x"), TwoSlopeNorm(vcenter=0))
+
+   # using a diverging colormap to emphasize that vcenter corresponds to the
+   # middle value in the color range
+   slc.set_cmap(("gas", "velocity_x"), "RdBu")
+   slc.save()
+
+.. note:: When calling
+  :meth:`~yt.visualization.plot_container.PlotContainer.set_norm`, any constraints
+  previously set with
+  :meth:`~yt.visualization.plot_container.PlotContainer.set_log` or
+  :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim` will be dropped.
+  Conversely, calling ``set_log`` or ``set_zlim`` will have the
+  effect of dropping any norm previously set via ``set_norm``.
+
 
 The :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_background_color`
 function accepts a field name and a color (optional). If color is given, the function
@@ -986,33 +1130,6 @@ value of the color map.
    slc.set_background_color(("gas", "density"), color="black")
    slc.save("black_background")
 
-If you would like to change the background for a plot and also hide the axes,
-you will need to make use of the ``draw_frame`` keyword argument for the ``hide_axes`` function. If you do not use this keyword argument, the call to
-``set_background_color`` will have no effect. Here is an example illustrating how to use the ``draw_frame`` keyword argument for ``hide_axes``:
-
-.. python-script::
-
-   import yt
-
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   field = ("deposit", "all_density")
-   slc = yt.ProjectionPlot(ds, "z", field, width=(1.5, "Mpc"))
-   slc.set_background_color(field)
-   slc.hide_axes(draw_frame=True)
-   slc.hide_colorbar()
-   slc.save("just_image")
-
-Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
-function makes it possible to set a custom colormap range.
-
-.. python-script::
-
-   import yt
-
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
-   slc.set_zlim(("gas", "density"), 1e-30, 1e-25)
-   slc.save()
 
 Annotations
 ~~~~~~~~~~~
@@ -1904,7 +2021,25 @@ domain:
    p.set_unit(("all", "particle_mass"), "Msun")
    p.save()
 
-and here is an example of using the ``data_source`` argument to :class:`~yt.visualization.particle_plots.ParticlePhasePlot`
+Using :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`, you can also plot particles
+along an off-axis direction:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+   L = [1, 1, 1] # normal or "line of sight" vector
+   N = [0, 1, 0] # north or "up" vector
+
+    p = yt.ParticleProjectionPlot(
+        ds, L, [("all", "particle_mass")], width=(0.05, 0.05), depth=0.3, north_vector=N
+    )
+   p.set_unit(("all", "particle_mass"), "Msun")
+   p.save()
+
+Here is an example of using the ``data_source`` argument to :class:`~yt.visualization.particle_plots.ParticlePhasePlot`
 to only consider the particles that lie within a 50 kpc sphere around the domain center:
 
 .. python-script::
@@ -1998,7 +2133,7 @@ type:
 
 .. code-block:: bash
 
-   yt notebook
+   jupyter lab
 
 at the command line.  This will prompt you for a password (so that if you're on
 a shared user machine no one else can pretend to be you!) and then spawn an
@@ -2296,3 +2431,80 @@ an example that includes slices and phase plots:
     )
 
     mp.save_fig("multi_slice_phase")
+
+
+Using yt's style with matplotlib
+--------------------------------
+
+It is possible to use yt's plot style in outside of yt itself, with the
+:func:`~yt.funcs.matplotlib_style_context` context manager
+
+.. code-block:: python
+
+   import matplotlib.pyplot as plt
+   import numpy as np
+   import yt
+
+   plt.rcParams["font.size"] = 14
+
+   x = np.linspace(-np.pi, np.pi, 100)
+   y = np.sin(x)
+
+   with yt.funcs.matplotlib_style_context():
+       fig, ax = plt.subplots()
+       ax.plot(x, y)
+       ax.set(
+           xlabel=r"$x$",
+           ylabel=r"$y$",
+           title="A yt-styled matplotlib figure",
+       )
+
+Note that :func:`~yt.funcs.matplotlib_style_context` doesn't control the font
+size, so we adjust it manually in the preamble.
+
+With matplotlib 3.7 and newer, you can avoid importing yt altogether
+
+.. code-block:: python
+
+   # requires matplotlib>=3.7
+   import matplotlib.pyplot as plt
+   import numpy as np
+
+   plt.rcParams["font.size"] = 14
+
+   x = np.linspace(-np.pi, np.pi, 100)
+   y = np.sin(x)
+
+   with plt.style.context("yt.default"):
+       fig, ax = plt.subplots()
+       ax.plot(x, y)
+       ax.set(
+           xlabel=r"$x$",
+           ylabel=r"$y$",
+           title="A yt-styled matplotlib figure",
+       )
+
+and you can also enable yt's style without a context manager as
+
+.. code-block:: python
+
+   # requires matplotlib>=3.7
+   import matplotlib.pyplot as plt
+   import numpy as np
+
+   plt.style.use("yt.default")
+   plt.rcParams["font.size"] = 14
+
+   x = np.linspace(-np.pi, np.pi, 100)
+   y = np.sin(x)
+
+   fig, ax = plt.subplots()
+   ax.plot(x, y)
+   ax.set(
+       xlabel=r"$x$",
+       ylabel=r"$y$",
+       title="A yt-styled matplotlib figure",
+   )
+
+For more details, see `matplotlib's documentation
+<https://matplotlib.org/stable/tutorials/introductory/customizing.html#customizing-with-style-sheets>_`

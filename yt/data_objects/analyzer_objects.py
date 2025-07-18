@@ -14,7 +14,7 @@ class AnalysisTask:
         # does not override
         if len(args) + len(kwargs) != len(self._params):
             raise RuntimeError
-        self.__dict__.update(zip(self._params, args))
+        self.__dict__.update(zip(self._params, args, strict=False))
         self.__dict__.update(kwargs)
 
     def __repr__(self):
@@ -26,10 +26,10 @@ class AnalysisTask:
 
 def analysis_task(params=None):
     if params is None:
-        params = tuple()
+        params = ()
 
     def create_new_class(func):
-        cls = type(func.__name__, (AnalysisTask,), dict(eval=func, _params=params))
+        cls = type(func.__name__, (AnalysisTask,), {"eval": func, "_params": params})
         return cls
 
     return create_new_class
@@ -67,7 +67,7 @@ class QuantityProxy(AnalysisTask):
     def __repr__(self):
         # Stolen from YTDataContainer.__repr__
         s = f"{self.__class__.__name__}: "
-        s += ", ".join(["%s" % [arg for arg in self.args]])
+        s += ", ".join([str(list(self.args))])
         s += ", ".join(f"{k}={v}" for k, v in self.kwargs.items())
         return s
 
@@ -103,6 +103,6 @@ def create_quantity_proxy(quantity_object):
     params = args[1:]
     if kwargs is not None:
         params += kwargs
-    dd = dict(_params=params, quantity_name=quantity_object[0])
+    dd = {"_params": params, "quantity_name": quantity_object[0]}
     cls = type(quantity_object[0], (QuantityProxy,), dd)
     return cls

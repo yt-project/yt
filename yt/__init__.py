@@ -7,6 +7,7 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 * Contribute: https://github.com/yt-project/yt
 
 """
+
 from ._version import __version__, version_info  # isort: skip
 import yt.units as units
 import yt.utilities.physical_constants as physical_constants
@@ -35,7 +36,6 @@ from yt.fields.api import (
     derived_field,
     field_plugins,
 )
-from yt.frontends.api import _frontend_container
 from yt.funcs import (
     enable_plugins,
     get_memory_usage,
@@ -71,7 +71,7 @@ from yt.units import (
 from yt.units.unit_object import define_unit  # type: ignore
 from yt.utilities.logger import set_log_level, ytLogger as mylog
 
-frontends = _frontend_container()
+from yt import frontends
 
 import yt.visualization.volume_rendering.api as volume_rendering
 from yt.frontends.stream.api import hexahedral_connectivity
@@ -80,6 +80,7 @@ from yt.loaders import (
     load,
     load_amr_grids,
     load_archive,
+    load_hdf5_file,
     load_hexahedral_mesh,
     load_octree,
     load_particles,
@@ -117,6 +118,7 @@ from yt.visualization.api import (
     FITSImageData,
     FITSOffAxisProjection,
     FITSOffAxisSlice,
+    FITSParticleOffAxisProjection,
     FITSParticleProjection,
     FITSProjection,
     FITSSlice,

@@ -4,7 +4,7 @@ import numpy as np
 
 from yt.frontends.gadget_fof.io import IOHandlerGadgetFOFHaloHDF5
 from yt.funcs import parse_h5_attr
-from yt.units.yt_array import uvstack  # type: ignore
+from yt.units._numpy_wrapper_functions import uvstack
 from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -17,17 +17,12 @@ class IOHandlerYTHaloCatalog(BaseParticleIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
         ptype = "halos"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             with h5py.File(data_file.filename, mode="r") as f:
                 units = parse_h5_attr(f[pn % "x"], "units")
                 pos = data_file._get_particle_positions(ptype, f=f)
@@ -46,17 +41,11 @@ class IOHandlerYTHaloCatalog(BaseParticleIOHandler):
             yield "halos", pos
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
@@ -116,7 +105,7 @@ class HaloDatasetIOHandler:
     _read_particle_selection = IOHandlerGadgetFOFHaloHDF5._read_particle_selection
 
 
-# ignoring type in this mixing to circunvent this error from mypy
+# ignoring type in this mixing to circumvent this error from mypy
 # Definition of "_read_particle_fields" in base class "HaloDatasetIOHandler"
 # is incompatible with definition in base class "IOHandlerYTHaloCatalog"
 #
@@ -152,7 +141,7 @@ class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):  # type: ig
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
-                        field_data = all_data[(ptype, field)]
+                        field_data = all_data[ptype, field]
                         my_data = f["particles"][field][start_index:end_index].astype(
                             "float64"
                         )
@@ -168,5 +157,5 @@ class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):  # type: ig
             for ptype, field_list in sorted(scalar_fields.items()):
                 for field in field_list:
                     data = np.array([f[field][dobj.scalar_index]]).astype("float64")
-                    all_data[(ptype, field)] = data
+                    all_data[ptype, field] = data
         return all_data

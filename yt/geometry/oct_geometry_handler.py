@@ -33,8 +33,8 @@ class OctreeIndex(Index):
             # Get the position of the particles
             pos = data[ptype, "particle_position"]
             Npart = pos.shape[0]
-            ret = np.zeros(Npart)
-            tmp = np.zeros(Npart)
+            ret = np.zeros(Npart, dtype="float64")
+            tmp = np.zeros(Npart, dtype="float64")
 
             if isinstance(data, FieldDetector):
                 return ret
@@ -55,7 +55,7 @@ class OctreeIndex(Index):
                 if Nremaining == 0:
                     break
                 icell = (
-                    obj[("index", "ones")].T.reshape(-1).astype(np.int64).cumsum().value
+                    obj["index", "ones"].T.reshape(-1).astype(np.int64).cumsum().value
                     - 1
                 )
                 mesh_data = ((icell << Nbits) + i).astype(np.float64)
@@ -69,7 +69,7 @@ class OctreeIndex(Index):
                 remaining[remaining] = np.isnan(tmp[:Nremaining])
                 Nremaining = remaining.sum()
 
-            return data.ds.arr(ret.astype(np.float64), units="1")
+            return data.ds.arr(ret, units="1")
 
         def _mesh_sampling_particle_field(field, data):
             """
@@ -116,3 +116,20 @@ class OctreeIndex(Index):
             units=units,
             take_log=take_log,
         )
+
+    def _icoords_to_fcoords(
+        self,
+        icoords: np.ndarray,
+        ires: np.ndarray,
+        axes: tuple[int, ...] | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Accepts icoords and ires and returns appropriate fcoords and fwidth.
+        Mostly useful for cases where we have irregularly spaced or structured
+        grids.
+        """
+        dds = self.ds.domain_width[axes,] / (
+            self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
+        )
+        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]
+        return pos, dds

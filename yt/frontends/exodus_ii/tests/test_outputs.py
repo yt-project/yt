@@ -1,4 +1,6 @@
-from yt.testing import assert_array_equal, assert_equal, requires_file
+from numpy.testing import assert_array_equal, assert_equal
+
+from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import (
     GenericArrayTest,
     data_dir_load,

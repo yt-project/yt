@@ -28,7 +28,7 @@ cdef class SphereSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         # sphere center either inside cell or center of cell lies inside sphere
         if (pos[0] - 0.5*dds[0] <= self.center[0] <= pos[0]+0.5*dds[0] and
             pos[1] - 0.5*dds[1] <= self.center[1] <= pos[1]+0.5*dds[1] and
@@ -47,7 +47,7 @@ cdef class SphereSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
@@ -64,7 +64,7 @@ cdef class SphereSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
@@ -78,7 +78,7 @@ cdef class SphereSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef np.float64_t box_center, relcenter, closest, dist, edge
         cdef int i
         if (left_edge[0] <= self.center[0] < right_edge[0] and
@@ -106,7 +106,7 @@ cdef class SphereSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef np.float64_t box_center, relcenter, closest, farthest, cdist, fdist, edge
         cdef int i
         if (left_edge[0] <= self.center[0] <= right_edge[0] and

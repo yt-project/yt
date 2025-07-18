@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
+from numpy.testing import assert_equal
 
 import yt.utilities.initial_conditions as ic
 from yt.loaders import load_amr_grids, load_particles, load_uniform_grid
-from yt.testing import assert_equal, fake_particle_ds, fake_sph_orientation_ds
+from yt.testing import fake_particle_ds, fake_sph_orientation_ds
 
 # Field information
 
@@ -56,35 +57,35 @@ def test_stream_particles():
 
     for ptype in ("all", "io"):
         assert (
-            ug1._get_field_info(ptype, "particle_position_x").sampling_type
+            ug1._get_field_info((ptype, "particle_position_x")).sampling_type
             == "particle"
         )
         assert (
-            ug1._get_field_info(ptype, "particle_position_y").sampling_type
+            ug1._get_field_info((ptype, "particle_position_y")).sampling_type
             == "particle"
         )
         assert (
-            ug1._get_field_info(ptype, "particle_position_z").sampling_type
+            ug1._get_field_info((ptype, "particle_position_z")).sampling_type
             == "particle"
         )
-        assert ug1._get_field_info(ptype, "particle_mass").sampling_type == "particle"
-    assert not ug1._get_field_info("gas", "density").sampling_type == "particle"
+        assert ug1._get_field_info((ptype, "particle_mass")).sampling_type == "particle"
+    assert not ug1._get_field_info(("gas", "density")).sampling_type == "particle"
 
     for ptype in ("all", "io"):
         assert (
-            ug2._get_field_info(ptype, "particle_position_x").sampling_type
+            ug2._get_field_info((ptype, "particle_position_x")).sampling_type
             == "particle"
         )
         assert (
-            ug2._get_field_info(ptype, "particle_position_y").sampling_type
+            ug2._get_field_info((ptype, "particle_position_y")).sampling_type
             == "particle"
         )
         assert (
-            ug2._get_field_info(ptype, "particle_position_z").sampling_type
+            ug2._get_field_info((ptype, "particle_position_z")).sampling_type
             == "particle"
         )
-        assert ug2._get_field_info(ptype, "particle_mass").sampling_type == "particle"
-    assert not ug2._get_field_info("gas", "density").sampling_type == "particle"
+        assert ug2._get_field_info((ptype, "particle_mass")).sampling_type == "particle"
+    assert not ug2._get_field_info(("gas", "density")).sampling_type == "particle"
 
     # Now perform similar checks, but with multiple particle types
 
@@ -138,35 +139,34 @@ def test_stream_particles():
 
     for ptype in ("dm", "star"):
         assert (
-            ug3._get_field_info(ptype, "particle_position_x").sampling_type
+            ug3._get_field_info((ptype, "particle_position_x")).sampling_type
             == "particle"
         )
         assert (
-            ug3._get_field_info(ptype, "particle_position_y").sampling_type
+            ug3._get_field_info((ptype, "particle_position_y")).sampling_type
             == "particle"
         )
         assert (
-            ug3._get_field_info(ptype, "particle_position_z").sampling_type
+            ug3._get_field_info((ptype, "particle_position_z")).sampling_type
             == "particle"
         )
-        assert ug3._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+        assert ug3._get_field_info((ptype, "particle_mass")).sampling_type == "particle"
         assert (
-            ug4._get_field_info(ptype, "particle_position_x").sampling_type
-            == "particle"
-        )
-        assert (
-            ug4._get_field_info(ptype, "particle_position_y").sampling_type
+            ug4._get_field_info((ptype, "particle_position_x")).sampling_type
             == "particle"
         )
         assert (
-            ug4._get_field_info(ptype, "particle_position_z").sampling_type
+            ug4._get_field_info((ptype, "particle_position_y")).sampling_type
             == "particle"
         )
-        assert ug4._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+        assert (
+            ug4._get_field_info((ptype, "particle_position_z")).sampling_type
+            == "particle"
+        )
+        assert ug4._get_field_info((ptype, "particle_mass")).sampling_type == "particle"
 
 
 def test_load_particles_types():
-
     num_particles = 10000
 
     data1 = {
@@ -206,6 +206,8 @@ def test_load_particles_types():
     ds2 = load_particles(data2)
     ds2.index
 
+    # We use set here because we don't care about the order and we just need
+    # the elements to be correct
     assert set(ds2.particle_types) == {"all", "star", "dm", "nbody"}
 
     dd = ds2.all_data()
@@ -216,6 +218,53 @@ def test_load_particles_types():
             npart += dd[ptype, f"particle_position_{ax}"].size
         assert npart == num_tot_particles
         assert dd["all", f"particle_position_{ax}"].size == num_tot_particles
+
+
+def test_load_particles_sph_types():
+    num_particles = 10000
+
+    data = {
+        ("gas", "particle_position_x"): np.random.random(size=num_particles),
+        ("gas", "particle_position_y"): np.random.random(size=num_particles),
+        ("gas", "particle_position_z"): np.random.random(size=num_particles),
+        ("gas", "particle_velocity_x"): np.random.random(size=num_particles),
+        ("gas", "particle_velocity_y"): np.random.random(size=num_particles),
+        ("gas", "particle_velocity_z"): np.random.random(size=num_particles),
+        ("gas", "particle_mass"): np.ones(num_particles),
+        ("gas", "density"): np.ones(num_particles),
+        ("gas", "smoothing_length"): np.ones(num_particles),
+        ("dm", "particle_position_x"): np.random.random(size=num_particles),
+        ("dm", "particle_position_y"): np.random.random(size=num_particles),
+        ("dm", "particle_position_z"): np.random.random(size=num_particles),
+        ("dm", "particle_velocity_x"): np.random.random(size=num_particles),
+        ("dm", "particle_velocity_y"): np.random.random(size=num_particles),
+        ("dm", "particle_velocity_z"): np.random.random(size=num_particles),
+        ("dm", "particle_mass"): np.ones(num_particles),
+    }
+
+    ds = load_particles(data)
+
+    assert set(ds.particle_types) == {"gas", "dm"}
+    assert ds._sph_ptypes == ("gas",)
+
+    data.update(
+        {
+            ("cr_gas", "particle_position_x"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_position_y"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_position_z"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_velocity_x"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_velocity_y"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_velocity_z"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_mass"): np.ones(num_particles),
+            ("cr_gas", "density"): np.ones(num_particles),
+            ("cr_gas", "smoothing_length"): np.ones(num_particles),
+        }
+    )
+
+    with pytest.raises(
+        ValueError, match="Multiple SPH particle types are currently not supported!"
+    ):
+        load_particles(data)
 
 
 def test_load_particles_with_data_source():
@@ -263,18 +312,18 @@ def test_particles_outside_domain():
     posy_arr = np.random.uniform(low=-1.5, high=1.5, size=1000)
     posz_arr = np.random.uniform(low=-1.5, high=1.5, size=1000)
     dens_arr = np.random.random((16, 16, 16))
-    data = dict(
-        density=dens_arr,
-        particle_position_x=posx_arr,
-        particle_position_y=posy_arr,
-        particle_position_z=posz_arr,
-    )
+    data = {
+        "density": dens_arr,
+        "particle_position_x": posx_arr,
+        "particle_position_y": posy_arr,
+        "particle_position_z": posz_arr,
+    }
     bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     ds = load_uniform_grid(data, (16, 16, 16), bbox=bbox, nprocs=4)
     wh = (posx_arr < bbox[0, 0]).nonzero()[0]
     assert wh.size == 1000 - ds.particle_type_counts["io"]
     ad = ds.all_data()
-    assert ds.particle_type_counts["io"] == ad[("all", "particle_position_x")].size
+    assert ds.particle_type_counts["io"] == ad["all", "particle_position_x"].size
 
 
 def test_stream_sph_projection():

@@ -1,5 +1,6 @@
 import os
 import weakref
+from functools import cached_property
 
 import numpy as np
 
@@ -47,6 +48,7 @@ class MoabHex8Hierarchy(UnstructuredIndex):
 
 
 class MoabHex8Dataset(Dataset):
+    _load_requirements = ["h5py"]
     _index_class = MoabHex8Hierarchy
     _field_info_class = MoabFieldInfo
     periodicity = (False, False, False)
@@ -86,7 +88,6 @@ class MoabHex8Dataset(Dataset):
         self.refine_by = 2
         self.dimensionality = len(self.domain_dimensions)
         self.current_time = 0.0
-        self.unique_identifier = self.parameter_filename
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
         self.current_redshift = 0.0
@@ -96,8 +97,8 @@ class MoabHex8Dataset(Dataset):
         self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        return filename.endswith(".h5m")
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        return filename.endswith(".h5m") and not cls._missing_load_requirements()
 
     def __str__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -133,7 +134,9 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
                 )
             )
         vind = np.asarray(vind, dtype=np.int64)
-        vind = vind.reshape(len(vind) // 8, 8)
+        if vind.ndim == 1:
+            vind = vind.reshape(len(vind) // 8, 8)
+        assert vind.ndim == 2 and vind.shape[1] == 8
         self.meshes = [PyneHex8Mesh(0, self.index_filename, vind, coords, self)]
 
     def _detect_output_fields(self):
@@ -169,6 +172,14 @@ class PyneMoabHex8Dataset(Dataset):
         )
         self.storage_filename = storage_filename
 
+    @property
+    def filename(self) -> str:
+        return self._input_filename
+
+    @cached_property
+    def unique_identifier(self) -> str:
+        return self.filename
+
     def _set_code_unit_attributes(self):
         # Almost everything is regarded as dimensionless in MOAB, so these will
         # not be used very much or at all.
@@ -185,7 +196,6 @@ class PyneMoabHex8Dataset(Dataset):
         self.refine_by = 2
         self.dimensionality = len(self.domain_dimensions)
         self.current_time = 0.0
-        self.unique_identifier = self.parameter_filename
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
         self.current_redshift = 0.0
@@ -195,7 +205,7 @@ class PyneMoabHex8Dataset(Dataset):
         self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         return False
 
     def __str__(self):

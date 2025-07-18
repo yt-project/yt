@@ -1,15 +1,19 @@
 """Tests for non-cartesian ray tracers."""
-import numpy as np
 
-from yt.testing import amrspace, assert_equal, assert_less_equal, assert_true
+import numpy as np
+from numpy.testing import assert_equal
+
+from yt.testing import amrspace
 from yt.utilities.lib.alt_ray_tracers import _cyl2cart, cylindrical_ray_trace
 
 left_grid = right_grid = amr_levels = center_grid = data = None
+old_settings = None
 
 
-def setup():
+def setup_module():
     # set up some sample cylindrical grid data, radiating out from center
-    global left_grid, right_grid, amr_levels, center_grid, data
+    global left_grid, right_grid, amr_levels, center_grid, data, old_settings
+    old_settings = np.geterr()
     np.seterr(all="ignore")
     l1, r1, lvl1 = amrspace([0.0, 1.0, 0.0, -1.0, 0.0, 2 * np.pi], levels=(7, 7, 0))
     l2, r2, lvl2 = amrspace([0.0, 1.0, 0.0, 1.0, 0.0, 2 * np.pi], levels=(7, 7, 0))
@@ -18,6 +22,10 @@ def setup():
     amr_levels = np.concatenate([lvl1, lvl2], axis=0)
     center_grid = (left_grid + right_grid) / 2.0
     data = np.cos(np.sqrt(np.sum(center_grid[:, :2] ** 2, axis=1))) ** 2  # cos^2
+
+
+def teardown_module():
+    np.seterr(**old_settings)
 
 
 point_pairs = np.array(
@@ -50,12 +58,12 @@ point_pairs = np.array(
 
 
 def check_monotonic_inc(arr):
-    assert_true(np.all(0.0 <= (arr[1:] - arr[:-1])))
+    assert np.all(0.0 <= (arr[1:] - arr[:-1]))
 
 
 def check_bounds(arr, blower, bupper):
-    assert_true(np.all(blower <= arr))
-    assert_true(np.all(bupper >= arr))
+    assert np.all(blower <= arr)
+    assert np.all(bupper >= arr)
 
 
 def test_cylindrical_ray_trace():
@@ -68,12 +76,12 @@ def test_cylindrical_ray_trace():
         npoints = len(t)
 
         check_monotonic_inc(t)
-        assert_less_equal(0.0, t[0])
-        assert_less_equal(t[-1], 1.0)
+        assert 0.0 <= t[0]
+        assert t[-1] <= 1.0
 
         check_monotonic_inc(s)
-        assert_less_equal(0.0, s[0])
-        assert_less_equal(s[-1], pathlen)
+        assert 0.0 <= s[0]
+        assert s[-1] <= pathlen
         assert_equal(npoints, len(s))
 
         assert_equal((npoints, 3), rztheta.shape)

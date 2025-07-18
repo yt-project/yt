@@ -23,7 +23,13 @@ from yt.frontends.ytdata.tests.test_outputs import (
     YTDataFieldTest,
     compare_unit_attributes,
 )
-from yt.testing import assert_allclose_units, assert_array_equal, requires_file, skip
+from yt.testing import (
+    assert_allclose_units,
+    assert_array_equal,
+    requires_file,
+    requires_module,
+    skip,
+)
 from yt.units.yt_array import YTArray
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds
 from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
@@ -33,6 +39,7 @@ ytdata_dir = "ytdata_test"
 
 
 @skip(reason="See https://github.com/yt-project/yt/issues/3909")
+@requires_module("h5py")
 @requires_ds(enzotiny)
 @requires_file(os.path.join(ytdata_dir, "DD0046_sphere.h5"))
 @requires_file(os.path.join(ytdata_dir, "DD0046_cut_region.h5"))
@@ -46,15 +53,16 @@ def test_old_datacontainer_data():
     assert isinstance(sphere_ds, YTDataContainerDataset)
     yield YTDataFieldTest(full_fn, ("grid", "density"))
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
-    cr = ds.cut_region(sphere, ['obj[("gas", "temperature")] > 1e4'])
+    cr = ds.cut_region(sphere, ['obj["gas", "temperature"] > 1e4'])
     fn = "DD0046_cut_region.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     cr_ds = data_dir_load(full_fn)
     assert isinstance(cr_ds, YTDataContainerDataset)
-    assert (cr[("gas", "temperature")] == cr_ds.data[("gas", "temperature")]).all()
+    assert (cr["gas", "temperature"] == cr_ds.data["gas", "temperature"]).all()
 
 
 @skip(reason="See https://github.com/yt-project/yt/issues/3909")
+@requires_module("h5py")
 @requires_ds(enzotiny)
 @requires_file(os.path.join(ytdata_dir, "DD0046_covering_grid.h5"))
 @requires_file(os.path.join(ytdata_dir, "DD0046_arbitrary_grid.h5"))
@@ -83,15 +91,14 @@ def test_old_grid_datacontainer_data():
     fn = "DD0046_proj_frb.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     frb_ds = data_dir_load(full_fn)
-    assert_allclose_units(
-        frb[("gas", "density")], frb_ds.data[("gas", "density")], 1e-7
-    )
+    assert_allclose_units(frb["gas", "density"], frb_ds.data["gas", "density"], 1e-7)
     compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
     yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
 
 
 @skip(reason="See https://github.com/yt-project/yt/issues/3909")
+@requires_module("h5py")
 @requires_ds(enzotiny)
 @requires_file(os.path.join(ytdata_dir, "DD0046_proj.h5"))
 def test_old_spatial_data():
@@ -105,6 +112,7 @@ def test_old_spatial_data():
 
 
 @skip(reason="See https://github.com/yt-project/yt/issues/3909")
+@requires_module("h5py")
 @requires_ds(enzotiny)
 @requires_file(os.path.join(ytdata_dir, "DD0046_Profile1D.h5"))
 @requires_file(os.path.join(ytdata_dir, "DD0046_Profile2D.h5"))
@@ -168,6 +176,7 @@ def test_old_profile_data():
 
 
 @skip(reason="See https://github.com/yt-project/yt/issues/3909")
+@requires_module("h5py")
 @requires_ds(enzotiny)
 @requires_file(os.path.join(ytdata_dir, "test_data.h5"))
 @requires_file(os.path.join(ytdata_dir, "random_data.h5"))
@@ -176,8 +185,8 @@ def test_old_nonspatial_data():
     region = ds.box([0.25] * 3, [0.75] * 3)
     sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
     my_data = {}
-    my_data["region_density"] = region[("gas", "density")]
-    my_data["sphere_density"] = sphere[("gas", "density")]
+    my_data["region_density"] = region["gas", "density"]
+    my_data["sphere_density"] = sphere["gas", "density"]
     fn = "test_data.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     array_ds = data_dir_load(full_fn)

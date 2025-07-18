@@ -4,12 +4,10 @@ Data structures for AdaptaHOP
 
 
 """
-import abc
-from typing import Tuple, Union
 
 from yt.funcs import mylog
 
-ATTR_T = Tuple[Tuple[Union[Tuple[str, ...], str], int, str], ...]
+ATTR_T = tuple[tuple[tuple[str, ...] | str, int, str], ...]
 
 
 def HEADER_ATTRIBUTES(*, double: bool, longint: bool) -> ATTR_T:
@@ -28,7 +26,8 @@ def HEADER_ATTRIBUTES(*, double: bool, longint: bool) -> ATTR_T:
 ADAPTAHOP_TEMPLATES = {}
 
 
-class AdaptaHOPDefTemplate(abc.ABC):
+class AdaptaHOPDefTemplate:
+    # this is a mixin class
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
         mylog.debug("Registering AdaptaHOP template class %s", cls.__name__)

@@ -1,6 +1,5 @@
-# distutils: sources = FIXED_INTERP
 # distutils: include_dirs = LIB_DIR
-# distutils: libraries = STD_LIBS
+# distutils: libraries = STD_LIBS FIXED_INTERP
 # distutils: language = c++
 # distutils: extra_compile_args = CPP14_FLAG
 # distutils: extra_link_args = CPP14_FLAG
@@ -16,7 +15,7 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from libc.stdlib cimport abs, calloc, free, malloc
+from libc.stdlib cimport free, malloc
 
 from .fixed_interpolator cimport offset_interpolate
 

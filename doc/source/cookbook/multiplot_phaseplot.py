@@ -40,16 +40,16 @@ for i, SnapNum in enumerate([10, 40]):
     p.set_zlim(("gas", "mass"), 1e42, 1e46)
 
     # This forces the ProjectionPlot to redraw itself on the AxesGrid axes.
-    plot = p.plots[("gas", "mass")]
+    plot = p.plots["gas", "mass"]
     plot.figure = fig
     plot.axes = grid[i].axes
     if i == 0:
         plot.cax = grid.cbar_axes[i]
 
     # Actually redraws the plot.
-    p._setup_plots()
+    p.render()
 
-    # Modify the axes properties **after** p._setup_plots() so that they
+    # Modify the axes properties **after** p.render() so that they
     # are not overwritten.
     plot.axes.xaxis.set_minor_locator(plt.LogLocator(base=10.0, subs=[2.0, 5.0, 8.0]))
 

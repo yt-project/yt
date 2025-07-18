@@ -1,6 +1,5 @@
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.species_fields import add_species_field_by_density, setup_species_fields
 from yt.frontends.gadget.fields import GadgetFieldInfo
 from yt.frontends.sph.fields import SPHFieldInfo
@@ -21,7 +20,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("ElectronAbundance", ("", [], None)),
         ("NeutralHydrogenAbundance", ("", [], None)),
-        ("StarFormationRate", ("Msun / yr", [], None)),
+        ("StarFormationRate", ("Msun / yr", ["star_formation_rate"], None)),
         ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Metallicity_00", ("", ["metallicity"], None)),
         ("Metallicity_01", ("", ["He_metallicity"], None)),
@@ -50,6 +49,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
         if ("PartType0", "Metallicity_00") in self.field_list:
             self.nuclei_names = metal_elements
             self.species_names = ["H_p0", "H_p1"] + metal_elements
+        else:
+            self.nuclei_names = []
 
     def setup_particle_fields(self, ptype):
         FieldInfoContainer.setup_particle_fields(self, ptype)
@@ -60,14 +61,14 @@ class GizmoFieldInfo(GadgetFieldInfo):
             self.setup_star_particle_fields(ptype)
 
     def setup_gas_particle_fields(self, ptype):
+        from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
         super().setup_gas_particle_fields(ptype)
 
         def _h_p0_density(field, data):
-            x_H = 1.0 - data[(ptype, "He_metallicity")] - data[(ptype, "metallicity")]
+            x_H = 1.0 - data[ptype, "He_metallicity"] - data[ptype, "metallicity"]
             return (
-                x_H
-                * data[(ptype, "density")]
-                * data[(ptype, "NeutralHydrogenAbundance")]
+                x_H * data[ptype, "density"] * data[ptype, "NeutralHydrogenAbundance"]
             )
 
         self.add_field(
@@ -79,11 +80,11 @@ class GizmoFieldInfo(GadgetFieldInfo):
         add_species_field_by_density(self, ptype, "H")
 
         def _h_p1_density(field, data):
-            x_H = 1.0 - data[(ptype, "He_metallicity")] - data[(ptype, "metallicity")]
+            x_H = 1.0 - data[ptype, "He_metallicity"] - data[ptype, "metallicity"]
             return (
                 x_H
-                * data[(ptype, "density")]
-                * (1.0 - data[(ptype, "NeutralHydrogenAbundance")])
+                * data[ptype, "density"]
+                * (1.0 - data[ptype, "NeutralHydrogenAbundance"])
             )
 
         self.add_field(
@@ -148,11 +149,11 @@ class GizmoFieldInfo(GadgetFieldInfo):
     def setup_star_particle_fields(self, ptype):
         def _creation_time(field, data):
             if data.ds.cosmological_simulation:
-                a_form = data[(ptype, "StellarFormationTime")]
+                a_form = data[ptype, "StellarFormationTime"]
                 z_form = 1 / a_form - 1
                 creation_time = data.ds.cosmology.t_from_z(z_form)
             else:
-                t_form = data[(ptype, "StellarFormationTime")]
+                t_form = data[ptype, "StellarFormationTime"]
                 creation_time = data.ds.arr(t_form, "code_time")
             return creation_time
 
@@ -164,7 +165,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         )
 
         def _age(field, data):
-            return data.ds.current_time - data[(ptype, "creation_time")]
+            return data.ds.current_time - data[ptype, "creation_time"]
 
         self.add_field(
             (ptype, "age"),

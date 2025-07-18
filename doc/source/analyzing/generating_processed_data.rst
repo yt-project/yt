@@ -54,7 +54,8 @@ the transformation of a variable mesh of points consisting of positions and
 sizes into a fixed-size array that appears like an image.  This process is that
 of pixelization, which yt handles transparently internally.  You can access
 this functionality by constructing a
-:class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` and supplying
+:class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+and supplying
 to it your :class:`~yt.data_objects.data_containers.YTSelectionContainer2D`
 object, as well as some information about how you want the final image to look.
 You can specify both the bounds of the image (in the appropriate x-y plane) and
@@ -62,8 +63,8 @@ the resolution of the output image.  You can then have yt pixelize any field
 you like.
 
 .. note:: In previous versions of yt, there was a special class of
-          FixedResolutionBuffer for off-axis slices.  This is no longer
-          necessary.
+          FixedResolutionBuffer for off-axis slices.  This is still used
+          for off-axis SPH data projections: OffAxisFixedResolutionBuffer.
 
 To create :class:`~yt.data_objects.data_containers.YTSelectionContainer2D` objects, you can
 access them as described in :ref:`data-objects`, specifically the section
@@ -99,7 +100,10 @@ this, see :ref:`saving-grid-data-containers`.
 In the FITS case, there is an option for setting the ``units`` of the coordinate system in
 the file. If you want to overwrite a file with the same name, set ``clobber=True``.
 
-The :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` can even be exported
+The :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+(and its
+:class:`~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer`
+subclass) can even be exported
 as a 2D dataset itself, which may be operated on in the same way as any other dataset in yt:
 
 .. code-block:: python
@@ -239,7 +243,9 @@ Exporting Profiles to DataFrame
 One-dimensional profile data can be exported to a :class:`~pandas.DataFrame` object
 using the :meth:`yt.data_objects.profiles.Profile1D.to_dataframe` method. Bins which
 do not have data will have their fields filled with ``NaN``, except for the bin field
-itself. If you only want to export the bins which are used, set ``only_used=True``.
+itself. If you only want to export the bins which are used, set ``only_used=True``,
+and if you want to export the standard deviation of the profile as well, set
+``include_std=True``:
 
 .. code-block:: python
 
@@ -249,6 +255,8 @@ itself. If you only want to export the bins which are used, set ``only_used=True
     df_used = profile.to_dataframe(only_used=True)
     # Only adds the density and temperature fields
     df2 = profile.to_dataframe(fields=[("gas", "density"), ("gas", "temperature")])
+    # Include standard deviation
+    df3 = profile.to_dataframe(include_std=True)
 
 The :class:`~pandas.DataFrame` can then analyzed and/or written to disk using pandas
 methods. Note that unit information is lost in this export.
@@ -262,8 +270,9 @@ One-dimensional profile data also can be exported to an AstroPy :class:`~astropy
 object. This table can then be written to disk in a number of formats, such as ASCII text
 or FITS files, and manipulated in a number of ways. Bins which do not have data
 will have their mask values set to ``False``. If you only want to export the bins
-which are used, set ``only_used=True``. Units are preserved in the table by converting
-each :class:`~yt.units.yt_array.YTArray` to an :class:`~astropy.units.Quantity`.
+which are used, set ``only_used=True``. If you want to include the standard deviation
+of the field in the export, set ``include_std=True``. Units are preserved in the table
+by converting each :class:`~yt.units.yt_array.YTArray` to an :class:`~astropy.units.Quantity`.
 
 To export the 1D profile to a Table object, simply call
 :meth:`yt.data_objects.profiles.Profile1D.to_astropy_table`:
@@ -276,6 +285,8 @@ To export the 1D profile to a Table object, simply call
     t_used = profile.to_astropy_table(only_used=True)
     # Only adds the density and temperature fields
     t2 = profile.to_astropy_table(fields=[("gas", "density"), ("gas", "temperature")])
+    # Export the standard deviation
+    t3 = profile.to_astropy_table(include_std=True)
 
 .. _generating-line-queries:
 

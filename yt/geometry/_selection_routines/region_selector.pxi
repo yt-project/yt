@@ -12,13 +12,13 @@ cdef class RegionSelector(SelectorObject):
         cdef int i
         # We are modifying dobj.left_edge and dobj.right_edge , so here we will
         # do an in-place conversion of those arrays.
-        cdef np.float64_t[:] RE = _ensure_code(dobj.right_edge)
-        cdef np.float64_t[:] LE = _ensure_code(dobj.left_edge)
-        cdef np.float64_t[:] DW = _ensure_code(dobj.ds.domain_width)
-        cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
-        cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
-        le_all = (np.array(LE) == _ensure_code(dobj.ds.domain_left_edge)).all()
-        re_all = (np.array(RE) == _ensure_code(dobj.ds.domain_right_edge)).all()
+        cdef np.float64_t[:] RE = dobj.right_edge.copy()
+        cdef np.float64_t[:] LE = dobj.left_edge.copy()
+        cdef const np.float64_t[:] DW = dobj.ds.domain_width
+        cdef const np.float64_t[:] DLE = dobj.ds.domain_left_edge
+        cdef const np.float64_t[:] DRE = dobj.ds.domain_right_edge
+        le_all = (np.array(LE) == dobj.ds.domain_left_edge).all()
+        re_all = (np.array(RE) == dobj.ds.domain_right_edge).all()
         # If we have a bounding box, then we should *not* revert to all data
         domain_override = getattr(dobj.ds, '_domain_override', False)
         if le_all and re_all and not domain_override:
@@ -82,7 +82,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef int i
         for i in range(3):
             if (right_edge[i] < self.left_edge[i] and \
@@ -95,7 +95,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef int i
         for i in range(3):
             if (right_edge[i] < self.left_edge[i] and \
@@ -114,7 +114,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         cdef np.float64_t left_edge[3]
         cdef np.float64_t right_edge[3]
         cdef int i
@@ -128,7 +128,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef int i
         for i in range(3):
             if (self.right_edge_shift[i] <= pos[i] < self.left_edge[i]) or \
@@ -139,27 +139,26 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         # adapted from http://stackoverflow.com/a/4579192/1382869
         cdef int i
         cdef np.float64_t p
         cdef np.float64_t r2 = radius**2
         cdef np.float64_t dmin = 0
+        cdef np.float64_t d = 0
         for i in range(3):
-            if self.periodicity[i] and self.check_period[i]:
-                p = pos[i] + self.right_edge_shift[i]
-            else:
-                p = pos[i]
-            if p < self.left_edge[i]:
-                dmin += (p - self.left_edge[i])**2
-            elif pos[i] > self.right_edge[i]:
-                dmin += (p - self.right_edge[i])**2
+            if (pos[i]+radius < self.left_edge[i] and \
+                pos[i]-radius >= self.right_edge_shift[i]):
+                d = self.periodic_difference(pos[i], self.left_edge[i], i)
+            elif pos[i]-radius > self.right_edge[i]:
+                d = self.periodic_difference(pos[i], self.right_edge[i], i)
+            dmin += d*d
         return int(dmin <= r2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+    cdef int fill_mask_selector_regular_grid(self, np.float64_t left_edge[3],
                                 np.float64_t right_edge[3],
                                 np.float64_t dds[3], int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,

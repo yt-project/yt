@@ -3,12 +3,16 @@ import numpy as np
 from yt.funcs import mylog
 
 
-def receive_and_reduce(comm, incoming_rank, image, add_to_front):
+def receive_and_reduce(comm, incoming_rank, image, add_to_front, *, use_opacity=True):
     mylog.debug("Receiving image from %04i", incoming_rank)
     # mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
     arr2 = comm.recv_array(incoming_rank, incoming_rank).reshape(
         (image.shape[0], image.shape[1], image.shape[2])
     )
+
+    if not use_opacity:
+        np.add(image, arr2, image)
+        return image
 
     if add_to_front:
         front = arr2
@@ -31,6 +35,7 @@ def receive_and_reduce(comm, incoming_rank, image, add_to_front):
     for i in range(4):
         np.multiply(image[:, :, i], ta, image[:, :, i])
     np.add(image, front, image)
+
     return image
 
 

@@ -131,9 +131,9 @@ class ProfileND(ParallelAnalysisInterface):
 
         for i, _field in enumerate(fields):
             # q values are returned as q * weight but we want just q
-            temp_storage.qvalues[..., i][
-                temp_storage.used
-            ] /= temp_storage.weight_values[temp_storage.used]
+            temp_storage.qvalues[..., i][temp_storage.used] /= (
+                temp_storage.weight_values[temp_storage.used]
+            )
 
         # get the profile data from all procs
         all_store = {self.comm.rank: temp_storage}
@@ -217,7 +217,7 @@ class ProfileND(ParallelAnalysisInterface):
         # cut_points is set to be everything initially, but
         # we also want to apply a filtering based on min/max
         pfilter = np.ones(bin_fields[0].shape, dtype="bool")
-        for (mi, ma), data in zip(self.bounds, bin_fields):
+        for (mi, ma), data in zip(self.bounds, bin_fields, strict=True):
             pfilter &= data > mi
             pfilter &= data < ma
         return pfilter, [data[pfilter] for data in bin_fields]
@@ -274,8 +274,8 @@ class ProfileND(ParallelAnalysisInterface):
                 fname = self.field_map.get(field[1], None)
                 if fname != field:
                     raise KeyError(
-                        "Asked for field '{}' but only have data for "
-                        "fields '{}'".format(field, list(self.field_data.keys()))
+                        f"Asked for field '{field}' but only have data for "
+                        f"fields '{list(self.field_data.keys())}'"
                     )
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)
@@ -341,11 +341,11 @@ class ProfileND(ParallelAnalysisInterface):
         ... )
         >>> fn = profile.save_as_dataset()
         >>> prof_ds = yt.load(fn)
-        >>> print(prof_ds.data[("gas", "mass")])
+        >>> print(prof_ds.data["gas", "mass"])
         (128, 128)
-        >>> print(prof_ds.data[("index", "x")].shape)  # x bins as 1D array
+        >>> print(prof_ds.data["index", "x"].shape)  # x bins as 1D array
         (128,)
-        >>> print(prof_ds.data[("gas", "density")])  # x bins as 2D array
+        >>> print(prof_ds.data["gas", "density"])  # x bins as 2D array
         (128, 128)
         >>> p = yt.PhasePlot(
         ...     prof_ds.data,
@@ -420,18 +420,18 @@ class ProfileNDFromDataset(ProfileND):
         self.accumulation = ds.parameters.get("accumulation", False)
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[: ds.dimensionality]:
-            setattr(self, ax, ds.data[("data", ax)])
+            setattr(self, ax, ds.data["data", ax])
             ax_bins = f"{ax}_bins"
             ax_field = f"{ax}_field"
             ax_log = f"{ax}_log"
-            setattr(self, ax_bins, ds.data[("data", ax_bins)])
+            setattr(self, ax_bins, ds.data["data", ax_bins])
             field_name = tuple(ds.parameters.get(ax_field, (None, None)))
             setattr(self, ax_field, field_name)
             self.field_info[field_name] = ds.field_info[field_name]
             setattr(self, ax_log, ds.parameters.get(ax_log, False))
             exclude_fields.extend([ax, ax_bins, field_name[1]])
-        self.weight = ds.data[("data", "weight")]
-        self.used = ds.data[("data", "used")].d.astype(bool)
+        self.weight = ds.data["data", "weight"]
+        self.used = ds.data["data", "used"].d.astype(bool)
         profile_fields = [
             f
             for f in ds.field_list
@@ -562,7 +562,7 @@ class Profile1D(ProfileND):
             fields = self.data_source._determine_fields(fields)
         return idxs, masked, fields
 
-    def to_dataframe(self, fields=None, only_used=False):
+    def to_dataframe(self, fields=None, only_used=False, include_std=False):
         r"""Export a profile object to a pandas DataFrame.
 
         This function will take a data object and construct from it and
@@ -577,8 +577,13 @@ class Profile1D(ProfileND):
             profile, along with the bin field, will be exported.
         only_used : boolean, default False
             If True, only the bins which have data will be exported. If False,
-            all of the bins will be exported, but the elements for those bins
+            all the bins will be exported, but the elements for those bins
             in the data arrays will be filled with NaNs.
+        include_std : boolean, optional
+            If True, include the standard deviation of the profile
+            in the pandas DataFrame. It will appear in the table as the
+            field name with "_stddev" appended, e.g. "velocity_x_stddev".
+            Default: False
 
         Returns
         -------
@@ -600,6 +605,8 @@ class Profile1D(ProfileND):
         pdata = {self.x_field[-1]: self.x[idxs]}
         for field in fields:
             pdata[field[-1]] = self[field][idxs]
+            if include_std:
+                pdata[f"{field[-1]}_stddev"] = self.standard_deviation[field][idxs]
         df = pd.DataFrame(pdata)
         if masked:
             mask = np.zeros(df.shape, dtype="bool")
@@ -607,7 +614,7 @@ class Profile1D(ProfileND):
             df.mask(mask, inplace=True)
         return df
 
-    def to_astropy_table(self, fields=None, only_used=False):
+    def to_astropy_table(self, fields=None, only_used=False, include_std=False):
         """
         Export the profile data to a :class:`~astropy.table.table.QTable`,
         which is a Table object which is unit-aware. The QTable can then
@@ -627,10 +634,15 @@ class Profile1D(ProfileND):
             to the QTable as rows. If False, all bins are
             copied, but the bins which are not used are masked.
             Default: False
+        include_std : boolean, optional
+            If True, include the standard deviation of the profile
+            in the AstroPy QTable. It will appear in the table as the
+            field name with "_stddev" appended, e.g. "velocity_x_stddev".
+            Default: False
 
         Returns
         -------
-        df : :class:`~astropy.table.QTable`
+        qt : :class:`~astropy.table.QTable`
             The data contained in the profile.
 
         Examples
@@ -653,6 +665,12 @@ class Profile1D(ProfileND):
             qt[field[-1]] = self[field][idxs].to_astropy()
             if masked:
                 qt[field[-1]].mask = self.used
+            if include_std:
+                qt[f"{field[-1]}_stddev"] = self.standard_deviation[field][
+                    idxs
+                ].to_astropy()
+                if masked:
+                    qt[f"{field[-1]}_stddev"].mask = self.used
         return qt
 
 
@@ -885,7 +903,6 @@ class ParticleProfile(Profile2D):
         weight_field=None,
         deposition="ngp",
     ):
-
         x_field = data_source._determine_fields(x_field)[0]
         y_field = data_source._determine_fields(y_field)[0]
 
@@ -1246,7 +1263,7 @@ def create_profile(
     deposition : strings
         Controls the type of deposition used for ParticlePhasePlots.
         Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
-        ignored the if the input fields are not of particle type.
+        ignored if the input fields are not of particle type.
     override_bins : dict of bins to profile plot with
         If set, ignores n_bins and extrema settings and uses the
         supplied bins to profile the field. If a units dict is provided,
@@ -1296,7 +1313,11 @@ def create_profile(
                 data_source.ds.field_info[f].sampling_type == "local"
                 for f in bin_fields + fields
             ]
-            is_local_or_pfield = [pf or lf for (pf, lf) in zip(is_pfield, is_local)]
+            if wf is not None:
+                is_local.append(data_source.ds.field_info[wf].sampling_type == "local")
+            is_local_or_pfield = [
+                pf or lf for (pf, lf) in zip(is_pfield, is_local, strict=True)
+            ]
             if not all(is_local_or_pfield):
                 raise YTIllDefinedProfile(
                     bin_fields, data_source._determine_fields(fields), wf, is_pfield
@@ -1353,7 +1374,7 @@ def create_profile(
     if extrema is None or not any(collapse(extrema.values())):
         ex = [
             data_source.quantities["Extrema"](f, non_zero=l)
-            for f, l in zip(bin_fields, logs)
+            for f, l in zip(bin_fields, logs, strict=True)
         ]
         # pad extrema by epsilon so cells at bin edges are not excluded
         for i, (mi, ma) in enumerate(ex):
@@ -1371,14 +1392,12 @@ def create_profile(
                     field_ex = list(extrema[bin_field])
                 except KeyError:
                     raise RuntimeError(
-                        "Could not find field {} or {} in extrema".format(
-                            bin_field[-1], bin_field
-                        )
+                        f"Could not find field {bin_field[-1]} or {bin_field} in extrema"
                     ) from e
 
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
-            if any([exi is None for exi in field_ex]):
+            if any(exi is None for exi in field_ex):
                 try:
                     ds_extrema = data_source.quantities.extrema(bin_field)
                 except AttributeError:
@@ -1441,21 +1460,21 @@ def create_profile(
             o_bins.append(field_obin)
 
     args = [data_source]
-    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
+    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs, strict=True):
         if mi <= 0 and l:
             raise YTIllDefinedBounds(mi, ma)
         args += [f, n, mi, ma, l]
-    kwargs = dict(weight_field=weight_field)
+    kwargs = {"weight_field": weight_field}
     if cls is ParticleProfile:
         kwargs["deposition"] = deposition
     if override_bins is not None:
-        for o_bin, ax in zip(o_bins, ["x", "y", "z"]):
+        for o_bin, ax in zip(o_bins, ["x", "y", "z"], strict=False):
             kwargs[f"override_bins_{ax}"] = o_bin
     obj = cls(*args, **kwargs)
     obj.accumulation = accumulation
     obj.fractional = fractional
     if fields is not None:
-        obj.add_fields([field for field in fields])
+        obj.add_fields(list(fields))
     for field in fields:
         if fractional:
             obj.field_data[field] /= obj.field_data[field].sum()
@@ -1474,7 +1493,10 @@ def create_profile(
             if weight_field is None:
                 temp = temp.cumsum(axis=0)
             else:
-                temp = (temp * temp_weight).cumsum(axis=0) / temp_weight.cumsum(axis=0)
+                # avoid 0-division warnings by nan-masking
+                _denom = temp_weight.cumsum(axis=0)
+                _denom[_denom == 0.0] = np.nan
+                temp = (temp * temp_weight).cumsum(axis=0) / _denom
             if acc < 0:
                 temp = temp[::-1]
                 if weight_field is not None:

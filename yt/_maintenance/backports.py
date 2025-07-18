@@ -1,5 +1,5 @@
 # A namespace to store simple backports from most recent Python versions
-# Backports should be contained in (if/else) blocks, cheking on the runtime
+# Backports should be contained in (if/else) blocks, checking on the runtime
 # Python version, e.g.
 #
 # if sys.version_info < (3, 8):
@@ -20,63 +20,46 @@
 #     from yt._maintenance.backports import cached_property
 import sys
 
-if sys.version_info < (3, 8):
-    from _thread import RLock  # type: ignore
-    from typing import List
-
-    GenericAlias = type(List[int])
-
-    _NOT_FOUND = object()
-
-    class cached_property:
-        def __init__(self, func):
-            self.func = func
-            self.attrname = None
-            self.__doc__ = func.__doc__
-            self.lock = RLock()
-
-        def __set_name__(self, owner, name):
-            if self.attrname is None:
-                self.attrname = name
-            elif name != self.attrname:
-                raise TypeError(
-                    "Cannot assign the same cached_property to two different names "
-                    f"({self.attrname!r} and {name!r})."
-                )
-
-        def __get__(self, instance, owner=None):
-            if instance is None:
-                return self
-            if self.attrname is None:
-                raise TypeError(
-                    "Cannot use cached_property instance without calling __set_name__ on it."
-                )
-            try:
-                cache = instance.__dict__
-            except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
-                msg = (
-                    f"No '__dict__' attribute on {type(instance).__name__!r} "
-                    f"instance to cache {self.attrname!r} property."
-                )
-                raise TypeError(msg) from None
-            val = cache.get(self.attrname, _NOT_FOUND)
-            if val is _NOT_FOUND:
-                with self.lock:
-                    # check if another thread filled cache while we awaited lock
-                    val = cache.get(self.attrname, _NOT_FOUND)
-                    if val is _NOT_FOUND:
-                        val = self.func(instance)
-                        try:
-                            cache[self.attrname] = val
-                        except TypeError:
-                            msg = (
-                                f"The '__dict__' attribute on {type(instance).__name__!r} instance "
-                                f"does not support item assignment for caching {self.attrname!r} property."
-                            )
-                            raise TypeError(msg) from None
-            return val
-
-        __class_getitem__ = classmethod(GenericAlias)
-
-else:
+if sys.version_info >= (3, 11):
     pass
+else:
+    from enum import Enum
+
+    # backported from Python 3.11.0
+    class ReprEnum(Enum):
+        """
+        Only changes the repr(), leaving str() and format() to the mixed-in type.
+        """
+
+    # backported from Python 3.11.0
+    class StrEnum(str, ReprEnum):
+        """
+        Enum where members are also (and must be) strings
+        """
+
+        def __new__(cls, *values):
+            "values must already be of type `str`"
+            if len(values) > 3:
+                raise TypeError(f"too many arguments for str(): {values!r}")
+            if len(values) == 1:
+                # it must be a string
+                if not isinstance(values[0], str):
+                    raise TypeError(f"{values[0]!r} is not a string")
+            if len(values) >= 2:
+                # check that encoding argument is a string
+                if not isinstance(values[1], str):
+                    raise TypeError(f"encoding must be a string, not {values[1]!r}")
+            if len(values) == 3:
+                # check that errors argument is a string
+                if not isinstance(values[2], str):
+                    raise TypeError("errors must be a string, not %r" % (values[2]))  # noqa: UP031
+            value = str(*values)
+            member = str.__new__(cls, value)
+            member._value_ = value
+            return member
+
+        def _generate_next_value_(name, start, count, last_values):  # noqa B902
+            """
+            Return the lower-cased version of the member name.
+            """
+            return name.lower()

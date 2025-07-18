@@ -45,7 +45,6 @@ yt/utilities/lib/cyoctree.c
 yt/utilities/lib/depth_first_octree.c
 yt/utilities/lib/distance_queue.c
 yt/utilities/lib/element_mappings.c
-yt/utilities/lib/ewah_bool_wrap.cpp
 yt/utilities/lib/fnv_hash.c
 yt/utilities/lib/fortran_reader.c
 yt/utilities/lib/freetype_writer.c
@@ -77,6 +76,7 @@ yt/utilities/lib/points_in_volume.c
 yt/utilities/lib/quad_tree.c
 yt/utilities/lib/ragged_arrays.c
 yt/utilities/lib/cosmology_time.c
+yt/utilities/lib/cosmology_time.cpp
 yt/utilities/lib/grid_traversal.c
 yt/utilities/lib/marching_cubes.c
 yt/utilities/lib/png_writer.h

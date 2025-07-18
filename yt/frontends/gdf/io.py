@@ -7,7 +7,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 def _grid_dname(grid_id):
-    return "/data/grid_%010i" % grid_id
+    return f"/data/grid_{grid_id:010}"
 
 
 def _field_dname(grid_id, field_name):
@@ -21,7 +21,6 @@ class IOHandlerGDFHDF5(BaseParticleIOHandler):
     _data_string = "data:datatype=0"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-
         rv = {}
         chunks = list(chunks)
 
@@ -33,9 +32,9 @@ class IOHandlerGDFHDF5(BaseParticleIOHandler):
             gds = h5f.get(_grid_dname(grid.id))
             for ftype, fname in fields:
                 if self.ds.field_ordering == 1:
-                    rv[(ftype, fname)] = gds.get(fname)[()].swapaxes(0, 2)
+                    rv[ftype, fname] = gds.get(fname)[()].swapaxes(0, 2)
                 else:
-                    rv[(ftype, fname)] = gds.get(fname)[()]
+                    rv[ftype, fname] = gds.get(fname)[()]
             h5f.close()
             return rv
         if size is None:

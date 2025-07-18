@@ -81,7 +81,7 @@ class GadgetSimulation(SimulationTimeSeries):
                     new_unit,
                     self.unit_registry.lut[my_unit][0],
                     dimensions.length,
-                    "\\rm{%s}/(1+z)" % my_unit,
+                    f"\\rm{{{my_unit}}}/(1+z)",
                     prefixable=True,
                 )
             self.length_unit = self.quan(
@@ -126,7 +126,6 @@ class GadgetSimulation(SimulationTimeSeries):
         parallel=True,
         setup_function=None,
     ):
-
         """
         Instantiate a DatasetSeries object for a set of outputs.
 
@@ -404,11 +403,11 @@ class GadgetSimulation(SimulationTimeSeries):
         if index is None:
             count = "*"
         else:
-            count = "%03d" % index
+            count = f"{index:03}"
         filename = f"{self.parameters['SnapshotFileBase']}_{count}{suffix}"
         return os.path.join(self.data_dir, filename)
 
-    def _get_all_outputs(self, find_outputs=False):
+    def _get_all_outputs(self, *, find_outputs=False):
         """
         Get all potential datasets and combine into a time-sorted list.
         """

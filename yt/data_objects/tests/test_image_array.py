@@ -2,19 +2,27 @@ import os
 import shutil
 import tempfile
 import unittest
-import warnings
 
 import numpy as np
+from numpy.testing import assert_equal
 
 from yt.data_objects.image_array import ImageArray
-from yt.testing import assert_equal, requires_module
+from yt.testing import requires_module
+
+old_settings = None
 
 
-def setup():
+def setup_module():
+    global old_settings
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
+    old_settings = np.geterr()
     np.seterr(all="ignore")
+
+
+def teardown_module():
+    np.seterr(**old_settings)
 
 
 def dummy_image(kstep, nlayers):
@@ -44,7 +52,6 @@ def test_rgba_rescale():
 
 
 class TestImageArray(unittest.TestCase):
-
     tmpdir = None
     curdir = None
 
@@ -112,15 +119,6 @@ class TestImageArray(unittest.TestCase):
         im_arr.write_png("white_bg.png", background="white")
         im_arr.write_png("green_bg.png", background=[0.0, 1.0, 0.0, 1.0])
         im_arr.write_png("transparent_bg.png", background=None)
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered.
-            warnings.simplefilter("always")
-            # Trigger a warning.
-            im_arr.write_png("clipped.png", clip_ratio=0.5)
-            assert str(w[0].message).startswith(
-                "The 'clip_ratio' keyword argument is a deprecated alias for 'sigma_clip'. "
-                "Please use 'sigma_clip' directly."
-            )
 
     def test_image_array_background(self):
         im_arr = ImageArray(dummy_image(10.0, 4))

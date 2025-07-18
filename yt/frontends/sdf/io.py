@@ -15,29 +15,25 @@ class IOHandlerSDF(BaseParticleIOHandler):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
-        chunks = list(chunks)
-        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
+        data_files = self._get_data_files(chunks)
         assert len(data_files) == 1
         for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            yield "dark_matter", (
-                self._handle["x"],
-                self._handle["y"],
-                self._handle["z"],
-            ), 0.0
+            yield (
+                "dark_matter",
+                (
+                    self._handle["x"],
+                    self._handle["y"],
+                    self._handle["z"],
+                ),
+                0.0,
+            )
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        chunks = list(chunks)
-        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
+        data_files = self._get_data_files(chunks)
         assert len(data_files) == 1
         for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             for ptype, field_list in sorted(ptf.items()):
@@ -86,11 +82,15 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
         assert len(data_files) == 1
         for _data_file in data_files:
             pcount = self._handle["x"].size
-            yield "dark_matter", (
-                self._handle["x"][:pcount],
-                self._handle["y"][:pcount],
-                self._handle["z"][:pcount],
-            ), 0.0
+            yield (
+                "dark_matter",
+                (
+                    self._handle["x"][:pcount],
+                    self._handle["y"][:pcount],
+                    self._handle["z"][:pcount],
+                ),
+                0.0,
+            )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -150,7 +150,6 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
                 required_fields.append(field)
 
         for dd in self.ds.midx.iter_bbox_data(dle, dre, required_fields):
-
             for ptype, field_list in sorted(ptf.items()):
                 x = dd["x"]
                 y = dd["y"]

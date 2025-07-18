@@ -150,7 +150,7 @@ removed in yt 4.1
  * the ``limits`` argument from :meth:`~yt.visualization.image_writer.write_projection` is deprecated in
    favor to ``vmin`` and ``vmax``
  * :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_cbar_minorticks` is a deprecated alias for :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_colorbar_minorticks`
- * the ``axis`` argument from :meth:`yt.visualization.plot_window.SlicePlot` is a depreacted alias for the ``normal`` argument
+ * the ``axis`` argument from :meth:`yt.visualization.plot_window.SlicePlot` is a deprecated alias for the ``normal`` argument
  * the old configuration file ``ytrc`` is deprecated in favor of the new ``yt.toml`` format. In yt 4.0,
    you'll get a warning every time you import yt if you're still using the old configuration file,
    which will instruct you to invoke the yt command line interface to convert automatically to the new format.
@@ -218,10 +218,10 @@ method:
     plot.save()
 
     arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [25, 25, 25], dims=[16, 16, 16])
-    ag_density = arbitrary_grid[("gas", "density")]
+    ag_density = arbitrary_grid["gas", "density"]
 
     covering_grid = ds.covering_grid(4, 0, 16)
-    cg_density = covering_grid[("gas", "density")]
+    cg_density = covering_grid["gas", "density"]
 
 In the above example the ``covering_grid`` and the ``arbitrary_grid`` will return
 the same data. In fact, these containers are very similar but provide a
@@ -296,10 +296,10 @@ gather machinery also added.
     print(octree.sph_smoothing_style)
 
     # the density will be calculated using SPH scatter
-    density = octree[("PartType0", "density")]
+    density = octree["PartType0", "density"]
 
     # this will return the x positions of the octs
-    x = octree[("index", "x")]
+    x = octree["index", "x"]
 
 The above code can be modified to use the gather approach by using
 ``ds.sph_smoothing_style = 'gather'`` before any field access. The octree just
