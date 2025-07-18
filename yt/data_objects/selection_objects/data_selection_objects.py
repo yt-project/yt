@@ -525,7 +525,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
             indices and the values will be whatever is assigned to the *result*
             attribute on the storage during iteration.
         barrier : bool
-            Should a barier be placed at the end of iteration?
+            Should a barrier be placed at the end of iteration?
         dynamic : bool
             This governs whether or not dynamic load balancing will be enabled.
             This requires one dedicated processor; if this is enabled with a set of
@@ -535,16 +535,28 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
             This specifies the reduction operation to be applied to the results
             from each processor.
             - None: no reduction will be applied and the storage object will
-              contain one result per chunk in the container.
+                contain one result per chunk in the container.
             - concat: the storage object will contain a flattened list of
-              each results.
+                each results.
             - cat_on_root: same as concat, but only the root processor will
-              contain anything.
+                contain anything.
             - sum, min, max: the storage object will contain the result
-              of applying the operation until getting a single value.
+                of applying the operation until getting a single value.
+
+        Important limitation
+        --------------------
+        When using `storage`, the result *must* be a dictionary. See the
+        examples below.
 
         Example
         -------
+
+        Here is an example of how to gather all data on root, reading in
+        parallel. Other MPI tasks will have nothing in `my_storage`.
+
+        >>> import yt
+        >>> ds = yt.load("output_00080")
+        ... ad = ds.all_data()
         >>> my_storage = {}
         ... for sto, chunk in ad.piter(storage=my_storage, reduction="cat_on_root"):
         ...     sto.result = {
@@ -557,6 +569,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         ...     # Contains *all* the gas temperatures
         ...     my_storage["gas", "temperature"]
 
+        Here is an example of how to sum the total mass of all gas cells in
+        the dataset, storing the result in `my_storage` on all processors.
+
         >>> my_storage = {}
         ... for sto, chunk in ad.piter(storage=my_storage, reduction="sum"):
         ...     sto.result = {
@@ -564,11 +579,24 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         ...     }
         ... print("Total mass: ", my_storage["total_mass"])
 
-        Note
-        ----
-        `sto.result` has to be a dictionary.
+        Here is an example of how to read all data in parallel and
+        have the results available on all processors.
 
+        >>> my_storage = {}
+        ... for sto, chunk in ad.piter(storage=my_storage, reduction="cat"):
+        ...     sto.result = {("gas", "density"): chunk["gas", "density"]}
+        ... print(my_storage["gas", "density"])
+
+        This is equivalent (but faster, since reading is parallelized) to the
+        following
+
+        >>> my_storage = {("gas", "density"): ad["gas", "density"]}
         """
+        if reduction is not None and storage is None:
+            raise ValueError(
+                "If reduction is specified, you must pass in a storage dictionary."
+            )
+
         yield from parallel_objects(
             self.chunks([], "io"),
             njobs=njobs,
