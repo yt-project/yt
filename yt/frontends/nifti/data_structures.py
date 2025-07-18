@@ -7,6 +7,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.frontends.nifti.fields import NiftiFieldInfo
 from yt.funcs import setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.on_demand_imports import NotAModule, _nibabel as nib
 
@@ -79,7 +80,7 @@ class NiftiDataset(Dataset):
         )
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
-        # self.refine_by = 2
+        self.refine_by = 2
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -88,18 +89,16 @@ class NiftiDataset(Dataset):
         # values.
         #
         # TODO: Fix this to match that specified in the header
-        spatial_units = {1: 'm', 2: 'mm', 3: 'microns'}
+        spatial_units = {1: "m", 2: "mm", 3: "microns"}
 
-        length_unit = (self.parameters['xyzt_units']) & 7
+        length_unit = (self.parameters["xyzt_units"]) & 7
         self.length_unit = self.quan(1.0, spatial_units[length_unit])
-        
-        temporal_units = {8: 's', 16: 'ms', 24: 'microseconds'}
-        if self.parameters['dim'][4] != 1 or self.parameters['dim'][0] >= 4:
-            time_unit = self.parameters['xyzt_units'] & 56
+
+        temporal_units = {8: "s", 16: "ms", 24: "microseconds"}
+        if self.parameters["dim"][4] != 1 or self.parameters["dim"][0] >= 4:
+            time_unit = self.parameters["xyzt_units"] & 56
             self.time_unit = self.quan(1.0, temporal_units[time_unit])
 
-
-       
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
@@ -124,14 +123,13 @@ class NiftiDataset(Dataset):
         img = nib.load(self.filename)
         self.parameters = dict(img.header)
 
-        for key,value in self.parameters.items():
-            if (value.shape)==():
+        for key, value in self.parameters.items():
+            if (value.shape) == ():
                 value = value.item()
-                self.parameters[key]=value
-                
-        self.parameters['affine'] = img.affine
-        self.parameters['data_shape'] = img.shape
+                self.parameters[key] = value
 
+        self.parameters["affine"] = img.affine
+        self.parameters["data_shape"] = img.shape
 
         # This needs to set up the following items.  Note that these are all
         # assumed to be in code units; domain_left_edge and domain_right_edge
@@ -158,7 +156,8 @@ class NiftiDataset(Dataset):
         self.omega_matter = 0
         self.hubble_constant = 0
 
-        self.geometry = "cartesian_subject"
+        self.geometry = Geometry.CARTESIAN_SUBJECT
+
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
         if isinstance(nib.load, NotAModule):
@@ -167,6 +166,5 @@ class NiftiDataset(Dataset):
             try:
                 nib.load(filename)
                 return True
-            except (nib.ImageFileError):
-
+            except nib.ImageFileError:
                 return False

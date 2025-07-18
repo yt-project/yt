@@ -23,16 +23,14 @@ class NiftiIOHandler(BaseIOHandler):
         raise NotImplementedError
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-
         rv = {field: np.empty(size, dtype="float64") for field in fields}
 
         offset = 0
-
+        variable = nib.load(self.ds.filename)
+        data = variable.get_fdata()  #
         for field in fields:
             for chunk in chunks:
                 for grid in chunk.objs:
-                    variable = nib.load(self.ds.filename)
-                    data = variable.get_fdata()  # .astype("f8")
                     offset += grid.select(selector, data, rv[field], offset)
         return rv
 
