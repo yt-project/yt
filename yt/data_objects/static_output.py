@@ -1717,9 +1717,7 @@ class Dataset(abc.ABC):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def register_field(
-        self, name, units=None, aliases=None, display_name=None
-    ):
+    def register_field(self, name, units=None, aliases=None, display_name=None):
         """
         Register properties for an on-disk field.
 
@@ -1742,6 +1740,11 @@ class Dataset(abc.ABC):
            the name used in plots
 
         """
+        if self._instantiated_index:
+            raise RuntimeError(
+                "Cannot call register_field after field_list is populated. "
+                "This must be called immediately after load."
+            )
         if self._registered_fields is None:
             self._registered_fields = {}
 
