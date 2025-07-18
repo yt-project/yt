@@ -508,6 +508,32 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         *args,
         **kwargs,
     ):
+        """Iterate in parallel over data in the container.
+
+        See :class:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
+        for more information on the arguments.
+
+        Example
+        -------
+        >>> my_storage = {}
+        ... for sto, chunk in ad.piter(storage=my_storage, reduction="cat_on_root"):
+        ...     sto.result = {
+        ...         ("gas", "density"): chunk["gas", "density"],
+        ...         ("gas", "temperature"): chunk["gas", "temperature"],
+        ...     }
+        ... if yt.is_root():
+        ...     # Contains *all* the gas densities
+        ...     my_storage["gas", "density"]
+        ...     # Contains *all* the gas temperatures
+        ...     my_storage["gas", "temperature"]
+
+        >>> my_storage = {}
+        ... for sto, chunk in ad.piter(storage=my_storage, reduction="sum"):
+        ...     sto.result = {
+        ...         "total_mass": chunk["gas", "cell_mass"].sum(),
+        ...     }
+        ... print("Total mass: ", my_storage["total_mass"])
+        """
         yield from parallel_objects(self.chunks([], "io"), *args, **kwargs)
 
 
