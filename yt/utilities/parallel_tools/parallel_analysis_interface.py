@@ -5,6 +5,7 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
+from typing import Literal
 
 import numpy as np
 from more_itertools import always_iterable
@@ -466,7 +467,14 @@ class ResultsStorage:
     result_id = None
 
 
-def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False):
+def parallel_objects(
+    objects,
+    njobs: int = 0,
+    storage: dict | None = None,
+    barrier: bool = True,
+    dynamic: bool = False,
+    reduction: Literal[None, "sum", "max", "min", "cat", "cat_on_root"] = None,
+):
     r"""This function dispatches components of an iterable to different
     processors.
 
@@ -503,7 +511,9 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
         This requires one dedicated processor; if this is enabled with a set of
         128 processors available, only 127 will be available to iterate over
         objects as one will be load balancing the rest.
-
+    reduction : Literal[None, "sum", "max", "min", "cat", "cat_on_root"]
+        This specifies the reduction operation to be applied to the results
+        from each processor.  The default is None, which doesn't apply any.
 
     Examples
     --------
@@ -570,10 +580,22 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     if parallel_capable:
         communication_system.pop()
     if storage is not None:
-        # Now we have to broadcast it
-        new_storage = my_communicator.par_combine_object(
-            to_share, datatype="dict", op="join"
-        )
+        match reduction:
+            case None:
+                new_storage = my_communicator.par_combine_object(
+                    list(to_share.values()), datatype="dict", op="join"
+                )
+            case "cat":
+                new_storage = my_communicator.all_concat(to_share)
+            case "cat_on_root":
+                new_storage = my_communicator.concat(to_share, root=0)
+            case "sum" | "max" | "min":
+                new_storage = my_communicator.reduce(to_share, op=reduction, root=0)
+            case _:
+                raise NotImplementedError(
+                    f"Reduction operation {reduction} not implemented."
+                )
+
         storage.update(new_storage)
     if barrier:
         my_communicator.barrier()
@@ -916,6 +938,91 @@ class Communicator:
             # We use old-school pickling here on the assumption the arrays are
             # relatively small ( < 1e7 elements )
             return self.comm.allreduce(data, op)
+
+    def reduce(self, data, op="sum", root=0):
+        if not data:
+            return []
+        out_data = {}
+
+        reduction_op = {
+            "sum": np.sum,
+            "max": np.max,
+            "min": np.min,
+        }[op]
+        mpi_reduction_op = {
+            "sum": MPI.SUM,
+            "max": MPI.MAX,
+            "min": MPI.MIN,
+        }[op]
+
+        if not self._distributed or self.comm.rank == 0:
+            keys = list(next(iter(data.values())).keys())
+        else:
+            keys = None
+
+        if self._distributed:
+            keys = self.comm.bcast(keys, root=0)
+            for key in keys:
+                tmp = reduction_op([reduction_op(d[key]) for d in data.values()])
+                print(f"{self.comm.rank=}, {tmp=}")
+                out_data[key] = self.comm.allreduce(tmp, op=mpi_reduction_op)
+        else:
+            out_data = {
+                k: reduction_op([reduction_op(d[k]) for d in data.values()])
+                for k in keys
+            }
+
+        return out_data
+
+    def all_concat(self, data):
+        if not data:
+            return []
+        out_data = {}
+
+        if not self._distributed or self.comm.rank == 0:
+            keys = list(next(iter(data.values())).keys())
+        else:
+            keys = None
+
+        if self._distributed:
+            keys = self.comm.bcast(keys, root=0)
+            for key in keys:
+                tmp = self.comm.allgather(
+                    np.concatenate([d[key] for d in data.values()])
+                )
+
+                out_data[key] = np.concatenate(tmp)
+        else:
+            out_data = {k: np.concatenate([d[k] for d in data.values()]) for k in keys}
+
+        return out_data
+
+    def concat(self, data, root=0):
+        if not data:
+            return []
+        out_data = {}
+
+        if not self._distributed or self.comm.rank == root:
+            keys = list(next(iter(data.values())).keys())
+        else:
+            keys = None
+
+        if self._distributed:
+            keys = self.comm.bcast(keys, root=root)
+            for key in keys:
+                tmp = self.comm.gather(
+                    np.concatenate([d[key] for d in data.values()]),
+                    root=root,
+                )
+
+                if self.comm.rank == root:
+                    out_data[key] = np.concatenate(tmp)
+                else:
+                    out_data[key] = None
+        else:
+            out_data = {k: np.concatenate([d[k] for d in data.values()]) for k in keys}
+
+        return out_data
 
     ###
     # Non-blocking stuff.
