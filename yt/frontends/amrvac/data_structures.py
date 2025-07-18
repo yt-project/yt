@@ -153,7 +153,14 @@ class AMRVACHierarchy(GridIndex):
             self.grid_left_edge[igrid, :dim] = left_edge
             self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
             self.grid_dimensions[igrid, :dim] = block_nx
-            self.grids[igrid] = self.grid(igrid, self, ytlevels[igrid])
+            self.grids[igrid] = self.grid(
+                id=igrid,
+                index=self,
+                level=ytlevels[igrid],
+                filename=self.index_filename,
+                cell_widths=self._cell_widths,
+                dims=self.grid_dimensions[igrid],
+            )
 
     def _populate_grid_objects(self):
         # required method
