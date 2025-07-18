@@ -143,6 +143,12 @@ class AMRVACHierarchy(GridIndex):
         dim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype="object")
+        meshlist = self.ds.namelist["meshlist"]
+        if (strech_dim := meshlist.get("strech_dim")) is not None:
+            assert isinstance(strech_dim, list)
+            assert len(strech_dim) >= self.ds.dimensionality
+            stretch_base = float(meshlist["qstretch_base"])
+
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
         ):
@@ -158,7 +164,7 @@ class AMRVACHierarchy(GridIndex):
                 index=self,
                 level=ytlevels[igrid],
                 filename=self.index_filename,
-                cell_widths=self._cell_widths,
+                cell_widths=_cell_widths,
                 dims=self.grid_dimensions[igrid],
             )
 
