@@ -180,6 +180,7 @@ class Dataset(abc.ABC):
     _ionization_label_format = "roman_numeral"
     _determined_fields: dict[str, list[FieldKey]] | None = None
     fields_detected = False
+    _registered_fields = None
 
     # these are set in self._parse_parameter_file()
     domain_left_edge = MutableAttribute(True)
@@ -1715,6 +1716,44 @@ class Dataset(abc.ABC):
             return self._quan
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
+
+    def register_field(
+        self, name, units=None, aliases=None, display_name=None
+    ):
+        """
+        Register properties for an on-disk field.
+
+        Register or override units, aliases, or the display name for an
+        on-disk field.
+
+        Note, this must be called immediately after yt.load (i.e., before
+        the list of fields is generated).
+
+        Parameters
+        ----------
+
+        name : str
+           name of the field
+        units : str
+           units of the field
+        aliases : list
+           a list of alias names
+        display_name: str
+           the name used in plots
+
+        """
+        if self._registered_fields is None:
+            self._registered_fields = {}
+
+        entry = {}
+        if units is not None:
+            entry["units"] = units
+        if aliases is not None:
+            entry["alias"] = alias
+        if display_name is not None:
+            entry["display_name"] = display_name
+
+        self._registered_fields[name] = entry
 
     def add_field(
         self, name, function, sampling_type, *, force_override=False, **kwargs
