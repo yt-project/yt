@@ -1,6 +1,4 @@
 import os
-import shutil
-import tempfile
 
 import numpy as np
 import pytest
@@ -17,46 +15,47 @@ from yt.testing import (
 from yt.utilities.exceptions import YTException, YTFieldNotFound
 
 
-@pytest.fixture(scope="module")
-def temp_workdir():
-    tmpdir = tempfile.mkdtemp()
+@pytest.fixture
+def temp_workdir(tmp_path):
     curdir = os.getcwd()
-    os.chdir(tmpdir)
-    yield
+    os.chdir(tmp_path)
+    yield tmp_path
     os.chdir(curdir)
-    shutil.rmtree(tmpdir)
 
 
-def test_yt_data_container(temp_workdir):
+@pytest.mark.usefixtures("temp_workdir")
+def test_yt_data_container():
     # Test if ds could be None
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "Error: ds must be set either through class"
+            " type or parameter to the constructor"
+        ),
+    ):
         YTDataContainer(None, None)
-    desired = (
-        "Error: ds must be set either through class"
-        " type or parameter to the constructor"
-    )
-    assert_equal(str(err.value), desired)
 
     # Test if field_data key exists
     ds = fake_random_ds(5)
     proj = ds.proj(("gas", "density"), 0, data_source=ds.all_data())
-    assert_equal("px" in proj.keys(), True)
-    assert_equal("pz" in proj.keys(), False)
+    assert "px" in proj.keys()
+    assert "pz" not in proj.keys()
 
     # Delete the key and check if exits
     del proj["px"]
-    assert_equal("px" in proj.keys(), False)
+    assert "px" not in proj.keys()
     del proj["gas", "density"]
-    assert_equal("density" in proj.keys(), False)
+    assert "density" not in proj.keys()
 
     # Delete a non-existent field
-    with pytest.raises(YTFieldNotFound) as ex:
+    with pytest.raises(
+        YTFieldNotFound, match="Could not find field 'p_mass' in UniformGridData."
+    ):
         del proj["p_mass"]
-    desired = "Could not find field 'p_mass' in UniformGridData."
-    assert_equal(str(ex.value), desired)
 
 
-def test_write_out(temp_workdir):
+@pytest.mark.usefixtures("temp_workdir")
+def test_write_out():
     filename = "sphere.txt"
     ds = fake_random_ds(16, particles=10)
     sp = ds.sphere(ds.domain_center, 0.25)
@@ -76,7 +75,8 @@ def test_write_out(temp_workdir):
     assert_array_equal(data, file_row_2)
 
 
-def test_invalid_write_out(temp_workdir):
+@pytest.mark.usefixtures("temp_workdir")
+def test_invalid_write_out():
     filename = "sphere.txt"
     ds = fake_random_ds(16, particles=10)
     sp = ds.sphere(ds.domain_center, 0.25)
@@ -131,11 +131,12 @@ def test_to_frb():
         data_source=dd,
     )
     frb = proj.to_frb((1.0, "unitary"), 64)
-    assert_equal(frb.radius, (1.0, "unitary"))
-    assert_equal(frb.buff_size, 64)
+    assert frb.radius == (1.0, "unitary")
+    assert frb.buff_size == 64
 
 
-def test_extract_isocontours(temp_workdir):
+@pytest.mark.usefixtures("temp_workdir")
+def test_extract_isocontours():
     # Test isocontour properties for AMRGridData
     fields = ["density", "cell_mass"]
     units = ["g/cm**3", "g"]
