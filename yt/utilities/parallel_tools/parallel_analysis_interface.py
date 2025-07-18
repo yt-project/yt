@@ -3,9 +3,10 @@ import logging
 import os
 import sys
 import traceback
+from dataclasses import dataclass
 from functools import wraps
 from io import StringIO
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from more_itertools import always_iterable
@@ -461,10 +462,10 @@ class ProcessorPool:
         raise KeyError(key)
 
 
+@dataclass
 class ResultsStorage:
-    slots = ["result", "result_id"]
-    result = None
-    result_id = None
+    result_id: int
+    result: Any = None
 
 
 def parallel_objects(
@@ -565,14 +566,13 @@ def parallel_objects(
             break
     if parallel_capable:
         communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
-    to_share = {}
+    to_share: dict[int, np.ndarray | dict[Any, np.ndarray]] = {}
     # If our objects object is slice-aware, like time series data objects are,
     # this will prevent intermediate objects from being created.
     oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
     for result_id, obj in oiter:
         if storage is not None:
-            rstore = ResultsStorage()
-            rstore.result_id = result_id
+            rstore = ResultsStorage(result_id=result_id)
             yield rstore, obj
             to_share[rstore.result_id] = rstore.result
         else:
@@ -940,10 +940,6 @@ class Communicator:
             return self.comm.allreduce(data, op)
 
     def reduce(self, data, op="sum", root=0):
-        if not data:
-            return []
-        out_data = {}
-
         reduction_op = {
             "sum": np.sum,
             "max": np.max,
@@ -955,74 +951,87 @@ class Communicator:
             "min": MPI.MIN,
         }[op]
 
-        if not self._distributed or self.comm.rank == 0:
-            keys = list(next(iter(data.values())).keys())
-        else:
-            keys = None
+        # We assume the dictionary is not empty!
+        first_value = next(iter(data.values()))
 
-        if self._distributed:
-            keys = self.comm.bcast(keys, root=0)
-            for key in keys:
-                tmp = reduction_op([reduction_op(d[key]) for d in data.values()])
-                print(f"{self.comm.rank=}, {tmp=}")
-                out_data[key] = self.comm.allreduce(tmp, op=mpi_reduction_op)
-        else:
-            out_data = {
-                k: reduction_op([reduction_op(d[k]) for d in data.values()])
-                for k in keys
+        # If we have a dict of dicts, recurse
+        if isinstance(first_value, dict):
+            return {
+                deeper_key: self.reduce(
+                    {key: value[deeper_key] for key, value in data.items()},
+                    op=op,
+                )
+                for deeper_key in first_value.keys()
             }
 
-        return out_data
-
-    def all_concat(self, data):
-        if not data:
-            return []
-        out_data = {}
-
-        if not self._distributed or self.comm.rank == 0:
-            keys = list(next(iter(data.values())).keys())
-        else:
-            keys = None
+        # Otherwise, we assume our values can be concatenated
+        reduced_values = reduction_op([reduction_op(d) for d in data.values()])
 
         if self._distributed:
-            keys = self.comm.bcast(keys, root=0)
-            for key in keys:
-                tmp = self.comm.allgather(
-                    np.concatenate([d[key] for d in data.values()])
+            reduced_values = self.comm.allreduce(reduced_values, op=mpi_reduction_op)
+
+        return reduced_values
+
+    def all_concat(self, data: dict[Any, np.ndarray | dict[str, np.ndarray]]):
+        """
+        Concatenate all the values of data across all processors.
+
+        Notes:
+        ------
+        `data`'s values can either be a single object, or a dictionary of objects.
+        """
+        # We assume the dictionary is not empty!
+        first_value = next(iter(data.values()))
+
+        # If we have a dict of dicts, recurse
+        if isinstance(first_value, dict):
+            return {
+                deeper_key: self.all_concat(
+                    {key: value[deeper_key] for key, value in data.items()}
                 )
+                for deeper_key in first_value.keys()
+            }
 
-                out_data[key] = np.concatenate(tmp)
-        else:
-            out_data = {k: np.concatenate([d[k] for d in data.values()]) for k in keys}
-
-        return out_data
-
-    def concat(self, data, root=0):
-        if not data:
-            return []
-        out_data = {}
-
-        if not self._distributed or self.comm.rank == root:
-            keys = list(next(iter(data.values())).keys())
-        else:
-            keys = None
+        # Otherwise, we assume our values can be concatenated
+        all_values = np.concatenate([np.atleast_1d(value) for value in data.values()])
 
         if self._distributed:
-            keys = self.comm.bcast(keys, root=root)
-            for key in keys:
-                tmp = self.comm.gather(
-                    np.concatenate([d[key] for d in data.values()]),
+            all_values = np.concatenate(self.comm.allgather(all_values))
+
+        return all_values
+
+    def concat(
+        self, data: dict[Any, np.ndarray | dict[str, np.ndarray]], root: int = 0
+    ):
+        """
+        Concatenate all the values of data and send them to the root.
+
+        Notes:
+        ------
+        `data`'s values can either be a single object, or a dictionary of objects.
+        """
+        # We assume the dictionary is not empty!
+        first_value = next(iter(data.values()))
+
+        # If we have a dict of dicts, recurse
+        if isinstance(first_value, dict):
+            return {
+                deeper_key: self.concat(
+                    {key: value[deeper_key] for key, value in data.items()},
                     root=root,
                 )
+                for deeper_key in first_value.keys()
+            }
 
-                if self.comm.rank == root:
-                    out_data[key] = np.concatenate(tmp)
-                else:
-                    out_data[key] = None
-        else:
-            out_data = {k: np.concatenate([d[k] for d in data.values()]) for k in keys}
+        # Otherwise, we assume our values can be concatenated
+        all_values = np.concatenate([np.atleast_1d(value) for value in data.values()])
 
-        return out_data
+        if self._distributed:
+            tmp = self.comm.gather(all_values, root=root)
+            if self.comm.rank == root:
+                return np.concatenate(tmp)
+            else:
+                return None
 
     ###
     # Non-blocking stuff.
