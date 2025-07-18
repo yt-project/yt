@@ -130,7 +130,7 @@ class DerivedFieldBase(abc.ABC):
     # def __eq__(self, other) -> "DerivedFieldCombination":
     #     return DerivedFieldCombination([self, other], op=operator.eq)
 
-    def __ne__(self, other) -> "DerivedFieldCombination":
+    def __ne__(self, other) -> "DerivedFieldCombination":  # type: ignore[override]
         return DerivedFieldCombination([self, other], op=operator.ne)
 
 
