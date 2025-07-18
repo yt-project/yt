@@ -27,7 +27,7 @@ class NiftiIOHandler(BaseIOHandler):
 
         offset = 0
         variable = nib.load(self.ds.filename)
-        data = variable.get_fdata()  #
+        data = np.squeeze(variable.get_fdata())
         for field in fields:
             for chunk in chunks:
                 for grid in chunk.objs:

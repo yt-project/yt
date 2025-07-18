@@ -138,6 +138,9 @@ class NiftiDataset(Dataset):
         #
 
         img_data_shape = self.parameters["data_shape"]
+        if len(img_data_shape) == 4 and img_data_shape[-1] == 1:
+            # If we have just one time frame, we only use it.
+            img_data_shape = img_data_shape[:3]
         self.domain_left_edge = np.array((0, 0, 0), dtype="f8")
         self.domain_right_edge = (
             np.array((img_data_shape), dtype="f8") * self.parameters["pixdim"][1:4]
