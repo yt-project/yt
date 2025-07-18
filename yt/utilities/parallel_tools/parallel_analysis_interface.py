@@ -583,7 +583,7 @@ def parallel_objects(
         match reduction:
             case None:
                 new_storage = my_communicator.par_combine_object(
-                    list(to_share.values()), datatype="dict", op="join"
+                    to_share, datatype="dict", op="join"
                 )
             case "cat":
                 new_storage = my_communicator.all_concat(to_share)
