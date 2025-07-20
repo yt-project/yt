@@ -10,7 +10,7 @@ from yt.testing import (
     fake_amr_ds,
     fake_particle_ds,
     fake_random_ds,
-    requires_module,
+    requires_module_pytest as requires_module,
 )
 from yt.utilities.exceptions import YTException, YTFieldNotFound
 
