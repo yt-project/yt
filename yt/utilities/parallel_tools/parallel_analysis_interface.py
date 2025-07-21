@@ -1228,8 +1228,9 @@ class ParallelAnalysisInterface:
         pass
 
     def partition_index_2d(self, axis):
+        center = getattr(self, "center", self.ds.domain_center)
         if not self._distributed:
-            return False, self.index.grid_collection(self.center, self.index.grids)
+            return False, self.index.grid_collection(center, self.index.grids)
 
         xax = self.ds.coordinates.x_axis[axis]
         yax = self.ds.coordinates.y_axis[axis]
@@ -1248,7 +1249,7 @@ class ParallelAnalysisInterface:
         RE[yax] = y[1] * (DRE[yax] - DLE[yax]) + DLE[yax]
         mylog.debug("Dimensions: %s %s", LE, RE)
 
-        reg = self.ds.region(self.center, LE, RE)
+        reg = self.ds.region(center, LE, RE)
         return True, reg
 
     def partition_index_3d(self, ds, padding=0.0, rank_ratio=1):
