@@ -169,7 +169,6 @@ class Dataset(abc.ABC):
     known_filters: dict[ParticleType, ParticleFilter] | None = None
     _index_class: type[Index]
     field_units: dict[AnyFieldKey, Unit] | None = None
-    derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     conversion_factors: dict[str, float] | None = None
     # _instantiated represents an instantiation time (since Epoch)
@@ -654,9 +653,12 @@ class Dataset(abc.ABC):
     def field_list(self):
         return self.index.field_list
 
+    @property
+    def derived_field_list(self):
+        return self.field_info.derived_field_list
+
     def create_field_info(self):
         self.field_dependencies = {}
-        self.derived_field_list = []
         self.filtered_particle_types = []
         self.field_info = self._field_info_class(self, self.field_list)
         self.coordinates.setup_fields(self.field_info)
@@ -915,7 +917,7 @@ class Dataset(abc.ABC):
             if fn[0] == filter.filtered_type:
                 # Now we can add this
                 available = True
-                self.derived_field_list.append((filter.name, fn[1]))
+                self.field_info.derived_field_list.append((filter.name, fn[1]))
                 fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
                 # Now we append the dependencies
                 fd[filter.name, fn[1]] = fd[fn]

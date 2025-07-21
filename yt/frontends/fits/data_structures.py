@@ -228,7 +228,7 @@ class FITSHierarchy(GridIndex):
         [self.dataset.conversion_factors[field] for field in self.field_list]
         for field in self.field_list:
             if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
+                self.dataset.field_info.derived_field_list.append(field)
 
         for field in self.derived_field_list:
             f = self.dataset.field_info[field]
