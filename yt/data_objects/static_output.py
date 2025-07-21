@@ -655,6 +655,7 @@ class Dataset(abc.ABC):
 
     @property
     def derived_field_list(self):
+        self.index
         return self.field_info.derived_field_list
 
     def create_field_info(self):
