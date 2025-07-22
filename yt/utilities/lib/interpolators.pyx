@@ -22,7 +22,7 @@ from yt.utilities.lib.fp_utils cimport iclip
 cpdef void UnilinearlyInterpolate(np.ndarray[np.float64_t, ndim=1] table,
                            np.ndarray[np.float64_t, ndim=1] x_vals,
                            np.ndarray[np.float64_t, ndim=1] x_bins,
-                           np.ndarray[np.int32_t, ndim=1] x_is,
+                           np.ndarray[np.int64_t, ndim=1] x_is,
                            np.ndarray[np.float64_t, ndim=1] output):
     cdef double x, xp, xm
     cdef int i, x_i
@@ -43,8 +43,8 @@ cpdef void BilinearlyInterpolate(np.ndarray[np.float64_t, ndim=2] table,
                           np.ndarray[np.float64_t, ndim=1] y_vals,
                           np.ndarray[np.float64_t, ndim=1] x_bins,
                           np.ndarray[np.float64_t, ndim=1] y_bins,
-                          np.ndarray[np.int32_t, ndim=1] x_is,
-                          np.ndarray[np.int32_t, ndim=1] y_is,
+                          np.ndarray[np.int64_t, ndim=1] x_is,
+                          np.ndarray[np.int64_t, ndim=1] y_is,
                           np.ndarray[np.float64_t, ndim=1] output):
     cdef double x, xp, xm
     cdef double y, yp, ym
