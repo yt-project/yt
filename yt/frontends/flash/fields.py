@@ -120,7 +120,7 @@ class FLASHFieldInfo(FieldInfoContainer):
 
         else:
 
-            def _ener(field, data):
+            def _ener(data):
                 ener = data["flash", "eint"] + ekin(data)
                 try:
                     ener += data["flash", "magp"] / data["flash", "dens"]
@@ -147,7 +147,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             )
         else:
 
-            def _eint(field, data):
+            def _eint(data):
                 eint = data["flash", "ener"] - ekin(data)
                 try:
                     eint -= data["flash", "magp"] / data["flash", "dens"]
@@ -168,7 +168,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             self.alias(("gas", "mean_molecular_weight"), ("flash", "abar"))
         elif ("flash", "sumy") in self.field_list:
 
-            def _abar(field, data):
+            def _abar(data):
                 return 1.0 / data["flash", "sumy"]
 
             self.add_field(
@@ -179,7 +179,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             )
         elif "eos_singlespeciesa" in self.ds.parameters:
 
-            def _abar(field, data):
+            def _abar(data):
                 return data.ds.parameters["eos_singlespeciesa"] * data["index", "ones"]
 
             self.add_field(
@@ -191,7 +191,7 @@ class FLASHFieldInfo(FieldInfoContainer):
 
         if ("flash", "sumy") in self.field_list:
 
-            def _nele(field, data):
+            def _nele(data):
                 return data["flash", "dens"] * data["flash", "ye"] * Na
 
             self.add_field(
@@ -201,7 +201,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 units=unit_system["number_density"],
             )
 
-            def _nion(field, data):
+            def _nion(data):
                 return data["flash", "dens"] * data["flash", "sumy"] * Na
 
             self.add_field(
@@ -211,14 +211,14 @@ class FLASHFieldInfo(FieldInfoContainer):
                 units=unit_system["number_density"],
             )
 
-            def _number_density(field, data):
+            def _number_density(data):
                 return (
                     data["gas", "El_number_density"] + data["gas", "ion_number_density"]
                 )
 
         else:
 
-            def _number_density(field, data):
+            def _number_density(data):
                 return data["flash", "dens"] * Na / data["gas", "mean_molecular_weight"]
 
         self.add_field(

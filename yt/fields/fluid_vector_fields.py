@@ -35,21 +35,21 @@ def setup_fluid_vector_fields(
         sl_left, sl_right, div_fac = slice_info
     sl_center = slice(1, -1, None)
 
-    def _baroclinic_vorticity_x(field, data):
+    def _baroclinic_vorticity_x(data):
         rho2 = data[ftype, "density"].astype("float64", copy=False) ** 2
         return (
             data[ftype, "pressure_gradient_y"] * data[ftype, "density_gradient_z"]
             - data[ftype, "pressure_gradient_z"] * data[ftype, "density_gradient_z"]
         ) / rho2
 
-    def _baroclinic_vorticity_y(field, data):
+    def _baroclinic_vorticity_y(data):
         rho2 = data[ftype, "density"].astype("float64", copy=False) ** 2
         return (
             data[ftype, "pressure_gradient_z"] * data[ftype, "density_gradient_x"]
             - data[ftype, "pressure_gradient_x"] * data[ftype, "density_gradient_z"]
         ) / rho2
 
-    def _baroclinic_vorticity_z(field, data):
+    def _baroclinic_vorticity_z(data):
         rho2 = data[ftype, "density"].astype("float64", copy=False) ** 2
         return (
             data[ftype, "pressure_gradient_x"] * data[ftype, "density_gradient_y"]
@@ -76,7 +76,7 @@ def setup_fluid_vector_fields(
         validators=bv_validators,
     )
 
-    def _vorticity_x(field, data):
+    def _vorticity_x(data):
         vz = data[ftype, "relative_velocity_z"]
         vy = data[ftype, "relative_velocity_y"]
         f = (vz[sl_center, sl_right, sl_center] - vz[sl_center, sl_left, sl_center]) / (
@@ -89,7 +89,7 @@ def setup_fluid_vector_fields(
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
 
-    def _vorticity_y(field, data):
+    def _vorticity_y(data):
         vx = data[ftype, "relative_velocity_x"]
         vz = data[ftype, "relative_velocity_z"]
         f = (vx[sl_center, sl_center, sl_right] - vx[sl_center, sl_center, sl_left]) / (
@@ -102,7 +102,7 @@ def setup_fluid_vector_fields(
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
 
-    def _vorticity_z(field, data):
+    def _vorticity_z(data):
         vx = data[ftype, "relative_velocity_x"]
         vy = data[ftype, "relative_velocity_y"]
         f = (vy[sl_right, sl_center, sl_center] - vy[sl_left, sl_center, sl_center]) / (
@@ -147,13 +147,13 @@ def setup_fluid_vector_fields(
         validators=vort_validators,
     )
 
-    def _vorticity_stretching_x(field, data):
+    def _vorticity_stretching_x(data):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_x"]
 
-    def _vorticity_stretching_y(field, data):
+    def _vorticity_stretching_y(data):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_y"]
 
-    def _vorticity_stretching_z(field, data):
+    def _vorticity_stretching_z(data):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_z"]
 
     for ax in "xyz":
@@ -175,19 +175,19 @@ def setup_fluid_vector_fields(
         validators=vort_validators,
     )
 
-    def _vorticity_growth_x(field, data):
+    def _vorticity_growth_x(data):
         return (
             -data[ftype, "vorticity_stretching_x"]
             - data[ftype, "baroclinic_vorticity_x"]
         )
 
-    def _vorticity_growth_y(field, data):
+    def _vorticity_growth_y(data):
         return (
             -data[ftype, "vorticity_stretching_y"]
             - data[ftype, "baroclinic_vorticity_y"]
         )
 
-    def _vorticity_growth_z(field, data):
+    def _vorticity_growth_z(data):
         return (
             -data[ftype, "vorticity_stretching_z"]
             - data[ftype, "baroclinic_vorticity_z"]
@@ -203,7 +203,7 @@ def setup_fluid_vector_fields(
             validators=vort_validators,
         )
 
-    def _vorticity_growth_magnitude(field, data):
+    def _vorticity_growth_magnitude(data):
         result = np.sqrt(
             data[ftype, "vorticity_growth_x"] ** 2
             + data[ftype, "vorticity_growth_y"] ** 2
@@ -226,7 +226,7 @@ def setup_fluid_vector_fields(
         take_log=False,
     )
 
-    def _vorticity_growth_magnitude_absolute(field, data):
+    def _vorticity_growth_magnitude_absolute(data):
         return np.sqrt(
             data[ftype, "vorticity_growth_x"] ** 2
             + data[ftype, "vorticity_growth_y"] ** 2
@@ -241,7 +241,7 @@ def setup_fluid_vector_fields(
         validators=vort_validators,
     )
 
-    def _vorticity_growth_timescale(field, data):
+    def _vorticity_growth_timescale(data):
         domegax_dt = data[ftype, "vorticity_x"] / data[ftype, "vorticity_growth_x"]
         domegay_dt = data[ftype, "vorticity_y"] / data[ftype, "vorticity_growth_y"]
         domegaz_dt = data[ftype, "vorticity_z"] / data[ftype, "vorticity_growth_z"]
@@ -259,7 +259,7 @@ def setup_fluid_vector_fields(
     # With radiation pressure
     ########################################################################
 
-    def _vorticity_radiation_pressure_x(field, data):
+    def _vorticity_radiation_pressure_x(data):
         rho = data[ftype, "density"].astype("float64", copy=False)
         return (
             data[ftype, "radiation_acceleration_y"] * data[ftype, "density_gradient_z"]
@@ -267,7 +267,7 @@ def setup_fluid_vector_fields(
             * data[ftype, "density_gradient_y"]
         ) / rho
 
-    def _vorticity_radiation_pressure_y(field, data):
+    def _vorticity_radiation_pressure_y(data):
         rho = data[ftype, "density"].astype("float64", copy=False)
         return (
             data[ftype, "radiation_acceleration_z"] * data[ftype, "density_gradient_x"]
@@ -275,7 +275,7 @@ def setup_fluid_vector_fields(
             * data[ftype, "density_gradient_z"]
         ) / rho
 
-    def _vorticity_radiation_pressure_z(field, data):
+    def _vorticity_radiation_pressure_z(data):
         rho = data[ftype, "density"].astype("float64", copy=False)
         return (
             data[ftype, "radiation_acceleration_x"] * data[ftype, "density_gradient_y"]
@@ -313,21 +313,21 @@ def setup_fluid_vector_fields(
         validators=vrp_validators,
     )
 
-    def _vorticity_radiation_pressure_growth_x(field, data):
+    def _vorticity_radiation_pressure_growth_x(data):
         return (
             -data[ftype, "vorticity_stretching_x"]
             - data[ftype, "baroclinic_vorticity_x"]
             - data[ftype, "vorticity_radiation_pressure_x"]
         )
 
-    def _vorticity_radiation_pressure_growth_y(field, data):
+    def _vorticity_radiation_pressure_growth_y(data):
         return (
             -data[ftype, "vorticity_stretching_y"]
             - data[ftype, "baroclinic_vorticity_y"]
             - data[ftype, "vorticity_radiation_pressure_y"]
         )
 
-    def _vorticity_radiation_pressure_growth_z(field, data):
+    def _vorticity_radiation_pressure_growth_z(data):
         return (
             -data[ftype, "vorticity_stretching_z"]
             - data[ftype, "baroclinic_vorticity_z"]
@@ -344,7 +344,7 @@ def setup_fluid_vector_fields(
             validators=vrp_validators,
         )
 
-    def _vorticity_radiation_pressure_growth_magnitude(field, data):
+    def _vorticity_radiation_pressure_growth_magnitude(data):
         result = np.sqrt(
             data[ftype, "vorticity_radiation_pressure_growth_x"] ** 2
             + data[ftype, "vorticity_radiation_pressure_growth_y"] ** 2
@@ -367,7 +367,7 @@ def setup_fluid_vector_fields(
         take_log=False,
     )
 
-    def _vorticity_radiation_pressure_growth_magnitude_absolute(field, data):
+    def _vorticity_radiation_pressure_growth_magnitude_absolute(data):
         return np.sqrt(
             data[ftype, "vorticity_radiation_pressure_growth_x"] ** 2
             + data[ftype, "vorticity_radiation_pressure_growth_y"] ** 2
@@ -382,7 +382,7 @@ def setup_fluid_vector_fields(
         validators=vrp_validators,
     )
 
-    def _vorticity_radiation_pressure_growth_timescale(field, data):
+    def _vorticity_radiation_pressure_growth_timescale(data):
         domegax_dt = (
             data[ftype, "vorticity_x"]
             / data[ftype, "vorticity_radiation_pressure_growth_x"]
@@ -405,7 +405,7 @@ def setup_fluid_vector_fields(
         validators=vrp_validators,
     )
 
-    def _shear(field, data):
+    def _shear(data):
         """
         Shear is defined as [(dvx/dy + dvy/dx)^2 + (dvz/dy + dvy/dz)^2 +
                              (dvx/dz + dvz/dx)^2 ]^(0.5)
@@ -475,7 +475,7 @@ def setup_fluid_vector_fields(
         units=unit_system["frequency"],
     )
 
-    def _shear_criterion(field, data):
+    def _shear_criterion(data):
         """
         Divide by c_s to leave shear in units of length**-1, which
         can be compared against the inverse of the local cell size (1/dx)
@@ -501,7 +501,7 @@ def setup_fluid_vector_fields(
         ],
     )
 
-    def _shear_mach(field, data):
+    def _shear_mach(data):
         """
         Dimensionless shear (shear_mach) is defined nearly the same as shear,
         except that it is scaled by the local dx/dy/dz and the local sound speed.

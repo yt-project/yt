@@ -129,7 +129,7 @@ def test_projection(pf):
 
         # Test moment projections
         def make_vsq_field(aname):
-            def _vsquared(field, data):
+            def _vsquared(data):
                 return data["gas", f"velocity_{aname}"] ** 2
 
             return _vsquared

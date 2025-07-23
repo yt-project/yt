@@ -40,7 +40,7 @@ class _FieldFuncSignature(enum.Enum):
 
 
 def TranslationFunc(field_name):
-    def _TranslationFunc(field, data):
+    def _TranslationFunc(data, *, field=None):
         # We do a bunch of in-place modifications, so we will copy this.
         return data[field_name].copy()
 
@@ -66,7 +66,7 @@ def DeprecatedFieldFunc(ret_field, func, since, removal):
                 msg += ", use %s instead"
                 args.append(ret_field)
             mylog.warning(msg, *args)
-        return func(field, data)
+        return func(data)
 
     return _DeprecatedFieldFunc
 
@@ -82,7 +82,7 @@ class DerivedField:
        is the name of the field.
     function : callable
        A function handle that defines the field.  Should accept
-       arguments (field, data)
+       arguments (data)
     units : str
        A plain text string encoding the unit, or a query to a unit system of
        a dataset. Powers must be in Python syntax (** instead of ^). If set

@@ -584,7 +584,7 @@ Within a field function, these can then be retrieved and used in the same way.
 
 .. code-block:: python
 
-   def _wicket_density(field, data):
+   def _wicket_density(fdata):
        n_wickets = data.get_field_parameter("wickets")
        if n_wickets is None:
            # use a default if unset

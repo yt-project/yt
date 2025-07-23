@@ -21,7 +21,7 @@ this approach.
    import yt
 
 
-   def _pressure(field, data):
+   def _pressure(data):
        return (
            (data.ds.gamma - 1.0)
            * data["gas", "density"]
@@ -118,7 +118,7 @@ the dimensionality of the returned array and the field are the same:
     from yt.units import dimensions
 
 
-    def _pressure(field, data):
+    def _pressure(data):
         return (
             (data.ds.gamma - 1.0)
             * data["gas", "density"]
@@ -148,7 +148,7 @@ the previous example:
 
 
    @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
-   def _pressure(field, data):
+   def _pressure(data):
        return (
            (data.ds.gamma - 1.0)
            * data["gas", "density"]
@@ -222,7 +222,7 @@ transparent and simple example).
    from yt.fields.api import ValidateParameter
 
 
-   def _my_radial_velocity(field, data):
+   def _my_radial_velocity(data):
        if data.has_field_parameter("bulk_velocity"):
            bv = data.get_field_parameter("bulk_velocity").in_units("cm/s")
        else:
@@ -288,7 +288,7 @@ For example, let's write a field that depends on a field parameter named ``'axis
 
 .. code-block:: python
 
-   def my_axis_field(field, data):
+   def my_axis_field(fdata):
        axis = data.get_field_parameter("axis")
        if axis == 0:
            return data["gas", "velocity_x"]
@@ -381,7 +381,7 @@ For instance, if you had defined this derived field:
 .. code-block:: python
 
    @yt.derived_field(name=("gas", "funthings"))
-   def funthings(field, data):
+   def funthings(data):
        return data["sillythings"] + data["humorousthings"] ** 2.0
 
 And you wanted to debug it, you could do:
@@ -389,7 +389,7 @@ And you wanted to debug it, you could do:
 .. code-block:: python
 
    @yt.derived_field(name=("gas", "funthings"))
-   def funthings(field, data):
+   def funthings(data):
        data._debug()
        return data["sillythings"] + data["humorousthings"] ** 2.0
 

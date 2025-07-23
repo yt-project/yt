@@ -63,7 +63,7 @@ def test_add_field_uncallable():
 
 def test_add_field_flipped_signature():
     # before yt 4.5, the only valid signature was
-    # `function(field, data)`, but now we allow `function(data, field)`
+    # `function(data)`, but now we allow `function(data, field)`
     ds = fake_random_ds(16)
 
     def _spam(data, field):
@@ -74,7 +74,7 @@ def test_add_field_flipped_signature():
 
 def test_add_field_signature_v2():
     # before yt 4.5, the only valid signature was
-    # `function(field, data)`, but now we allow `function(data)`
+    # `function(data)`, but now we allow `function(data)`
     ds = fake_random_ds(16)
 
     def _spam(data):
@@ -101,7 +101,7 @@ def test_derived_field(monkeypatch):
     monkeypatch.setattr(local_fields, "local_fields", tmp_field_info)
 
     @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
-    def _pressure(field, data):
+    def _pressure(data):
         return (
             (data.ds.gamma - 1.0)
             * data["gas", "density"]
@@ -131,7 +131,7 @@ def test_derived_field(monkeypatch):
 def test_dimensionless_field(add_field_kwargs):
     ds = fake_random_ds(16)
 
-    def _dimensionless_field(field, data):
+    def _dimensionless_field(data):
         return data["gas", "density"] / data["gas", "density"].units
 
     ds.add_field(

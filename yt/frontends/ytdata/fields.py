@@ -26,7 +26,7 @@ class YTDataContainerFieldInfo(FieldInfoContainer):
 
         if ("grid", "cell_volume") not in self.field_list:
 
-            def _cell_volume(field, data):
+            def _cell_volume(data):
                 return data["grid", "dx"] * data["grid", "dy"] * data["grid", "dz"]
 
             self.add_field(
