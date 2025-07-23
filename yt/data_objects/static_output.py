@@ -1840,7 +1840,7 @@ class Dataset(abc.ABC):
         return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
 
     def add_deposited_particle_field(
-        self, deposit_field, method, kernel_name="cubic", weight_field=None
+        self, deposit_field, method, kernel_name="cubic", weight_field=None, vector_field=False
     ):
         """Add a new deposited particle field
 
@@ -1866,6 +1866,8 @@ class Dataset(abc.ABC):
         weight_field : (field_type, field_name) or None
            Weighting field name for deposition method `weighted_mean`.
            If None, use the particle mass.
+        vector_field : bool, default False
+           If True, the deposited field is treated as a vector field.
 
         Returns
         -------
@@ -1912,7 +1914,7 @@ class Dataset(abc.ABC):
             if method == "weighted_mean":
                 fields.append(data[ptype, weight_field])
             fields = [np.ascontiguousarray(f) for f in fields]
-            d = data.deposit(pos, fields, method=method, kernel_name=kernel_name)
+            d = data.deposit(pos, fields, method=method, kernel_name=kernel_name, vector_field=vector_field)
             d = data.ds.arr(d, units=units)
             if method == "weighted_mean":
                 d[np.isnan(d)] = 0.0
