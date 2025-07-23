@@ -1,5 +1,6 @@
+import warnings
 from collections.abc import Callable
-from inspect import signature
+from inspect import Parameter, signature
 
 import numpy as np
 
@@ -87,17 +88,42 @@ def validate_field_function(function: Callable) -> None:
 
     # lookup parameters that do not have default values
     fparams = signature(function).parameters
-    nodefaults = tuple(p.name for p in fparams.values() if p.default is p.empty)
-    if nodefaults != ("field", "data"):
+    if "data" not in fparams:
         raise TypeError(
             f"Received field function {function} with invalid signature. "
-            f"Expected exactly 2 positional parameters ('field', 'data'), got {nodefaults!r}"
+            f"Expected a 'data' parameter, found {tuple(p.name for p in fparams.values())!r}"
         )
+
+    nodefaults = tuple(p.name for p in fparams.values() if p.default is Parameter.empty)
+    if not set(nodefaults).issubset({"field", "data"}):
+        raise TypeError(
+            f"Received field function {function} with invalid signature. "
+            "Expected parameters without default values to be 'data' "
+            f"(and optionally, 'field'). Found {nodefaults!r}"
+        )
+
     if any(
-        fparams[name].kind == fparams[name].KEYWORD_ONLY for name in ("field", "data")
+        nokeyword := tuple(
+            name
+            for name in nodefaults
+            if fparams[name].kind
+            not in (Parameter.KEYWORD_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
+        )
     ):
         raise TypeError(
             f"Received field function {function} with invalid signature. "
-            "Parameters 'field' and 'data' must accept positional values "
-            "(they cannot be keyword-only)"
+            f"Expected {nokeyword} to be allowed as a keyword argument."
+        )
+
+    defaults = tuple(
+        name
+        for name in ("data", "field")
+        if name in fparams and fparams[name].default is not Parameter.empty
+    )
+    if defaults:
+        warnings.warn(
+            f"Received field function {function} with default values for parameters {defaults!r}. "
+            "These default values will never be used. Drop them to avoid this warning.",
+            UserWarning,
+            stacklevel=2,
         )
