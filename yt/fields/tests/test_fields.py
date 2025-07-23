@@ -171,7 +171,7 @@ def test_all_fields():
                 assert_equal(v1, dd1[tc.field_name])
                 if not needs_spatial:
                     with field.unit_registry(dd2):
-                        res = field._function(field, dd2)
+                        res = field._eval(dd2)
                         res = dd2.apply_units(res, field.units)
                     assert_array_almost_equal_nulp(v1, res, 4)
                 if not skip_grids:
@@ -180,7 +180,7 @@ def test_all_fields():
                         v1 = g[tc.field_name]
                         g.clear_data()
                         g.field_parameters.update(sp)
-                        r1 = field._function(field, g)
+                        r1 = field._eval(g)
                         if field.sampling_type == "particle":
                             assert_equal(v1.shape[0], g.NumberOfParticles)
                         else:
@@ -188,7 +188,7 @@ def test_all_fields():
                             for ax in "xyz":
                                 assert_array_equal(g["index", ax].shape, v1.shape)
                         with field.unit_registry(g):
-                            res = field._function(field, g)
+                            res = field._eval(g)
                             assert_array_equal(v1.shape, res.shape)
                             res = g.apply_units(res, field.units)
                         assert_array_almost_equal_nulp(v1, res, 4)

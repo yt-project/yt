@@ -1,7 +1,10 @@
 import contextlib
+import enum
 import inspect
 import re
+import sys
 from collections.abc import Iterable
+from functools import cached_property
 from typing import Optional
 
 from more_itertools import always_iterable
@@ -24,6 +27,16 @@ from .field_exceptions import (
     NeedsParameter,
     NeedsProperty,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
+
+
+class _FieldFuncSignature(enum.Enum):
+    V1 = enum.auto()  # has arguments field, data
+    V2 = enum.auto()  # doesn't support field argument
 
 
 def TranslationFunc(field_name):
@@ -282,11 +295,28 @@ class DerivedField:
                 + f"for {self.name}"
             )
         with self.unit_registry(data):
-            dd = self._function(self, data)
+            dd = self._eval(data)
         for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]
         return dd
+
+    @cached_property
+    def _func_signature_type(self) -> _FieldFuncSignature:
+        signature = inspect.signature(self._function)
+        if "field" in signature.parameters:
+            return _FieldFuncSignature.V1
+        else:
+            return _FieldFuncSignature.V2
+
+    def _eval(self, data):
+        match self._func_signature_type:
+            case _FieldFuncSignature.V1:
+                return self._function(data=data, field=self)
+            case _FieldFuncSignature.V2:
+                return self._function(data)
+            case _:
+                assert_never(self._sig)
 
     def get_source(self):
         """
