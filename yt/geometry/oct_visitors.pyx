@@ -71,6 +71,23 @@ cdef class CopyArrayF64(OctVisitor):
                 self.global_index, :]
         self.index += 1
 
+# This copies a floating point 2D array from the source to the destination, based
+# on the selection criteria.
+cdef class Copy2DArrayF64(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        # We should always have global_index less than our source.
+        # "last" here tells us the dimensionality of the array.
+        if selected == 0: return
+        # There are this many records between "octs"
+        #print("IN COPY2DARRAYF64")
+        #print(self.dest.shape, self.source.shape)
+        self.dest[self.index, :, :] = self.source[
+                self.ind[2], self.ind[1], self.ind[0],
+                self.global_index, :, :]
+        self.index += 1
+
 # This copies a bit array from source to the destination, based on file_ind
 cdef class CopyFileIndArrayI8(OctVisitor):
     def __init__(self, OctreeContainer octree, int domain_id = -1):
