@@ -311,10 +311,10 @@ def test_add_field_unit_semantics():
     ds = fake_random_ds(16)
     ad = ds.all_data()
 
-    def density_alias(field, data):
+    def density_alias(data):
         return data["gas", "density"].in_cgs()
 
-    def unitless_data(field, data):
+    def unitless_data(data):
         return np.ones(data["gas", "density"].shape)
 
     ds.add_field(
@@ -384,7 +384,7 @@ def test_add_field_unit_semantics():
 def test_add_field_from_lambda():
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
 
-    def _function_density(field, data):
+    def _function_density(data):
         return data["gas", "density"]
 
     ds.add_field(
@@ -437,7 +437,7 @@ def test_add_field_string():
     ds = fake_random_ds(16)
     ad = ds.all_data()
 
-    def density_alias(field, data):
+    def density_alias(data):
         return data["gas", "density"]
 
     ds.add_field(
@@ -455,7 +455,7 @@ def test_add_field_string():
 def test_add_field_string_aliasing():
     ds = fake_random_ds(16)
 
-    def density_alias(field, data):
+    def density_alias(data):
         return data["gas", "density"]
 
     ds.add_field(
@@ -470,7 +470,7 @@ def test_add_field_string_aliasing():
 
     ds = fake_particle_ds()
 
-    def pmass_alias(field, data):
+    def pmass_alias(data):
         return data["all", "particle_mass"]
 
     ds.add_field(
