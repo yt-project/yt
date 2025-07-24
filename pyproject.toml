@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Visualization",
@@ -459,8 +460,18 @@ exclude = "(test_*|lodgeit)"
 
 [tool.cibuildwheel]
 build-verbosity = 1
+skip = ["cp314t-*"]
 test-skip = "*-musllinux*"
 test-extras = "test"
 test-command = [
     "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
+]
+
+[[tool.cibuildwheel.overrides]]
+# Install nightly wheels for matplotlib, not yet available on PyPI.
+select = "cp314*"
+before-test = [
+    # numpy and contourpy, both dependencies to matplotlib, can safely be installed from PyPI
+    "python -m pip install numpy contourpy",
+    "python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple matplotlib --only-binary matplotlib",
 ]
