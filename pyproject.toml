@@ -466,15 +466,3 @@ test-extras = "test"
 test-command = [
     "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
-
-[tool.cibuildwheel.linux]
-archs = "x86_64"
-
-[tool.cibuildwheel.macos]
-archs = [
-    "arm64",
-    "x86_64", # cross-compiled on arm64
-]
-
-[tool.cibuildwheel.windows]
-archs = "auto64"
