@@ -471,7 +471,10 @@ test-command = [
 archs = "x86_64"
 
 [tool.cibuildwheel.macos]
-archs = "auto"
+archs = [
+    "arm64",
+    "x86_64", # cross-compiled on arm64
+]
 
 [tool.cibuildwheel.windows]
 archs = "auto64"
