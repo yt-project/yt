@@ -9,6 +9,7 @@ from typing import Any, TypeGuard
 
 import matplotlib
 import numpy as np
+import rlic
 from unyt import unyt_quantity
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -30,7 +31,6 @@ from yt.utilities.exceptions import (
     YTUnsupportedPlotCallback,
 )
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
-from yt.utilities.lib.line_integral_convolution import line_integral_convolution_2d
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 from yt.utilities.lib.pixelization_routines import (
     pixelize_cartesian,
@@ -3238,10 +3238,10 @@ class LineIntegralConvolutionCallback(PlotCallback):
         field_x,
         field_y,
         texture=None,
-        kernellen=50.0,
+        kernellen=50,
         lim=(0.5, 0.6),
         cmap="binary",
-        alpha=0.8,
+        alpha=0.5,
         const_alpha=False,
     ):
         self.field_x = field_x
@@ -3270,28 +3270,17 @@ class LineIntegralConvolutionCallback(PlotCallback):
             plot.data.axis, plot.data, self.field_y, bounds, (nx, ny)
         )
 
-        vectors = np.concatenate((pixX[..., np.newaxis], pixY[..., np.newaxis]), axis=2)
-
         if self.texture is None:
-            prng = np.random.RandomState(0x4D3D3D3)
-            self.texture = prng.random_sample((nx, ny))
-        elif self.texture.shape != (nx, ny):
-            raise ValueError(
-                "'texture' must have the same shape "
-                f"with that of output image ({nx}, {ny})"
-            )
+            prng = np.random.default_rng(0x4D3D3D3)
+            self.texture = prng.random((nx, ny))
 
         kernel = np.sin(
             np.arange(self.kernellen, dtype="float64") * np.pi / self.kernellen
         )
 
-        lic_data = line_integral_convolution_2d(vectors, self.texture, kernel)
+        lic_data = rlic.convolve(self.texture, pixX, pixY, kernel=kernel)
         lic_data = lic_data / lic_data.max()
         lic_data_clip = np.clip(lic_data, self.lim[0], self.lim[1])
-
-        mask = ~(np.isfinite(pixX) & np.isfinite(pixY))
-        lic_data[mask] = np.nan
-        lic_data_clip[mask] = np.nan
 
         if plot._swap_axes:
             lic_data_clip = lic_data_clip.transpose()
