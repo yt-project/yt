@@ -1,4 +1,4 @@
-include README* CREDITS COPYING.txt CITATION  setupext.py CONTRIBUTING.rst
+include README* CREDITS CITATION  setupext.py CONTRIBUTING.rst
 include yt/visualization/mapserver/html/map.js
 include yt/visualization/mapserver/html/map_index.html
 include yt/visualization/mapserver/html/Leaflet.Coordinates-0.1.5.css
@@ -8,7 +8,7 @@ include yt/utilities/mesh_types.yaml
 exclude yt/utilities/lib/cykdtree/c_kdtree.cpp
 prune tests
 prune answer-store
-recursive-include yt *.py *.pyx *.pxi *.pxd  README* *.txt LICENSE* *.cu
+recursive-include yt *.py *.pyx *.pxi *.pxd  README* *.txt *.cu
 recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.html
 recursive-include doc *.h *.c *.sh *.svgz *.pdf *.svg *.pyx
 

@@ -1,7 +1,7 @@
 [build-system]
 # keep in sync with .github/workflows/wheels.yaml
 requires = [
-  "setuptools>=61.2",
+  "setuptools>=77.0.0",
   "Cython>=3.0.3",
   "numpy>=2.0.0",
   "ewah-bool-utils>=1.2.0",
@@ -16,16 +16,22 @@ description = "An analysis and visualization toolkit for volumetric data"
 authors = [
     { name = "The yt project", email = "yt-dev@python.org" },
 ]
+license = "BSD-3-Clause"
+license-files = [
+    "COPYING.txt",
+    "yt/frontends/artio/artio_headers/LICENSE",
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Framework :: Matplotlib",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: POSIX :: AIX",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: C",
+    "Programming Language :: C++",
+    "Programming Language :: Cython",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
@@ -63,9 +69,6 @@ dependencies = [
 [project.readme]
 file = "README.md"
 content-type = "text/markdown"
-
-[project.license]
-text = "BSD 3-Clause"
 
 [project.urls]
 Homepage = "https://yt-project.org/"
