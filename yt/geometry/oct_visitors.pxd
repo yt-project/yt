@@ -102,6 +102,10 @@ cdef class CopyArrayF64(OctVisitor):
     cdef np.float64_t[:,:,:,:,:] source
     cdef np.float64_t[:,:] dest
 
+cdef class Copy2DArrayF64(OctVisitor):
+    cdef np.float64_t[:,:,:,:,:,:] source
+    cdef np.float64_t[:,:,:] dest
+
 cdef class CopyFileIndArrayI8(OctVisitor):
     cdef np.int64_t root
     cdef np.uint8_t[:] source

@@ -7,6 +7,7 @@ import numpy as np
 from unyt import unyt_array
 
 import yt.geometry.particle_deposit as particle_deposit
+import yt.geometry.particle_deposit_vector as particle_deposit_vector
 import yt.geometry.particle_smooth as particle_smooth
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -130,7 +131,7 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
     def domain_ind(self):
         return self.oct_handler.domain_ind(self.selector)
 
-    def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
+    def deposit(self, positions, fields=None, method=None, kernel_name="cubic", vector_field=False):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with
         exclusively local input.
 
@@ -165,12 +166,22 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
         # Here we perform our particle deposition.
         if fields is None:
             fields = []
-        cls = getattr(particle_deposit, f"deposit_{method}", None)
+        if vector_field:
+            cls = getattr(particle_deposit_vector, f"deposit_{method}", None)
+        else:
+            cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
-        if np.max(self.domain_ind) >= nvals[-1]:
+        if vector_field:
+            vec_size = fields[0].shape[-1]
+            nvals = nvals + (vec_size,)
+            
+            if positions.shape[0] < 1:
+                vals = np.empty(nvals, dtype="float64")
+                return vals
+        if np.max(self.domain_ind) >= (self.domain_ind >= 0).sum():
             print(
                 f"nocts, domain_ind >= 0, max {self.oct_handler.nocts} {nvals[-1]} {np.max(self.domain_ind)}"
             )
