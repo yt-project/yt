@@ -2,10 +2,12 @@ import os
 import shutil
 import sys
 import tempfile
+import types
 from importlib.metadata import version
 from importlib.util import find_spec
 from pathlib import Path
 
+import numpy as np
 import pytest
 import yaml
 from packaging.version import Version
@@ -452,3 +454,137 @@ def Npart(request):
     Needed because indirect=True is used for loading the datasets.
     """
     return request.param
+
+
+class MockH5pyFile:
+    def __init__(self, structure):
+        self._structure = structure
+        self._closed = False
+
+    def __getitem__(self, key):
+        return self._resolve(key)
+
+    def get(self, key, default=None):
+        try:
+            return self._resolve(key)
+        except KeyError:
+            return default
+
+    def items(self):
+        for k, v in self._structure.items():
+            yield k, self._wrap(v)
+
+    def close(self):
+        self._closed = True
+
+    def _resolve(self, key):
+        parts = key.strip("/").split("/")
+        node = self._structure
+        for part in parts:
+            node = node[part]
+        return self._wrap(node)
+
+    def _wrap(self, node):
+        if isinstance(node, dict):
+            if all(_ in node for _ in ("dtype", "shape", "ndim")):
+                return MockH5pyDataset(node)
+            return MockH5pyFile(node)
+        elif isinstance(node, (np.ndarray, list)):
+            return MockH5pyDataset(np.array(node))
+        else:
+            raise RuntimeError("hey")
+            return node
+
+
+_rng = np.random.default_rng()
+
+
+class MockH5pyDataset:
+    def __init__(self, data):
+        self._data = _rng.random(data["shape"])
+        self.dtype = data["dtype"]
+        self.shape = data["shape"]
+        self.ndim = data["ndim"]
+        self.dims = self.shape
+
+    def __getitem__(self, key):
+        if key == ():
+            return self._data
+        return self._data[key]
+
+    def __call__(self):
+        return self._data
+
+    def __array__(self):
+        return self._data
+
+    def __getattr__(self, name):
+        # For .dims, .dtype, etc.
+        return getattr(self._data, name)
+
+    def read(self, *args, **kwargs):
+        return self._data
+
+
+# Mock low-level h5py.h5f, h5py.h5d, h5py.h5s
+class MockH5pyLowLevel:
+    ACC_RDONLY = 0
+    ALL = "ALL"
+
+    @staticmethod
+    def open(filename, mode):
+        # filename is bytes, decode for lookup
+        return filename.decode("latin-1")
+
+
+class MockH5pyH5d:
+    @staticmethod
+    def open(fid, node):
+        # fid is filename, node is bytes
+        # You should have a global registry of files/structures for lookup
+        # For simplicity, store the structure in a global dict
+        return (fid, node.decode("latin-1"))
+
+    @staticmethod
+    def read(all1, all2, data):
+        # all1, all2 are ignored, data is the array to fill
+        # In a real mock, you would fill data from the structure
+        data = _rng.random(data.shape)  # Mock data read
+
+
+# @pytest.fixture(autouse=True)
+def patch_h5py(monkeypatch):
+    # Load your HDF5 structure from a JSON or dict
+    import json
+
+    with open("mock_hdf5_structure.json") as f:
+        hdf5_structure = json.load(f)
+
+    # Registry for low-level access
+    global_file_registry = {}
+
+    def file_constructor(filename, mode="r"):
+        # filename can be str or bytes
+        fname = filename.decode() if isinstance(filename, bytes) else filename
+        file_struct = hdf5_structure.get(fname, {})
+        global_file_registry[fname] = file_struct
+        return MockH5pyFile(file_struct)
+
+    # Patch h5py.File
+    import sys
+
+    mock_h5py = types.SimpleNamespace()
+    mock_h5py.File = file_constructor
+    mock_h5py.h5f = MockH5pyLowLevel
+    mock_h5py.h5d = MockH5pyH5d
+    mock_h5py.h5s = MockH5pyLowLevel
+
+    # Patch the on_demand_imports _h5py as well if needed
+    sys.modules["h5py"] = mock_h5py
+    sys.modules["yt.utilities.on_demand_imports._h5py"] = mock_h5py
+
+    # yield
+
+    # Cleanup if needed
+    # sys.modules.pop("h5py", None)
+    # sys.modules.pop("yt.utilities.on_demand_imports._h5py", None)
