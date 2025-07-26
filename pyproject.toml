@@ -44,7 +44,11 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization",
 ]
 keywords = [
-    "astronomy astrophysics visualization amr adaptivemeshrefinement",
+    "adaptivemeshrefinement",
+    "amr",
+    "astronomy",
+    "astrophysics",
+    "visualization",
 ]
 requires-python = ">=3.10.4"
 
