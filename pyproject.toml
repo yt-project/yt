@@ -300,8 +300,6 @@ known-first-party = ["yt"]
 # specified by the characters following the r. s: skipped, f: failed, E: error
 [tool.pytest.ini_options]
 addopts = '''
-    -s
-    -v
     -rsfE
     --ignore-glob='/*_nose.py'
     --ignore-glob='/*/yt/data_objects/level_sets/tests/test_clump_finding.py'
