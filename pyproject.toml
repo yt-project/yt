@@ -5,6 +5,7 @@ requires = [
   "Cython>=3.0.3",
   "numpy>=2.0.0",
   "ewah-bool-utils>=1.2.0",
+  "wheel>=0.38.0",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -470,6 +471,7 @@ test-extras = "test"
 test-command = [
     "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
+environment = {"YT_LIMITED_API" = "1"}
 
 [[tool.cibuildwheel.overrides]]
 # Install nightly wheels for matplotlib, not yet available on PyPI.

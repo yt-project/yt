@@ -112,11 +112,23 @@ Note that all format names are normalized to lower case.
 Building from source
 ++++++++++++++++++++
 
-To build yt from source, you need ``git``, and a C compiler (such as ``gcc``
-or ``clang``).
+There are a couple ways to build yt from source with e.g., ``pip``, all of which
+require a C compiler (such as ``gcc`` or ``clang``).
 
-Then run
+yt is primarily distributed on PyPI, in the form of pre-built binaries (wheels).
+Since version 4.5.0, these binaries are optimized for portability accross Python versions.
 
+If you need a stable release, but pre-built binaries are not available for your platform,
+``pip install`` will automatically select a source distribution and compile the package
+for you. You may opt-into this behavior deliberately by specifying the ``--no-binary``
+flag, in which case the resulting installation might be slightly more performant, because
+it will be compiled specifically for your Python version.
+If, on the other hand, you *specifically* want a portable binary (as the ones we provide on
+PyPI), this is achieved by setting ``YT_LIMITED_API=1`` in your build environment.
+
+You may also want to build yt directly from the github repository (which requires ``git``),
+for instance if you need the latest development version, or if you want to contribute to
+the project. Run
 .. code-block:: bash
 
   $ git clone https://github.com/yt-project/yt

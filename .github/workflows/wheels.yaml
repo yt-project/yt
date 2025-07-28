@@ -12,6 +12,8 @@ on:
       - '.github/workflows/wheels.yaml'
       - MANIFEST.in
       - pyproject.toml
+      - setup.py
+      - setupext.py
   workflow_dispatch:
 
 
