@@ -83,7 +83,7 @@ cythonize_aliases.update(embree_aliases)
 lib_exts += embree_libs
 
 # This overrides using lib_exts, so it has to happen after lib_exts is fully defined
-build_ext, sdist = create_build_ext(lib_exts, cythonize_aliases)
+build_ext, sdist, bdist_wheel = create_build_ext(lib_exts, cythonize_aliases)
 
 
 # Force setuptools to consider that there are ext modules, even if empty.
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     )
 
     setup(
-        cmdclass={"sdist": sdist, "build_ext": build_ext},
+        cmdclass={"sdist": sdist, "build_ext": build_ext, "bdist_wheel": bdist_wheel},
         distclass=BinaryDistribution,
         libraries=[fixed_interp_lib],
         ext_modules=[],  # !!! We override this inside build_ext above
