@@ -46,14 +46,15 @@ Until the fall of 2013, yt was licensed under the GPLv3.  However, with consent
 from all developers and on a public mailing list, yt has been relicensed under
 the BSD 3-clause under a shared copyright model.  For more information, see:
 https://mail.python.org/archives/list/yt-dev@python.org/thread/G4DJDDGB4PSZFJVPWRSHNOSUMTISXC4X/
-All versions of yt prior to this licensing change are available under the
-GPLv3; all subsequent versions are available under the BSD 3-clause license.
+and https://yt-project.github.io/blog/posts/relicensing/ . All versions of yt
+prior to this licensing change are available under the GPLv3; all subsequent
+versions (yt versions >= 2.6.0) are available under the BSD 3-clause license.
 
 The yt Development Team is the set of all contributors to the yt project.  This
 includes all of the yt subprojects.
 
-The core team that coordinates development on BitBucket can be found here:
-http://bitbucket.org/yt_analysis/
+The core team that coordinates development on GitHub can be found here:
+https://github.com/yt-project/yt
 
 
 Our Copyright Policy
