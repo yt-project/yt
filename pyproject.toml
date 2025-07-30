@@ -461,7 +461,13 @@ exclude = "(test_*|lodgeit)"
 
 [tool.cibuildwheel]
 build-verbosity = 1
-skip = ["cp3{10,11,12,13}-*", "cp314t-*"]
+skip = [
+    "cp3{10,11,12,13}-*",
+    "cp314t-*",
+]
+test-skip = [
+    "cp314-musllinux*", # https://github.com/python/cpython/issues/137231"
+]
 test-extras = "test"
 test-command = [
     'python -c "import yt"',
