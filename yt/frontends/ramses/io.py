@@ -6,7 +6,10 @@ import numpy as np
 from unyt import unyt_array
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
+from yt.frontends.ramses.data_structures import RAMSESDomainSubset
 from yt.frontends.ramses.definitions import VAR_DESC_RE, VERSION_RE
+from yt.frontends.ramses.particle_handlers import ParticleFileHandler
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import (
     YTFieldTypeNotFound,
@@ -73,7 +76,12 @@ def convert_ramses_conformal_time_to_physical_time(
     )
 
 
-def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count):
+def _ramses_particle_binary_file_handler(
+    particle_handler: ParticleFileHandler,
+    subset: RAMSESDomainSubset,
+    fields: list[FieldKey],
+    count: int,
+) -> dict[FieldKey, np.ndarray]:
     """General file handler for binary file, called by _read_particle_subset
 
     Parameters
@@ -116,7 +124,12 @@ def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count
     return tr
 
 
-def _ramses_particle_csv_file_handler(particle_handler, subset, fields, count):
+def _ramses_particle_csv_file_handler(
+    particle_handler: ParticleFileHandler,
+    subset: RAMSESDomainSubset,
+    fields: list[FieldKey],
+    count: int,
+) -> dict[FieldKey, np.ndarray]:
     """General file handler for csv file, called by _read_particle_subset
 
     Parameters
