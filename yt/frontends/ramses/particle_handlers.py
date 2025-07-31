@@ -66,8 +66,9 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
     known_fields: list[FieldKey]
 
     # The function to employ to read the file
-    # NOTE: We omit the `ParticleFileHandler` argument to allow
-    #       since it is accessed as a class method.
+    # NOTE: We omit the `ParticleFileHandler` argument since
+    #       it is accessed as a method (so the first argument is
+    #       assumed to be `self`).
     reader: Callable[
         ["RAMSESDomainSubset", list[FieldKey], int],
         dict[FieldKey, np.ndarray],
