@@ -4,13 +4,12 @@ import struct
 from collections.abc import Callable
 from functools import cached_property
 from itertools import chain, count
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from yt._typing import FieldKey
 from yt.config import ytcfg
-from yt.frontends.ramses.data_structures import RAMSESDomainSubset
 from yt.funcs import mylog
 from yt.utilities.cython_fortran_utils import FortranFile
 
@@ -22,6 +21,10 @@ from .io import (
     _read_part_csv_file_descriptor,
     convert_ramses_conformal_time_to_physical_time,
 )
+
+if TYPE_CHECKING:
+    from yt.frontends.ramses.data_structures import RAMSESDomainSubset
+
 
 PARTICLE_HANDLERS: set[type["ParticleFileHandler"]] = set()
 
@@ -66,7 +69,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
     # NOTE: We omit the `ParticleFileHandler` argument to allow
     #       since it is accessed as a class method.
     reader: Callable[
-        [RAMSESDomainSubset, list[FieldKey], int],
+        ["RAMSESDomainSubset", list[FieldKey], int],
         dict[FieldKey, np.ndarray],
     ]
 
