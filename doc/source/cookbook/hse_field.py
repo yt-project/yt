@@ -15,7 +15,7 @@ grad_fields = ds.add_gradient_fields(("gas", "gravitational_potential"))
 # equilibrium" field.
 
 
-def _hse(field, data):
+def _hse(data):
     # Remember that g is the negative of the potential gradient
     gx = -data["gas", "density"] * data["gas", "gravitational_potential_gradient_x"]
     gy = -data["gas", "density"] * data["gas", "gravitational_potential_gradient_y"]

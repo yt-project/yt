@@ -13,7 +13,7 @@ mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)"  # erg / cm^3
 
 
-def _thermal_energy_density(field, data):
+def _thermal_energy_density(data):
     # What we've got here is UEINT:
     # u here is velocity
     # E is energy density from the file
@@ -30,12 +30,12 @@ def _thermal_energy_density(field, data):
     return data["boxlib", "eden"] - ke
 
 
-def _specific_thermal_energy(field, data):
+def _specific_thermal_energy(data):
     # This is little e, so we take thermal_energy_density and divide by density
     return data["gas", "thermal_energy_density"] / data["gas", "density"]
 
 
-def _temperature(field, data):
+def _temperature(data):
     mu = data.ds.parameters["mu"]
     gamma = data.ds.parameters["gamma"]
     tr = data["gas", "thermal_energy_density"] / data["gas", "density"]
@@ -93,7 +93,7 @@ class WarpXFieldInfo(FieldInfoContainer):
         super().setup_fluid_aliases("mesh")
 
     def setup_particle_fields(self, ptype):
-        def get_mass(field, data):
+        def get_mass(data):
             species_mass = data.ds.index.parameters[ptype + "_mass"]
             return data[ptype, "particle_weight"] * YTQuantity(species_mass, "kg")
 
@@ -104,7 +104,7 @@ class WarpXFieldInfo(FieldInfoContainer):
             units="kg",
         )
 
-        def get_charge(field, data):
+        def get_charge(data):
             species_charge = data.ds.index.parameters[ptype + "_charge"]
             return data[ptype, "particle_weight"] * YTQuantity(species_charge, "C")
 
@@ -115,7 +115,7 @@ class WarpXFieldInfo(FieldInfoContainer):
             units="C",
         )
 
-        def get_energy(field, data):
+        def get_energy(data):
             p2 = (
                 data[ptype, "particle_momentum_x"] ** 2
                 + data[ptype, "particle_momentum_y"] ** 2
@@ -130,21 +130,21 @@ class WarpXFieldInfo(FieldInfoContainer):
             units="J",
         )
 
-        def get_velocity_x(field, data):
+        def get_velocity_x(data):
             return (
                 c**2
                 * data[ptype, "particle_momentum_x"]
                 / data[ptype, "particle_energy"]
             )
 
-        def get_velocity_y(field, data):
+        def get_velocity_y(data):
             return (
                 c**2
                 * data[ptype, "particle_momentum_y"]
                 / data[ptype, "particle_energy"]
             )
 
-        def get_velocity_z(field, data):
+        def get_velocity_z(data):
             return (
                 c**2
                 * data[ptype, "particle_momentum_z"]
@@ -224,7 +224,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
 
     def setup_particle_fields(self, ptype):
         def _get_vel(axis):
-            def velocity(field, data):
+            def velocity(data):
                 return (
                     data[ptype, f"particle_momentum_{axis}"]
                     / data[ptype, "particle_mass"]
@@ -271,7 +271,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
 
     def setup_momentum_to_velocity(self):
         def _get_vel(axis):
-            def velocity(field, data):
+            def velocity(data):
                 return data["boxlib", f"{axis}mom"] / data["boxlib", "density"]
 
             return velocity
@@ -286,7 +286,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
 
     def setup_velocity_to_momentum(self):
         def _get_mom(axis):
-            def momentum(field, data):
+            def momentum(data):
                 return data["boxlib", f"{axis}vel"] * data["boxlib", "density"]
 
             return momentum
@@ -565,7 +565,7 @@ class Substance:
 
 
 def _create_density_func(field_name):
-    def _func(field, data):
+    def _func(data):
         return data[field_name] * data["gas", "density"]
 
     return _func

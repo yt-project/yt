@@ -35,7 +35,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _grid_level(field, data):
+    def _grid_level(data):
         """The AMR refinement level"""
         arr = np.ones(data.ires.shape, dtype="float64")
         arr *= data.ires
@@ -51,7 +51,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         validators=[ValidateSpatial(0)],
     )
 
-    def _grid_indices(field, data):
+    def _grid_indices(data):
         """The index of the leaf grid the mesh cells exist on"""
         if hasattr(data, "domain_id"):
             this_id = data.domain_id
@@ -72,7 +72,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         take_log=False,
     )
 
-    def _ones_over_dx(field, data):
+    def _ones_over_dx(data):
         """The inverse of the local cell spacing"""
         return (
             np.ones(data["index", "ones"].shape, dtype="float64") / data["index", "dx"]
@@ -115,7 +115,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         display_field=False,
     )
 
-    def _morton_index(field, data):
+    def _morton_index(data):
         """This is the morton index, which is properly a uint64 field.  Because
         we make some assumptions that the fields returned by derived fields are
         float64, this returns a "view" on the data that is float64.  To get
@@ -145,7 +145,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _spherical_radius(field, data):
+    def _spherical_radius(data):
         """The spherical radius component of the positions of the mesh cells.
 
         Relative to the coordinate system defined by the *center* field
@@ -162,7 +162,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _spherical_theta(field, data):
+    def _spherical_theta(data):
         """The spherical theta component of the positions of the mesh cells.
 
         theta is the poloidal position angle in the plane parallel to the
@@ -183,7 +183,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _spherical_phi(field, data):
+    def _spherical_phi(data):
         """The spherical phi component of the positions of the mesh cells.
 
         phi is the azimuthal position angle in the plane perpendicular to the
@@ -204,7 +204,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _cylindrical_radius(field, data):
+    def _cylindrical_radius(data):
         """The cylindrical radius component of the positions of the mesh cells.
 
         Relative to the coordinate system defined by the *normal* vector and
@@ -224,7 +224,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _cylindrical_z(field, data):
+    def _cylindrical_z(data):
         """The cylindrical z component of the positions of the mesh cells.
 
         Relative to the coordinate system defined by the *normal* vector and
@@ -244,7 +244,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _cylindrical_theta(field, data):
+    def _cylindrical_theta(data):
         """The cylindrical z component of the positions of the mesh cells.
 
         theta is the azimuthal position angle in the plane perpendicular to the
