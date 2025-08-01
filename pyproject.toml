@@ -475,12 +475,3 @@ test-command = [
     "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
 environment = {"YT_LIMITED_API" = "1"}
-
-[[tool.cibuildwheel.overrides]]
-# Install nightly wheels for matplotlib, not yet available on PyPI.
-select = "cp314*"
-before-test = [
-    # numpy and contourpy, both dependencies to matplotlib, can safely be installed from PyPI
-    "python -m pip install numpy contourpy",
-    "python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple matplotlib --only-binary matplotlib",
-]
