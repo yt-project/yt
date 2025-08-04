@@ -658,7 +658,7 @@ class Dataset(abc.ABC):
     @property
     def field_info(self):
         if self._field_info is None:
-            self.create_field_info()
+            self.index
         return self._field_info
 
     @field_info.setter
@@ -666,7 +666,13 @@ class Dataset(abc.ABC):
         self._field_info = value
 
     def create_field_info(self):
-        self.index
+        # create_field_info will be called at the end of instantiating
+        # the index object. This will trigger index creation, which will
+        # call this function again.
+        if self._instantiated_index is None:
+            self.index
+            return
+
         self.field_dependencies = {}
         self.derived_field_list = []
         self.filtered_particle_types = []
