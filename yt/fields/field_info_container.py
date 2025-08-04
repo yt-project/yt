@@ -48,9 +48,11 @@ class FieldInfoContainer(UserDict):
     known_other_fields: KnownFieldsT = ()
     known_particle_fields: KnownFieldsT = ()
     extra_union_fields: tuple[FieldKey, ...] = ()
+    derived_field_list: list[FieldKey]
 
     def __init__(self, ds, field_list: list[FieldKey], slice_info=None):
         super().__init__()
+        self.derived_field_list = []
         self._show_field_errors: list[Exception] = []
         self.ds = ds
         # Now we start setting things up.
@@ -417,8 +419,8 @@ class FieldInfoContainer(UserDict):
         deps, unavailable = self.check_derived_fields(loaded)
         self.ds.field_dependencies.update(deps)
         # Note we may have duplicated
-        dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = sorted(dfl)
+        dfl = set(self.derived_field_list).union(deps.keys())
+        self.derived_field_list = sorted(dfl)
         return loaded, unavailable
 
     def add_output_field(self, name, sampling_type, **kwargs):
@@ -655,7 +657,7 @@ class FieldInfoContainer(UserDict):
 
         # now populate the derived field list with results
         # this violates isolation principles and should be refactored
-        dfl = set(self.ds.derived_field_list).union(deps.keys())
+        dfl = set(self.derived_field_list).union(deps.keys())
         dfl = sorted(dfl)
 
         if not hasattr(self.ds.index, "meshes"):
@@ -681,7 +683,7 @@ class FieldInfoContainer(UserDict):
                 filtered_dfl.append(field)
             dfl = filtered_dfl
 
-        self.ds.derived_field_list = dfl
+        self.derived_field_list = dfl
         self._set_linear_fields()
         return deps, unavailable
 
@@ -697,6 +699,6 @@ class FieldInfoContainer(UserDict):
         non_log_fields = [
             prefix + coord for prefix in non_log_prefixes for coord in coords
         ]
-        for field in self.ds.derived_field_list:
+        for field in self.derived_field_list:
             if field[1] in non_log_fields:
                 self[field].take_log = False
