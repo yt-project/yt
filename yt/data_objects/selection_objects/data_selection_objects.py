@@ -222,6 +222,39 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
             if field not in ofields:
                 self.field_data.pop(field)
 
+    def _get_bbox(self):
+        """
+        Return the bounding box for this data container.
+        This generic version will return the bounds of the entire domain.
+        """
+        return self.ds.domain_left_edge, self.ds.domain_right_edge
+
+    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
+        """
+        Return the bounding box for this data container.
+        """
+        if self._data_source is not None:
+            return self._data_source.get_bbox()
+
+        match self.ds.geometry:
+            case Geometry.CARTESIAN:
+                le, re = self._get_bbox()
+                return (le.to("code_length"), re.to("code_length"))
+            case (
+                Geometry.CYLINDRICAL
+                | Geometry.POLAR
+                | Geometry.SPHERICAL
+                | Geometry.GEOGRAPHIC
+                | Geometry.INTERNAL_GEOGRAPHIC
+                | Geometry.SPECTRAL_CUBE
+            ):
+                geometry = self.ds.geometry
+                raise NotImplementedError(
+                    f"get_bbox is currently not implemented for {geometry=}!"
+                )
+            case _:
+                assert_never(self.ds.geometry)
+
     def _generate_fields(self, fields_to_generate):
         index = 0
 
@@ -1388,36 +1421,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
                     {f"contour_slices_{contour_key}": cids},
                 )
         return cons, contours
-
-    def _get_bbox(self):
-        """
-        Return the bounding box for this data container.
-        This generic version will return the bounds of the entire domain.
-        """
-        return self.ds.domain_left_edge, self.ds.domain_right_edge
-
-    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
-        """
-        Return the bounding box for this data container.
-        """
-        match self.ds.geometry:
-            case Geometry.CARTESIAN:
-                le, re = self._get_bbox()
-                return (le.to("code_length"), re.to("code_length"))
-            case (
-                Geometry.CYLINDRICAL
-                | Geometry.POLAR
-                | Geometry.SPHERICAL
-                | Geometry.GEOGRAPHIC
-                | Geometry.INTERNAL_GEOGRAPHIC
-                | Geometry.SPECTRAL_CUBE
-            ):
-                geometry = self.ds.geometry
-                raise NotImplementedError(
-                    f"get_bbox is currently not implemented for {geometry=}!"
-                )
-            case _:
-                assert_never(self.ds.geometry)
 
     def volume(self):
         """
