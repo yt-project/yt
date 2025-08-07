@@ -83,7 +83,7 @@ class EnzoEFieldInfo(FieldInfoContainer):
         #   formalism AND ("enzoe", "internal_energy") was saved to disk
         if not (self.ds.parameters["uses_dual_energy"] and has_ie_field):
 
-            def _tot_minus_kin(field, data):
+            def _tot_minus_kin(data):
                 return (
                     data["enzoe", "total_energy"]
                     - 0.5 * data["gas", "velocity_magnitude"] ** 2.0
@@ -99,9 +99,9 @@ class EnzoEFieldInfo(FieldInfoContainer):
                 )
             else:
                 # thermal energy = total energy - kinetic energy - magnetic energy
-                def _sub_b(field, data):
+                def _sub_b(data):
                     return (
-                        _tot_minus_kin(field, data)
+                        _tot_minus_kin(data)
                         - data["gas", "magnetic_energy_density"]
                         / data["gas", "density"]
                     )
@@ -144,7 +144,7 @@ class EnzoEFieldInfo(FieldInfoContainer):
         if not self.ds.index.io._particle_mass_is_mass:
             val = val * get_particle_mass_correction(self.ds)
 
-        def _pmass(field, data):
+        def _pmass(data):
             return val * data[ptype, "particle_ones"]
 
         self.add_field(

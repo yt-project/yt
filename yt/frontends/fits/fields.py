@@ -53,7 +53,7 @@ class WCSFITSFieldInfo(FITSFieldInfo):
     def setup_fluid_fields(self):
         wcs_2d = getattr(self.ds, "wcs_2d", self.ds.wcs)
 
-        def _pixel(field, data):
+        def _pixel(data):
             return data.ds.arr(data["index", "ones"], "pixel")
 
         self.add_field(
@@ -65,7 +65,7 @@ class WCSFITSFieldInfo(FITSFieldInfo):
             return w_coords[axis]
 
         def world_f(axis, unit):
-            def _world_f(field, data):
+            def _world_f(data):
                 return data.ds.arr(_get_2d_wcs(data, axis), unit)
 
             return _world_f
@@ -88,7 +88,7 @@ class WCSFITSFieldInfo(FITSFieldInfo):
 
         if self.ds.dimensionality == 3:
 
-            def _spec(field, data):
+            def _spec(data):
                 axis = "xyz"[data.ds.spec_axis]
                 sp = (
                     data["fits", axis].ndarray_view() - self.ds._p0
