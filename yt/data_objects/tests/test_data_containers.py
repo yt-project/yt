@@ -4,8 +4,10 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal, assert_equal
 
-from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.particle_filters import particle_filter
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
+)
 from yt.testing import (
     fake_amr_ds,
     fake_particle_ds,
@@ -33,7 +35,7 @@ def test_yt_data_container():
             " type or parameter to the constructor"
         ),
     ):
-        YTDataContainer(None, None)
+        YTSelectionContainer(None, None)
 
     # Test if field_data key exists
     ds = fake_random_ds(5)
