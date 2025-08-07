@@ -161,7 +161,7 @@ jobs:
     - name: Generate new image baseline
       if: failure()
       run: |
-        pytest --color=yes --mpl -m mpl_image_compare \
+        pytest yt --color=yes --mpl -m mpl_image_compare \
                --mpl-generate-path=pytest_mpl_new_baseline \
                --last-failed
 
