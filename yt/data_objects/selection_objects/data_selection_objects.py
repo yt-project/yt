@@ -45,7 +45,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
     _locked: bool = False
     _selector: SelectorObject | None = None
     _current_chunk: YTDataContainer | None = None
-    _data_source: "YTSelectionContainer | None" = None
+    _data_source: YTDataContainer | None = None
     _dimensionality: int
     _max_level: int | None = None
     _min_level: int | None = None
