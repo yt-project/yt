@@ -43,21 +43,14 @@ jobs:
         allow-prereleases: true
 
     - name: Install dependencies
-      # PyYAML needs to be installed in isolation for now, because of a known
-      # incompatibility with Cython 3
-      # see https://github.com/yaml/pyyaml/issues/601
-      # and https://github.com/cython/cython/issues/4568
-      # kiwisolver needs to be built from source (no cp314 wheels available yet)
       run: |
         python -m pip install --upgrade pip
         python -m pip install --upgrade setuptools wheel
-        python -m pip install --pre kiwisolver
         python -m pip install --pre --only-binary ":all:" numpy matplotlib Cython \
          --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
         python -m pip install --pre ewah-bool-utils
         python -m pip install git+https://github.com/yt-project/unyt.git
         python -m pip install git+https://github.com/pytest-dev/pytest.git
-        python -m pip install --pre PyYAML
 
     - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
