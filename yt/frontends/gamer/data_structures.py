@@ -108,7 +108,8 @@ class GAMERHierarchy(GridIndex):
         #    (see _read_particle_coords and _read_particle_fields in io.py)
         self._particle_indices = np.zeros(self.num_grids + 1, dtype="int64")
         np.add.accumulate(
-            self.grid_particle_count.reshape(self.num_grids), out=self._particle_indices[1:]
+            self.grid_particle_count.reshape(self.num_grids),
+            out=self._particle_indices[1:],
         )
 
     def _populate_grid_objects(self):
