@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
+from unyt import unyt_array
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import AnyFieldKey, FieldKey, FieldName
@@ -260,6 +261,13 @@ class YTDataContainer(abc.ABC):
         if key not in self.field_data:
             key = self._determine_fields(key)[0]
         del self.field_data[key]
+
+    @abc.abstractmethod
+    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
+        """
+        Return the bounding box for this data container.
+        """
+        pass
 
     def _generate_field(self, field):
         ftype, fname = field
