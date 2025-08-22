@@ -320,6 +320,37 @@ Other examples for creating derived fields can be found in the cookbook recipe
 
 .. _derived-field-options:
 
+Accessing field metadata
+------------------------
+
+In some cases, it is useful to introspect the field under construction, for instance
+if specialized behavior is needed for different particle types, or to customize return
+units. These use cases are supported through the optional ``field`` keyword argument.
+Let's look at a couple short examples.
+
+.. code-block:: python
+
+    def get_position_fields(data, field):
+        axis_names = [data.ds.coordinates.axis_name[num] for num in [0, 1, 2]]
+        ftype, _fname = data._determine_fields(field)
+        finfo = data.ds.field_info[ftype]
+        if finfo.sampling_type == "particle":
+            ftype, _fname = finfo.alias_name if finfo.is_alias else finfo.name
+            position_fields = [(ftype, f"particle_position_{d}") for d in axis_names]
+        else:
+            position_fields = [("index", ax_name) for ax_name in axis_names]
+
+        return position_fields
+
+
+.. code-block:: python
+
+    def entropy(data, field):
+        ftype, _fname = data._determine_fields(field)
+        mgammam1 = -2.0 / 3.0
+        tr = data[ftype, "kT"] * data[ftype, "El_number_density"] ** mgammam1
+        return data.apply_units(tr, field.units)
+
 Field Options
 -------------
 
