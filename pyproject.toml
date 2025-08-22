@@ -473,9 +473,9 @@ exclude = "(test_*|lodgeit)"
 [tool.cibuildwheel]
 build-verbosity = 1
 skip = ["cp314t-*"]
-test-skip = "*-musllinux*"
 test-extras = "test"
 test-command = [
+    'python -c "import yt"',
     "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
 environment = {"YT_LIMITED_API" = "1"}
