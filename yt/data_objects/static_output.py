@@ -349,7 +349,7 @@ class Dataset(abc.ABC):
     @cached_property
     def unique_identifier(self) -> str:
         retv = int(os.stat(self.parameter_filename)[ST_CTIME])
-        name_as_bytes = bytearray(map(ord, self.parameter_filename))
+        name_as_bytes = bytearray(self.parameter_filename.encode("utf-8"))
         retv += fnv_hash(name_as_bytes)
         return str(retv)
 
