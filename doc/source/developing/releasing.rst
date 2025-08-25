@@ -103,7 +103,10 @@ with a comment in its description such as ``on-merge: backport to yt-4.0.x``.
 Then, every PR that was triaged into the milestone will be replicated as a
 backport PR by the bot when it's merged into main. Some backports are non-trivial and
 require human attention; if conflicts occur, the bot will provide detailed
-instructions to perfom the task manually.
+instructions to perfom the task manually. If you forget to assign a the branch label
+before merging a PR, you can tag the bot in a comment on the merged PR to have it
+create a new backport PR for the already merged PR (see `here <https://github.com/scientific-python/MeeseeksDev>`_
+for a list of commands understood by the Meeseeks bot).
 
 In short, a manual backport consist of 4 steps
 
