@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_almost_equal, assert_equal
+from numpy.testing import assert_almost_equal, assert_array_less, assert_equal
 
 from yt.loaders import load
 from yt.testing import (
@@ -66,6 +66,37 @@ def test_cut_region():
             ("gas", "density"), 2, data_source=cr, weight_field=("gas", "density")
         )
         assert_equal(p2["gas", "density"].max() > 0.25, True)
+
+
+def test_cut_region_simple_syntax():
+    ds = fake_random_ds(
+        64,
+        fields=("density", "temperature", "velocity_x"),
+        units=("g/cm**3", "K", "cm/s"),
+    )
+    ad = ds.all_data()
+    rho_thresh = ds.quan(0.5, "g/cm**3")
+    T_thresh = ds.quan(0.5, "K")
+    low_density = ad.cut_region(ds.fields.gas.density < rho_thresh)
+    low_density_high_T = ad.cut_region(
+        [
+            ds.fields.gas.density < rho_thresh,
+            ds.fields.gas.temperature > T_thresh,
+        ]
+    )
+    reg = ad.cut_region(ds.fields.gas.density / ds.fields.gas.temperature > 1)
+
+    # Make sure the low density only contains low density, but should
+    # also contain low temperature
+    assert_array_less(low_density["gas", "density"], rho_thresh)
+    assert low_density["gas", "temperature"].min() < T_thresh
+
+    # Make sure the low density, high-T is correctly selected
+    assert_array_less(low_density_high_T["gas", "density"], rho_thresh)
+    assert_array_less(T_thresh, low_density_high_T["gas", "temperature"])
+
+    # Make sure the ratio of density to temperature is larger than one
+    assert_array_less(1, reg["gas", "density"] / reg["gas", "temperature"])
 
 
 def test_region_and_particles():
