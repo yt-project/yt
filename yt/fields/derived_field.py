@@ -127,19 +127,23 @@ class DerivedFieldBase(abc.ABC):
     def __gt__(self, other) -> "DerivedFieldCombination":
         return DerivedFieldCombination([self, other], op=operator.gt)
 
-    # def __eq__(self, other) -> "DerivedFieldCombination":
-    #     return DerivedFieldCombination([self, other], op=operator.eq)
+    def __eq__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.eq)
 
     def __ne__(self, other) -> "DerivedFieldCombination":  # type: ignore[override]
         return DerivedFieldCombination([self, other], op=operator.ne)
+
+    @abc.abstractmethod
+    def __hash__(self) -> int:
+        pass
 
 
 class DerivedFieldCombination(DerivedFieldBase):
     sampling_type: str | None
     terms: list
-    op: Callable | None
+    op: Callable
 
-    def __init__(self, terms: list, op=None):
+    def __init__(self, terms: list, op: Callable):
         if not terms:
             raise ValueError("DerivedFieldCombination requires at least one term.")
 
@@ -157,6 +161,9 @@ class DerivedFieldCombination(DerivedFieldBase):
         self.sampling_type = sampling_types.pop() if sampling_types else None
         self.terms = terms
         self.op = op
+
+    def __hash__(self):
+        return hash((self.sampling_type, tuple(self.terms), self.op))
 
     def __call__(self, field, data):
         """
@@ -318,6 +325,26 @@ class DerivedField(DerivedFieldBase):
         else:
             self._shared_aliases_list = alias._shared_aliases_list
             self._shared_aliases_list.append(self)
+
+    def __hash__(self):
+        return hash(
+            (
+                self.name,
+                self.sampling_type,
+                self._function,
+                self.units,
+                self.take_log,
+                tuple(self.validators),
+                self.vector_field,
+                self.display_field,
+                self.not_in_all,
+                self.display_name,
+                self.output_units,
+                self.dimensions,
+                self.ds,
+                tuple(self.nodal_flag),
+            )
+        )
 
     def _copy_def(self):
         dd = {}

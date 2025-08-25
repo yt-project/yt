@@ -242,6 +242,13 @@ def test_add_field_quick_syntax2():
         ds.r["gas", "temperature"] * ds.units.kb / ds.r["gas", "volume"],
     )
 
+    # Returning boolean
+    dx_min = ds.r["index", "dx"].min()
+    ds.fields.gas.smallest_cells = ds.fields.gas.dx == dx_min
+    np.testing.assert_allclose(
+        ds.r["gas", "smallest_cells"].value, (dx_min == ds.r["gas", "dx"])
+    )
+
 
 @pytest.fixture()
 def capturable_logger(caplog):
