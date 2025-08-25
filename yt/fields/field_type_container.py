@@ -94,7 +94,7 @@ class FieldNameContainer:
 
     def __setattr__(self, attr, value):
         if isinstance(value, DerivedFieldCombination):
-            self.ds.add_field((self.field_type, attr), value)
+            self.ds.add_field((self.field_type, attr), value, units="auto")
         else:
             super().__setattr__(attr, value)
 
