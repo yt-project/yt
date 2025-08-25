@@ -51,3 +51,4 @@
 --ignore-file=test_time_series\.py
 --ignore-file=test_cf_radial_pytest\.py
 --ignore-file=test_data_containers\.py
+--ignore-file=test_fields_pytest\.py

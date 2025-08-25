@@ -363,7 +363,7 @@ def off_axis_projection(
         weightfield = ("index", "temp_weightfield")
 
         def _make_wf(f, w):
-            def temp_weightfield(field, data):
+            def temp_weightfield(data):
                 tr = data[f].astype("float64") * data[w]
                 return tr.d
 

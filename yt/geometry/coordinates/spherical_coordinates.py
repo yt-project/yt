@@ -47,7 +47,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             units="dimensionless",
         )
 
-        def _SphericalVolume(field, data):
+        def _SphericalVolume(data):
             # Here we compute the spherical volume element exactly
             r = data["index", "r"]
             dr = data["index", "dr"]
@@ -66,7 +66,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         )
         registry.alias(("index", "volume"), ("index", "cell_volume"))
 
-        def _path_phi(field, data):
+        def _path_phi(data):
             # Note: this already assumes cell-centered
             return (
                 data["index", "r"]
