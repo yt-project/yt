@@ -319,7 +319,7 @@ class ProfilePlot(BaseLinePlot):
         names = []
         for uid, plot in iters:
             if isinstance(uid, tuple):
-                uid = uid[1]  # type: ignore
+                uid = uid[1]
             uid_name = f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}"
             names.append(uid_name)
             with matplotlib_style_context():

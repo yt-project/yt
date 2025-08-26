@@ -1,10 +1,11 @@
 [build-system]
 # keep in sync with .github/workflows/wheels.yaml
 requires = [
-  "setuptools>=61.2",
+  "setuptools>=77.0.0",
   "Cython>=3.0.3",
   "numpy>=2.0.0",
   "ewah-bool-utils>=1.2.0",
+  "wheel>=0.38.0",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -15,28 +16,39 @@ description = "An analysis and visualization toolkit for volumetric data"
 authors = [
     { name = "The yt project", email = "yt-dev@python.org" },
 ]
+license = "BSD-3-Clause"
+license-files = [
+    "COPYING.txt",
+    "yt/frontends/artio/artio_headers/LICENSE",
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Framework :: Matplotlib",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: POSIX :: AIX",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: C",
+    "Programming Language :: C++",
+    "Programming Language :: Cython",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
 keywords = [
-    "astronomy astrophysics visualization amr adaptivemeshrefinement",
+    "adaptivemeshrefinement",
+    "amr",
+    "astronomy",
+    "astrophysics",
+    "visualization",
 ]
 requires-python = ">=3.10.4"
 
@@ -51,6 +63,7 @@ dependencies = [
     "numpy!=2.0.1 ; platform_machine=='arm64' and platform_system=='Darwin'",
     "packaging>=20.9",
     "pillow>=8.3.2",
+    "rlic>=0.3.2",
     "tomli-w>=0.4.0",
     "tqdm>=3.4.0",
     "unyt>=2.9.2",
@@ -61,9 +74,6 @@ dependencies = [
 [project.readme]
 file = "README.md"
 content-type = "text/markdown"
-
-[project.license]
-text = "BSD 3-Clause"
 
 [project.urls]
 Homepage = "https://yt-project.org/"
@@ -300,13 +310,10 @@ known-first-party = ["yt"]
 # specified by the characters following the r. s: skipped, f: failed, E: error
 [tool.pytest.ini_options]
 addopts = '''
-    -s
-    -v
     -rsfE
     --ignore-glob='/*_nose.py'
     --ignore-glob='/*/yt/data_objects/level_sets/tests/test_clump_finding.py'
     --ignore-glob='/*/yt/data_objects/tests/test_connected_sets.py'
-    --ignore-glob='/*/yt/data_objects/tests/test_data_containers.py'
     --ignore-glob='/*/yt/data_objects/tests/test_dataset_access.py'
     --ignore-glob='/*/yt/data_objects/tests/test_particle_filter.py'
     --ignore-glob='/*/yt/data_objects/tests/test_particle_trajectories.py'
@@ -432,7 +439,6 @@ ignore = [
   "yt/utilities/lib/image_utilities.c",
   "yt/utilities/lib/interpolators.c",
   "yt/utilities/lib/lenses.c",
-  "yt/utilities/lib/line_integral_convolution.c",
   "yt/utilities/lib/marching_cubes.cpp",
   "yt/utilities/lib/mesh_triangulation.c",
   "yt/utilities/lib/mesh_utilities.c",
@@ -461,19 +467,11 @@ show_error_context = true
 exclude = "(test_*|lodgeit)"
 
 [tool.cibuildwheel]
-build = "cp310-* cp311-* cp312-* cp313-*"
 build-verbosity = 1
-test-skip = "*-musllinux*"
+skip = ["cp314t-*"]
 test-extras = "test"
 test-command = [
-    "pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
+    'python -c "import yt"',
+    "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
-
-[tool.cibuildwheel.linux]
-archs = "x86_64"
-
-[tool.cibuildwheel.macos]
-archs = "auto"
-
-[tool.cibuildwheel.windows]
-archs = "auto64"
+environment = {"YT_LIMITED_API" = "1"}

@@ -11,35 +11,56 @@ on:
     paths:
       - '.github/workflows/wheels.yaml'
       - MANIFEST.in
+      - pyproject.toml
+      - setup.py
+      - setupext.py
   workflow_dispatch:
 
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build ${{ matrix.select }}-${{ matrix.archs }} wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      matrix:
-        os: [
-          ubuntu-22.04,
-          windows-2022,
-          macos-13, # x86_64
-          macos-14, # arm64
-        ]
       fail-fast: false
+      matrix:
+        include:
+        - os: ubuntu-latest
+          archs: x86_64
+          select: '*manylinux*'
+          id: manylinux_x86_64
+        - os: ubuntu-latest
+          archs: x86_64
+          select: '*musllinux*'
+          id: musllinux_x86_64
+        - os: macos-latest
+          archs: x86_64
+          select: '*'
+          id: macos_x86_64
+        - os: macos-latest
+          archs: arm64
+          select: '*'
+          id: macos_arm64
+        - os: windows-latest
+          archs: AMD64
+          select: '*'
+          id: windows_AMD64
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Build wheels for CPython
-        uses: pypa/cibuildwheel@v2.23.3
+        uses: pypa/cibuildwheel@v3.1.4
         with:
           output-dir: dist
+        env:
+          CIBW_ARCHS: ${{ matrix.archs }}
+          CIBW_BUILD: ${{ matrix.select }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}
+          name: wheels-${{ matrix.os }}-${{ matrix.id }}
           path: ./dist/*.whl
 
   build_sdist:

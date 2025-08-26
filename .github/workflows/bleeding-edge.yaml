@@ -37,16 +37,12 @@ jobs:
     - name: Set up Python (newest testable version)
       uses: actions/setup-python@v5
       with:
-        # the '-dev' suffix allows to use pre-releases if no final release is available yet
         # this version should be upgraded as often as possible, typically once a year when
         # Cython, numpy and matplotlib are known to be compatible
-        python-version: '3.13-dev'
+        python-version: '3.14'
+        allow-prereleases: true
 
     - name: Install dependencies
-      # PyYAML needs to be installed in isolation for now, because of a known
-      # incompatibility with Cython 3
-      # see https://github.com/yaml/pyyaml/issues/601
-      # and https://github.com/cython/cython/issues/4568
       run: |
         python -m pip install --upgrade pip
         python -m pip install --upgrade setuptools wheel
@@ -54,7 +50,7 @@ jobs:
          --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
         python -m pip install --pre ewah-bool-utils
         python -m pip install git+https://github.com/yt-project/unyt.git
-        python -m pip install --pre pytest PyYAML
+        python -m pip install git+https://github.com/pytest-dev/pytest.git
 
     - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
@@ -68,7 +64,7 @@ jobs:
     - name: Run Tests
       run: |
         yt config set --local yt log_level 50  # Disable excessive output
-        pytest -vvv --color=yes
+        pytest yt -vvv --color=yes
 
   create-issue:
     if: ${{ failure() && github.event_name == 'schedule' }}

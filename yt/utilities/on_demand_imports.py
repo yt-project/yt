@@ -187,7 +187,7 @@ class NotCartopy(NotAModule):
                 f"This functionality requires the {pkg_name} "
                 "package to be installed.\n"
                 "For further instruction please refer to Cartopy's documentation\n"
-                "https://scitools.org.uk/cartopy/docs/latest/installing.html"
+                "https://cartopy.readthedocs.io/stable/installing.html"
             )
 
 

@@ -36,10 +36,10 @@ repos:
         additional_dependencies: [black==24.3.0]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.11.8
+  rev: v0.12.7
   hooks:
   - id: ruff-format
-  - id: ruff
+  - id: ruff-check
     args: [
       --fix,
       --show-fixes,
@@ -51,7 +51,7 @@ repos:
     -   id: rst-backticks
 
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.16.6
+  rev: v0.16.7
   hooks:
   - id: cython-lint
     args: [--no-pycodestyle]
