@@ -74,15 +74,7 @@ def _determine_data_layout(f: _h5py.File) -> tuple[np.ndarray, _BlockDiskMapping
     #     replace ``{blockid}`` with ``0``)
     #  2. "root.h5": is the standard format used by Cholla's concatenation scripts
     #     (older versions of Cholla without MPI also used this format to name outputs)
-    _dir, _base = os.path.split(filename)
-    _sep_i = _base.rfind(".")
-    no_suffix = (_sep_i == -1) or (_base[_sep_i:] == "") or (_base[:_sep_i] == "")
-    if no_suffix or not _base[_sep_i + 1 :].isdecimal():
-        inferred_fname_template = filename  # filename doesn't change based on blockid
-        cur_filename_suffix = None
-    else:
-        inferred_fname_template = os.path.join(_dir, _base[:_sep_i]) + ".{blockid}"
-        cur_filename_suffix = int(_base[_sep_i + 1 :])
+    inferred_fname_template, cur_filename_suffix = _infer_fname_template(filename)
 
     # STEP 2: Check whether the hdf5 file has a flat structure
     # ========================================================
@@ -150,48 +142,47 @@ def _determine_data_layout(f: _h5py.File) -> tuple[np.ndarray, _BlockDiskMapping
     return blockid_location_arr, mapping
 
 
-def _split_fname_procid_suffix(filename: str):
-    """Splits ``filename`` at the '.' separating the beginning part of the
+def _infer_fname_template(filename: str) -> tuple[str, int | None]:
+    """Infers the template for all Cholla data-files based on the filename
+    passed to ``yt.load``.
+
     string from the process-id suffix, and returns both parts in a 2-tuple.
 
     There are 2 conventions for the names of Cholla's data-files:
+      1. "root.h5.{blockid}" is the standard format Cholla uses when writing
+         files storing a single snapshot. Each MPI-rank will write a separate
+         file and replace ``{blockid}`` with MPI-rank (Modern Cholla versions
+         without MPI replace ``{blockid}`` with ``0``)
+      2. "root.h5": is the standard format used by Cholla's concatenation
+         scripts (older versions of Cholla without MPI also used this format
+         to name outputs)
 
-    1. "root.h5.{procid}" is the standard format used when Cholla directly
-       writes out data-files. When outputting a snaphsot, each MPI-process
-       writes a separate file, named using this template (``{procid}`` is
-       replaced with MPI-rank). Modern versions of Cholla without MPI replace
-       ``{procid}`` with ``0``. When passed a name of this form, the function
-       returns ``("root.h5", "{procid}")``
-    2. "root.h5": is the standard format used by Cholla's concatenation scirpts
-       (older versions of the code compiled without MPI also used this format
-       to name outputs). When passed a name of this form, the function returns
-       ``("root.h5", "")``
-
-    Notes
-    -----
-    The following examples illustrate how the behavior differs from that of
-    ``os.path.splitext``
-
-    - For "root.h5.3": ``os.path.splitext`` returns ``("root.h5", ".3")``,
-      while this function returns ``("root.h5", "3")``
-    - For "root.h5": os.path.splitext`` returns ``("root", ".h5")``, while this
-      function returns ``("root.h5", "")``
+    Returns
+    -------
+    template: str
+        The path to the file containing a blockid is given by calling
+        ``template.format(blockid=<blockid>)``. (This will work whether
+        all blocks are stored in 1 file or blocks are distributed across
+        files)
+    cur_blockid_suffix: int or None
+        The blockid specified in the suffix of ``filename``. If there isn't a
+        suffix, then this will be None.
     """
 
     # at this time, we expect the suffix to be the minimum number of characters
     # that are necessary to represent the process id. For flexibility, we will
     # allow extra zero-padding
 
-    match filename.rpartition("."):
-        case ("", "", _) | (_, ".", ""):
-            return (filename, "")
-        case (prefix, ".", _) if prefix == "" or prefix[-1] == "/":
+    _dir, _base = os.path.split(filename)
+    match _base.rpartition("."):
+        case ("", ".", _):  # Cholla never writes a file like this
             raise ValueError(
-                f"can't split a process-suffix off of {filename!r} "
-                "since the remaining filename would be empty"
+                f"1st character in {filename!r} is the only '.' in the file's name"
             )
-        case (prefix, ".", suffix):
-            return (prefix, suffix) if suffix.isdecimal() else (filename, "")
+        case (prefix, ".", suffix) if suffix.isdecimal():
+            return os.path.join(_dir, f"{prefix}.{{blockid}}"), int(suffix)
+        case _:
+            return (filename, None)
 
 
 class ChollaGrid(AMRGridPatch):
