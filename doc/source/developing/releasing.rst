@@ -11,7 +11,7 @@ from the version number used. Version numbers should follow the scheme
   These releases should contain only fixes for bugs discovered in
   earlier releases and should not contain new features or API changes. Bugfix
   releases only increment the ``PATCH`` version number. Bugfix releases are
-  generated from a dedicated backporch branch that contains cherry-picked
+  generated from a dedicated backport branch that contains cherry-picked
   commits for bug fixes (handled semi-automatically as pull requests are
   merged), see :ref:`doing-a-bugfix-release` for more details. Version
   ``3.2.2`` is a bugfix release.
@@ -35,10 +35,10 @@ from the version number used. Version numbers should follow the scheme
   backwards-incompatible changes intentionally. In principle a major version release could
   include arbitrary changes to the library. Major version releases should only
   happen after extensive discussion and vetting among the developer and user
-  community. Like minor releases, a major release should happen by merging creating
+  community. Like minor releases, a major release should happen by creating
   a new series branch off of the ``main`` branch from which to release. Major releases should
   increment the ``MAJOR`` version number and reset the ``MINOR`` and ``PATCH``
-  version numbers to zero. If it ever happens, version ``5.0.0`` will be a major release.
+  version numbers to zero. Version ``4.0.0`` is a major release.
 
 The job of doing a release differs depending on the kind of release. Below, we
 describe the necessary steps for each kind of release in detail. Several of the
@@ -103,7 +103,7 @@ with a comment in its description such as ``on-merge: backport to yt-4.0.x``.
 Then, every PR that was triaged into the milestone will be replicated as a
 backport PR by the bot when it's merged into main. Some backports are non-trivial and
 require human attention; if conflicts occur, the bot will provide detailed
-instructions to perfom the task manually. If you forget to assign a the branch label
+instructions to perfom the task manually. If you forget to assign a backport branch label
 before merging a PR, you can tag the bot in a comment on the merged PR to have it
 create a new backport PR for the already merged PR (see `here <https://github.com/scientific-python/MeeseeksDev>`_
 for a list of commands understood by the Meeseeks bot).
@@ -120,24 +120,24 @@ In short, a manual backport consist of 4 steps
 Doing a Minor or Major Release
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is much simpler than a bugfix release. First, make sure that all
+This is simpler than a bugfix release. First, make sure that all
 deprecated features targeted for removal in the new release are removed from the
 ``main`` branch, ideally in a single PR. Such a PR can be issued at any point
 between the previous minor or major release and the new one. Then, create a new
-series branch off of the ``main`` branch (for example ``git checkout -b yt-4.5.x``)
+series branch off of the ``main`` branch (for example ``git switch -c yt-4.5.x``)
 and push the new branch up to the yt repository.
 
 .. code-block:: bash
-  git fetch origin
-  git checkout origin/main
-  git checkout -b yt-4.5.x
-  git push --set-upstream origin yt-4.5.x
+  git fetch upstream
+  git switch upstream/main
+  git switch -c yt-4.5.x
+  git push --set-upstream upstream yt-4.5.x
 
 After the series branch is up, you will bump the version number and generate a git tag
 as described below.
 
 After the completion of the release, the new series branch becomes the
-backporch branch for subsequent bugfix releases.
+backport branch for subsequent bugfix releases.
 
 Incrementing Version Numbers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
