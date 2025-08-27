@@ -127,7 +127,9 @@ class DerivedFieldBase(abc.ABC):
     def __gt__(self, other) -> "DerivedFieldCombination":
         return DerivedFieldCombination([self, other], op=operator.gt)
 
-    def __eq__(self, other) -> "DerivedFieldCombination":
+    # NOTE: we need to ignore type checking for these methods
+    # since mypy expects the following two to return `bool`
+    def __eq__(self, other) -> "DerivedFieldCombination":  # type: ignore[override]
         return DerivedFieldCombination([self, other], op=operator.eq)
 
     def __ne__(self, other) -> "DerivedFieldCombination":  # type: ignore[override]
