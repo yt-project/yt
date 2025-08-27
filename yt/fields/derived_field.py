@@ -162,7 +162,7 @@ class DerivedFieldCombination(DerivedFieldBase):
         self.terms = terms
         self.op = op
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.sampling_type, tuple(self.terms), self.op))
 
     def __call__(self, field, data):
@@ -200,6 +200,19 @@ class DerivedFieldCombination(DerivedFieldBase):
     @property
     def name(self):
         return f"{self!r}"
+
+    def __bool__(self):
+        match self.op:
+            # Special case for equality, check terms are aliases of each other
+            case operator.eq if len(self.terms) == 2:
+                return self.terms[0] is self.terms[1]
+            case operator.eq:
+                raise ValueError(
+                    "The truth value of a DerivedFieldCombination with more "
+                    "than two terms is ambiguous."
+                )
+            case _:
+                return True
 
 
 class DerivedField(DerivedFieldBase):
@@ -326,7 +339,7 @@ class DerivedField(DerivedFieldBase):
             self._shared_aliases_list = alias._shared_aliases_list
             self._shared_aliases_list.append(self)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(
             (
                 self.name,
