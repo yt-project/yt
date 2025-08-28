@@ -103,7 +103,7 @@ Backporting bugfixes can be done automatically using the `MeeseeksBox bot
 <https://meeseeksbox.github.io>`_ with a GitHub milestone linked to a backport branch.
 To set up a new milestone linked to a backport branch, click the New Milestone button
 on the `GitHub interface <https://github.com/yt-project/yt/milestones>`_` then name it
-with the version for the future release and a note within the description field:
+with the version for the future release and add the following within the description field:
 ``on-merge: backport to <name of backport branch>``, for example:
 ``on-merge: backport to yt-4.0.x``.
 
