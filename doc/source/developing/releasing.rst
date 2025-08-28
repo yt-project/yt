@@ -48,12 +48,12 @@ repository (if you're reading this, you probably already do).
 .. note::
 
   This documentation assumes that your local copy of the yt repository has the
-  main yt repository as the ``origin`` remote. You can double check with:
+  main yt repository as the ``upstream`` remote (the default configuration when
+  forking with ``gh fork yt-project/yt``). You can double check with:
   ``git remote -v``, which will display all the remote sources you have setup
-  as well as their addresses. If ``origin`` does not point to the main yt repo
-  address (``git@github.com:yt-project/yt.git``), you will need to replace
-  the usage of ``origin`` with whichever remote points to the correct
-  address.
+  as well as their addresses. If you are missing an ``upstream`` remote (for
+  example, after a standard ``git clone`` of your yt fork), you can add it
+  with ``git remote add upstream git@github.com:yt-project/yt.git``.
 
 .. _prepping-release-notes:
 
@@ -68,14 +68,18 @@ as the release title (e.g., ``yt-4.4.1``). For the target tag, enter the tag tha
 (see  :ref:`tagging-a-release-release`) and select the branch from which the release will be cut.
 
 Now it's time to generate some release notes. To get a nice starting point, try using the ``uv`` script
-`draft_yt_release_notes.py <https://gist.github.com/chrishavlin/248adea4296abb7bcdbaac952f304cf0>`_
-and copying the output into the new draft release. This script will pull all the issues and pull requests
-that have been tagged to a specified GitHub milestone and do some initial categorizing to produce a decent
-draft for release notes. It will still need some manual attention: update the release summary text,
-add any highlights if desired, add PRs that are missing. At present, you'll also need to manually sort the
-frontend-specific changes by frontend to match previous release notes.
+`draft_yt_release_notes.py <https://gist.github.com/chrishavlin/248adea4296abb7bcdbaac952f304cf0>`_. You can
+run the script directly from the gist using ``uv`` and the url to the raw script (check the readme at the gist).
+This script will pull all the issues and pull requests that have been tagged to a specified GitHub milestone
+and do some initial categorizing to produce a decent draft for release notes. You can then create a draft
+release manually via the GitHub interface and copy in your draft notes, or if using ``gh``, you can do so
+from the command line with ``gh release create --draft --notes-file <file> --target <branch>``. The initial
+notes created by the ``draft_yt_release_notes.py`` will still need some manual attention: you should update
+the release summary text, add any highlights if desired, add PRs that are missing. At present, you'll also
+need to manually sort the frontend-specific changes by frontend to match previous release notes.
 
-Click "save" at any point to save a draft. Do NOT publish the draft yet.
+When updating the draft via the GitHub interface, click "save" at any point to save a draft.
+Do NOT publish the draft yet.
 
 .. _doing-a-bugfix-release:
 
@@ -96,10 +100,13 @@ The backport branches are initially created during the release of a new minor or
 version (see :ref:`doing-a-minor-or-major-release`).
 
 Backporting bugfixes can be done automatically using the `MeeseeksBox bot
-<https://meeseeksbox.github.io>`_.
+<https://meeseeksbox.github.io>`_ with a GitHub milestone linked to a backport branch.
+To set up a new milestone linked to a backport branch, click the New Milestone button
+on the `GitHub interface <https://github.com/yt-project/yt/milestones>`_` then name it
+with the version for the future release and a note within the description field:
+``on-merge: backport to <name of backport branch>``, for example:
+``on-merge: backport to yt-4.0.x``.
 
-This necessitates having a Github milestone dedicated to the release, configured
-with a comment in its description such as ``on-merge: backport to yt-4.0.x``.
 Then, every PR that was triaged into the milestone will be replicated as a
 backport PR by the bot when it's merged into main. Some backports are non-trivial and
 require human attention; if conflicts occur, the bot will provide detailed
@@ -144,21 +151,18 @@ Incrementing Version Numbers
 
 Before creating the tag for the release, you must increment the version numbers
 that are hard-coded in a few files in the yt source so that version metadata
-for the code is generated correctly. This includes things like ``yt.__version__``
-and the version that gets read by the Python Package Index (PyPI) infrastructure.
-
-The paths relative to the root of the repository for the three files that need
-to be edited are:
+for the code is generated correctly. The paths relative to the root of the
+repository for the three files that need to be edited are:
 
 * ``doc/source/conf.py``
 
   The ``version`` and ``release`` variables need to be updated.
 
-* ``setup.py``
+* ``pyproject.toml``
 
-  The ``VERSION`` variable needs to be updated
+  The ``version`` variable needs to be updated
 
-* ``yt/__init__.py``
+* ``yt/_version.py``
 
   The ``__version__`` variable must be updated.
 
