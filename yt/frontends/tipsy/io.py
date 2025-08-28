@@ -266,7 +266,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                             pp["Coordinates"]["y"].min(),
                             pp["Coordinates"]["z"].min(),
                         ],
-                        mi,
+                        out=mi,
                     )
                     np.maximum(
                         ma,
@@ -275,7 +275,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                             pp["Coordinates"]["y"].max(),
                             pp["Coordinates"]["z"].max(),
                         ],
-                        ma,
+                        out=ma,
                     )
                     ind += c
         # We extend by 1%.
