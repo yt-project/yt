@@ -251,6 +251,11 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         *structure* of your fluid file is non-canonical, change this.
         """
         nvars = len(self._detected_field_list[self.ds.unique_identifier])
+        
+        first_field = self.field_list[0][1]
+        # Get the size of the data, single precision if RT field, double otherwise
+        is_single = True if first_field.startswith("Photon") else False
+        
         with FortranFile(self.fname) as fd:
             # Skip headers
             nskip = len(self.attrs)
@@ -269,6 +274,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
             #
             # So there are 8 * nvars records each with length (nocts, )
             # at each (level, cpus)
+            
             offset, level_count = read_offset(
                 fd,
                 min_level,
@@ -276,6 +282,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 self.parameters[self.ds.unique_identifier]["nvar"],
                 self.domain.amr_header,
                 Nskip=nvars * 8,
+                single=is_single,
             )
 
         self._level_count = level_count
@@ -542,10 +549,13 @@ class RTFieldFileHandler(FieldFileHandler):
 
         rheader = {}
 
-        def read_rhs(cast):
+        def read_rhs(cast, group=None):
             line = f.readline()
             p, v = line.split("=")
-            rheader[p.strip()] = cast(v)
+            if group is not None:
+                rheader[f"Group {group} {p.strip()}"] = cast(v)
+            else:
+                rheader[p.strip()] = cast(v)
 
         with open(fname) as f:
             # Read nRTvar, nions, ngroups, iions
@@ -567,7 +577,7 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(float)
             f.readline()
 
-            # Reat unit_np, unit_pfd
+            # Read unit_np, unit_pf
             for _ in range(2):
                 read_rhs(float)
 
@@ -580,9 +590,20 @@ class RTFieldFileHandler(FieldFileHandler):
             # Read n star, t2star, g_star
             for _ in range(3):
                 read_rhs(float)
-
-            # Touchy part, we have to read the photon group properties
-            mylog.debug("Not reading photon group properties")
+            f.readline()
+            f.readline()
+            
+            # Get global group properties (groupL0, groupL1, spec2group)
+            for _ in range(3):
+                read_rhs(lambda line: [float(e) for e in line.split()])
+            
+            # get egy for each group (used to get proper energy densities)
+            # NOTE: this assumes there are 8 energy groups
+            for _ in range(8):
+                group = int(f.readline().split()[1])
+                read_rhs(lambda line: [float(e) for e in line.split()], group)
+                f.readline()
+                f.readline()
 
             cls.rt_parameters[ds.unique_identifier] = rheader
 
