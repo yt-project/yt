@@ -272,7 +272,7 @@ def test_smoothed_covering_grid_2d_dataset():
 
 
 def test_arbitrary_grid_derived_field():
-    def custom_metal_density(field, data):
+    def custom_metal_density(data):
         # Calculating some random value
         return data["gas", "density"] * np.random.random_sample()
 
@@ -284,7 +284,7 @@ def test_arbitrary_grid_derived_field():
         sampling_type="cell",
     )
 
-    def _tracerf(field, data):
+    def _tracerf(data):
         return data["gas", "Metal_Density"] / data["gas", "density"]
 
     ds.add_field(
@@ -300,7 +300,7 @@ def test_arbitrary_grid_derived_field():
 
 
 def test_arbitrary_field_parameters():
-    def _test_field(field, data):
+    def _test_field(data):
         par = data.get_field_parameter("test_parameter")
         return par * data["all", "particle_mass"]
 

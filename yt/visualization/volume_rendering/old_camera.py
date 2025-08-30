@@ -2053,7 +2053,7 @@ class ProjectionCamera(Camera):
             self.weightfield = ("index", f"temp_weightfield_{id(self)}")
 
             def _make_wf(f, w):
-                def temp_weightfield(field, data):
+                def temp_weightfield(data):
                     tr = data[f].astype("float64") * data[w]
                     return data.apply_units(tr, field.units)
 

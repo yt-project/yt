@@ -78,7 +78,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             units="code_length",
         )
 
-        def _SphericalVolume(field, data):
+        def _SphericalVolume(data):
             # We can use the transformed coordinates here.
             # Here we compute the spherical volume element exactly
             r = data["index", "r"]
@@ -98,7 +98,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         )
         registry.alias(("index", "volume"), ("index", "cell_volume"))
 
-        def _path_radial_axis(field, data):
+        def _path_radial_axis(data):
             return data["index", f"d{self.radial_axis}"]
 
         registry.add_field(
@@ -108,7 +108,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             units="code_length",
         )
 
-        def _path_latitude(field, data):
+        def _path_latitude(data):
             # We use r here explicitly
             return data["index", "r"] * data["index", "dlatitude"] * np.pi / 180.0
 
@@ -119,7 +119,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             units="code_length",
         )
 
-        def _path_longitude(field, data):
+        def _path_longitude(data):
             # We use r here explicitly
             return (
                 data["index", "r"]
@@ -136,7 +136,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             units="code_length",
         )
 
-        def _latitude_to_theta(field, data):
+        def _latitude_to_theta(data):
             # latitude runs from -90 to 90
             # theta = 0 at +90 deg, np.pi at -90
             return (90.0 - data["index", "latitude"]) * np.pi / 180.0
@@ -148,7 +148,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             units="",
         )
 
-        def _dlatitude_to_dtheta(field, data):
+        def _dlatitude_to_dtheta(data):
             return data["index", "dlatitude"] * np.pi / 180.0
 
         registry.add_field(
@@ -158,7 +158,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             units="",
         )
 
-        def _longitude_to_phi(field, data):
+        def _longitude_to_phi(data):
             # longitude runs from -180 to 180
             lonvals = data["index", "longitude"]
             neglons = lonvals < 0.0
@@ -170,7 +170,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             ("index", "phi"), sampling_type="cell", function=_longitude_to_phi, units=""
         )
 
-        def _dlongitude_to_dphi(field, data):
+        def _dlongitude_to_dphi(data):
             return data["index", "dlongitude"] * np.pi / 180.0
 
         registry.add_field(
@@ -185,7 +185,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def _setup_radial_fields(self, registry):
         # This stays here because we don't want to risk the field detector not
         # properly getting the data_source, etc.
-        def _altitude_to_radius(field, data):
+        def _altitude_to_radius(data):
             surface_height = data.get_field_parameter("surface_height")
             if surface_height is None:
                 if hasattr(data.ds, "surface_height"):
@@ -477,7 +477,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
     def _setup_radial_fields(self, registry):
         # Altitude is the radius from the central zone minus the radius of the
         # surface.
-        def _depth_to_radius(field, data):
+        def _depth_to_radius(data):
             outer_radius = data.get_field_parameter("outer_radius")
             if outer_radius is None:
                 if hasattr(data.ds, "outer_radius"):

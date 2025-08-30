@@ -61,20 +61,26 @@ def test_add_field_uncallable():
         ds.add_field(("bacon", "spam"), Spam(), sampling_type="cell")
 
 
-def test_add_field_wrong_signature():
+def test_add_field_flipped_signature():
+    # before yt 4.5, the only valid signature was
+    # `function(data)`, but now we allow `function(data, field)`
     ds = fake_random_ds(16)
 
     def _spam(data, field):
         return data["gas", "density"]
 
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"Received field function <function .*> with invalid signature\. "
-            r"Expected exactly 2 positional parameters \('field', 'data'\), got \('data', 'field'\)"
-        ),
-    ):
-        ds.add_field(("bacon", "spam"), _spam, sampling_type="cell")
+    ds.add_field(("bacon", "spam"), _spam, sampling_type="cell")
+
+
+def test_add_field_signature_v2():
+    # before yt 4.5, the only valid signature was
+    # `function(data)`, but now we allow `function(data)`
+    ds = fake_random_ds(16)
+
+    def _spam(data):
+        return data["gas", "density"]
+
+    ds.add_field(("bacon", "spam"), _spam, sampling_type="cell")
 
 
 def test_add_field_keyword_only():
@@ -83,18 +89,11 @@ def test_add_field_keyword_only():
     def _spam(field, *, data):
         return data["gas", "density"]
 
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"Received field function .* with invalid signature\. "
-            r"Parameters 'field' and 'data' must accept positional values \(they cannot be keyword-only\)"
-        ),
-    ):
-        ds.add_field(
-            ("bacon", "spam"),
-            _spam,
-            sampling_type="cell",
-        )
+    ds.add_field(
+        ("bacon", "spam"),
+        _spam,
+        sampling_type="cell",
+    )
 
 
 def test_derived_field(monkeypatch):
@@ -102,7 +101,7 @@ def test_derived_field(monkeypatch):
     monkeypatch.setattr(local_fields, "local_fields", tmp_field_info)
 
     @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
-    def _pressure(field, data):
+    def _pressure(data):
         return (
             (data.ds.gamma - 1.0)
             * data["gas", "density"]
@@ -132,7 +131,7 @@ def test_derived_field(monkeypatch):
 def test_dimensionless_field(add_field_kwargs):
     ds = fake_random_ds(16)
 
-    def _dimensionless_field(field, data):
+    def _dimensionless_field(data):
         return data["gas", "density"] / data["gas", "density"].units
 
     ds.add_field(
