@@ -2,6 +2,7 @@ import re
 import sys
 from functools import partial
 from numbers import Number as numeric_type
+from typing import Literal
 
 import numpy as np
 from more_itertools import first, mark_ends
@@ -111,6 +112,15 @@ class FITSImageData:
             The dataset associated with the image(s), typically used
             to transfer metadata to the header(s). Does not need to be
             specified if *data* has a dataset as an attribute.
+        pixelmeaning:
+            "pixelave": a pixel represents an average surface density or
+            surface-density-weighted average across a pixel.
+
+            "pencilbeam": a pixel represents a column density or
+            column-density-weighted average integrated over a pencil
+            beam through the pixel center.
+
+            Only applies to SPH datasets.
 
         Examples
         --------
@@ -866,7 +876,15 @@ axis_wcs = [[1, 2], [2, 0], [0, 1]]
 
 
 def construct_image(
-    ds, axis, data_source, center, image_res, width, length_unit, origin="domain"
+    ds,
+    axis,
+    data_source,
+    center,
+    image_res,
+    width,
+    length_unit,
+    origin="domain",
+    pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
 ):
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
@@ -906,9 +924,17 @@ def construct_image(
         crval = np.zeros(2)
     if hasattr(data_source, "to_frb"):
         if is_sequence(axis):
-            frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
+            frb = data_source.to_frb(
+                width[0], (nx, ny), height=width[1], pixelmeaning=pixelmeaning
+            )
         else:
-            frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
+            frb = data_source.to_frb(
+                width[0],
+                (nx, ny),
+                center=center,
+                height=width[1],
+                pixelmeaning=pixelmeaning,
+            )
     elif isinstance(data_source, ParticleDummyDataSource):
         if hasattr(data_source, "normal_vector"):
             # If we have a normal vector, this means
@@ -1134,6 +1160,15 @@ class FITSProjection(FITSImageData):
         for a weighted projection, moment = 1 (the default) corresponds to a
         weighted average. moment = 2 corresponds to a weighted standard
         deviation.
+    pixelmeaning:
+        "pixelave": a pixel represents an average surface density or
+        surface-density-weighted average across a pixel.
+
+        "pencilbeam": a pixel represents a column density or
+        column-density-weighted average integrated over a pencil
+        beam through the pixel center.
+
+        Only applies to SPH datasets.
     """
 
     def __init__(
@@ -1149,6 +1184,7 @@ class FITSProjection(FITSImageData):
         *,
         origin="domain",
         moment=1,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         **kwargs,
     ):
         fields = list(iter_fields(fields))
@@ -1166,6 +1202,7 @@ class FITSProjection(FITSImageData):
             width,
             length_unit,
             origin=origin,
+            pixelmeaning=pixelmeaning,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1374,6 +1411,15 @@ class FITSParticleOffAxisProjection(FITSImageData):
         center coordinates will be the same as the center of the image as
         defined by the *center* keyword argument. If "image", then the center
         coordinates will be set to (0,0). Default: "domain"
+    pixelmeaning:
+        "pixelave": a pixel represents an average surface density or
+        surface-density-weighted average across a pixel.
+
+        "pencilbeam": a pixel represents a column density or
+        column-density-weighted average integrated over a pencil
+        beam through the pixel center.
+
+        Only applies to SPH datasets.
     """
 
     def __init__(
@@ -1392,6 +1438,7 @@ class FITSParticleOffAxisProjection(FITSImageData):
         field_parameters=None,
         data_source=None,
         north_vector=None,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
     ):
         fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, None)
@@ -1423,6 +1470,7 @@ class FITSParticleOffAxisProjection(FITSImageData):
             width,
             length_unit,
             origin="image",
+            pixelmeaning=pixelmeaning,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1599,6 +1647,15 @@ class FITSOffAxisProjection(FITSImageData):
         for a weighted projection, moment = 1 (the default) corresponds to a
         weighted average. moment = 2 corresponds to a weighted standard
         deviation.
+    pixelmeaning:
+        "pixelave": a pixel represents an average surface density or
+        surface-density-weighted average across a pixel.
+
+        "pencilbeam": a pixel represents a column density or
+        column-density-weighted average integrated over a pencil
+        beam through the pixel center.
+
+        Only applies to SPH datasets.
     """
 
     def __init__(
@@ -1615,6 +1672,7 @@ class FITSOffAxisProjection(FITSImageData):
         depth=(1.0, "unitary"),
         method="integrate",
         length_unit=None,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         moment=1,
     ):
@@ -1648,6 +1706,7 @@ class FITSOffAxisProjection(FITSImageData):
                 method=method,
                 weight=weight_field,
                 depth=depth,
+                pixelmeaning=pixelmeaning,
             ).swapaxes(0, 1)
 
             if moment == 2:

@@ -1124,7 +1124,11 @@ cdef class SPHKernelInterpolationTable:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def pixelize_sph_kernel_projection(
+# SPH projection: integrate the SPH kernel over a pencil beam
+# through the center of each pixel in the output grid.
+# The pencil beam is perpendicular to the grid plane, along the
+# line-of-sight direction
+def pixelize_sph_kernel_projection_pencilbeam(
         np.float64_t[:, :] buff,
         np.uint8_t[:, :] mask,
         any_float[:] posx,
@@ -1307,7 +1311,8 @@ def pixelize_sph_kernel_projection(
 
                                 # see equation 32 of the SPLASH paper
                                 # now we just use the kernel projection
-                                local_buff[xi + yi*xsize] += prefactor_j * itab.interpolate(q_ij2)
+                                local_buff[xi + yi*xsize] += (
+                                    prefactor_j * itab.interpolate(q_ij2))
                                 mask[xi, yi] = 1
 
         with gil:
@@ -1317,9 +1322,424 @@ def pixelize_sph_kernel_projection(
         free(local_buff)
         free(xiterv)
         free(yiterv)
+        free(ziterv)
         free(xiter)
         free(yiter)
+        free(ziter)
 
+    return mask
+
+
+# SPH projection: integrate the SPH kernel over the rectangular prism
+# defined by each pixel in the output grid, and the depth of the
+# projection.
+# Note that we do assume here that along the projection direction, the
+# SPH kernel is entirely contained in the projection volume.
+# to avoid adding too much mass as a consequence, we cut off particle
+# inclusion in the projection entirely if a particle center is outside
+# the center +/- depth range
+# implementation is based on Borrow & Kelly (2021): arXiv:2106.05281,
+# https://ui.adsabs.harvard.edu/abs/2021arXiv210605281B/abstract
+# except we use the table-interpolation-based line-of-sight kernel
+# integration to use the full 3D kernel shape,
+# and at least for the first go, omit many of the speed optimisations
+# additionally, this paper technically descibes projecting masses
+# (i.e., resolution-element integrated quantities),
+# while this function is for densities
+# default nsample_min is from swiftsimio
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def pixelize_sph_kernel_projection_pixelave(
+        np.float64_t[:, :] buff,
+        np.uint8_t[:, :] mask,
+        any_float[:] posx,
+        any_float[:] posy,
+        any_float[:] posz,
+        any_float[:] hsml,
+        any_float[:] pmass,
+        any_float[:] pdens,
+        any_float[:] quantity_to_smooth,
+        bounds,
+        kernel_name="cubic",
+        weight_field=None,
+        _check_period = (1, 1, 1),
+        period=None,
+        nsample_min=32):
+    # axes x, y, and z here need not be the corresponding axes in
+    # the simulation. Projections are always along the "z" axis here,
+    # bounds are in this function's x, y, z order. The calling python
+    # function should ensure these line up with the line of sight
+    # (here z) and projection plane (x, y) coordinate orders in the
+    # (possible rotated) simulation coordinates.
+
+    # shared variables (or used before parallel section)
+    cdef np.intp_t xsize, ysize, si, sj, sii, sjj, sci
+    cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max
+    cdef np.float64_t insmin, xnorm, ynorm, q2
+    cdef np.float64_t dx, dy, idx, idy, ipixA
+    cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
+    cdef int nsmin
+    cdef np.float64_t[:] _weight_field
+    cdef np.int8_t[3] check_period
+    cdef np.int8_t weighted = 0
+    # (hopefully?) private variables in parallel section
+    cdef np.float64_t x, y, px, py, pz
+    cdef np.float64_t h_j2, ih_j2, qts_j, prefactor_j, kernnorm_j
+    cdef np.float64_t q_ij2, posx_diff, posy_diff
+    cdef np.float64_t insubx, insuby, xn, yn, kv
+    cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
+    cdef np.int64_t nx, ny, nsubx, nsuby
+    cdef int i, j, ii, jj, kk, ci, xsubi, ysubi
+    #cdef int * xiter
+    #cdef int * yiter
+    #cdef int * ziter
+    #cdef np.float64_t * xiterv
+    #cdef np.float64_t * yiterv
+    #cdef np.float64_t * ziterv
+    if weight_field is not None:
+        _weight_field = weight_field
+        weighted = 1
+
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
+        period_z = period[2]
+    for si in range(3):
+        check_period[si] = <np.int8_t> _check_period[si]
+
+    # we find the x and y range over which we have pixels and we find how many
+    # pixels we have in each dimension
+    xsize, ysize = <np.intp_t> buff.shape[0], <np.intp_t> buff.shape[1]
+    x_min = <np.float64_t> bounds[0]
+    x_max = <np.float64_t> bounds[1]
+    y_min = <np.float64_t> bounds[2]
+    y_max = <np.float64_t> bounds[3]
+    z_min = <np.float64_t> bounds[4]
+    z_max = <np.float64_t> bounds[5]
+
+    dx = (x_max - x_min) / (<np.float64_t> xsize)
+    dy = (y_max - y_min) / (<np.float64_t> ysize)
+
+    idx = 1.0 / dx
+    idy = 1.0 / dy
+    ipixA = idx * idy
+    nsmin = <int> nsample_min
+
+    if kernel_name not in kernel_tables:
+        kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
+    cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
+
+    # pre-calculate kernel integral values to use for small particles
+    # overlapping max. 2x2 output grid pixels. dimensions:
+    # (part. position x, part. position y, kernel x, kernel y)
+    # kernel x, kernel y: shape (2, 2), values for the output grid
+    # part. x, y positions: position of the center pixel boundary of
+    # the 2x2 output values in x and y directions.
+    # units: (boundary x/y - particle center x/y) / particle hsml
+    # value range: [-1.0, 1.0]
+    # (The volume integral of this kernel should be one. We could
+    # normalize it explicitly, but skip that step for now, since we
+    # also don't do this for larger particles.)
+    kern2by2 = <np.float64_t *> malloc(
+        sizeof(np.float64_t) * (nsmin + 1) * (nsmin + 1) * 4)
+    # step 1: just get a big grid of the 1D integral values
+    kern1dint = <np.float64_t *> malloc(sizeof(np.float64_t) * nsmin * nsmin)
+    insmin = 1.0 / <np.float64_t> nsmin
+    for si in range(nsmin):
+        xnorm = -1.0 + 2.0 * (si + 0.5) * insmin
+        xnorm = xnorm * xnorm
+        for sj in range(nsmin):
+            ynorm = -1.0 + 2.0 * (sj + 0.5) * insmin
+            q2 = xnorm + ynorm * ynorm
+            if q2 >= 1.:
+                kern1dint[si * nsmin + sj] = 0.0
+            else:
+                kern1dint[si * nsmin + sj] = itab.interpolate(q2)
+    # step 2: integrate the 1D values for each grid edge position
+    for si in range(nsmin + 1):
+        for sj in range(nsmin + 1):
+            # slowest 2 indices
+            sci = 4 * (nsmin + 1) * si + 4 * sj
+            kern2by2[sci] = 0.0
+            kern2by2[sci + 1] = 0.0
+            kern2by2[sci + 2] = 0.0
+            kern2by2[sci + 3] = 0.0
+            for sii in range(0, si):
+                for sjj in range(0, sj):
+                    kern2by2[sci] += kern1dint[sii * nsmin + sjj]
+                for sjj in range(sj, nsmin):
+                    kern2by2[sci + 1] += kern1dint[sii * nsmin + sjj]
+            for sii in range(si, nsmin):
+                for sjj in range(0, sj):
+                    kern2by2[sci + 2] += kern1dint[sii * nsmin + sjj]
+                for sjj in range(sj, nsmin):
+                    kern2by2[sci + 3] += kern1dint[sii * nsmin + sjj]
+    free(kern1dint)
+
+    with nogil, parallel():
+        # loop through every particle
+        # NOTE: this loop can be quite time consuming. However it is
+        # easily parallelizable in multiple ways, such as:
+        #   1) use multiple cores to process individual particles (the
+        #      outer loop)
+        #   2) use multiple cores to process individual pixels for a
+        #      given particle (the inner loops)
+        # Depending on the ratio of particles' "sphere of influence"
+        # (a.k.a. the smoothing length) to the physical width of the
+        # pixels, different parallelization strategies may yield
+        # different speed-ups. Strategy #1 works better in the case of
+        # lots of itty bitty particles. Strategy #2 works well when we
+        # have a not-very-large-number of reasonably
+        # large-compared-to-pixels particles. We currently employ #1 as
+        # its workload is more even and consistent, even though it
+        # comes with a price of an additional, per thread memory for
+        # storing the intermediate results.
+        # !!! These comments were written for the line of sight
+        # !!! integral counterpart to this function, and not checked
+        # for this version
+        # (also, I don't know if this is possible in cython, but in
+        #  C + OpenMP without pixel subsampling, atomic read/write
+        #  operations to the output array weren't much slower than
+        #  using the memory-intensive ouput array buffer for each
+        #  thread)
+        local_buff = <np.float64_t *> malloc(sizeof(np.float64_t)
+                                             * xsize * ysize)
+        xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        yiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        ziterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        xiter = <int *> malloc(sizeof(int) * 2)
+        yiter = <int *> malloc(sizeof(int) * 2)
+        ziter = <int *> malloc(sizeof(int) * 2)
+        xiter[0] = yiter[0] = ziter[0] = 0
+        xiterv[0] = yiterv[0] = ziterv[0] = 0.0
+        for i in range(xsize * ysize):
+            local_buff[i] = 0.0
+
+        for j in prange(0, posx.shape[0], schedule="dynamic"):
+            if j % 100000 == 0:
+                with gil:
+                    PyErr_CheckSignals()
+
+            xiter[1] = yiter[1] = ziter[1] = 999
+
+            if check_period[0] == 1:
+                if posx[j] - hsml[j] < x_min:
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif posx[j] + hsml[j] > x_max:
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+            if check_period[1] == 1:
+                if posy[j] - hsml[j] < y_min:
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif posy[j] + hsml[j] > y_max:
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
+            if check_period[2] == 1:
+                if posz[j] - hsml[j] < z_min:
+                    ziter[1] = +1
+                    ziterv[1] = period_z
+                elif posz[j] + hsml[j] > z_max:
+                    ziter[1] = -1
+                    ziterv[1] = -period_z
+
+            # we set the smoothing length squared with lower limit of the pixel
+            # Nope! that causes weird grid resolution dependences and increases
+            # total values when resolution elements have hsml < grid spacing
+            h_j2 = hsml[j] * hsml[j]
+            ih_j2 = 1.0 / h_j2
+
+            # for small particles, we use the quantity to be smoothed
+            # directly, for larger ones, we need the whole prefactor
+            qts_j = <np.float64_t> quantity_to_smooth[j]
+            if weighted:
+                # cython compiler complains when I use " *= ":
+                # "Cannot read reduction variable in loop body"
+                qts_j = qts_j * _weight_field[j]
+            prefactor_j = pmass[j] / pdens[j] * ih_j2 * qts_j
+
+            # Discussion point: do we want the hsml margin on the z direction?
+            # it's consistent with Ray and Region selections, I think,
+            # but does tend to 'tack on' stuff compared to the nominal depth
+            for kk in range(2):
+                # discard if z is outside bounds
+                if ziter[kk] == 999: continue
+                pz = posz[j] + ziterv[kk]
+                ## removed hsml 'margin' in the projection direction to avoid
+                ## double-counting particles near periodic edges
+                ## and adding extra 'depth' to projections
+                #if (pz + hsml[j] < z_min) or (pz  - hsml[j] > z_max): continue
+                if (pz < z_min) or (pz > z_max): continue
+
+                for ii in range(2):
+                    if xiter[ii] == 999: continue
+                    px = posx[j] + xiterv[ii]
+                    if (px + hsml[j] < x_min) or (px - hsml[j] > x_max):
+                        continue
+                    for jj in range(2):
+                        if yiter[jj] == 999: continue
+                        py = posy[j] + yiterv[jj]
+                        if (py + hsml[j] < y_min) or (py - hsml[j] > y_max):
+                            continue
+
+                        # case: particle is small,
+                        # overlaps with a small number of pixels (max. 2x2)
+                        if hsml[j] < 0.5 * dx and hsml[j] < 0.5 * dy:
+                            # lower left corner indices
+                            # floor: need to round down negative vals
+                            # (int cast -> neg. vals. closer to zero)
+                            x0 = <np.int64_t> math.floor(
+                                (px - hsml[j] - x_min) * idx)
+                            y0 = <np.int64_t> math.floor(
+                                (py - hsml[j] - y_min) * idy)
+                            # sph particle lies entirely in one pixel
+                            if (px + hsml[j] < x_min + (x0 + 1) * dx and
+                                py + hsml[j] < y_min + (y0 + 1) * dy):
+                                # check that we're not on the wrong
+                                # periodicity iteration
+                                if (x0 >= 0 and x0 < xsize and
+                                    y0 >= 0 and y0 < ysize):
+                                    # surface density
+                                    # = density * av. length
+                                    # = density * volume / area
+                                    local_buff[x0 * ysize + y0] += (
+                                        pmass[j] / pdens[j] * ipixA * qts_j
+                                        )
+                                    mask[x0, y0] = 1
+                                else:
+                                    continue
+
+                            # sph particle lies in 2--4 pixels
+                            # use a pre-calculated grid
+                            else: # use pre-calculated kernel values
+                                # pre-calculated grid has size
+                                # (nsmin + 1, nsmin + 1, 2, 2)
+                                # bin edge values -1 -- 1
+                                # in units:
+                                # (offset of center of 2x2 output pix
+                                #  grid from particle center) / hsml
+
+                                # where does the overlapped pixel edge
+                                # fall in the saved kernel space array?
+                                xn = (x_min + (x0 + 1) * dx - px) / hsml[j]
+                                yn = (y_min + (y0 + 1) * dy - py) / hsml[j]
+                                # round to the nearest kernel grid edge
+                                # (C float to int cast behaves like
+                                #  floor() for input > 0, we need to round
+                                #  down negative numbers for periodic cases)
+                                xi = <np.int64_t> math.floor(
+                                     0.5 * (xn + 1.) * nsmin + 0.5)
+                                yi = <np.int64_t> math.floor(
+                                     0.5 * (yn + 1.) * nsmin + 0.5)
+                                # in case the pixel edge was beyond hsml
+                                xi = iclip(xi, 0, nsmin)
+                                yi = iclip(yi, 0, nsmin)
+                                # weight for each line integral:
+                                # area of subsampling pixel in length units
+                                # divided by output grid pixel size
+                                kernnorm_j = (4.0 * h_j2
+                                              * insmin * insmin * ipixA)
+                                # coarse (part. pos rel. to grid) index
+                                ci = (4 * xi * (nsmin + 1) + 4 * yi)
+                                for xxi in range(2):
+                                    if x0 + xxi < 0 or x0 + xxi >= xsize:
+                                        # catch on the next periodic
+                                        # loop
+                                        continue
+                                    for yyi in range(2):
+                                        if y0 + yyi < 0 or y0 + yyi >= ysize:
+                                            # catch on the next
+                                            # periodic loop
+                                            continue
+                                        kv = kern2by2[ci + 2 * xxi + yyi]
+                                        if kv == 0.:
+                                            # don't set mask to 1
+                                            continue
+                                        local_buff[(x0 + xxi) * ysize
+                                                   + (y0 + yyi)] += (
+                                            prefactor_j * kernnorm_j * kv
+                                            )
+                                        mask[x0 + xxi, y0 + yyi] = 1
+
+                        else:
+                            # subsample the kernel in each pixel
+
+                            # here we find the pixels which this
+                            # particle contributes to
+                            # subsampling does not depend on whether a
+                            # particle overlaps a (periodic) edge
+                            x0 = <np.int64_t> math.floor(
+                                (px - hsml[j] - x_min) * idx)
+                            x1 = <np.int64_t> math.floor(
+                                (px + hsml[j] - x_min) * idx)
+                            nx = x1 - x0 + 2
+                            x0 = iclip(x0 - 1, 0, xsize)
+                            x1 = iclip(x1 + 1, 0, xsize)
+
+                            y0 = <np.int64_t> math.floor(
+                                (py - hsml[j] - y_min) * idy)
+                            y1 = <np.int64_t> math.floor(
+                                (py + hsml[j] - y_min) * idy)
+                            ny = y1 - y0 + 2
+                            y0 = iclip(y0 - 1, 0, ysize)
+                            y1 = iclip(y1 + 1, 0, ysize)
+
+                            nsubx = <np.int64_t> (
+                                     (<np.float64_t> nsmin /
+                                      <np.float64_t> nx)
+                                      + 1)
+                            insubx = 1.0 / (<np.float64_t> nsubx)
+                            nsuby = <np.int64_t> (
+                                     (<np.float64_t> nsmin /
+                                      <np.float64_t> ny)
+                                      + 1)
+                            insuby = 1.0 / (<np.float64_t> nsuby)
+
+                            # found pixels we deposit on,
+                            # loop through those pixels
+                            for xi in range(x0, x1):
+                                for yi in range(y0, y1):
+                                    for xsubi in range(nsubx):
+                                        x = x_min + \
+                                            (xi + (xsubi + 0.5) * insubx) * dx
+                                        posx_diff = px - x
+                                        posx_diff = posx_diff * posx_diff
+                                        if posx_diff > h_j2: continue
+                                        for ysubi in range(nsuby):
+                                            y = (y_min +
+                                                 (yi + (ysubi + 0.5) * insuby)
+                                                 * dy)
+                                            posy_diff = py - y
+                                            posy_diff = posy_diff * posy_diff
+                                            if posy_diff > h_j2: continue
+
+                                            q_ij2 = ((posx_diff + posy_diff)
+                                                     * ih_j2)
+                                            if q_ij2 >= 1.0: continue
+                                            local_buff[xi * ysize + yi] += (
+                                               prefactor_j * insuby * insubx
+                                               * itab.interpolate(q_ij2)
+                                               )
+                                            mask[xi, yi] = 1
+
+        with gil:
+            for sxi in range(xsize):
+                for syi in range(ysize):
+                    buff[sxi, syi] += local_buff[sxi * ysize + syi]
+        # free memory in (hopefully?) private variables assigned in
+        # each thread
+        free(local_buff)
+        free(xiterv)
+        free(yiterv)
+        free(ziterv)
+        free(xiter)
+        free(yiter)
+        free(ziter)
+    # free memory in shared variable
+    free(kern2by2)
     return mask
 
 @cython.boundscheck(False)
@@ -2112,7 +2532,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                             north_vector,
                             weight_field=None,
                             depth=None,
-                            kernel_name="cubic"):
+                            kernel_name="cubic",
+                            pixelmeaning="pixelave"):
     # periodic: periodicity of the data set:
     # Do nothing in event of a 0 normal vector
     if np.allclose(normal_vector, 0.):
@@ -2139,21 +2560,32 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     # approach implemented for this along-axis projection method
     # would fail here
     check_period = np.array([0, 0, 0], dtype="int")
-    pixelize_sph_kernel_projection(projection_array,
-                                   mask,
-                                   px_rotated,
-                                   py_rotated,
-                                   pz_rotated,
-                                   smoothing_lengths,
-                                   particle_masses,
-                                   particle_densities,
-                                   quantity_to_smooth,
-                                   [rot_bounds_x0, rot_bounds_x1,
-                                    rot_bounds_y0, rot_bounds_y1,
-                                    rot_bounds_z0, rot_bounds_z1],
-                                   weight_field=weight_field,
-                                   _check_period=check_period,
-                                   kernel_name=kernel_name)
+    if pixelmeaning == "pencilbeam":
+        pixelize_sph_kernel_projection_pencilbeam(
+            projection_array, mask,
+            px_rotated, py_rotated, pz_rotated,
+            smoothing_lengths, particle_masses, particle_densities,
+            quantity_to_smooth,
+            [rot_bounds_x0, rot_bounds_x1,
+            rot_bounds_y0, rot_bounds_y1,
+            rot_bounds_z0, rot_bounds_z1],
+            weight_field=weight_field, _check_period=check_period,
+            kernel_name=kernel_name
+        )
+    elif pixelmeaning == "pixelave":
+        pixelize_sph_kernel_projection_pixelave(
+            projection_array, mask,
+            px_rotated, py_rotated, pz_rotated,
+            smoothing_lengths, particle_masses, particle_densities,
+            quantity_to_smooth,
+            [rot_bounds_x0, rot_bounds_x1,
+            rot_bounds_y0, rot_bounds_y1,
+            rot_bounds_z0, rot_bounds_z1],
+            weight_field=weight_field, _check_period=check_period,
+            kernel_name=kernel_name
+        )
+    else:
+        raise ValueError(f"no pixelmeaning option '{pixelmeaning}'")
 
 # like slice pixelization, but for off-axis planes
 def pixelize_sph_kernel_cutting(
