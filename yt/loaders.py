@@ -1417,7 +1417,7 @@ def load_unstructured_mesh(
         _f_unit, _data, _ = process_data(d)
         field_units.update(_f_unit)
         sfh[i] = _data
-        particle_types.update(set_particle_types(d))
+        particle_types.update(set_particle_types(_data))
 
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
