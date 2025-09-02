@@ -156,6 +156,7 @@ class CoordinateHandler(abc.ABC):
         size,
         antialias=True,
         periodic=True,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         return_mask: Literal[False],
     ) -> "np.ndarray[Any, np.dtype[np.float64]]": ...
@@ -170,6 +171,7 @@ class CoordinateHandler(abc.ABC):
         size,
         antialias=True,
         periodic=True,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         return_mask: Literal[True],
     ) -> tuple[
@@ -186,6 +188,7 @@ class CoordinateHandler(abc.ABC):
         size,
         antialias=True,
         periodic=True,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         return_mask=False,
     ):

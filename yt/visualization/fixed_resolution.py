@@ -1,7 +1,7 @@
 import sys
 import weakref
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
@@ -67,6 +67,15 @@ class FixedResolutionBuffer:
     periodic : boolean
         This can be true or false, and governs whether the pixelization
         will span the domain boundaries.
+    pixelmeaning:
+        "pixelave": a pixel represents an average surface density or
+        surface-density-weighted average across a pixel.
+
+        "pencilbeam": a pixel represents a column density or
+        column-density-weighted average integrated over a pencil
+        beam through the pixel center.
+
+        Only applies to SPH datasets.
 
     filters : list of FixedResolutionBufferFilter objects (optional)
 
@@ -115,6 +124,7 @@ class FixedResolutionBuffer:
         buff_size,
         antialias=True,
         periodic=False,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         filters: list["FixedResolutionBufferFilter"] | None = None,
     ):
@@ -127,6 +137,7 @@ class FixedResolutionBuffer:
         self.mask: dict[str, MaskT] = {}
         self.axis = data_source.axis
         self.periodic = periodic
+        self.pixelmeaning = pixelmeaning
         self._data_valid = False
 
         # import type here to avoid import cycles
@@ -184,6 +195,7 @@ class FixedResolutionBuffer:
             self.buff_size,
             int(self.antialias),
             return_mask=True,
+            pixelmeaning=self.pixelmeaning,
         )
 
         buff = self._apply_filters(buff)
@@ -255,6 +267,7 @@ class FixedResolutionBuffer:
         info["length_unit"] = self.data_source.ds.length_unit
         info["length_to_cm"] = info["length_unit"].in_cgs().to_ndarray()
         info["center"] = self.data_source.center
+        info["pixelmeaning"] = self.pixelmeaning
 
         try:
             info["coord"] = self.data_source.coord
@@ -653,6 +666,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             north_vector=dd.north_vector,
             depth=dd.depth,
             method=dd.method,
+            pixelmeaning=self.pixelmeaning,
         )
         if self.data_source.moment == 2:
 
@@ -684,6 +698,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 north_vector=dd.north_vector,
                 depth=dd.depth,
                 method=dd.method,
+                pixelmeaning=self.pixelmeaning,
             )
             buff = compute_stddev_image(buff2, buff)
 
@@ -702,6 +717,10 @@ class ParticleImageBuffer(FixedResolutionBuffer):
     that supports particle plots. It splats points onto an image
     buffer.
 
+    parameters
+    ----------
+    pixelmeaning: ignored; arg. is meant for SPH projection plots
+
     """
 
     def __init__(
@@ -711,6 +730,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         buff_size,
         antialias=True,
         periodic=False,
+        pixelmeaning="pixelave",
         *,
         filters=None,
     ):

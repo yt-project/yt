@@ -1,8 +1,12 @@
 import numpy as np
+import pytest
 from numpy.testing import assert_almost_equal
 
 from yt.testing import fake_sph_orientation_ds, requires_module
-from yt.utilities.lib.pixelization_routines import pixelize_sph_kernel_projection
+from yt.utilities.lib.pixelization_routines import (
+    pixelize_sph_kernel_projection_pencilbeam,
+    pixelize_sph_kernel_projection_pixelave,
+)
 from yt.utilities.on_demand_imports import _scipy
 from yt.visualization.volume_rendering import off_axis_projection as OffAP
 
@@ -10,11 +14,13 @@ spatial = _scipy.spatial
 ndimage = _scipy.ndimage
 
 
-def test_no_rotation():
+@pytest.mark.parametrize("pixelmeaning", ["pixelave", "pencilbeam"])
+def test_no_rotation(pixelmeaning):
     """Determines if a projection processed through
     off_axis_projection with no rotation will give the same
     image buffer if processed directly through
     pixelize_sph_kernel_projection
+    (done for both pixelmeaning options)
     """
     normal_vector = [0.0, 0.0, 1.0]
     resolution = (64, 64)
@@ -36,16 +42,26 @@ def test_no_rotation():
     buf2 = np.zeros(resolution)
     mask = np.ones_like(buf2, dtype="uint8")
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density")
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
+        pixelmeaning=pixelmeaning,
     )
-    pixelize_sph_kernel_projection(
-        buf2, mask, px, py, pz, hsml, mass, density, quantity_to_smooth, bounds
-    )
+    if pixelmeaning == "pixelave":
+        onaxisfunc = pixelize_sph_kernel_projection_pixelave
+    elif pixelmeaning == "pencilbeam":
+        onaxisfunc = pixelize_sph_kernel_projection_pencilbeam
+
+    onaxisfunc(buf2, mask, px, py, pz, hsml, mass, density, quantity_to_smooth, bounds)
     assert_almost_equal(buf1.ndarray_view(), buf2)
 
 
 @requires_module("scipy")
-def test_basic_rotation_1():
+@pytest.mark.parametrize("pixelmeaning", ["pixelave", "pencilbeam"])
+def test_basic_rotation_1(pixelmeaning):
     """All particles on Z-axis should now be on the negative Y-Axis
     fake_sph_orientation has three z-axis particles,
     so there should be three y-axis particles after rotation
@@ -76,12 +92,14 @@ def test_basic_rotation_1():
         resolution,
         ("gas", "density"),
         north_vector=north_vector,
+        pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
 
 @requires_module("scipy")
-def test_basic_rotation_2():
+@pytest.mark.parametrize("pixelmeaning", ["pixelave", "pencilbeam"])
+def test_basic_rotation_2(pixelmeaning):
     """Rotation of x-axis onto z-axis.
     All particles on z-axis should now be on the negative x-Axis fake_sph_orientation
     has three z-axis particles, so there should be three x-axis particles after rotation
@@ -115,12 +133,14 @@ def test_basic_rotation_2():
         resolution,
         ("gas", "density"),
         north_vector=north_vector,
+        pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
 
 @requires_module("scipy")
-def test_basic_rotation_3():
+@pytest.mark.parametrize("pixelmeaning", ["pixelave", "pencilbeam"])
+def test_basic_rotation_3(pixelmeaning):
     """Rotation of z-axis onto negative z-axis.
     All fake particles on z-axis should now be of the negative z-Axis.
     fake_sph_orientation has three z-axis particles,
@@ -145,13 +165,20 @@ def test_basic_rotation_3():
     center = (left_edge + right_edge) / 2
     width = right_edge - left_edge
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density")
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
+        pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
 
 @requires_module("scipy")
-def test_basic_rotation_4():
+@pytest.mark.parametrize("pixelmeaning", ["pixelave", "pencilbeam"])
+def test_basic_rotation_4(pixelmeaning):
     """Rotation of x-axis to z-axis and original z-axis to y-axis with the use
     of the north_vector. All fake particles on z-axis should now be on the
     y-Axis.  All fake particles on the x-axis should now be on the z-axis, and
@@ -185,12 +212,14 @@ def test_basic_rotation_4():
         resolution,
         ("gas", "density"),
         north_vector=north_vector,
+        pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
 
 @requires_module("scipy")
-def test_center_1():
+@pytest.mark.parametrize("pixelmeaning", ["pixelave", "pencilbeam"])
+def test_center_1(pixelmeaning):
     """Change the center to [0, 3, 0]
     Every point will be shifted by 3 in the y-domain
     With this, we should not be able to see any of the y-axis particles
@@ -214,13 +243,20 @@ def test_center_1():
     center = [0.0, 3.0, 0.0]
     width = right_edge - left_edge
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density")
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
+        pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
 
 @requires_module("scipy")
-def test_center_2():
+@pytest.mark.parametrize("pixelmeaning", ["pixelave", "pencilbeam"])
+def test_center_2(pixelmeaning):
     """Change the center to [0, -1, 0]
     Every point will be shifted by 1 in the y-domain
     With this, we should not be able to see any of the y-axis particles
@@ -241,13 +277,20 @@ def test_center_2():
     center = [0.0, -1.0, 0.0]
     width = right_edge - left_edge
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density")
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
+        pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
 
 @requires_module("scipy")
-def test_center_3():
+@pytest.mark.parametrize("pixelmeaning", ["pixelave", "pencilbeam"])
+def test_center_3(pixelmeaning):
     """Change the center to the left edge, or [0, -8, 0]
     Every point will be shifted by 8 in the y-domain
     With this, we should not be able to see anything !
@@ -265,7 +308,13 @@ def test_center_3():
         (right_edge[2] - left_edge[2]),
     ]
     buf1 = OffAP.off_axis_projection(
-        ds, center, normal_vector, width, resolution, ("gas", "density")
+        ds,
+        center,
+        normal_vector,
+        width,
+        resolution,
+        ("gas", "density"),
+        pixelmeaning=pixelmeaning,
     )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 

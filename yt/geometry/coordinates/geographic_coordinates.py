@@ -1,3 +1,5 @@
+from typing import Literal
+
 import numpy as np
 import unyt
 
@@ -228,9 +230,16 @@ class GeographicCoordinateHandler(CoordinateHandler):
         size,
         antialias=True,
         periodic=True,
+        pixelmeaning: Literal["pixelave", "pencilbeam"] = "pixelave",
         *,
         return_mask=False,
     ):
+        """
+        Parameters
+        ----------
+        pixelmeaning: ignored, argument meant for cartesian SPH data
+
+        """
         if self.axis_name[dimension] in ("latitude", "longitude"):
             buff, mask = self._cyl_pixelize(
                 data_source, field, bounds, size, antialias, dimension

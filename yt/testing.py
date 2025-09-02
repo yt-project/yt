@@ -18,6 +18,7 @@ import numpy as np
 import numpy.typing as npt
 from more_itertools import always_iterable
 from numpy.random import RandomState
+from numpy.typing import NDArray
 from unyt.exceptions import UnitOperationError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -124,6 +125,7 @@ def integrate_kernel(
     ],
     b: float | npt.NDArray[np.floating],
     hsml: float | npt.NDArray[np.floating],
+    nsample: int = 500,
 ) -> npt.NDArray[np.floating]:
     """
     integrates a kernel function over a line passing entirely
@@ -137,22 +139,64 @@ def integrate_kernel(
         impact parameter
     hsml:
         smoothing length [same units as impact parameter]
+    nsample:
+        number of points to sample for the integral
 
     Returns:
     --------
     the integral of the SPH kernel function.
-    units: 1  / units of b and hsml
+    units: 1  / (units of b and hsml)**2
     """
     pre = 1.0 / hsml**2
-    x = b / hsml
+    x = np.asarray(b / hsml)
+    x[x >= 1.0] = 1.0  # kernel is zero at 1. and > 1.
     xmax = np.sqrt(1.0 - x**2)
     xmin = -1.0 * xmax
-    xe = np.linspace(xmin, xmax, 500)  # shape: 500, x.shape
+    xe = np.linspace(xmin, xmax, nsample)  # shape: 500, x.shape
     xc = 0.5 * (xe[:-1, ...] + xe[1:, ...])
     dx = np.diff(xe, axis=0)
     spv = kernelfunc(np.sqrt(xc**2 + x**2))
     integral = np.sum(spv * dx, axis=0)
     return np.atleast_1d(pre * integral)
+
+
+def resreduce_image(
+    arr: NDArray[np.float32], outshape: tuple[int, int]
+) -> NDArray[np.float32]:
+    """
+    gets an image array of size outshape by averaging the pixel values
+    in arr over contiguous blocks in each array dimension.
+
+    Parameters:
+    -----------
+    arr: 2d-array
+        the input array for averaging, size (Nx, Ny)
+    outshape:
+        the shape of the output array
+
+    Returns:
+    --------
+    an array of shape `outshape`
+
+    Notes:
+    ------
+    values in `arr` are averaged over contiguous blocks of size
+    (Nsx, Nsy), where Nsx = Nx // outshape[0],
+    and Nsy = Ny // outshape[1].
+    """
+    insize = arr.shape
+    if insize[0] % outshape[0] != 0 or insize[1] % outshape[1] != 0:
+        raise ValueError(
+            "desired output array shape must use integer"
+            "divisors of the input array shape. "
+            f"desired {outshape} doesn't divide "
+            f"input array shape {arr.shape()}"
+        )
+    tempi0 = insize[0] // outshape[0]
+    tempi1 = insize[1] // outshape[1]
+    temp = arr.reshape(outshape[0], tempi0, outshape[1], tempi1)
+    out = np.sum(temp, axis=(1, 3)) / (tempi0 * tempi1)
+    return out
 
 
 _zeroperiods = np.array([0.0, 0.0, 0.0])
