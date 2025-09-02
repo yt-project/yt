@@ -65,7 +65,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
         super().setup_gas_particle_fields(ptype)
 
-        def _h_p0_density(field, data):
+        def _h_p0_density(data):
             x_H = 1.0 - data[ptype, "He_metallicity"] - data[ptype, "metallicity"]
             return (
                 x_H * data[ptype, "density"] * data[ptype, "NeutralHydrogenAbundance"]
@@ -79,7 +79,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         )
         add_species_field_by_density(self, ptype, "H")
 
-        def _h_p1_density(field, data):
+        def _h_p1_density(data):
             x_H = 1.0 - data[ptype, "He_metallicity"] - data[ptype, "metallicity"]
             return (
                 x_H
@@ -95,7 +95,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         )
         add_species_field_by_density(self, ptype, "H_p1")
 
-        def _nuclei_mass_density_field(field, data):
+        def _nuclei_mass_density_field(data):
             species = field.name[1][: field.name[1].find("_")]
             return data[ptype, "density"] * data[ptype, f"{species}_metallicity"]
 
@@ -106,7 +106,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
         if (ptype, "ElectronAbundance") in self.field_list:
 
-            def _el_number_density(field, data):
+            def _el_number_density(data):
                 return (
                     data[ptype, "ElectronAbundance"] * data[ptype, "H_nuclei_density"]
                 )
@@ -131,7 +131,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
                 field = f"{species}{suf}"
                 self.alias(("gas", field), (ptype, field))
 
-        def _metal_density_field(field, data):
+        def _metal_density_field(data):
             return data[ptype, "metallicity"] * data[ptype, "density"]
 
         self.add_field(
@@ -147,7 +147,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
             setup_magnetic_field_aliases(self, ptype, magnetic_field)
 
     def setup_star_particle_fields(self, ptype):
-        def _creation_time(field, data):
+        def _creation_time(data):
             if data.ds.cosmological_simulation:
                 a_form = data[ptype, "StellarFormationTime"]
                 z_form = 1 / a_form - 1
@@ -164,7 +164,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
             units=self.ds.unit_system["time"],
         )
 
-        def _age(field, data):
+        def _age(data):
             return data.ds.current_time - data[ptype, "creation_time"]
 
         self.add_field(

@@ -133,7 +133,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         self._check_fields(registry)
 
     def _register_volume(self, registry):
-        def _cell_volume(field, data):
+        def _cell_volume(data):
             rv = data["index", "dx"].copy(order="K")
             rv *= data["index", "dy"]
             rv *= data["index", "dz"]

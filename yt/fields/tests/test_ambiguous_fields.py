@@ -7,7 +7,7 @@ def test_ambiguous_fails():
     ds = fake_amr_ds(particles=10)
     msg = "The requested field name '{}' is ambiguous"
 
-    def _mock_field(field, data):
+    def _mock_field(data):
         return data["ones"]
 
     # create a pair of ambiguous field

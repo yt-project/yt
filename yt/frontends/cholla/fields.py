@@ -13,7 +13,7 @@ mom_units = "code_mass / code_length**2 / code_time"
 
 
 def velocity_field(comp):
-    def _velocity(field, data):
+    def _velocity(data):
         return data["cholla", f"momentum_{comp}"] / data["cholla", "density"]
 
     return _velocity
@@ -59,12 +59,12 @@ class ChollaFieldInfo(FieldInfoContainer):
                 units=unit_system["pressure"],
             )
 
-            def _pressure(field, data):
+            def _pressure(data):
                 return (data.ds.gamma - 1.0) * data["cholla", "GasEnergy"]
 
         else:
 
-            def _pressure(field, data):
+            def _pressure(data):
                 return (data.ds.gamma - 1.0) * (
                     data["cholla", "Energy"] - data["gas", "kinetic_energy_density"]
                 )
@@ -76,7 +76,7 @@ class ChollaFieldInfo(FieldInfoContainer):
             units=unit_system["pressure"],
         )
 
-        def _specific_total_energy(field, data):
+        def _specific_total_energy(data):
             return data["cholla", "Energy"] / data["cholla", "density"]
 
         self.add_field(
@@ -89,7 +89,7 @@ class ChollaFieldInfo(FieldInfoContainer):
         # Add temperature field
         if hasattr(self.ds, "mu"):
 
-            def _temperature(field, data):
+            def _temperature(data):
                 return (
                     data.ds.mu
                     * data["gas", "pressure"]
@@ -113,7 +113,7 @@ class ChollaFieldInfo(FieldInfoContainer):
                 units=rho_units,
             )
 
-            def _color(field, data):
+            def _color(data):
                 return data["cholla", "scalar0"] / data["cholla", "density"]
 
             self.add_field(
@@ -132,7 +132,7 @@ class ChollaFieldInfo(FieldInfoContainer):
             # Using color field to define metallicity field, where a color of 1
             # indicates solar metallicity
 
-            def _metallicity(field, data):
+            def _metallicity(data):
                 # Ensuring that there are no negative metallicities
                 return np.clip(data["cholla", "color"], 0, np.inf) * Zsun
 

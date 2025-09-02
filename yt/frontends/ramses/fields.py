@@ -180,14 +180,14 @@ class RAMSESFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         super().setup_particle_fields(ptype)
 
-        def star_age_from_conformal_cosmo(field, data):
+        def star_age_from_conformal_cosmo(data):
             conformal_age = data[ptype, "conformal_birth_time"]
             birth_time = convert_ramses_conformal_time_to_physical_time(
                 data.ds, conformal_age
             )
             return data.ds.current_time - birth_time
 
-        def star_age_from_physical_cosmo(field, data):
+        def star_age_from_physical_cosmo(data):
             H0 = float(
                 data.ds.quan(data.ds.hubble_constant * 100, "km/s/Mpc").to("1/Gyr")
             )
@@ -197,7 +197,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             t_out = float(data.ds.current_time.to("Gyr"))
             return data.apply_units(t_out - birth_time, "Gyr")
 
-        def star_age(field, data):
+        def star_age(data):
             formation_time = data[ptype, "particle_birth_time"]
             return data.ds.current_time - formation_time
 
@@ -216,7 +216,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         )
 
     def setup_fluid_fields(self):
-        def _temperature_over_mu(field, data):
+        def _temperature_over_mu(data):
             rv = data["gas", "pressure"] / data["gas", "density"]
             rv *= mass_hydrogen_cgs / boltzmann_constant_cgs
             return rv
@@ -231,12 +231,12 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         if found_cooling_fields:
 
-            def _temperature(field, data):
+            def _temperature(data):
                 return data["gas", "temperature_over_mu"] * data["gas", "mu"]
 
         else:
 
-            def _temperature(field, data):
+            def _temperature(data):
                 if not isinstance(data, FieldDetector):
                     warnings.warn(
                         "Trying to calculate temperature but the cooling tables "
@@ -276,7 +276,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             self.create_gravity_fields()
 
     def create_gravity_fields(self):
-        def potential_energy(field, data):
+        def potential_energy(data):
             return data["gas", "potential"] * data["gas", "cell_mass"]
 
         self.add_field(
@@ -289,7 +289,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
     def create_magnetic_fields(self):
         # Calculate cell-centred magnetic fields from face-centred
         def mag_field(ax):
-            def _mag_field(field, data):
+            def _mag_field(data):
                 return (
                     data["gas", f"magnetic_field_{ax}_left"]
                     + data["gas", f"magnetic_field_{ax}_right"]
@@ -305,7 +305,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 units=self.ds.unit_system["magnetic_field_cgs"],
             )
 
-        def _divB(field, data):
+        def _divB(data):
             """Calculate magnetic field divergence"""
             out = np.zeros_like(data["gas", "magnetic_field_x_right"])
             for ax in data.ds.coordinates.axis_order:
@@ -346,7 +346,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         ########################################
         # Adding the fields in the hydro_* files
-        def _temp_IR(field, data):
+        def _temp_IR(data):
             rv = data["gas", "pres_IR"] / data["gas", "density"]
             rv *= mass_hydrogen_cgs / boltzmann_constant_cgs
             return rv
@@ -382,7 +382,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ########################################
         # Adding the fields in the rt_ files
         def gen_pdens(igroup):
-            def _photon_density(field, data):
+            def _photon_density(data):
                 # The photon density depends on the possibly level-dependent conversion factor.
                 ilvl = data["index", "grid_level"].astype("int64")
                 dc = dens_conv[ilvl]
@@ -405,7 +405,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ).units
 
         def gen_flux(key, igroup):
-            def _photon_flux(field, data):
+            def _photon_flux(data):
                 rv = data["ramses-rt", f"Photon_flux_{key}_{igroup + 1}"] * flux_conv
                 return rv
 
@@ -431,7 +431,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         # Function to create the cooling fields
         def _create_field(name, interp_object, unit):
-            def _func(field, data):
+            def _func(data):
                 shape = data["gas", "temperature_over_mu"].shape
                 # Ramses assumes a fraction X of Hydrogen within the non-metal gas.
                 # It has to be corrected by metallicity.
@@ -502,7 +502,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         _create_field(("gas", "mu"), interp, "dimensionless")
 
         # Add the number density field, based on mu
-        def _number_density(field, data):
+        def _number_density(data):
             return data["gas", "density"] / mp / data["gas", "mu"]
 
         self.add_field(
@@ -524,14 +524,14 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 _create_field(("gas", key), interp, tvals[key]["unit"])
 
         # Add total cooling and heating fields
-        def _all_cool(field, data):
+        def _all_cool(data):
             return (
                 data["gas", "cooling_primordial"]
                 + data["gas", "cooling_metal"]
                 + data["gas", "cooling_compton"]
             )
 
-        def _all_heat(field, data):
+        def _all_heat(data):
             return data["gas", "heating_primordial"] + data["gas", "heating_compton"]
 
         self.add_field(
@@ -548,7 +548,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         )
 
         # Add net cooling fields
-        def _net_cool(field, data):
+        def _net_cool(data):
             return data["gas", "cooling_total"] - data["gas", "heating_total"]
 
         self.add_field(

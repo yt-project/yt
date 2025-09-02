@@ -1980,7 +1980,7 @@ class YTSurface(YTSelectionContainer3D):
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> def _Emissivity(field, data):
+        >>> def _Emissivity(data):
         ...     return (
         ...         data["gas", "density"]
         ...         * data["gas", "density"]
@@ -2316,7 +2316,7 @@ class YTSurface(YTSelectionContainer3D):
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> def _Emissivity(field, data):
+        >>> def _Emissivity(data):
         ...     return (
         ...         data["gas", "density"]
         ...         * data["gas", "density"]
