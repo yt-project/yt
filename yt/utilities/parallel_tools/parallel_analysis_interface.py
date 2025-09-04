@@ -1003,12 +1003,14 @@ class Communicator:
             }
         else:
             # Otherwise, we assume our values can be concatenated
+            # NOTE: mypy complains about incompatible types here
             all_values = np.concatenate(
-                [np.atleast_1d(value) for value in data.values()]
+                [np.atleast_1d(value) for value in data.values()]  # type: ignore[arg-type]
             )
 
             if self._distributed:
-                all_values = np.concatenate(self.comm.allgather(all_values))
+                # NOTE: mypy thinks this statement is unreachable (it is not)
+                all_values = np.concatenate(self.comm.allgather(all_values))  # type: ignore[unreachable]
 
             return all_values
 
@@ -1037,12 +1039,14 @@ class Communicator:
             }
         else:
             # Otherwise, we assume our values can be concatenated
+            # NOTE: mypy complains about incompatible types here
             all_values = np.concatenate(
-                [np.atleast_1d(value) for value in data.values()]
+                [np.atleast_1d(value) for value in data.values()]  # type: ignore[arg-type]
             )
 
             if self._distributed:
-                tmp = self.comm.gather(all_values, root=root)
+                # NOTE: mypy thinks this statement is unreachable (it is not)
+                tmp = self.comm.gather(all_values, root=root)  # type: ignore[unreachable]
                 if self.comm.rank == root:
                     return np.concatenate(tmp)
                 else:
