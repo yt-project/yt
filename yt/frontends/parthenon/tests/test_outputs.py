@@ -182,7 +182,7 @@ def test_load_cylindrical():
 
 
 # Sedov blast wave with curvlinear coords run with RIOT
-riot_sedov_curvlinear = "riot_sedoc_curvlinear/sedov.out1.final.phdf"
+riot_sedov_curvlinear = "riot_sedov_curvlinear/sedov.out1.final.phdf"
 
 
 @requires_file(riot_sedov_curvlinear)
