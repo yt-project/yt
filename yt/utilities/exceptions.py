@@ -62,16 +62,6 @@ class YTAmbiguousDataType(YTUnidentifiedDataType):
         return msg
 
 
-class YTSphereTooSmall(YTException):
-    def __init__(self, ds, radius, smallest_cell):
-        self.ds = ds
-        self.radius = radius
-        self.smallest_cell = smallest_cell
-
-    def __str__(self):
-        return f"{self.radius:0.5e} < {self.smallest_cell:0.5e}"
-
-
 class YTAxesNotOrthogonalError(YTException):
     def __init__(self, axes):
         self.axes = axes
