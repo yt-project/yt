@@ -52,7 +52,10 @@ class IOHandlerParthenon(BaseIOHandler):
                 for gs in grid_sequences(chunk.objs):
                     start = gs[0].id - gs[0]._id_offset
                     end = gs[-1].id - gs[-1]._id_offset + 1
-                    data = ds[start:end, fdi, :, :, :].transpose()
+                    if len(ds.shape) == 4:
+                        data = ds[start:end, :, :, :].transpose()
+                    else:
+                        data = ds[start:end, fdi, :, :, :].transpose()
                     for i, g in enumerate(gs):
                         ind += g.select(selector, data[..., i], rv[field], ind)
             last_dname = dname
@@ -72,7 +75,10 @@ class IOHandlerParthenon(BaseIOHandler):
             for gs in grid_sequences(chunk.objs):
                 start = gs[0].id - gs[0]._id_offset
                 end = gs[-1].id - gs[-1]._id_offset + 1
-                data = ds[start:end, fdi, :, :, :].transpose()
+                if len(ds.shape) == 4:
+                    data = ds[start:end, :, :, :].transpose()
+                else:
+                    data = ds[start:end, fdi, :, :, :].transpose()
                 for i, g in enumerate(gs):
                     rv[g.id][field] = np.asarray(data[..., i], "=f8")
         return rv
