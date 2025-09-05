@@ -179,3 +179,15 @@ def test_load_cylindrical():
     # Check that the domain edges match r in [0.5,2.0], theta in [0, 2pi]
     assert_equal(ds.domain_left_edge.in_units("code_length").v[:2], (0.5, 0))
     assert_equal(ds.domain_right_edge.in_units("code_length").v[:2], (2.0, 2 * np.pi))
+
+
+# Sedov blast wave with curvlinear coords run with RIOT
+riot_sedov_curvlinear = "riot_sedoc_curvlinear/sedov.out1.final.phdf"
+
+
+@requires_file(riot_sedov_curvlinear)
+def test_load_riot_curvilinear():
+    # Load a cylindrical dataset of a full disk
+    ds = data_dir_load(riot_sedov_curvlinear)
+
+    assert ("parthenon", "c.c.bulk.pressure") in ds.field_list
