@@ -1752,7 +1752,7 @@ class Dataset(abc.ABC):
            is the name of the field.
         function : callable
            A function handle that defines the field.  Should accept
-           arguments (field, data)
+           arguments (data)
         sampling_type: str
            "cell" or "particle" or "local"
         force_override: bool
@@ -1903,7 +1903,7 @@ class Dataset(abc.ABC):
                 units = "dimensionless"
                 take_log = False
 
-        def _deposit_field(field, data):
+        def _deposit_field(data):
             """
             Create a grid field for particle quantities using given method.
             """

@@ -399,7 +399,7 @@ class TestSetBackgroundColor:
     def setup_class(cls):
         cls.ds = fake_random_ds(16)
 
-        def some_nans_field(field, data):
+        def some_nans_field(data):
             ret = data["gas", "density"]
             ret[::2] *= np.nan
             return ret

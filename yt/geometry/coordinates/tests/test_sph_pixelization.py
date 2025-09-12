@@ -26,7 +26,7 @@ mag_kwargs = {
 def test_sph_moment():
     ds = yt.load(magneticum, **mag_kwargs)
 
-    def _vysq(field, data):
+    def _vysq(data):
         return data["gas", "velocity_y"] ** 2
 
     ds.add_field(("gas", "vysq"), _vysq, sampling_type="local", units="cm**2/s**2")
