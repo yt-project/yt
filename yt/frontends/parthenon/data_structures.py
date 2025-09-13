@@ -53,10 +53,6 @@ class ParthenonGrid(AMRGridPatch):
         id = self.id - self._id_offset
         LE, RE = self.index.grid_left_edge[id, :], self.index.grid_right_edge[id, :]
         self.dds = self.ds.arr((RE - LE) / self.ActiveDimensions, "code_length")
-        if self.ds.dimensionality < 2:
-            self.dds[1] = 1.0
-        if self.ds.dimensionality < 3:
-            self.dds[2] = 1.0
         self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):

@@ -191,3 +191,13 @@ def test_load_riot_curvilinear():
     ds = data_dir_load(riot_sedov_curvlinear)
 
     assert ("parthenon", "c.c.bulk.pressure") in ds.field_list
+
+    ad = ds.all_data()
+    dr = ad["index", "dr"]
+    dth = ad["index", "dtheta"]
+    dz = ad["index", "dz"]
+
+    assert np.all(np.abs(dth - 2 * np.pi) <= 1e-12)
+
+    total_mass = (ad["parthenon", "c.c.bulk.rho"] * ad["index", "cell_volume"]).sum()
+    assert np.all(np.abs(total_mass.value - 0.169646) <= 1e-8)
