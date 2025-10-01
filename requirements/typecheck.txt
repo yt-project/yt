@@ -1,5 +1,5 @@
-mypy==1.17.1
-types-PyYAML==6.0.12.20250516
+mypy==1.18.2
+types-PyYAML==6.0.12.20250915
 types-chardet==5.0.4.6
-types-requests==2.32.4.20250611
-typing-extensions==4.14.1; python_version < '3.12'
+types-requests==2.32.4.20250913
+typing-extensions==4.15.0; python_version < '3.12'
