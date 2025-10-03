@@ -437,8 +437,7 @@ class TestSetBackgroundColor:
         p.set_background_color(field, color="black")
 
         # copy the default colormap
-        cmap = mpl.colormaps["cmyt.arbre"]
-        cmap.set_bad("red")
+        cmap = mpl.colormaps["cmyt.arbre"].with_extremes(bad="red")
         p.set_cmap(field, cmap)
 
         p.render()
