@@ -1,5 +1,6 @@
 # We don't need to import 'exceptions'
 import os.path
+from difflib import get_close_matches
 
 from unyt.exceptions import UnitOperationError
 
@@ -87,12 +88,9 @@ class YTFieldNotFound(YTException):
         self.ds = ds
 
     def _get_suggestions(self) -> list[FieldKey]:
-        from yt.funcs import levenshtein_distance
-
         field = self.field
         ds = self.ds
 
-        suggestions = {}
         if not isinstance(field, tuple):
             ftype, fname = None, field
         elif field[1] is None:
@@ -100,38 +98,31 @@ class YTFieldNotFound(YTException):
         else:
             ftype, fname = field
 
-        # Limit the suggestions to a distance of 3 (at most 3 edits)
-        # This is very arbitrary, but is picked so that...
-        # - small typos lead to meaningful suggestions (e.g. `densty` -> `density`)
-        # - we don't suggest unrelated things (e.g. `pressure` -> `density` has a distance
-        #   of 6, we definitely do not want it)
-        # A threshold of 3 seems like a good middle point.
-        max_distance = 3
-
-        # Suggest (ftype, fname), with alternative ftype
-        for ft, fn in ds.derived_field_list:
-            if fn.lower() == fname.lower() and (
-                ftype is None or ft.lower() != ftype.lower()
-            ):
-                suggestions[ft, fn] = 0
-
+        suggestions: list[FieldKey] = []
         if ftype is not None:
-            # Suggest close matches using levenshtein distance
-            fields_str = {_: str(_).lower() for _ in ds.derived_field_list}
+            fields_str: dict[str, FieldKey] = {
+                str(df).lower(): df for df in ds.derived_field_list
+            }
             field_str = str(field).lower()
+            suggestions.extend(
+                fields_str[k]
+                for k in get_close_matches(
+                    field_str,
+                    fields_str.keys(),
+                    n=len(fields_str),
+                )
+            )
 
-            for (ft, fn), fs in fields_str.items():
-                distance = levenshtein_distance(field_str, fs, max_dist=max_distance)
-                if distance < max_distance:
-                    if (ft, fn) in suggestions:
-                        continue
-                    suggestions[ft, fn] = distance
+        # Ensure we suggest (ftype, fname), with alternative ftype
+        for ft, fn in ds.derived_field_list:
+            if (
+                fn.lower() == fname.lower()
+                and (ftype is None or ft.lower() != ftype.lower())
+                and (ft, fn) not in suggestions
+            ):
+                suggestions.insert(0, (ft, fn))
 
-        # Return suggestions sorted by increasing distance (first are most likely)
-        return [
-            (ft, fn)
-            for (ft, fn), distance in sorted(suggestions.items(), key=lambda v: v[1])
-        ]
+        return suggestions
 
     def __str__(self):
         msg = f"Could not find field {self.field!r} in {self.ds}."
