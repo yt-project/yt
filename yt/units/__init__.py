@@ -118,8 +118,8 @@ def display_ytarray(arr):
 
 def _wrap_display_ytarray(arr):
     try:
-        from IPython.core.display import display
-    except ImportError:
         from IPython.display import display
+    except ImportError:
+        from IPython.core.display import display
 
     display(display_ytarray(arr))
