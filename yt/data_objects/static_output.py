@@ -649,10 +649,7 @@ class Dataset(abc.ABC):
 
     @parallel_root_only
     def print_stats(self):
-        func = getattr(self.index, "print_stats", None)
-        if func is None:
-            raise NotImplementedError(f"{type(self.index)} has no print_stats method.")
-        func()
+        self.index.print_stats()
 
     @property
     def field_list(self):

@@ -123,6 +123,10 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         self.io = io_registry[self.dataset_type](self.dataset)
 
     @parallel_root_only
+    def print_stats(self):
+        raise NotImplementedError(f"{type(self)} has no print_stats method.")
+
+    @parallel_root_only
     def save_data(
         self, array, node, name, set_attr=None, force=False, passthrough=False
     ):
