@@ -160,7 +160,6 @@ class ParthenonDataset(Dataset):
 
         self.geometry = _geom_map[self._handle["Info"].attrs["Coordinates"]]
 
-        axis_order = None
 
         Dataset.__init__(
             self,
