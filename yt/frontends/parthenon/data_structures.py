@@ -168,7 +168,6 @@ class ParthenonDataset(Dataset):
             units_override=units_override,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
-            axis_order=axis_order,
         )
         if storage_filename is None:
             storage_filename = self.basename + ".yt"
