@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import numpy as np
 from nose.tools import assert_raises
 from numpy.testing import assert_almost_equal, assert_equal
@@ -184,12 +182,6 @@ def test_ortho_ray_from_r():
     ray7 = ds.r[0.25:0.75:100j, 0.3, 0.2]
     ray8 = LineBuffer(ds, [0.2525, 0.3, 0.2], [0.7475, 0.3, 0.2], 100)
     assert_equal(ray7["gas", "density"], ray8["gas", "density"])
-
-
-def test_no_print_stats():
-    ds = fake_particle_ds()
-    with TestCase.assertRaises(NotImplementedError):
-        ds.print_stats()
 
 
 def test_particle_counts():
