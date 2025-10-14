@@ -3438,3 +3438,31 @@ See the documentation for the
 :class:`~yt.frontends.cf_radial.data_structures.CFRadialDataset` class for a
 description of how to adjust the gridding parameters and storage of the gridded
 file.
+
+.. _loading-nfiti-data:
+
+nifti Data
+----------
+
+yt has support for reading in nifti data from the nii file format.
+Using ``yt.SlicePlot`` and ``yt.ProjectionPlot``, yt will create slice and projection plots of the loaded data.
+
+.. note::
+
+   - the ``'field'`` for a nifti file in yt will be called ``'intensity'``.
+   - ``origin = 'native'`` is not necessary, but makes the origin the point (0,0)
+
+Affine transformations of the nifti data can be acessed using the derived fields 'affine_transformed_x',
+'affine_transformed_y', and 'affine_transformed_z'.
+The affine fields are the original intensity fields transformed by matrix multiplying the x-, y-, and z-coordinates
+by the affine transform matrix specified in the nifti file header.
+
+To access the affine matrix, use ``ds['affine']``.
+
+nifti data can be loaded with the ``load`` command:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("")
