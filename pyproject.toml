@@ -85,7 +85,11 @@ answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 
 [project.optional-dependencies]
 # some generic, reusable constraints on optional-deps
-HDF5 = ["h5py>=3.1.0,!=3.12.0; platform_system=='Windows'"]  # see https://github.com/h5py/h5py/issues/2505
+HDF5 = [
+  "h5py>=3.1.0",
+  "h5py!=3.12.0 ; platform_system=='Windows'", # https://github.com/h5py/h5py/issues/2505
+  "h5py!=3.15.0 ; platform_system=='Darwin'", # https://github.com/yt-project/yt/issues/5301
+]
 netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
 Fortran = ["f90nml>=1.1"]
 
