@@ -251,7 +251,7 @@ def test_off_axis_octree():
 def test_offaxis_moment():
     ds = fake_random_ds(64)
 
-    def _vlos_sq(field, data):
+    def _vlos_sq(data):
         return data["gas", "velocity_los"] ** 2
 
     ds.add_field(

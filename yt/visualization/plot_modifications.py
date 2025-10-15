@@ -862,7 +862,7 @@ class QuiverCallback(BaseQuiverCallback):
         def transform(field_name, vector_value):
             field_units = plot.data[field_name].units
 
-            def _transformed_field(field, data):
+            def _transformed_field(data):
                 return data[field_name] - data.ds.arr(vector_value, field_units)
 
             plot.data.ds.add_field(

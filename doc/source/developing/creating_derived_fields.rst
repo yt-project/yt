@@ -21,7 +21,7 @@ this approach.
    import yt
 
 
-   def _pressure(field, data):
+   def _pressure(data):
        return (
            (data.ds.gamma - 1.0)
            * data["gas", "density"]
@@ -118,7 +118,7 @@ the dimensionality of the returned array and the field are the same:
     from yt.units import dimensions
 
 
-    def _pressure(field, data):
+    def _pressure(data):
         return (
             (data.ds.gamma - 1.0)
             * data["gas", "density"]
@@ -148,7 +148,7 @@ the previous example:
 
 
    @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
-   def _pressure(field, data):
+   def _pressure(data):
        return (
            (data.ds.gamma - 1.0)
            * data["gas", "density"]
@@ -222,7 +222,7 @@ transparent and simple example).
    from yt.fields.api import ValidateParameter
 
 
-   def _my_radial_velocity(field, data):
+   def _my_radial_velocity(data):
        if data.has_field_parameter("bulk_velocity"):
            bv = data.get_field_parameter("bulk_velocity").in_units("cm/s")
        else:
@@ -288,7 +288,7 @@ For example, let's write a field that depends on a field parameter named ``'axis
 
 .. code-block:: python
 
-   def my_axis_field(field, data):
+   def my_axis_field(fdata):
        axis = data.get_field_parameter("axis")
        if axis == 0:
            return data["gas", "velocity_x"]
@@ -319,6 +319,37 @@ Other examples for creating derived fields can be found in the cookbook recipe
 :ref:`cookbook-simple-derived-fields`.
 
 .. _derived-field-options:
+
+Accessing field metadata
+------------------------
+
+In some cases, it is useful to introspect the field under construction, for instance
+if specialized behavior is needed for different particle types, or to customize return
+units. These use cases are supported through the optional ``field`` keyword argument.
+Let's look at a couple short examples.
+
+.. code-block:: python
+
+    def get_position_fields(data, field):
+        axis_names = [data.ds.coordinates.axis_name[num] for num in [0, 1, 2]]
+        ftype, _fname = data._determine_fields(field)
+        finfo = data.ds.field_info[ftype]
+        if finfo.sampling_type == "particle":
+            ftype, _fname = finfo.alias_name if finfo.is_alias else finfo.name
+            position_fields = [(ftype, f"particle_position_{d}") for d in axis_names]
+        else:
+            position_fields = [("index", ax_name) for ax_name in axis_names]
+
+        return position_fields
+
+
+.. code-block:: python
+
+    def entropy(data, field):
+        ftype, _fname = data._determine_fields(field)
+        mgammam1 = -2.0 / 3.0
+        tr = data[ftype, "kT"] * data[ftype, "El_number_density"] ** mgammam1
+        return data.apply_units(tr, field.units)
 
 Field Options
 -------------
@@ -381,7 +412,7 @@ For instance, if you had defined this derived field:
 .. code-block:: python
 
    @yt.derived_field(name=("gas", "funthings"))
-   def funthings(field, data):
+   def funthings(data):
        return data["sillythings"] + data["humorousthings"] ** 2.0
 
 And you wanted to debug it, you could do:
@@ -389,7 +420,7 @@ And you wanted to debug it, you could do:
 .. code-block:: python
 
    @yt.derived_field(name=("gas", "funthings"))
-   def funthings(field, data):
+   def funthings(data):
        data._debug()
        return data["sillythings"] + data["humorousthings"] ** 2.0
 

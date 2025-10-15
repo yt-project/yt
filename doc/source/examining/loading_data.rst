@@ -658,7 +658,7 @@ that is stored in cgs units on disk:
 
 
     @derived_field(name="density", units="g*cm**-3", sampling_type="cell")
-    def _density(field, data):
+    def _density(data):
         return data[("parthenon", "mass.density")] * yt.units.g / yt.units.cm**3
 
 Moreover, an ideal equation of state is assumed with the following parameters,

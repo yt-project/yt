@@ -26,7 +26,7 @@ direction_aliases = {
 def _velocity(field, data, idir, prefix=None):
     """Velocity = linear momentum / density"""
     # This is meant to be used with functools.partial to produce
-    # functions with only 2 arguments (field, data)
+    # functions with only 2 arguments (data)
     # idir : int
     #    the direction index (1, 2 or 3)
     # prefix : str
@@ -135,7 +135,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         us = self.ds.unit_system
         if n_dust_found > 0:
 
-            def _total_dust_density(field, data):
+            def _total_dust_density(data):
                 tot = np.zeros_like(data["gas", "density"])
                 for idust in range(1, n_dust_found + 1):
                     tot += data[f"dust{idust}_density"]
@@ -149,7 +149,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                 sampling_type="cell",
             )
 
-            def dust_to_gas_ratio(field, data):
+            def dust_to_gas_ratio(data):
                 return data["gas", "total_dust_density"] / data["gas", "density"]
 
             self.add_field(
@@ -170,7 +170,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         # by increasing level of complexity
         us = self.ds.unit_system
 
-        def _kinetic_energy_density(field, data):
+        def _kinetic_energy_density(data):
             # devnote : have a look at issue 1301
             return 0.5 * data["gas", "density"] * data["gas", "velocity_magnitude"] ** 2
 
@@ -185,7 +185,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         # magnetic energy density
         if ("amrvac", "b1") in self.field_list:
 
-            def _magnetic_energy_density(field, data):
+            def _magnetic_energy_density(data):
                 emag = 0.5 * data["gas", "magnetic_1"] ** 2
                 for idim in "23":
                     if ("amrvac", f"b{idim}") not in self.field_list:
@@ -218,24 +218,24 @@ class AMRVACFieldInfo(FieldInfoContainer):
         # - if HD/MHD but solve_internal_e is true in parfile, P = (gamma-1)*e for both
         # - if (m)hd_energy is false in parfile (isothermal), P = c_adiab * rho**gamma
 
-        def _full_thermal_pressure_HD(field, data):
+        def _full_thermal_pressure_HD(data):
             # energy density and pressure are actually expressed in the same unit
             pthermal = (data.ds.gamma - 1) * (
                 data["gas", "energy_density"] - data["gas", "kinetic_energy_density"]
             )
             return pthermal
 
-        def _full_thermal_pressure_MHD(field, data):
+        def _full_thermal_pressure_MHD(data):
             pthermal = (
-                _full_thermal_pressure_HD(field, data)
+                _full_thermal_pressure_HD(data)
                 - (data.ds.gamma - 1) * data["gas", "magnetic_energy_density"]
             )
             return pthermal
 
-        def _polytropic_thermal_pressure(field, data):
+        def _polytropic_thermal_pressure(data):
             return (data.ds.gamma - 1) * data["gas", "energy_density"]
 
-        def _adiabatic_thermal_pressure(field, data):
+        def _adiabatic_thermal_pressure(data):
             return data.ds._c_adiab * data["gas", "density"] ** data.ds.gamma
 
         pressure_recipe = None
@@ -267,7 +267,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             )
 
             # sound speed and temperature depend on thermal pressure
-            def _sound_speed(field, data):
+            def _sound_speed(data):
                 return np.sqrt(
                     data.ds.gamma
                     * data["gas", "thermal_pressure"]

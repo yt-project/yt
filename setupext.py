@@ -19,7 +19,6 @@ from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
 from setuptools.errors import CompileError, LinkError
 import importlib.resources as importlib_resources
-from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
 log = logging.getLogger("setupext")
 
@@ -491,13 +490,10 @@ def create_build_ext(lib_exts, cythonize_aliases):
             )
             _sdist.run(self)
 
-    class bdist_wheel(_bdist_wheel):
-        def get_tag(self):
-            python, abi, plat = super().get_tag()
+    return build_ext, sdist
 
-            if python.startswith("cp") and USE_PY_LIMITED_API:
-                return f"cp{ABI3_TARGET_VERSION}", "abi3", plat
-
-            return python, abi, plat
-
-    return build_ext, sdist, bdist_wheel
+def get_setup_options():
+    if USE_PY_LIMITED_API:
+        return {"bdist_wheel": {"py_limited_api": f"cp{ABI3_TARGET_VERSION}"}}
+    else:
+        return {}

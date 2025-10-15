@@ -18,6 +18,7 @@ from setupext import (
     check_for_pyembree,
     create_build_ext,
     get_python_include_dirs,
+    get_setup_options,
     install_ccompiler,
 )
 
@@ -83,7 +84,7 @@ cythonize_aliases.update(embree_aliases)
 lib_exts += embree_libs
 
 # This overrides using lib_exts, so it has to happen after lib_exts is fully defined
-build_ext, sdist, bdist_wheel = create_build_ext(lib_exts, cythonize_aliases)
+build_ext, sdist = create_build_ext(lib_exts, cythonize_aliases)
 
 
 # Force setuptools to consider that there are ext modules, even if empty.
@@ -122,8 +123,9 @@ if __name__ == "__main__":
     )
 
     setup(
-        cmdclass={"sdist": sdist, "build_ext": build_ext, "bdist_wheel": bdist_wheel},
+        cmdclass={"sdist": sdist, "build_ext": build_ext},
         distclass=BinaryDistribution,
         libraries=[fixed_interp_lib],
         ext_modules=[],  # !!! We override this inside build_ext above
+        options=get_setup_options(),
     )

@@ -161,7 +161,7 @@ def test_clump_field_parameters():
     Make sure clump finding on fields with field parameters works.
     """
 
-    def _also_density(field, data):
+    def _also_density(data):
         factor = data.get_field_parameter("factor")
         return factor * data["gas", "density"]
 

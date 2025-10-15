@@ -233,7 +233,7 @@ def test_fits_image():
     assert pdfid["particle_mass"].units == "g/cm**2"
 
     # Test moments for projections
-    def _vysq(field, data):
+    def _vysq(data):
         return data["gas", "velocity_y"] ** 2
 
     ds.add_field(("gas", "vysq"), _vysq, sampling_type="cell", units="cm**2/s**2")
@@ -250,7 +250,7 @@ def test_fits_image():
     sigy = np.sqrt(fid8["vysq"].data - fid8["velocity_y"].data ** 2)
     assert_allclose(sigy, fid9["velocity_y_stddev"].data)
 
-    def _vlsq(field, data):
+    def _vlsq(data):
         return data["gas", "velocity_los"] ** 2
 
     ds.add_field(("gas", "vlsq"), _vlsq, sampling_type="cell", units="cm**2/s**2")
