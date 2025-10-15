@@ -39,7 +39,7 @@ def setup_fluid_vector_fields(
         rho2 = data[ftype, "density"].astype("float64", copy=False) ** 2
         return (
             data[ftype, "pressure_gradient_y"] * data[ftype, "density_gradient_z"]
-            - data[ftype, "pressure_gradient_z"] * data[ftype, "density_gradient_z"]
+            - data[ftype, "pressure_gradient_z"] * data[ftype, "density_gradient_y"]
         ) / rho2
 
     def _baroclinic_vorticity_y(data):
