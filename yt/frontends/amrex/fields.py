@@ -504,6 +504,258 @@ class MaestroFieldInfo(FieldInfoContainer):
                 )
 
 
+class QuokkaFieldInfo(FieldInfoContainer):
+    known_other_fields: KnownFieldsT = (
+        ("gasDensity", ("code_mass / code_length**3", ["density"], r"\rho")),
+        (
+            "gasEnergy",
+            (
+                "code_mass / (code_length * code_time**2)",
+                ["total_energy_density"],
+                r"\rho E",
+            ),
+        ),
+        (
+            "gasInternalEnergy",
+            (
+                "code_mass / (code_length * code_time**2)",
+                ["internal_energy_density"],
+                r"\rho e",
+            ),
+        ),
+        (
+            "x-GasMomentum",
+            (
+                "code_mass / (code_length**2 * code_time)",
+                ["momentum_density_x"],
+                r"\rho u",
+            ),
+        ),
+        (
+            "y-GasMomentum",
+            (
+                "code_mass / (code_length**2 * code_time)",
+                ["momentum_density_y"],
+                r"\rho v",
+            ),
+        ),
+        (
+            "z-GasMomentum",
+            (
+                "code_mass / (code_length**2 * code_time)",
+                ["momentum_density_z"],
+                r"\rho w",
+            ),
+        ),
+        # Temperature field is not present in early Quokka datasets
+        ("gasTemperature", ("K", ["temperature"], r"T")),
+        # Scalar fields are not always present
+        ("scalar_0", ("", ["scalar_0"], "Scalar 0")),
+        ("scalar_1", ("", ["scalar_1"], "Scalar 1")),
+        ("scalar_2", ("", ["scalar_2"], "Scalar 2")),
+    )
+
+    known_particle_fields: KnownFieldsT = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+        ("particle_momentum_x", ("code_mass*code_length/code_time", [], None)),
+        ("particle_momentum_y", ("code_mass*code_length/code_time", [], None)),
+        ("particle_momentum_z", ("code_mass*code_length/code_time", [], None)),
+        # Note that these are *internal* agmomen
+        ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
+        ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
+        ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
+        ("particle_id", ("", ["particle_index"], None)),
+        ("particle_mdot", ("code_mass/code_time", [], None)),
+    )
+
+    def setup_fluid_fields(self):
+        # Define momentum-to-velocity conversion
+        def _get_cell_velocity(axis):
+            def velocity(field, data):
+                # Divide momentum by density for cell-centered velocity
+                return (
+                    data["boxlib", f"{axis}-GasMomentum"] / data["boxlib", "gasDensity"]
+                )
+
+            return velocity
+
+        # Add cell-centered velocity fields dynamically for each axis
+        for axis in "xyz":
+            field_name = f"velocity_{axis}"
+            momentum_name = f"{axis}-GasMomentum"
+
+            if ("boxlib", momentum_name) in self.field_list:
+                self.add_field(
+                    ("gas", field_name),
+                    sampling_type="cell",
+                    function=_get_cell_velocity(axis),
+                    units=self.ds.unit_system["length"] / self.ds.unit_system["time"],
+                    display_name=f"v_{axis} (cell-centered)",
+                )
+
+        # Add face-centered velocities dynamically for each axis
+        for axis in "xyz":
+            face_velocity_name = f"velocity_face_{axis}"
+
+            if ("boxlib", f"{axis}-velocity") in self.field_list:
+                self.add_field(
+                    ("gas", face_velocity_name),
+                    sampling_type="cell",
+                    function=lambda field, data, axis=axis: data[
+                        "boxlib", f"{axis}-velocity"
+                    ]
+                    * self.ds.unit_system["length"]
+                    / self.ds.unit_system["time"],
+                    units=self.ds.unit_system["length"] / self.ds.unit_system["time"],
+                    display_name=f"v_{axis} (face-centered)",
+                )
+
+        # Call the Bfields and radiation fields setup
+        self.setup_Bfields()  # magnetic fields are still placeholder here
+        self.setup_radiation_fields()
+
+    def setup_Bfields(self):
+        """
+        Dynamically add magnetic fields based on presence of Bfield fields in ds.parameters['fields']
+        """
+        # Check if any field name contains 'Bfield'
+        if not any("Bfield" in field for field in self.ds.parameters.get("fields", [])):
+            return
+
+        for axis in "xyz":
+            boxlib_bfield = f"{axis}-BField"
+
+            if ("boxlib", boxlib_bfield) in self.field_list:
+                self.add_field(
+                    ("mag", f"{axis}-field"),
+                    sampling_type="cell",
+                    function=lambda field, data, axis=axis: data[
+                        "boxlib", f"{axis}-BField"
+                    ]
+                    * self.ds.unit_system["magnetic_field_strength"],
+                    units=self.ds.unit_system["magnetic_field_strength"],
+                    display_name=f"B_{axis} (magnetic field)",
+                )
+
+    def setup_radiation_fields(self):
+        # Dynamically add radiation fields
+        num_groups = self.ds.parameters.get("radiation_field_groups", 0)
+        for group in range(num_groups):
+            # Add energy density
+            energy_field = f"radEnergy-Group{group}"
+            if ("boxlib", energy_field) in self.field_list:
+                self.add_field(
+                    ("rad", f"energy_density_{group}"),
+                    sampling_type="cell",
+                    function=lambda _, data, ef=energy_field: data["boxlib", ef]
+                    * self.ds.unit_system["energy"]
+                    / self.ds.unit_system["length"] ** 3,
+                    units=self.ds.unit_system["energy"]
+                    / self.ds.unit_system["length"] ** 3,
+                    display_name=f"Radiation Energy Density Group {group}",
+                )
+
+            # Add flux density for each axis
+            for axis in "xyz":
+                flux_field = f"{axis}-RadFlux-Group{group}"
+                if ("boxlib", flux_field) in self.field_list:
+                    self.add_field(
+                        ("rad", f"flux_density_{axis}_{group}"),
+                        sampling_type="cell",
+                        function=lambda field, data, flux_field=flux_field: data[
+                            "boxlib", flux_field
+                        ]
+                        * self.ds.unit_system["energy"]
+                        / self.ds.unit_system["length"] ** 2
+                        / self.ds.unit_system["time"],
+                        units=self.ds.unit_system["energy"]
+                        / self.ds.unit_system["length"] ** 2
+                        / self.ds.unit_system["time"],
+                        display_name=f"Radiation Flux Density {axis.upper()} Group {group}",
+                    )
+
+        # Dynamically set up custom particle fields (convert `real_comp` to physics) for all particle types
+        for ptype in self.ds.particle_types:
+            self.setup_custom_particle_fields(ptype)
+
+    def setup_custom_particle_fields(self, ptype):
+        """
+        Dynamically set up custom particle fields (real_comp) for the given particle type,
+        interpreting dimensional expressions and applying appropriate unit conversions.
+
+        Parameters:
+        -----------
+        ptype : str
+            The particle type (e.g., 'Rad_particles', 'CIC_particles', etc.) for which fields will be dynamically added.
+        """
+        particle_info = self.ds.parameters.get("particle_info", {}).get(ptype, {})
+        field_map = particle_info.get("fields", [])
+        unit_map = particle_info.get("units", {})
+
+        def interpret_units(dim_expr):
+            """
+            Interpret a dimensional expression like 'M^a L^b T^c Θ^d' and return the corresponding unit factor.
+
+            Parameters:
+            -----------
+            dim_expr : str
+                Dimensional expression (e.g., 'M^1 L^2 T^-3' for luminosity).
+
+            Returns:
+            --------
+            conversion_factor : unyt_quantity
+                The unit conversion factor constructed from the dimensional expression.
+            """
+            if not dim_expr or dim_expr == "dimensionless":
+                return 1.0  # No conversion needed for dimensionless fields
+
+            # Parse the dimensional expression
+            dimensions = {"M": 0, "L": 0, "T": 0, "Θ": 0}  # Default to zero exponents
+            for term in dim_expr.split():
+                base, exponent = term.split("^")
+                dimensions[base] = int(exponent)
+
+            # Construct the conversion factor using the unit system. Use code_mass, code_length, code_time format for units
+            conversion_factor = (
+                f"code_mass**{dimensions['M']} * "
+                f"code_length**{dimensions['L']} * "
+                f"code_time**{dimensions['T']} * "
+                f"code_temperature**{dimensions['Θ']}"
+            )
+            # Convert the string expression to actual unit quantity
+            conversion_factor = self.ds.quan(1.0, conversion_factor)
+            return conversion_factor
+
+        for idx, field_name in enumerate(field_map):
+            # Construct the `real_comp` field name
+            real_comp_field = f"particle_real_comp{idx}"
+
+            # Check if the `real_comp` field exists in the dataset
+            if (ptype, real_comp_field) in self.field_list:
+                # Retrieve the dimensional expression for the new field
+                dim_expr = unit_map.get(field_name, "dimensionless")
+
+                # Interpret the dimensional expression to get the conversion factor
+                conversion_factor = interpret_units(dim_expr)
+
+                # Add the field with the appropriate units
+                self.add_field(
+                    (ptype, field_name),
+                    sampling_type="particle",
+                    function=lambda field,
+                    data,
+                    real_comp_field=real_comp_field,
+                    conv=conversion_factor: (data[ptype, real_comp_field] * conv),
+                    units=conversion_factor.units
+                    if hasattr(conversion_factor, "units")
+                    else "",
+                    display_name=field_name.replace("_", " ").capitalize(),
+                )
+
+
 substance_expr_re = re.compile(r"\(([a-zA-Z][a-zA-Z0-9]*)\)")
 substance_elements_re = re.compile(r"(?P<element>[a-zA-Z]+)(?P<digits>\d*)")
 SubstanceSpec: TypeAlias = list[tuple[str, int]]
