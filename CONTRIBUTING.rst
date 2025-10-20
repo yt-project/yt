@@ -720,9 +720,7 @@ Source code style guide
 * Do not use nested classes unless you have a very good reason to, such as
   requiring a namespace or class-definition modification.  Classes should live
   at the top level.  ``__metaclass__`` is exempt from this.
-* Avoid copying memory when possible. For example, don't do
-  ``a = a.reshape(3, 4)`` when ``a.shape = (3, 4)`` will do, and ``a = a * 3``
-  should be ``np.multiply(a, 3, a)``.
+* Avoid copying memory when possible.
 * In general, avoid all double-underscore method names: ``__something`` is
   usually unnecessary.
 * When writing a subclass, use the super built-in to access the super class,

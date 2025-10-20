@@ -142,10 +142,11 @@ def write_bitmap(bitmap_array, filename, max_val=None, transpose=False):
     if bitmap_array.dtype != np.uint8:
         s1, s2 = bitmap_array.shape[:2]
         if bitmap_array.shape[-1] == 3:
-            alpha_channel = 255 * np.ones((s1, s2, 1), dtype="uint8")
+            alpha_channel = np.full((s1, s2, 1), 255, dtype="uint8")
         else:
-            alpha_channel = (255 * bitmap_array[:, :, 3]).astype("uint8")
-            alpha_channel.shape = s1, s2, 1
+            alpha_channel = (
+                (255 * bitmap_array[:, :, 3]).astype("uint8").reshape(s1, s2, 1)
+            )
         if max_val is None:
             max_val = bitmap_array[:, :, :3].max()
             if max_val == 0.0:
@@ -260,8 +261,7 @@ def map_to_colors(buff, cmap_name):
         shape = buff.shape
         # We add float_eps so that digitize doesn't go out of bounds
         x = np.mgrid[0.0 : 1.0 + np.finfo(np.float32).eps : lut[0].shape[0] * 1j]
-        inds = np.digitize(buff.ravel(), x)
-        inds.shape = (shape[0], shape[1])
+        inds = np.digitize(buff.ravel(), x).reshape(shape[0], shape[1])
         mapped = np.dstack([(v[inds] * 255).astype("uint8") for v in lut])
         del inds
     else:

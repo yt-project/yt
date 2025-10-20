@@ -462,10 +462,11 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 if needed_ptype is not None and ptype != needed_ptype:
                     continue
                 # The first total_particles * 3 values are positions
-                pp = np.fromfile(f, dtype=dt, count=count * 3).astype(
-                    dt_native, copy=False
+                pp = (
+                    np.fromfile(f, dtype=dt, count=count * 3)
+                    .reshape(count, 3)
+                    .astype(dt_native, copy=False)
                 )
-                pp.shape = (count, 3)
                 yield ptype, pp
 
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):

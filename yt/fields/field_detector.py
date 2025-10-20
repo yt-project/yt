@@ -276,18 +276,19 @@ class FieldDetector(defaultdict):
             np.mgrid[0 : 1 : self.nd * 1j, 0 : 1 : self.nd * 1j, 0 : 1 : self.nd * 1j]
         )
         if self.flat:
-            fc.shape = (self.nd * self.nd * self.nd, 3)
+            fc = fc.reshape(self.nd * self.nd * self.nd, 3)
         else:
             fc = fc.transpose()
         return self.ds.arr(fc, units="code_length")
 
     @property
     def fcoords_vertex(self):
-        rng = np.random.default_rng()
-        fc = rng.random((self.nd, self.nd, self.nd, 8, 3))
         if self.flat:
-            fc.shape = (self.nd * self.nd * self.nd, 8, 3)
-        return self.ds.arr(fc, units="code_length")
+            shape = (self.nd * self.nd * self.nd, 8, 3)
+        else:
+            shape = (self.nd, self.nd, self.nd, 8, 3)
+        rng = np.random.default_rng()
+        return self.ds.arr(rng.random(shape), units="code_length")
 
     @property
     def icoords(self):
@@ -297,21 +298,23 @@ class FieldDetector(defaultdict):
             0 : self.nd - 1 : self.nd * 1j,
         ]
         if self.flat:
-            ic.shape = (self.nd * self.nd * self.nd, 3)
+            return ic.reshape(self.nd * self.nd * self.nd, 3)
         else:
-            ic = ic.transpose()
-        return ic
+            return ic.transpose()
 
     @property
     def ires(self):
-        ir = np.ones(self.nd**3, dtype="int64")
-        if not self.flat:
-            ir.shape = (self.nd, self.nd, self.nd)
-        return ir
+        if self.flat:
+            shape = (self.nd**3,)
+        else:
+            shape = (self.nd, self.nd, self.nd)
+        return np.ones(shape, dtype="int64")
 
     @property
     def fwidth(self):
-        fw = np.ones((self.nd**3, 3), dtype="float64") / self.nd
-        if not self.flat:
-            fw.shape = (self.nd, self.nd, self.nd, 3)
+        if self.flat:
+            shape = (self.nd**3, 3)
+        else:
+            shape = (self.nd, self.nd, self.nd, 3)
+        fw = np.full(shape, 1 / self.nd, dtype="float64")
         return self.ds.arr(fw, units="code_length")

@@ -189,13 +189,13 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                         continue
                     component = fname.replace("_", "/").replace("-", "_")
                     if component.split("/")[0] not in grid.ftypes:
-                        data = np.full(grid.ActiveDimensions, 0, dtype=np.float64)
+                        data = np.full_like(mask, 0)
                     else:
                         data = get_component(ds, component, grid.findex, grid.foffset)
+                        # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
+                        data = data.reshape(mask.shape)
+
                     # The following is a modified AMRGridPatch.select(...)
-                    data.shape = (
-                        mask.shape
-                    )  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
                     count = grid.count(selector)
                     rv[field][ind[field] : ind[field] + count] = data[mask]
                     ind[field] += count
