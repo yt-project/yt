@@ -130,7 +130,7 @@ http-stream = ["requests>=2.20.0"]
 idefix = ["yt_idefix[HDF5]>=2.3.0"] # externally packaged frontend
 moab = ["yt[HDF5]"]
 nc4-cm1 = ["yt[netCDF4]"]
-open-pmd = ["yt[HDF5]"]
+open-pmd = ["yt[openpmd_api]"]
 owls = ["yt[HDF5]"]
 owls-subfind = ["yt[HDF5]"]
 parthenon = ["yt[HDF5]"]
