@@ -62,7 +62,7 @@ jobs:
             venv-loc: bin
           - os: ubuntu-latest
             # minimal tests with latest Python and no optional dependencies
-            python-version: '3.x'
+            python-version: '3.14'
             dependencies: ''
             tests-type: unit
             test-runner: pytest
@@ -77,9 +77,10 @@ jobs:
 
     steps:
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: ${{ matrix.python-version }}
+        enable-cache: false
     - name: Checkout repo (bare)
       if: matrix.tests-type != 'answer'
       uses: actions/checkout@v5
@@ -92,34 +93,27 @@ jobs:
       shell: bash
       env:
         dependencies: ${{ matrix.dependencies }}
-      run: |
-        python -m venv .venv
-        source .venv/${{matrix.venv-loc}}/activate
-        source ./tests/ci_install.sh
+      run: source ./tests/ci_install.sh
 
     - name: Install and patch nosetest
       if: matrix.test-runner == 'nose'
+      # note: this could be handled with [tool.uv.sources]
       run: |
-        source .venv/${{matrix.venv-loc}}/activate
-        python -m pip install -r nose_requirements.txt
+        uv pip install -r nose_requirements.txt
         find .venv/lib/python${{matrix.python-version}}/site-packages/nose -name '*.py' \
           -exec sed -i -e s/collections.Callable/collections.abc.Callable/g '{}' ';'
 
     - name: Show final env
-      run: |
-        source .venv/${{matrix.venv-loc}}/activate
-        python -m pip list
+      run: uv pip list
 
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
-      run: |
-        source .venv/${{matrix.venv-loc}}/activate
-        pytest yt --color=yes
+      run: uv run --no-sync pytest yt --color=yes
+
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
       run: |
-        source .venv/${{matrix.venv-loc}}/activate
-        cat nose_ignores.txt | xargs python -m nose -c nose_unit.cfg --traverse-namespace
+        cat nose_ignores.txt | xargs uv run python -m nose -c nose_unit.cfg --traverse-namespace
 
   image-tests:
     name: Image tests
@@ -132,9 +126,10 @@ jobs:
 
     steps:
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: '3.11'
+        enable-cache: false
 
     - name: Checkout repo (with submodules)
       uses: actions/checkout@v5
@@ -145,14 +140,14 @@ jobs:
       shell: bash
       env:
         dependencies: 'cartopy'
-      run: |
-        source ./tests/ci_install.sh
+      run: source ./tests/ci_install.sh
 
     - run: python -m pip list
 
     - name: Run Image Tests
       run: |
-        pytest yt --color=yes --mpl -m mpl_image_compare \
+        uv run --no-sync \
+            pytest yt --color=yes --mpl -m mpl_image_compare \
                --mpl-generate-summary=html \
                --mpl-results-path=pytest_mpl_results \
                --mpl-baseline-path=tests/pytest_mpl_baseline \
@@ -161,7 +156,8 @@ jobs:
     - name: Generate new image baseline
       if: failure()
       run: |
-        pytest yt --color=yes --mpl -m mpl_image_compare \
+        uv run --no-sync \
+            pytest yt --color=yes --mpl -m mpl_image_compare \
                --mpl-generate-path=pytest_mpl_new_baseline \
                --last-failed
 
