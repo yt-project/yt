@@ -5,7 +5,6 @@ name: CI (bleeding edge)
 # goals: check stability against
 # - dev version of Python, numpy, matplotlib, and unyt
 # - Cython and pytest pre-releases
-# - building with future pip default options
 
 on:
   push:
@@ -35,36 +34,37 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Set up Python (newest testable version)
-      uses: actions/setup-python@v6
+      uses: astral-sh/setup-uv@v7
       with:
         # this version should be upgraded as often as possible, typically once a year when
         # Cython, numpy and matplotlib are known to be compatible
         python-version: '3.14'
-        allow-prereleases: true
+        enable-cache: false
+        activate-environment: true # allows using uv pip directly
+
+    - name: Configure uv
+      run: |
+        echo "UV_PRERELEASE=allow" >> "$GITHUB_ENV"
+        echo "UV_INDEX=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" >> "$GITHUB_ENV"
+        echo "UV_INDEX_STRATEGY=unsafe-best-match" >> "$GITHUB_ENV"
 
     - name: Install dependencies
+      # note: the --no-build flag can later be configured at the project level to
+      # blacklist certain packages we *never* want to build
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade setuptools wheel
-        python -m pip install --pre --only-binary ":all:" numpy matplotlib Cython \
-         --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
-        python -m pip install --pre ewah-bool-utils
-        python -m pip install git+https://github.com/yt-project/unyt.git
-        python -m pip install git+https://github.com/pytest-dev/pytest.git
+        uv pip install setuptools numpy matplotlib Cython ewah-bool-utils
+        uv add --no-sync git+https://github.com/yt-project/unyt.git
+        uv add --no-sync --optional test git+https://github.com/pytest-dev/pytest.git
 
     - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
       # are not installed by pip as specified from pyproject.toml, hence we get
       # to use the dev version of numpy at build time.
-      run: |
-        python -m pip -v install -e .[test] --no-build-isolation
+      run: uv sync --extra test --no-build-isolation
 
-    - run: python -m pip list
-
+    - run: yt config set --local yt log_level 50  # Disable excessive output
     - name: Run Tests
-      run: |
-        yt config set --local yt log_level 50  # Disable excessive output
-        pytest yt -vvv --color=yes
+      run: uv run --no-sync pytest yt -vvv --color=yes
 
   create-issue:
     if: ${{ failure() && github.event_name == 'schedule' }}

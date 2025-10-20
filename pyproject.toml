@@ -472,6 +472,7 @@ exclude = "(test_*|lodgeit)"
 [tool.cibuildwheel]
 build-verbosity = 1
 skip = ["cp314t-*"]
+build-frontend = "build[uv]"
 test-extras = "test"
 test-command = [
     'python -c "import yt"',
