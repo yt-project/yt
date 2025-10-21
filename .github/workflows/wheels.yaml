@@ -90,7 +90,8 @@ jobs:
       - name: Test sdist
         run: |
           project_dir=$(pwd)
-          uv run --directory ../../ --no-project \
+          cd ../../
+          uv run --no-project \
             pytest -c $project_dir/pyproject.toml --rootdir . --color=yes --pyargs yt
 
       - name: Upload sdist
