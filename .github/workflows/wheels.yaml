@@ -71,20 +71,28 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: '3.10'
+          enable-cache: false
+          activate-environment: true # allows using uv pip directly
 
       - name: Build sdist
-        run: pipx run build --sdist
+        run: uv build --sdist
+
+      - name: Install sdist
+        # setting a dev version as the lower bound to signal that
+        # pre-releases are to be prefered, but *only* for yt itself (unlike --pre)
+        run: uv pip install "yt[test]>=0.0.0dev0" --find-links dist/
+
+      - run: uv pip list
 
       - name: Test sdist
         run: |
-          python -m pip install "$(echo dist/*.tar.gz)[test]"
-          python -m pip list
           project_dir=$(pwd)
           cd ../../
-          pytest -c $project_dir/pyproject.toml --rootdir . --color=yes --pyargs yt
+          uv run --no-project \
+            pytest -c $project_dir/pyproject.toml --rootdir . --color=yes --pyargs yt
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
@@ -101,28 +109,12 @@ jobs:
       with:
         submodules: true
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: '3.13'
-    - name: install check-manifest
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install check-manifest
-    - name: Install build time dependencies
-      shell: bash
-
-      # keep in sync with pyproject.toml
-      run: |
-        python -m pip install Cython>=3.0.3
-        python -m pip install numpy>=2.0.0
-        python -m pip install ewah-bool-utils>=1.2.0
-        python -m pip install --upgrade setuptools
-    - name: build yt
-      shell: bash
-      run: |
-        python -m pip install --no-build-isolation .
+        enable-cache: false
     - name: run check-manifest
-      run: check-manifest -vvv
+      run: uvx check-manifest -vvv
 
   deploy:
     name: Publish to PyPI

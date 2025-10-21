@@ -32,22 +32,23 @@ fi
 # but the primary intention is to embed this script in CI jobs
 if [[ ${dependencies} == "minimal" ]]; then
     # test with minimal versions of runtime dependencies
-    python -m pip install -e ".[test]" -r minimal_requirements.txt
+    uv venv -c
+    uv pip install -e ".[test]" -c minimal_requirements.txt
 elif [[ ${dependencies} == "cartopy" ]]; then
-    python -m pip install 'cartopy>=0.22'
     # scipy is an optional dependency to cartopy
-    python -m pip install scipy
-    python -m pip install -e ".[test]"
+    uv venv -c
+    uv pip install 'cartopy>=0.22' scipy
+    uv sync --extra test --inexact
 elif [[ ${dependencies} == "full" ]]; then
     # test with all optional runtime dependencies
-    python -m pip install -e ".[test,full]"
+    uv sync --extra test --extra full
 else
-   # test with no special requirements
-   python -m pip install -e ".[test]"
+    # test with no special requirements
+    uv sync --extra test
 fi
 
 # Disable excessive output
-yt config set --local yt log_level 50
+uv run --no-sync yt config set --local yt log_level 50
 cat yt.toml
 
 set +x
