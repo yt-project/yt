@@ -205,11 +205,19 @@ class YTDataContainer(abc.ABC):
         """
         return name in self.field_parameters
 
-    def clear_data(self):
+    def clear_data(self, fields: list[AnyFieldKey] | AnyFieldKey | None = None):
         """
         Clears out all data from the YTDataContainer instance, freeing memory.
         """
-        self.field_data.clear()
+        if fields is None:
+            self.field_data.clear()
+            return
+
+        if isinstance(fields, (str, tuple)):
+            fields = [fields]
+
+        for field in fields:
+            self.field_data.pop(field, None)
 
     def has_key(self, key):
         """
