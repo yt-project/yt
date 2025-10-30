@@ -317,9 +317,11 @@ def test_two_offaxis():
 
     # define a new yt velocity field relative to the bulk velocity of the halo and along the line of sight
     def _velocity_los_test(field, data):
-        v = np.stack([data["gas", f"velocity_{k}"] for k in "xyz"], axis=-1)
+        v = np.stack(
+            [data["gas", f"velocity_{k}"].to("km/s").d for k in "xyz"], axis=-1
+        )
         v_los = np.dot(v, los_unit_vector)
-        return v_los.to("km/s")
+        return data.apply_units(v_los, "km/s")
 
     ds.add_field(
         ("gas", "velocity_los_test"),
