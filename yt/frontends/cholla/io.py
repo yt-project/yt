@@ -1,5 +1,6 @@
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.on_demand_imports import _h5py as h5py
+
+from .misc import _CachedH5Openner
 
 
 class ChollaIOHandler(BaseIOHandler):
@@ -14,33 +15,26 @@ class ChollaIOHandler(BaseIOHandler):
 
     def io_iter(self, chunks, fields):
         # this is loosely inspired by the implementation used for Enzo/Enzo-E
-        # - those other options use the lower-level hdf5 interface. Unclear
+        # - those other implementations use the lower-level hdf5 interface. Unclear
         #   whether that affords any advantages...
-        fh = None
-        filename = None
         mapper = self.ds.index._block_mapping
-        for chunk in chunks:
-            for obj in chunk.objs:
-                if obj.filename is None:  # unclear when this case arises...
-                    continue
+        with _CachedH5Openner(mode="r") as h5_context_manager:
+            for chunk in chunks:
+                for obj in chunk.objs:
+                    if obj.filename is None:  # unclear when this case arises...
+                        continue
 
-                # ensure the file containing data for obj is open
-                if obj.filename != filename:
-                    if fh is not None:
-                        fh.close()
-                    fh = h5py.File(obj.filename, "r")
-                    filename = obj.filename
+                    # ensure the file containing data for obj is open
+                    fh = h5_context_manager.open_fh(obj.filename)
 
-                # access the HDF5 group containing the datasets of field values
-                grp = fh if mapper.field_group == "" else fh[mapper.field_group]
-                # get the set of indices in a generic dataset that correspond to obj.id
-                idx = mapper.field_idx_map[obj.id]
+                    # access the HDF5 group containing the datasets of field values
+                    grp = fh[mapper.h5_group]
+                    # get the indices in a generic dataset that correspond to obj.id
+                    idx = mapper.idx_map[obj.id]
 
-                for field in fields:
-                    ftype, fname = field
-                    yield field, obj, grp[fname][idx].astype("=f8")
-        if fh is not None:
-            fh.close()
+                    for field in fields:
+                        ftype, fname = field
+                        yield field, obj, grp[fname][idx].astype("=f8")
 
     def _read_chunk_data(self, chunk, fields):
         raise NotImplementedError

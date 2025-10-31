@@ -26,17 +26,22 @@ else:
 
 @dataclass(kw_only=True, slots=True, frozen=True)
 class _BlockDiskMapping:
-    """Contains info for mapping blockids to locations in hdf5 files"""
+    """Contains info for mapping blockids to locations in hdf5 files
+
+    Notes
+    -----
+    At the time of writing, this is primarily meant to provide a mapping for
+    field data. In the future, we may initialize a separate instance to
+    provide a mapping for particle data
+    """
 
     # ``fname_template.format(blockid=...)`` produces the file containing blockid (this
     # can properly handle cases where all blocks are stored in a single file)
     fname_template: str
-    # group containing field data (empty string denotes the root group)
-    field_group: str
+    # hdf5 group containing the field data
+    h5_group: str
     # maps blockid to an index that select all associated data from a field-dataset
-    field_idx_map: Mapping[int, tuple[int | slice, ...]]
-
-    # in the future, we may add particle_group and particle_idx_map
+    idx_map: Mapping[int, tuple[int | slice, ...]]
 
 
 def _infer_blockid_location_arr(fname_template, global_dims, arr_shape):
@@ -136,8 +141,8 @@ def _determine_data_layout(f: _h5py.File) -> tuple[np.ndarray, _BlockDiskMapping
 
     mapping = _BlockDiskMapping(
         fname_template=fname_template,
-        field_group="" if flat_structure else "field",
-        field_idx_map=field_idx_map,
+        h5_group="./" if flat_structure else "field",
+        idx_map=field_idx_map,
     )
     return blockid_location_arr, mapping
 
