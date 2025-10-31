@@ -52,7 +52,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             units="code_length",
         )
 
-        def _CylindricalVolume(field, data):
+        def _CylindricalVolume(data):
             r = data["index", "r"]
             dr = data["index", "dr"]
             vol = 0.5 * ((r + 0.5 * dr) ** 2 - (r - 0.5 * dr) ** 2)
@@ -68,7 +68,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         )
         registry.alias(("index", "volume"), ("index", "cell_volume"))
 
-        def _path_z(field, data):
+        def _path_z(data):
             return data["index", "dz"]
 
         registry.add_field(

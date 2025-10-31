@@ -12,16 +12,16 @@ from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
 
 
-def _unknown_coord(field, data):
+def _unknown_coord(data):
     raise YTCoordinateNotImplemented
 
 
 def _get_coord_fields(axi, units="code_length"):
-    def _dds(field, data):
+    def _dds(data):
         rv = data.ds.arr(data.fwidth[..., axi].copy(), units)
         return data._reshape_vals(rv)
 
-    def _coords(field, data):
+    def _coords(data):
         rv = data.ds.arr(data.fcoords[..., axi].copy(), units)
         return data._reshape_vals(rv)
 
@@ -29,7 +29,7 @@ def _get_coord_fields(axi, units="code_length"):
 
 
 def _get_vert_fields(axi, units="code_length"):
-    def _vert(field, data):
+    def _vert(data):
         rv = data.ds.arr(data.fcoords_vertex[..., axi].copy(), units)
         return rv
 
@@ -79,7 +79,7 @@ def _setup_polar_coordinates(registry, axis_id):
         units="dimensionless",
     )
 
-    def _path_r(field, data):
+    def _path_r(data):
         return data["index", "dr"]
 
     registry.add_field(
@@ -89,7 +89,7 @@ def _setup_polar_coordinates(registry, axis_id):
         units="code_length",
     )
 
-    def _path_theta(field, data):
+    def _path_theta(data):
         # Note: this already assumes cell-centered
         return data["index", "r"] * data["index", "dtheta"]
 

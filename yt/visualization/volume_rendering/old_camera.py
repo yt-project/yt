@@ -2053,7 +2053,7 @@ class ProjectionCamera(Camera):
             self.weightfield = ("index", f"temp_weightfield_{id(self)}")
 
             def _make_wf(f, w):
-                def temp_weightfield(field, data):
+                def temp_weightfield(data):
                     tr = data[f].astype("float64") * data[w]
                     return data.apply_units(tr, field.units)
 
@@ -2173,8 +2173,8 @@ class ProjectionCamera(Camera):
                         + width / 2.0 * off2 * east_vector
                         + width / 2.0 * off3 * normal_vector
                     )
-                    np.minimum(mi, this_point, mi)
-                    np.maximum(ma, this_point, ma)
+                    np.minimum(mi, this_point, out=mi)
+                    np.maximum(ma, this_point, out=ma)
         # Now we have a bounding box.
         data_source = ds.region(self.center, mi, ma)
 

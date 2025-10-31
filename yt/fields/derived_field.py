@@ -1,7 +1,10 @@
 import contextlib
+import enum
 import inspect
 import re
+import sys
 from collections.abc import Iterable
+from functools import cached_property
 from typing import Optional
 
 from more_itertools import always_iterable
@@ -25,9 +28,19 @@ from .field_exceptions import (
     NeedsProperty,
 )
 
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
+
+
+class _FieldFuncSignature(enum.Enum):
+    V1 = enum.auto()  # has arguments field, data
+    V2 = enum.auto()  # doesn't support field argument
+
 
 def TranslationFunc(field_name):
-    def _TranslationFunc(field, data):
+    def _TranslationFunc(data, *, field=None):
         # We do a bunch of in-place modifications, so we will copy this.
         return data[field_name].copy()
 
@@ -53,7 +66,7 @@ def DeprecatedFieldFunc(ret_field, func, since, removal):
                 msg += ", use %s instead"
                 args.append(ret_field)
             mylog.warning(msg, *args)
-        return func(field, data)
+        return func(data)
 
     return _DeprecatedFieldFunc
 
@@ -69,7 +82,7 @@ class DerivedField:
        is the name of the field.
     function : callable
        A function handle that defines the field.  Should accept
-       arguments (field, data)
+       arguments (data)
     units : str
        A plain text string encoding the unit, or a query to a unit system of
        a dataset. Powers must be in Python syntax (** instead of ^). If set
@@ -282,11 +295,28 @@ class DerivedField:
                 + f"for {self.name}"
             )
         with self.unit_registry(data):
-            dd = self._function(self, data)
+            dd = self._eval(data)
         for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]
         return dd
+
+    @cached_property
+    def _func_signature_type(self) -> _FieldFuncSignature:
+        signature = inspect.signature(self._function)
+        if "field" in signature.parameters:
+            return _FieldFuncSignature.V1
+        else:
+            return _FieldFuncSignature.V2
+
+    def _eval(self, data):
+        match self._func_signature_type:
+            case _FieldFuncSignature.V1:
+                return self._function(data=data, field=self)
+            case _FieldFuncSignature.V2:
+                return self._function(data)
+            case _:
+                assert_never(self._sig)
 
     def get_source(self):
         """

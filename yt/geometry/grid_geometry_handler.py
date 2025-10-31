@@ -467,7 +467,7 @@ class GridIndex(Index, abc.ABC):
         take_log = self.ds.field_info[ftype, deposit_field].take_log
         field_name = f"cell_{ftype}_{deposit_field}"
 
-        def _mesh_sampling_particle_field(field, data):
+        def _mesh_sampling_particle_field(data):
             pos = data[ptype, "particle_position"]
             field_values = data[ftype, deposit_field]
 

@@ -351,7 +351,7 @@ class FieldInfoContainer(UserDict):
            field (or particle) type, field name
         function : callable
            A function handle that defines the field.  Should accept
-           arguments (field, data)
+           arguments (data)
         sampling_type: str
            "cell" or "particle" or "local"
         force_override: bool
@@ -520,7 +520,7 @@ class FieldInfoContainer(UserDict):
            is the name of the field.
         function : callable
            A function handle that defines the field.  Should accept
-           arguments (field, data)
+           arguments (data)
         sampling_type : str
            "cell" or "particle" or "local"
         since : str

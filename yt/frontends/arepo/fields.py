@@ -59,7 +59,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
         # Since the AREPO gas "particles" are Voronoi cells, we can
         # define a volume here
-        def _volume(field, data):
+        def _volume(data):
             return data["gas", "mass"] / data["gas", "density"]
 
         self.add_field(
@@ -71,7 +71,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
         if (ptype, "InternalEnergy") in self.field_list:
 
-            def _pressure(field, data):
+            def _pressure(data):
                 return (
                     (data.ds.gamma - 1.0)
                     * data[ptype, "density"]
@@ -94,7 +94,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
         if (ptype, "NeutralHydrogenAbundance") in self.field_list:
 
-            def _h_p0_fraction(field, data):
+            def _h_p0_fraction(data):
                 return (
                     data[ptype, "GFM_Metals_00"]
                     * data[ptype, "NeutralHydrogenAbundance"]
@@ -107,7 +107,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 units="",
             )
 
-            def _h_p1_fraction(field, data):
+            def _h_p1_fraction(data):
                 return data[ptype, "GFM_Metals_00"] * (
                     1.0 - data[ptype, "NeutralHydrogenAbundance"]
                 )
@@ -136,7 +136,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 A_H = ChemicalFormula("H").weight
                 if (ptype, "GFM_Metals_00") in self.field_list:
 
-                    def _h_number_density(field, data):
+                    def _h_number_density(data):
                         return (
                             data["gas", "density"]
                             * data["gas", "H_fraction"]
@@ -146,7 +146,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 else:
                     X_H = _primordial_mass_fraction["H"]
 
-                    def _h_number_density(field, data):
+                    def _h_number_density(data):
                         return data["gas", "density"] * X_H / (A_H * m_u)
 
                 self.add_field(
@@ -158,7 +158,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 self.alias(("gas", "H_number_density"), (ptype, "H_number_density"))
                 self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))
 
-            def _el_number_density(field, data):
+            def _el_number_density(data):
                 return (
                     data[ptype, "ElectronAbundance"] * data[ptype, "H_number_density"]
                 )
@@ -174,7 +174,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
         if (ptype, "GFM_CoolingRate") in self.field_list:
             self.alias(("gas", "cooling_rate"), ("PartType0", "cooling_rate"))
 
-            def _cooling_time(field, data):
+            def _cooling_time(data):
                 nH = data["gas", "H_nuclei_density"]
                 dedt = -data["gas", "cooling_rate"] * nH * nH
                 e = 1.5 * data["gas", "pressure"]
@@ -190,7 +190,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 ("gas", "specific_cosmic_ray_energy"),
             )
 
-            def _cr_energy_density(field, data):
+            def _cr_energy_density(data):
                 return (
                     data["PartType0", "specific_cosmic_ray_energy"]
                     * data["gas", "density"]
@@ -203,7 +203,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 units=self.ds.unit_system["pressure"],
             )
 
-            def _cr_pressure(field, data):
+            def _cr_pressure(data):
                 return (data.ds.gamma_cr - 1.0) * data[
                     "gas", "cosmic_ray_energy_density"
                 ]

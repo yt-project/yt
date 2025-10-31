@@ -32,10 +32,10 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Set up Python (newest testable version)
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         # this version should be upgraded as often as possible, typically once a year when
         # Cython, numpy and matplotlib are known to be compatible
