@@ -26,16 +26,12 @@ class _CachedH5Openner:
     that an exception occurs.
     """
 
-    _filename: str | None
-    _fh: _h5py.File | None
-    _mode: str
-
-    def __init__(self, mode: str = "r"):
+    def __init__(self, mode="r"):
         self._filename = None
         self._fh = None
         self._mode = mode
 
-    def open_fh(self, filename: str) -> _h5py.File:
+    def open_fh(self, filename):
         if self._filename == filename:
             return self._fh
         if self._fh is not None:
