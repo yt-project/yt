@@ -207,7 +207,12 @@ class YTDataContainer(abc.ABC):
 
     def clear_data(self, fields: list[AnyFieldKey] | AnyFieldKey | None = None):
         """
-        Clears out all data from the YTDataContainer instance, freeing memory.
+        Clears out data from the YTDataContainer instance, freeing memory.
+
+        Parameters
+        ----------
+        fields : list[str] | str | None
+            The fields to clear. If None, all fields are cleared.
         """
         if fields is None:
             self.field_data.clear()
