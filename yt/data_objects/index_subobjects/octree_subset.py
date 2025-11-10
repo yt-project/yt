@@ -131,7 +131,14 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
     def domain_ind(self):
         return self.oct_handler.domain_ind(self.selector)
 
-    def deposit(self, positions, fields=None, method=None, kernel_name="cubic", vector_field=False):
+    def deposit(
+        self,
+        positions,
+        fields=None,
+        method=None,
+        kernel_name="cubic",
+        vector_field=False,
+    ):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with
         exclusively local input.
 
@@ -177,7 +184,7 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
         if vector_field:
             vec_size = fields[0].shape[-1]
             nvals = nvals + (vec_size,)
-            
+
             if positions.shape[0] < 1:
                 vals = np.empty(nvals, dtype="float64")
                 return vals
@@ -515,8 +522,10 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
         )
 
     def select(self, selector, source, dest, offset):
+        # Set the dims if we have a vector field
+        dims = source.shape[-1] if source.ndim == 5 else 1
         n = self.oct_handler.selector_fill(
-            selector, source, dest, offset, domain_id=self.domain_id
+            selector, source, dest, offset, domain_id=self.domain_id, dims=dims
         )
         return n
 
