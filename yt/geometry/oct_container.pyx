@@ -512,9 +512,12 @@ cdef class OctreeContainer:
         # number of octs total visited.
         cdef np.int64_t num_cells = -1
 
-        source = source.reshape(np.shape(source) + (dims,))
+        vector_field = dims > 1
+
+        if not vector_field:
+            source = source.reshape(np.shape(source) + (1,))
+
         # If source is a vector field, we need to handle it differently.
-        is_vector_field = len(np.shape(source)) > 5
         if dest is None:
             # Note that RAMSES can have partial refinement inside an Oct.  This
             # means we actually do want the number of Octs, not the number of
@@ -522,21 +525,14 @@ cdef class OctreeContainer:
             num_cells = selector.count_oct_cells(self, domain_id)
             dest = np.zeros((num_cells, dims), dtype=source.dtype,
                             order='C')
-        if dims != 1:
-            raise RuntimeError
-        if is_vector_field:
-            dest = np.zeros((len(dest), np.shape(source)[-2], dims),
-                            dtype=source.dtype, order='C')
-            dest = dest.reshape((num_cells, np.shape(source)[-2], dims))
-        else:
-            # Just make sure that we're in the right shape.  Ideally this will not
-            # duplicate memory.  Since we're in Cython, we want to avoid modifying
-            # the .shape attributes directly.
-            dest = dest.reshape((num_cells, dims))
+
+        # Just make sure that we're in the right shape.  Ideally this will not
+        # duplicate memory.  Since we're in Cython, we want to avoid modifying
+        # the .shape attributes directly.
+        dest = dest.reshape((num_cells, dims))
         cdef OctVisitor visitor
         cdef oct_visitors.CopyArrayI64 visitor_i64
         cdef oct_visitors.CopyArrayF64 visitor_f64
-        cdef oct_visitors.Copy2DArrayF64 visitor_f64_2d
         if source.dtype != dest.dtype:
             raise RuntimeError
         if source.dtype == np.int64:
@@ -545,16 +541,10 @@ cdef class OctreeContainer:
             visitor_i64.dest = dest
             visitor = visitor_i64
         elif source.dtype == np.float64:
-            if is_vector_field:
-                visitor_f64_2d = oct_visitors.Copy2DArrayF64(self, domain_id)
-                visitor_f64_2d.source = source
-                visitor_f64_2d.dest = dest
-                visitor = visitor_f64_2d
-            else:
-                visitor_f64 = oct_visitors.CopyArrayF64(self, domain_id)
-                visitor_f64.source = source
-                visitor_f64.dest = dest
-                visitor = visitor_f64
+            visitor_f64 = oct_visitors.CopyArrayF64(self, domain_id)
+            visitor_f64.source = source
+            visitor_f64.dest = dest
+            visitor = visitor_f64
         else:
             raise NotImplementedError
         visitor.index = offset
