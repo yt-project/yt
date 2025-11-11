@@ -40,8 +40,17 @@ def check_field_precision(fields: list[tuple[str, str]]) -> bool:
     """
     if not fields:
         return True
-    else:
-        return all(precision == fields[0][1] for _, precision in fields)
+
+    if not all(precision == fields[0][1] for _, precision in fields):
+        raise RuntimeError("Mixed precision in field list. This is not supported.")
+
+    if fields[0][1] not in ("f", "d"):
+        raise ValueError(
+            f"Unknown precision specifier '{fields[0][1]}'. "
+            "Only 'f' or 'd' are supported."
+        )
+
+    return True
 
 
 def get_fields_and_single_precision(
@@ -62,8 +71,9 @@ def get_fields_and_single_precision(
         if all fields are single precision, False if double precision.
     """
     field_names = [field for field, _ in fields]
+    check_field_precision(fields)
     if fields:
-        single_precision = check_field_precision(fields) and fields[0][1] == "f"
+        single_precision = fields[0][1] == "f"
     else:
         single_precision = False
     return field_names, single_precision
