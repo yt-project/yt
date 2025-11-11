@@ -355,6 +355,12 @@ class YTDataContainer(abc.ABC):
                             np.empty(wogz.ires.size, dtype="float64"), units
                         )
                         outputs.append(rv)
+                    elif rv is None:
+                        if finfo.vector_field:
+                            shape = (total_size, source.shape[-1])
+                        else:
+                            shape = (total_size,)
+                        rv = self.ds.arr(np.empty(shape, dtype="float64"), units)
                     ind += wogz.select(
                         self.selector,
                         source=gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
