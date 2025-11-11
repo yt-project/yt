@@ -356,7 +356,14 @@ class AMRGridPatch(YTSelectionContainer):
     def particle_operation(self, *args, **kwargs):
         raise NotImplementedError
 
-    def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
+    def deposit(
+        self,
+        positions,
+        fields=None,
+        method=None,
+        kernel_name="cubic",
+        vector_field=False,
+    ):
         # Here we perform our particle deposition.
         cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
@@ -365,10 +372,18 @@ class AMRGridPatch(YTSelectionContainer):
         # inside this is Fortran ordered because of the ordering in the
         # octree deposit routines, so we reverse it here to match the
         # convention there
-        nvals = tuple(self.ActiveDimensions[::-1])
+
         # append a dummy dimension because we are only depositing onto
         # one grid
-        op = cls(nvals + (1,), kernel_name)
+        nvals = tuple(self.ActiveDimensions[::-1]) + (1,)
+        if vector_field:
+            vec_size = fields[0].shape[-1] if fields else 1
+            nvals = nvals + (vec_size,)
+        else:
+            vec_size = 1
+
+        op = cls(nvals, kernel_name)
+
         op.initialize()
         if positions.size > 0:
             op.process_grid(self, positions, fields)
@@ -377,8 +392,12 @@ class AMRGridPatch(YTSelectionContainer):
             return
         # Fortran-ordered, so transpose.
         vals = vals.transpose()
-        # squeeze dummy dimension we appended above
-        return np.squeeze(vals, axis=0)
+        # squeeze dummy dimension(s) we appended above
+        if vector_field:
+            new_shape = (vec_size, *self.ActiveDimensions)
+        else:
+            new_shape = self.ActiveDimensions
+        return vals.reshape(new_shape)
 
     def select_blocks(self, selector):
         mask = self._get_selector_mask(selector)

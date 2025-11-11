@@ -179,7 +179,7 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
         nz = self.nz
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
         if vector_field:
-            vec_size = fields[0].shape[-1]
+            vec_size = fields[0].shape[-1] if fields else 1
             nvals = nvals + (vec_size,)
 
             if positions.shape[0] < 1:
