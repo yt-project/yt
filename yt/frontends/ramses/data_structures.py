@@ -476,11 +476,6 @@ class RAMSESDomainSubset(OctreeSubset):
         for field in fields:
             tr[field] = np.zeros(cell_count, "float64")
 
-        # Get the size of the data, single precision if RT field, double otherwise
-        is_single = (
-            True if any(field.startswith("Photon") for field in fields) else False
-        )
-
         # Do an early exit if the cell count is null
         if cell_count == 0:
             return tr
@@ -513,7 +508,7 @@ class RAMSESDomainSubset(OctreeSubset):
             fields,
             tr,
             oct_handler,
-            is_single,
+            file_handler.single_precision,
             domain_inds=domain_inds,
         )
         return tr
