@@ -696,14 +696,9 @@ class RTFieldFileHandler(FieldFileHandler):
         ok = False
         single_precision = False
 
-        if ds._fields_in_file is not None:
-            # Case 1: fields are provided by users on construction of dataset
-            fields = list(ds._fields_in_file)
-            ok = True
-        else:
-            # Case 2: fields are provided by users in the config
-            fields = cls.load_fields_from_yt_config()
-            ok = len(fields) > 0
+        # Are fields are provided by users in the config?
+        fields = cls.load_fields_from_yt_config()
+        ok = len(fields) > 0
 
         if not ok and os.path.exists(fname_desc):
             # Case 3: there is a file descriptor
