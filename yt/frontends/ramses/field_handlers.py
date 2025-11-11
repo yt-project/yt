@@ -337,7 +337,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         return offset
 
     @classmethod
-    def load_fields_from_yt_config(cls) -> list[tuple[str, str]]:
+    def load_fields_from_yt_config(cls) -> tuple[list[str], bool]:
         if cls.config_field and ytcfg.has_section(cls.config_field):
             cfg = ytcfg.get(cls.config_field, "fields")
             fields = []
@@ -356,9 +356,10 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                         f"'{cls.config_field}'. Expected format: field_name[,precision]"
                     )
                 fields.append((field_name.strip(), precision.strip()))
-            return fields
 
-        return []
+            return get_fields_and_single_precision(fields)
+
+        return ([], False)
 
 
 class HydroFieldFileHandler(FieldFileHandler):
@@ -409,10 +410,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             ok = True
         else:
             # Case 2: fields are provided by users in the config
-            fields_with_precision = cls.load_fields_from_yt_config()
-            fields, single_precision = get_fields_and_single_precision(
-                fields_with_precision
-            )
+            fields, single_precision = cls.load_fields_from_yt_config()
 
             ok = len(fields) > 0
 
@@ -576,7 +574,7 @@ class GravFieldFileHandler(FieldFileHandler):
         nvar = cls.parameters[ds.unique_identifier]["nvar"]
         ndim = ds.dimensionality
 
-        fields = cls.load_fields_from_yt_config()
+        fields, single_precision = cls.load_fields_from_yt_config()
 
         if not fields:
             if nvar == ndim + 1:
@@ -592,7 +590,6 @@ class GravFieldFileHandler(FieldFileHandler):
                 for i in range(nvar - ndetected):
                     fields.append(f"var{i}")
 
-        single_precision = False
         cls.set_detected_fields(ds, fields, single_precision)
 
         return (fields, single_precision)
@@ -694,10 +691,9 @@ class RTFieldFileHandler(FieldFileHandler):
             cls.parameters[ds.unique_identifier] = fd.read_attrs(cls.attrs)
 
         ok = False
-        single_precision = False
 
         # Are fields are provided by users in the config?
-        fields = cls.load_fields_from_yt_config()
+        fields, single_precision = cls.load_fields_from_yt_config()
         ok = len(fields) > 0
 
         if not ok and os.path.exists(fname_desc):
