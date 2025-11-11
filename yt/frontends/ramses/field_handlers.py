@@ -432,17 +432,9 @@ class HydroFieldFileHandler(FieldFileHandler):
             field_with_precision = _read_fluid_file_descriptor(
                 fname_desc, prefix="hydro"
             )
-
-            # Make sure all fields have the same precision
-            if all(dtype == "f" for _, dtype in field_with_precision):
-                single_precision = True
-            elif all(dtype == "d" for _, dtype in field_with_precision):
-                single_precision = False
-            else:
-                raise RuntimeError(
-                    "Mixed precision in hydro file descriptor. This is not supported."
-                )
-            fields = [e[0] for e in field_with_precision]
+            fields, single_precision = get_fields_and_single_precision(
+                field_with_precision
+            )
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
