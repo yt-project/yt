@@ -429,9 +429,6 @@ class RAMSESDomainSubset(OctreeSubset):
         # Initializing data container
         for field in fields:
             data[field] = np.zeros(cell_count, "float64")
-        
-        # Get the size of the data, single precision if RT field, double otherwise
-        is_single = True if any(field.startswith("Photon") for field in fields) else False
 
         # Do an early exit if the cell count is null
         if cell_count == 0:
@@ -455,7 +452,7 @@ class RAMSESDomainSubset(OctreeSubset):
             fields,
             data,
             oct_handler,
-            is_single,
+            file_handler.single_precision,
         )
         return data
 
@@ -478,9 +475,11 @@ class RAMSESDomainSubset(OctreeSubset):
         # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, "float64")
-            
+
         # Get the size of the data, single precision if RT field, double otherwise
-        is_single = True if any(field.startswith("Photon") for field in fields) else False
+        is_single = (
+            True if any(field.startswith("Photon") for field in fields) else False
+        )
 
         # Do an early exit if the cell count is null
         if cell_count == 0:
@@ -813,7 +812,7 @@ class RAMSESDataset(Dataset):
         if isinstance(fields, str):
             fields = field_aliases[fields]
         """
-        fields:
+        fields: list[tuple[str, str]] | list[str] | None
         An array of hydro variable fields in order of position in the
         hydro_XXXXX.outYYYYY file. If set to None, will try a default set of fields.
 
@@ -830,7 +829,13 @@ class RAMSESDataset(Dataset):
         This affects the fields related to cooling and the mean molecular weight.
         """
 
-        self._fields_in_file = fields
+        self._fields_in_file: list[tuple[str, str]] = []
+        if fields:
+            for field in fields:
+                if isinstance(field, tuple):
+                    self._fields_in_file.append(field)
+                else:
+                    self._fields_in_file.append((field, "d"))
         # By default, extra fields have not triggered a warning
         self._warned_extra_fields = defaultdict(lambda: False)
         self._extra_particle_fields = extra_particle_fields
