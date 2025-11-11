@@ -251,11 +251,11 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         *structure* of your fluid file is non-canonical, change this.
         """
         nvars = len(self._detected_field_list[self.ds.unique_identifier])
-        
+
         first_field = self.field_list[0][1]
         # Get the size of the data, single precision if RT field, double otherwise
         is_single = True if first_field.startswith("Photon") else False
-        
+
         with FortranFile(self.fname) as fd:
             # Skip headers
             nskip = len(self.attrs)
@@ -274,7 +274,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
             #
             # So there are 8 * nvars records each with length (nocts, )
             # at each (level, cpus)
-            
+
             offset, level_count = read_offset(
                 fd,
                 min_level,
@@ -592,18 +592,20 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(float)
             f.readline()
             f.readline()
-            
+
             # Get global group properties (groupL0, groupL1, spec2group)
             for _ in range(3):
                 read_rhs(lambda line: [float(e) for e in line.split()])
-            
+
             # get egy for each group (used to get proper energy densities)
-            # NOTE: this assumes there are 8 energy groups
-            for _ in range(8):
-                group = int(f.readline().split()[1])
+            line = f.readline().strip()
+            while line.startswith("---Group"):
+                group = int(line.split()[1])
                 read_rhs(lambda line: [float(e) for e in line.split()], group)
+                # Skip cross sections weighted by number/energy
                 f.readline()
                 f.readline()
+                line = f.readline().strip()
 
             cls.rt_parameters[ds.unique_identifier] = rheader
 
