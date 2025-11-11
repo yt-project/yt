@@ -7,7 +7,6 @@ import numpy as np
 from unyt import unyt_array
 
 import yt.geometry.particle_deposit as particle_deposit
-import yt.geometry.particle_deposit_vector as particle_deposit_vector
 import yt.geometry.particle_smooth as particle_smooth
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -173,10 +172,8 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
         # Here we perform our particle deposition.
         if fields is None:
             fields = []
-        if vector_field:
-            cls = getattr(particle_deposit_vector, f"deposit_{method}", None)
-        else:
-            cls = getattr(particle_deposit, f"deposit_{method}", None)
+
+        cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz

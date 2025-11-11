@@ -144,5 +144,5 @@ cdef class ParticleDepositOperation:
     cdef public int update_values
     cdef int process(self, int dim[3], int ipart, np.float64_t left_edge[3],
                      np.float64_t dds[3], np.int64_t offset,
-                     np.float64_t ppos[3], np.float64_t[:] fields,
+                     np.float64_t ppos[3], np.float64_t[:, :] fields,
                      np.int64_t domain_ind) except -1 nogil
