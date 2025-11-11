@@ -26,7 +26,8 @@ cdef inline int skip_len(int Nskip, int record_len, np.npy_bool single) noexcept
     # If the data is single precision, we need to skip 4 bytes
     if single:
         return Nskip * (record_len * SINGLE_SIZE + INT64_SIZE)
-    return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
+    else:
+        return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
 
 
 @cython.cpow(True)
