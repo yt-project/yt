@@ -353,7 +353,7 @@ class HaloDataset(ParticleDataset):
             "omega_matter",
             "unique_identifier",
         ]:
-            setattr(self, attr, getattr(self.real_ds, attr))
+            setattr(self, attr, getattr(self.real_ds, attr, None))
 
     def set_code_units(self):
         self._set_code_unit_attributes()
