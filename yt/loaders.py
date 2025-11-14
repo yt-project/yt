@@ -10,6 +10,7 @@ import time
 import types
 import warnings
 from collections.abc import Mapping
+from difflib import get_close_matches
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Union, cast
 from urllib.parse import urlsplit
@@ -23,7 +24,6 @@ from yt._maintenance.deprecation import (
 )
 from yt._typing import AnyFieldKey, AxisOrder, FieldKey
 from yt.data_objects.static_output import Dataset
-from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
@@ -1513,10 +1513,7 @@ def _get_sample_data(
     known_names: list[str] = registry_table.dropna()["filename"].to_list()
     if topdir not in known_names:
         msg = f"'{topdir}' is not an available dataset."
-        lexical_distances: list[tuple[str, int]] = [
-            (name, levenshtein_distance(name, topdir)) for name in known_names
-        ]
-        suggestions: list[str] = [name for name, dist in lexical_distances if dist < 4]
+        suggestions = get_close_matches(topdir, known_names)
         if len(suggestions) == 1:
             msg += f" Did you mean '{suggestions[0]}' ?"
         elif suggestions:
