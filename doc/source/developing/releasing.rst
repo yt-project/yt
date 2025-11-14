@@ -177,7 +177,8 @@ if doing a major or minor release, or the backport branch if doing a bugfix rele
 
 Once these files have been updated, commit these updates and submit a pull request
 targeting the branch that will be released. This is the commit we
-will tag for the release.
+will tag for the release. After a major or minor release is complete, the version numbers
+on ``main`` should be updated to reflect development version via another pull request.
 
 
 .. _tagging-a-release:
@@ -194,11 +195,11 @@ and actually create the tag by issuing the following command:
 
 Where ``<tag-name>`` follows the project's naming scheme for tags
 (e.g. ``yt-3.2.1``). Once you are done, you will need to push the
-tag to github::
+tag to the yt repository on github::
 
-  git push origin --tag
+  git push upstream --tag
 
-This assumes that you have configured the remote ``origin`` to point at the main
+This assumes that you have configured the remote ``upstream`` to point at the main
 yt git repository. If you are doing a minor or major version number release, you
 will also need to update back to the development branch and update the
 development version numbers in the same files.
