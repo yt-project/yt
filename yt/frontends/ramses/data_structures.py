@@ -452,6 +452,7 @@ class RAMSESDomainSubset(OctreeSubset):
             fields,
             data,
             oct_handler,
+            file_handler.single_precision,
         )
         return data
 
@@ -507,6 +508,7 @@ class RAMSESDomainSubset(OctreeSubset):
             fields,
             tr,
             oct_handler,
+            file_handler.single_precision,
             domain_inds=domain_inds,
         )
         return tr
@@ -805,7 +807,7 @@ class RAMSESDataset(Dataset):
         if isinstance(fields, str):
             fields = field_aliases[fields]
         """
-        fields:
+        fields: list[tuple[str, str]] | list[str] | None
         An array of hydro variable fields in order of position in the
         hydro_XXXXX.outYYYYY file. If set to None, will try a default set of fields.
 
@@ -822,7 +824,13 @@ class RAMSESDataset(Dataset):
         This affects the fields related to cooling and the mean molecular weight.
         """
 
-        self._fields_in_file = fields
+        self._fields_in_file: list[tuple[str, str]] = []
+        if fields:
+            for field in fields:
+                if isinstance(field, tuple):
+                    self._fields_in_file.append(field)
+                else:
+                    self._fields_in_file.append((field, "d"))
         # By default, extra fields have not triggered a warning
         self._warned_extra_fields = defaultdict(lambda: False)
         self._extra_particle_fields = extra_particle_fields
