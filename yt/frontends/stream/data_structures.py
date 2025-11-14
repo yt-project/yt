@@ -4,7 +4,7 @@ import uuid
 import weakref
 from collections import UserDict
 from functools import cached_property
-from itertools import chain, product, repeat
+from itertools import chain, repeat
 from numbers import Number as numeric_type
 
 import numpy as np
@@ -650,10 +650,19 @@ class StreamParticlesDataset(StreamDataset):
         self.num_neighbors = n_neighbors
 
 
-_cis = np.fromiter(
-    chain.from_iterable(product([0, 1], [0, 1], [0, 1])), dtype=np.int64, count=8 * 3
+_cis = np.array(
+    [
+        [0, 0, 0],
+        [0, 0, 1],
+        [0, 1, 0],
+        [0, 1, 1],
+        [1, 0, 0],
+        [1, 0, 1],
+        [1, 1, 0],
+        [1, 1, 1],
+    ],
+    dtype="int64",
 )
-_cis.shape = (8, 3)
 
 
 def hexahedral_connectivity(xgrid, ygrid, zgrid):
@@ -713,9 +722,10 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     coords[:, :, :, 0] = xgrid[:, None, None]
     coords[:, :, :, 1] = ygrid[None, :, None]
     coords[:, :, :, 2] = zgrid[None, None, :]
-    coords.shape = (nx * ny * nz, 3)
-    cycle = np.rollaxis(np.indices((nx - 1, ny - 1, nz - 1)), 0, 4)
-    cycle.shape = ((nx - 1) * (ny - 1) * (nz - 1), 3)
+    coords = coords.reshape(nx * ny * nz, 3)
+    cycle = np.rollaxis(np.indices((nx - 1, ny - 1, nz - 1)), 0, 4).reshape(
+        (nx - 1) * (ny - 1) * (nz - 1), 3
+    )
     off = _cis + cycle[:, np.newaxis]
     connectivity = np.array(
         ((off[:, :, 0] * ny) + off[:, :, 1]) * nz + off[:, :, 2], order="C"
