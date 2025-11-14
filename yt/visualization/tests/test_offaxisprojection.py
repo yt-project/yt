@@ -307,3 +307,38 @@ def test_offaxis_moment():
     p1res[safeorbad] = np.sqrt(p1_expsq[safeorbad] - p1_sqexp[safeorbad])
     p2res = p2.frb["gas", "velocity_los"]
     assert_rel_equal(p1res, p2res, 10)
+
+
+def test_two_offaxis():
+    ds = fake_octree_ds()
+
+    vec_proj = [1, 0, 0]
+    los_unit_vector = np.array(vec_proj) / np.linalg.norm(vec_proj)
+
+    # define a new yt velocity field relative to the bulk velocity of the halo and along the line of sight
+    def _velocity_los_test(field, data):
+        v = np.stack(
+            [data["gas", f"velocity_{k}"].to("km/s").d for k in "xyz"], axis=-1
+        )
+        v_los = np.dot(v, los_unit_vector)
+        return data.apply_units(v_los, "km/s")
+
+    ds.add_field(
+        ("gas", "velocity_los_test"),
+        function=_velocity_los_test,
+        units="km/s",
+        sampling_type="cell",
+        display_name=f"Velocity LOS along {vec_proj}",
+    )
+
+    p = OffAxisProjectionPlot(
+        ds,
+        [1.0, 0.0, 0.0],
+        [("gas", "velocity_x"), ("gas", "velocity_los_test")],
+        weight_field="dx",
+    )
+
+    v1 = p.frb["gas", "velocity_x"]
+    v2 = p.frb["gas", "velocity_los_test"]
+
+    np.testing.assert_allclose(v1, v2.to(v1.units))
