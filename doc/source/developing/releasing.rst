@@ -33,8 +33,8 @@ from the version number used. Version numbers should follow the scheme
 
   These releases happen when the development community decides to make major
   backwards-incompatible changes intentionally. In principle a major version release could
-  include arbitrary changes to the library. Major version releases should only
-  happen after extensive discussion and vetting among the developer and user
+  include arbitrary changes to the library or remove previously deprecated features. Major version releases
+  should only happen after extensive discussion and vetting among the developer and user
   community. Like minor releases, a major release should happen by creating
   a new series branch off of the ``main`` branch from which to release. Major releases should
   increment the ``MAJOR`` version number and reset the ``MINOR`` and ``PATCH``
@@ -127,10 +127,7 @@ In short, a manual backport consist of 4 steps
 Doing a Minor or Major Release
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is simpler than a bugfix release. First, make sure that all
-deprecated features targeted for removal in the new release are removed from the
-``main`` branch, ideally in a single PR. Such a PR can be issued at any point
-between the previous minor or major release and the new one. Then, create a new
+This is simpler than a bugfix release. Simply create a new
 series branch off of the ``main`` branch (for example ``git switch -c yt-4.5.x``)
 and push the new branch up to the yt repository.
 
@@ -145,6 +142,15 @@ as described below.
 
 After the completion of the release, the new series branch becomes the
 backport branch for subsequent bugfix releases.
+
+Removing Deprecations in a Major Release
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For a major release that includes removal of deprecated features, make sure that all
+deprecated features targeted for removal in the new release are removed from the
+``main`` branch prior to creating the new series branch (:ref:`doing-a-minor-or-major-release`).
+Ideally, the deprecated features should be removed in a single PR.
+
 
 Incrementing Version Numbers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
