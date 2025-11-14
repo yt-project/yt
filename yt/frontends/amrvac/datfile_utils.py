@@ -152,11 +152,10 @@ def get_single_block_data(istream, byte_offset, block_shape):
 def get_single_block_field_data(istream, byte_offset, block_shape, field_idx):
     """retrieve a specific block (ONE field) from a datfile"""
     # compute byte size of a single field
-    field_shape = block_shape[:-1]
-    fmt = ALIGN + np.prod(field_shape) * "d"
+    field_shape = block_shape[:-1][::-1]
+    count = np.prod(field_shape)
+    fmt = ALIGN + count * "d"
     byte_size_field = struct.calcsize(fmt)
 
     istream.seek(byte_offset + byte_size_field * field_idx)
-    data = np.fromfile(istream, "=f8", count=np.prod(field_shape))
-    data.shape = field_shape[::-1]
-    return data.T
+    return np.fromfile(istream, dtype="=f8", count=count).reshape(field_shape).T
