@@ -269,6 +269,13 @@ version number and the SHA256 hash of the tarball. If yt's dependencies change
 you may also need to update the recipe. Once you have updated the recipe,
 propose a pull request on github and merge it once all builds pass.
 
+Note that the above actions all require that you are a feedstock maintainer.
+New maintainers can be added by opening a new issue in the ``yt-feedstock`` repo
+using the following for the title and body: ``@conda-forge-admin, please add user @user``
+(see `here <https://github.com/conda-forge/yt-feedstock/issues/102>`_ for an example),
+which will trigger a bot-issued PR to add the user as a feedstock maintainer. A current
+maintainer will need to approve and merge the PR.
+
 
 Announcing
 ~~~~~~~~~~
