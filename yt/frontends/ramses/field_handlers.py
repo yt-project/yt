@@ -211,6 +211,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
     field_types = (
         None  # Mapping from field to the type of the data (float, integer, ...)
     )
+    parameters: dict  # Parameters read from the header
 
     def __init_subclass__(cls, *args, **kwargs):
         """
@@ -611,6 +612,7 @@ class RTFieldFileHandler(FieldFileHandler):
         ("nboundary", 1, "i"),
         ("gamma", 1, "d"),
     )
+    rt_parameters: dict
 
     @classmethod
     def detect_fields(cls, ds):
