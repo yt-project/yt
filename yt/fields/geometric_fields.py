@@ -134,8 +134,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
             data["index", "z"].ravel(),
             LE,
             RE,
-        )
-        morton.shape = data["index", "x"].shape
+        ).reshape(data["index", "x"].shape)
         return morton.view("f8")
 
     registry.add_field(
