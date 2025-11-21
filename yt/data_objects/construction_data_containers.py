@@ -875,6 +875,18 @@ class YTCoveringGrid(YTSelectionContainer3D):
         # their cell centers.
         self._data_source.loose_selection = True
 
+    def get_bbox(self):
+        if hasattr(self._data_source, "data_objects"):
+            super_bbox = self._data_source.data_objects[0].get_bbox()
+            for obj in self._data_source.data_objects[1:]:
+                temp_bbox = obj.get_bbox()
+                # Get the bbox enclosing all data objects
+                super_bbox = (np.minimum(super_bbox[0], temp_bbox[0]),
+                              np.maximum(super_bbox[1], temp_bbox[1]))
+            return super_bbox
+        else:
+            return super().get_bbox()
+
     def get_data(self, fields=None):
         if fields is None:
             return
