@@ -479,3 +479,46 @@ test-command = [
     "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
 environment = {"YT_LIMITED_API" = "1"}
+
+[tool.uv]
+# never build the following packages from sources (always prefer wheels)
+no-build-package = [
+    # "arm-pyart", # temporarily disabled because there are no cp313 wheels yet
+    "astropy",
+    "appnope",
+    "bottleneck",
+    "cartopy",
+    "cffi",
+    "contourpy",
+    "ewah-bool-utils",
+    "fast-histogram",
+    "h5py",
+    "jinja2",
+    "kiwisolver",
+    "markupsafe",
+    "matplotlib",
+    "numpy",
+    "netCDF4",
+    "pandas",
+    "pillow",
+    "psutil",
+    "py",
+    "pykdtree",
+    "pyproj",
+    "pyyaml",
+    "rlic",
+    "scipy",
+    "shapely",
+
+    # via firefly
+    "flask",
+    "gevent",
+    "greenlet",
+    "zope-interface",
+
+    # via arm-pyart
+    "fsspec",
+
+    # via astropy
+    "pyerfa",
+]

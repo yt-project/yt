@@ -49,8 +49,6 @@ jobs:
         echo "UV_INDEX_STRATEGY=unsafe-best-match" >> "$GITHUB_ENV"
 
     - name: Install dependencies
-      # note: the --no-build flag can later be configured at the project level to
-      # blacklist certain packages we *never* want to build
       run: |
         uv pip install setuptools numpy matplotlib Cython ewah-bool-utils
         uv add --no-sync git+https://github.com/yt-project/unyt.git
