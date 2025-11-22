@@ -93,7 +93,7 @@ jobs:
       if: matrix.test-runner == 'nose'
       # note: this could be handled with [tool.uv.sources]
       run: |
-        uv pip install -r nose_requirements.txt
+        uv pip install --group nosetest
         find .venv/lib/python${{matrix.python-version}}/site-packages/nose -name '*.py' \
           -exec sed -i -e s/collections.Callable/collections.abc.Callable/g '{}' ';'
 
