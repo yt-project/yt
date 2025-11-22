@@ -99,7 +99,7 @@ jobs:
 
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
-      run: uv run --no-sync pytest yt --color=yes
+      run: uv run --no-sync pytest yt --color=yes ${{ matrix.dependencies == 'minimal' && '-Wdefault' || '' }}
 
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'

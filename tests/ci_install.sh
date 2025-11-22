@@ -33,7 +33,7 @@ fi
 if [[ ${dependencies} == "minimal" ]]; then
     # test with minimal versions of runtime dependencies
     uv venv -c
-    uv pip install -e ".[test]" -c minimal_requirements.txt
+    uv pip install -e ".[test]" --resolution=lowest
 elif [[ ${dependencies} == "cartopy" ]]; then
     # scipy is an optional dependency to cartopy
     uv venv -c
