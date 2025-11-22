@@ -60,14 +60,14 @@ dependencies = [
     "numpy>=1.21.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
     # https://github.com/numpy/numpy/issues/27037
     "numpy!=2.0.1 ; platform_machine=='arm64' and platform_system=='Darwin'",
-    "packaging>=20.9",
+    "packaging>=21.0",
     "pillow>=8.3.2",
     "rlic>=0.3.2",
     "tomli-w>=0.4.0",
     "tqdm>=3.4.0",
     "unyt>=2.9.2",
     "tomli>=1.2.3;python_version < '3.11'",
-    "typing-extensions>=4.4.0;python_version < '3.12'",
+    "typing-extensions>=4.6.0 ; python_version < '3.12'",
 ]
 
 [project.readme]
@@ -87,7 +87,7 @@ answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 [project.optional-dependencies]
 # some generic, reusable constraints on optional-deps
 HDF5 = [
-  "h5py>=3.1.0",
+  "h5py>=3.6.0",
   "h5py!=3.12.0 ; platform_system=='Windows'", # https://github.com/h5py/h5py/issues/2505
   "h5py!=3.15.0 ; platform_system=='Darwin'", # https://github.com/yt-project/yt/issues/5301
 ]
@@ -118,7 +118,7 @@ eagle = ["yt[HDF5]"]
 enzo-e = ["yt[HDF5]", "libconf>=1.0.1"]
 enzo = ["yt[HDF5]", "libconf>=1.0.1"]
 exodus-ii = ["yt[netCDF4]"]
-fits = ["astropy>=4.0.1", "regions>=0.7"]
+fits = ["astropy>=5.0.1", "regions>=0.7"]
 flash = ["yt[HDF5]"]
 gadget = ["yt[HDF5]"]
 gadget-fof = ["yt[HDF5]"]
@@ -134,7 +134,7 @@ open-pmd = ["yt[HDF5]"]
 owls = ["yt[HDF5]"]
 owls-subfind = ["yt[HDF5]"]
 parthenon = ["yt[HDF5]"]
-ramses = ["yt[Fortran]", "scipy"]
+ramses = ["yt[Fortran]", "scipy>=1.7.2"]
 rockstar = []
 sdf = ["requests>=2.20.0"]
 stream = []
@@ -151,14 +151,13 @@ full = [
     "ipython>=7.16.2",
     "ipywidgets>=8.0.0",
     "miniballcpp>=0.2.1",
-    "mpi4py>=3.0.3",
-    "pandas>=1.1.2",
+    "mpi4py>=3.1.6",
+    "pandas>=1.3.4",
     "pooch>=0.7.0",
     "pyaml>=17.10.0",
-    "pykdtree>=1.3.1",
+    "pykdtree>=1.3.4",
     "pyx>=0.15",
-    "scipy>=1.5.0",
-    "glue-core!=1.2.4;python_version >= '3.10'",  # see https://github.com/glue-viz/glue/issues/2263
+    "scipy>=1.7.2",
     "ratarmount~=0.8.1;platform_system!='Windows' and platform_system!='Darwin'",
     "yt[adaptahop]",
     "yt[ahf]",
@@ -209,10 +208,8 @@ mapserver = [
 ]
 test = [
     "pyaml>=17.10.0",
-    "pytest>=6.1",
+    "pytest>=8.0.1",
     "pytest-mpl>=0.16.1",
-    "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
-    "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
 ]
 
 [project.scripts]
@@ -549,4 +546,21 @@ no-build-package = [
 
     # via astropy
     "pyerfa",
+]
+constraint-dependencies = [
+    "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
+    "glue-core!=1.2.4",  # see https://github.com/glue-viz/glue/issues/2263
+    "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
+    "jinja2>=2.11.3",
+
+    # wheels
+    "mpmath>=1.2.1", # via sympy
+    "iniconfig>=1.0.1", # via pytest
+
+    # from ipython (these can be removed when ipython<9.7 is dropped)
+    "ipython-pygments-lexers>=1.0.0",
+    "decorator>=4.3.2",
+    "jedi>=0.18.1",
+    "stack_data>=0.6.0",
+    "pygments>=2.11.0",
 ]
