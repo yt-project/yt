@@ -26,25 +26,25 @@ jobs:
           - ubuntu-latest
           - macos-latest
         python-version: ['3.13']
-        dependencies: [full]
+        sync_args: [--extra=full]
         tests-type: [unit]
         test-runner: [pytest]
         include:
           - os: windows-latest
             python-version: '3.13'
-            dependencies: full
+            sync_args: --extra=full
             tests-type: unit
             test-runner: pytest
           - os: ubuntu-22.04
             python-version: '3.10.4'
-            dependencies: minimal
+            sync_args: --resolution=lowest
             tests-type: unit
             test-runner: pytest
           - os: ubuntu-latest
             # this job is necessary for non-answer, 'yield' based tests
             # because pytest doesn't support such tests
             python-version: '3.10'
-            dependencies: full
+            sync_args: "--extra=full --group=nosetest"
             tests-type: unit
             test-runner: nose
           - os: ubuntu-latest
@@ -52,13 +52,13 @@ jobs:
             # they are also attached to a specific, occasionally updated, Python version
             # but it does *not* have to match the current minimal supported version
             python-version: '3.10'
-            dependencies: full
+            sync_args: "--extra=full --group=nosetest"
             tests-type: answer
             test-runner: nose
           - os: ubuntu-latest
             # minimal tests with latest Python and no optional dependencies
             python-version: '3.14'
-            dependencies: ''
+            sync_args: null
             tests-type: unit
             test-runner: pytest
 
@@ -86,20 +86,19 @@ jobs:
     - name: Install dependencies and yt
       shell: bash
       env:
-        dependencies: ${{ matrix.dependencies }}
+        sync_args: ${{ matrix.sync_args}}
       run: source ./tests/ci_install.sh
 
-    - name: Install and patch nosetest
+    - name: Patch nosetest
       if: matrix.test-runner == 'nose'
       # note: this could be handled with [tool.uv.sources]
       run: |
-        uv pip install --group nosetest
         find .venv/lib/python${{matrix.python-version}}/site-packages/nose -name '*.py' \
           -exec sed -i -e s/collections.Callable/collections.abc.Callable/g '{}' ';'
 
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
-      run: uv run --no-sync pytest yt --color=yes ${{ matrix.dependencies == 'minimal' && '-Wdefault' || '' }}
+      run: uv run --no-sync pytest yt --color=yes ${{ contains(matrix.sync_args , 'resolution=lowest' ) && '-Wdefault' || '' }}
 
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
@@ -130,7 +129,7 @@ jobs:
     - name: Install dependencies and yt
       shell: bash
       env:
-        dependencies: 'cartopy'
+        sync_args: --group=geophysics
       run: source ./tests/ci_install.sh
 
     - run: python -m pip list

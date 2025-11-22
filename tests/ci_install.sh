@@ -4,7 +4,7 @@ set -x   # Show which command is being run
 cp tests/matplotlibrc .
 
 # Step 1: pre-install required packages
-if [[ ${dependencies} == "full" || ${dependencies} == "cartopy" ]]; then
+if [[ ${sync_args} == *"full"* || ${sync_args} == *"geophysics"* ]]; then
     case ${RUNNER_OS} in
     linux|Linux)
         sudo apt-get -qqy update
@@ -30,22 +30,7 @@ fi
 # Step 2: install deps and yt
 # installing in editable mode so this script may be used locally by developers
 # but the primary intention is to embed this script in CI jobs
-if [[ ${dependencies} == "minimal" ]]; then
-    # test with minimal versions of runtime dependencies
-    uv venv -c
-    uv pip install -e ".[test]" --resolution=lowest
-elif [[ ${dependencies} == "cartopy" ]]; then
-    # scipy is an optional dependency to cartopy
-    uv venv -c
-    uv pip install 'cartopy>=0.22' scipy
-    uv sync --extra test --inexact
-elif [[ ${dependencies} == "full" ]]; then
-    # test with all optional runtime dependencies
-    uv sync --extra test --extra full
-else
-    # test with no special requirements
-    uv sync --extra test
-fi
+uv sync --extra=test ${sync_args}
 
 # Disable excessive output
 uv run --no-sync yt config set --local yt log_level 50
