@@ -33,7 +33,8 @@ jobs:
         # so that we always get compatible versions of
         # core dependencies at type-check time
         python-version: '3.10'
-        enable-cache: false
+        prune-cache: false
+        cache-suffix: typecheck
 
     - name: Build
       run: uv sync --group typecheck
