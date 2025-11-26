@@ -4,7 +4,7 @@ set -x   # Show which command is being run
 cp tests/matplotlibrc .
 
 # Step 1: pre-install required packages
-if [[ ${sync_args} == *"full"* || ${sync_args} == *"geophysics"* ]]; then
+if [[ ${sync_args} == *"full"* || ${sync_args} == *"mapping"* ]]; then
     case ${RUNNER_OS} in
     linux|Linux)
         sudo apt-get -qqy update

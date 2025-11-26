@@ -155,7 +155,7 @@ jobs:
     - name: Install dependencies and yt
       shell: bash
       env:
-        sync_args: --group=geophysics
+        sync_args: --group=mapping
       run: source ./tests/ci_install.sh
 
     - run: python -m pip list
