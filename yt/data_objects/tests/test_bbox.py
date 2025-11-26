@@ -3,7 +3,7 @@
 import numpy as np
 from numpy.testing import assert_equal
 
-from yt.testing import assert_allclose_units, fake_amr_ds
+from yt.testing import assert_allclose_units, fake_amr_ds, fake_octree_ds
 
 
 def test_object_bbox():
@@ -55,3 +55,29 @@ def test_object_bbox():
     assert_allclose_units(re3, re0)
     assert_equal(le4, regb.left_edge)
     assert_equal(re4, regb.right_edge)
+
+def test_covering_grid_bbox():
+    ds = fake_octree_ds(num_zones=32)
+
+    cg = ds.covering_grid(level=0, left_edge=[0.3, 0.3, 0.3], dims=[8, 8, 8])
+
+    # Make a covering grid with a data source
+    sp = ds.sphere(
+        [0.5, 0.5, 0.5],
+        0.15,
+    )
+    cgds = ds.covering_grid(
+        level=0, left_edge=[0.3, 0.3, 0.3], dims=[8, 8, 8], data_source = sp,
+    )
+
+    # The bounding boxes of the two covering grids should be the same
+    cg_bbox = cg.get_bbox()
+    cgds_bbox = cgds.get_bbox()
+    assert_equal(cg_bbox, cgds_bbox)
+
+    # The bounding box of the cg's data source should be the left edge of sp and right edge of cgds
+    cgds_ds_bbox = cgds._data_source.get_bbox()
+    le_sp, re_sp = sp.get_bbox()
+
+    assert_equal(le_sp, cgds_ds_bbox[0])
+    assert_equal(cgds_ds_bbox[1], cgds_ds_bbox[1])
