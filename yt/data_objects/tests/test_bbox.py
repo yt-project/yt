@@ -80,4 +80,4 @@ def test_covering_grid_bbox():
     le_sp, re_sp = sp.get_bbox()
 
     assert_equal(le_sp, cgds_ds_bbox[0])
-    assert_equal(cgds_ds_bbox[1], cgds_ds_bbox[1])
+    assert_equal(cgds_bbox[1], cgds_ds_bbox[1])
