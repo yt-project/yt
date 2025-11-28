@@ -5650,9 +5650,6 @@ http-stream = [
 idefix = [
     { name = "yt-idefix", extra = ["hdf5"] },
 ]
-mapserver = [
-    { name = "bottle" },
-]
 moab = [
     { name = "h5py" },
 ]
@@ -5711,6 +5708,9 @@ docs = [
 mapping = [
     { name = "cartopy", extra = ["plotting"] },
 ]
+mapserver = [
+    { name = "bottle" },
+]
 nosetest = [
     { name = "nose" },
     { name = "nose-exclude" },
@@ -5728,7 +5728,6 @@ typecheck = [
 requires-dist = [
     { name = "arm-pyart", marker = "extra == 'cf-radial'", specifier = ">=1.19.2" },
     { name = "astropy", marker = "extra == 'fits'", specifier = ">=5.0.1" },
-    { name = "bottle", marker = "extra == 'mapserver'" },
     { name = "cartopy", marker = "extra == 'full'", specifier = ">=0.22.0" },
     { name = "cmyt", specifier = ">=1.1.2" },
     { name = "ewah-bool-utils", specifier = ">=1.2.0" },
@@ -5840,7 +5839,7 @@ requires-dist = [
     { name = "yt", extras = ["ytdata"], marker = "extra == 'full'" },
     { name = "yt-idefix", extras = ["hdf5"], marker = "extra == 'idefix'", specifier = ">=2.3.0" },
 ]
-provides-extras = ["hdf5", "netcdf4", "fortran", "adaptahop", "ahf", "amrex", "amrvac", "art", "arepo", "artio", "athena", "athena-pp", "boxlib", "cf-radial", "chimera", "chombo", "cholla", "eagle", "enzo-e", "enzo", "exodus-ii", "fits", "flash", "gadget", "gadget-fof", "gamer", "gdf", "gizmo", "halo-catalog", "http-stream", "idefix", "moab", "nc4-cm1", "open-pmd", "owls", "owls-subfind", "parthenon", "ramses", "rockstar", "sdf", "stream", "swift", "tipsy", "ytdata", "full", "mapserver", "test"]
+provides-extras = ["hdf5", "netcdf4", "fortran", "adaptahop", "ahf", "amrex", "amrvac", "art", "arepo", "artio", "athena", "athena-pp", "boxlib", "cf-radial", "chimera", "chombo", "cholla", "eagle", "enzo-e", "enzo", "exodus-ii", "fits", "flash", "gadget", "gadget-fof", "gamer", "gdf", "gizmo", "halo-catalog", "http-stream", "idefix", "moab", "nc4-cm1", "open-pmd", "owls", "owls-subfind", "parthenon", "ramses", "rockstar", "sdf", "stream", "swift", "tipsy", "ytdata", "full", "test"]
 
 [package.metadata.requires-dev]
 docs = [
@@ -5858,6 +5857,7 @@ docs = [
     { name = "sphinx-rtd-theme", specifier = ">=1.3.0" },
 ]
 mapping = [{ name = "cartopy", extras = ["plotting"], specifier = ">=0.22.0" }]
+mapserver = [{ name = "bottle", specifier = ">=0.13.0" }]
 nosetest = [
     { name = "nose", specifier = "~=1.3.7" },
     { name = "nose-exclude", specifier = ">=0.5.0" },
