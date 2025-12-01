@@ -18,7 +18,6 @@ from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.cython_fortran_utils import FortranFile as fpu
 from yt.utilities.lib.cosmology_time import t_frw, tau_frw
 from yt.utilities.on_demand_imports import _f90nml as f90nml
-from yt.utilities.parallel_tools.parallel_analysis_interface import communication_system
 from yt.utilities.physical_constants import kb, mp
 
 from .definitions import (
@@ -681,12 +680,14 @@ class RAMSESIndex(OctreeIndex):
 
             # In case of MPI parallelism, we need to keep the intersection
             # of all domains across all ranks
-            comm = communication_system.communicators[-1]
-            idomains = {dom.domain_id for dom in domains}
-            idomains = comm.comm.allreduce(set(idomains), op=lambda a, b: a & b)
+            if self.comm.size > 1:
+                idomains = {dom.domain_id for dom in domains}
+                idomains = self.comm.comm.allreduce(
+                    set(idomains), op=lambda a, b: a & b
+                )
 
-            # Keep domains that every rank has
-            domains = [dom for dom in domains if dom.domain_id in idomains]
+                # Keep domains that every rank has
+                domains = [dom for dom in domains if dom.domain_id in idomains]
 
             subsets = [
                 RAMSESDomainSubset(
