@@ -261,8 +261,15 @@ class RAMSESDomainFile:
             else:
                 self._ngridbound = np.zeros(hvals["nlevelmax"], dtype="int64")
             _free_mem = f.read_attrs((("free_mem", 5, "i"),))
-            _ordering = f.read_vector("c")
-            f.skip(4)
+            ordering = f.read_vector("c")
+            ordering = "".join(_.decode() for _ in ordering).strip()
+            if ordering == "hilbert":
+                Nskip = 1  # bound_key
+            elif ordering == "bisection":
+                Nskip = 5  #  bisec_wall, bisec_next, bisec_indx, bisec_cpubox_min, bisec_cpubox_max
+            else:
+                raise RuntimeError(f"Unknown ordering {ordering!r} in AMR file")
+            f.skip(Nskip + 3)  # skip son, flag1, cpu_map
             # Now we're at the tree itself
             # Now we iterate over each level and each CPU.
             position = f.tell()
