@@ -544,9 +544,6 @@ no-build-package = [
     "greenlet",
     "zope-interface",
 
-    # via arm-pyart
-    "fsspec",
-
     # via astropy
     "pyerfa",
 ]
@@ -566,4 +563,13 @@ constraint-dependencies = [
     "jedi>=0.18.1",
     "stack_data>=0.6.0",
     "pygments>=2.11.0",
+
+    # from pyart
+    # see https://github.com/ARM-DOE/pyart/pull/1813
+    "cftime>=1.5.1.1",
+    "fsspec>=2021.11.0",
+    "mda-xdrlib>=0.2.0",
+    "open-radar-data>=0.5.0",
+    "pint>=0.18.0",
+    "s3fs>=2021.11.0",
 ]

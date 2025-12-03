@@ -18,15 +18,21 @@ resolution-markers = [
 
 [manifest]
 constraints = [
+    { name = "cftime", specifier = ">=1.5.1.1" },
     { name = "decorator", specifier = ">=4.3.2" },
+    { name = "fsspec", specifier = ">=2021.11.0" },
     { name = "glue-core", specifier = "!=1.2.4" },
     { name = "imageio", specifier = "!=2.35.0" },
     { name = "iniconfig", specifier = ">=1.0.1" },
     { name = "ipython-pygments-lexers", specifier = ">=1.0.0" },
     { name = "jedi", specifier = ">=0.18.1" },
     { name = "jinja2", specifier = ">=2.11.3" },
+    { name = "mda-xdrlib", specifier = ">=0.2.0" },
     { name = "mpmath", specifier = ">=1.2.1" },
+    { name = "open-radar-data", specifier = ">=0.5.0" },
+    { name = "pint", specifier = ">=0.18.0" },
     { name = "pygments", specifier = ">=2.11.0" },
+    { name = "s3fs", specifier = ">=2021.11.0" },
     { name = "stack-data", specifier = ">=0.6.0" },
     { name = "sympy", specifier = "!=1.9,!=1.10" },
 ]
