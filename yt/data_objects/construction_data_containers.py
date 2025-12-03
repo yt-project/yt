@@ -2667,7 +2667,8 @@ class YTSurface(YTSelectionContainer3D):
         f.write(b"end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
-        vi = np.arange(nv, dtype="<i").reshape(nv // 3, 3)
+        vi = np.arange(nv, dtype="<i")
+        vi.shape = (nv // 3, 3)
         arr["v1"][:] = vi[:, 0]
         arr["v2"][:] = vi[:, 1]
         arr["v3"][:] = vi[:, 2]
