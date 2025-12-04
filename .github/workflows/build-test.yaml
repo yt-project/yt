@@ -56,7 +56,7 @@ jobs:
             sync_args: --extra=full
             tests-type: unit
             test-runner: pytest
-            label: alldeps
+            cache-suffix: alldeps
           - os: ubuntu-22.04
             python-version: '3.10.4'
             sync_args: --resolution=lowest
@@ -70,7 +70,7 @@ jobs:
             sync_args: "--extra=full --group=nosetest"
             tests-type: unit
             test-runner: nose
-            lcache-suffix: alldeps-nose
+            cache-suffix: alldeps-nose
           - os: ubuntu-latest
             # answer tests use 'yield', so they require nose
             # they are also attached to a specific, occasionally updated, Python version
