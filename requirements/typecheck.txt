@@ -1,5 +1,0 @@
-mypy==1.18.2
-types-PyYAML==6.0.12.20250915
-types-chardet==5.0.4.6
-types-requests==2.32.4.20250913
-typing-extensions==4.15.0; python_version < '3.12'

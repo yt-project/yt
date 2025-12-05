@@ -4,7 +4,7 @@ set -x   # Show which command is being run
 cp tests/matplotlibrc .
 
 # Step 1: pre-install required packages
-if [[ ${dependencies} == "full" || ${dependencies} == "cartopy" ]]; then
+if [[ ${sync_args} == *"full"* || ${sync_args} == *"mapping"* ]]; then
     case ${RUNNER_OS} in
     linux|Linux)
         sudo apt-get -qqy update
@@ -30,24 +30,10 @@ fi
 # Step 2: install deps and yt
 # installing in editable mode so this script may be used locally by developers
 # but the primary intention is to embed this script in CI jobs
-if [[ ${dependencies} == "minimal" ]]; then
-    # test with minimal versions of runtime dependencies
-    python -m pip install -e ".[test]" -r minimal_requirements.txt
-elif [[ ${dependencies} == "cartopy" ]]; then
-    python -m pip install 'cartopy>=0.22'
-    # scipy is an optional dependency to cartopy
-    python -m pip install scipy
-    python -m pip install -e ".[test]"
-elif [[ ${dependencies} == "full" ]]; then
-    # test with all optional runtime dependencies
-    python -m pip install -e ".[test,full]"
-else
-   # test with no special requirements
-   python -m pip install -e ".[test]"
-fi
+uv sync --extra=test ${sync_args}
 
 # Disable excessive output
-yt config set --local yt log_level 50
+uv run --no-sync yt config set --local yt log_level 50
 cat yt.toml
 
 set +x

@@ -1,14 +1,5 @@
 version: 2
 updates:
-- package-ecosystem: pip
-  directory: /requirements
-  schedule:
-    interval: monthly
-  groups:
-    actions:
-      patterns:
-      - '*'
-
 - package-ecosystem: github-actions
   directory: /.github/workflows
   schedule:
@@ -17,3 +8,14 @@ updates:
      actions:
        patterns:
        - '*'
+
+- package-ecosystem: uv
+  directory: /
+  schedule:
+    interval: monthly
+  cooldown:
+    default-days: 7
+  groups:
+    uv.lock-patches:
+      update-types:
+      - patch
