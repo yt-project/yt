@@ -31,7 +31,7 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Set up Python (newest testable version)
       uses: astral-sh/setup-uv@v7

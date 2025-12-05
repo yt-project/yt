@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
     - name: Set up uv
       uses: astral-sh/setup-uv@v7
       with:
@@ -98,7 +98,7 @@ jobs:
     steps:
     - name: Checkout repo (bare)
       if: matrix.tests-type != 'answer'
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
     - name: Set up Python
       uses: astral-sh/setup-uv@v7
       with:
@@ -107,7 +107,7 @@ jobs:
         prune-cache: false
     - name: Checkout repo (with submodules)
       if: matrix.tests-type == 'answer'
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         submodules: true
     - name: Install dependencies and yt
@@ -144,7 +144,7 @@ jobs:
 
     steps:
     - name: Checkout repo (with submodules)
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         submodules: true
     - name: Set up Python
