@@ -18,6 +18,8 @@ on:
     - cron: 0 3 * * 3
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   build:
     runs-on: ubuntu-latest

@@ -16,6 +16,7 @@ on:
       - setupext.py
   workflow_dispatch:
 
+permissions: {}
 
 jobs:
   build_wheels:

@@ -11,6 +11,8 @@ on:
       - .github/workflows/type-checking.yaml
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   build:
     runs-on: ubuntu-latest
