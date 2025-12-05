@@ -1545,7 +1545,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             leftover_cells = initial_tot - filled_cells
 
             for i in range(len(fields)):
-                replace_mask = output_fields[i] > 0
+                replace_mask = output_fields[i] != 0
                 ls.fields[i][replace_mask] = output_fields[i][replace_mask]
 
             if level == 0 and leftover_cells != 0:
