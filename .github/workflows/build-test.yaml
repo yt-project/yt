@@ -25,9 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        persist-credentials: false
     - name: Set up uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         version: ">=0.9.11,<0.10.0" # pin uv to avoid the lock file format going out-of-sync
         python-version: 3.14
@@ -98,18 +100,21 @@ jobs:
     steps:
     - name: Checkout repo (bare)
       if: matrix.tests-type != 'answer'
-      uses: actions/checkout@v6
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        persist-credentials: false
     - name: Set up Python
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         python-version: ${{ matrix.python-version }}
         cache-suffix: ${{ matrix.cache-suffix }}
         prune-cache: false
     - name: Checkout repo (with submodules)
       if: matrix.tests-type == 'answer'
-      uses: actions/checkout@v6
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         submodules: true
+        persist-credentials: false
     - name: Install dependencies and yt
       shell: bash
       env:
@@ -144,11 +149,12 @@ jobs:
 
     steps:
     - name: Checkout repo (with submodules)
-      uses: actions/checkout@v6
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         submodules: true
+        persist-credentials: false
     - name: Set up Python
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         python-version: '3.11'
         enable-cache: false
@@ -181,14 +187,14 @@ jobs:
     # (and especially) in case of failure.
     - name: Upload pytest-mpl report
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: yt_pytest_mpl_results
         path: pytest_mpl_results/*
 
     - name: Upload pytest-mpl baseline
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: yt_pytest_mpl_new_baseline
         path: pytest_mpl_new_baseline/*
