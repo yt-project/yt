@@ -1,0 +1,30 @@
+# Auto request reviews from specific users or teams matching patterns
+#
+# - the yt-project retains ownership of any code within this repo unless explicitly stated otherwise
+# - automated requests for reviews are informational and not binding: any party remains
+#   free to conduct reviews or not
+# - opting in is purely on a voluntary basis and cannot be done by a third party
+# - opting out does not require the person or team to open a PR themselves
+# but stakeholders should be contacted if done by a third party.
+#
+# Documentation at
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# general dependency and CI management
+pyproject.toml              @neutrinoceros
+uv.lock                     @neutrinoceros
+.pre-commit-config.yaml     @neutrinoceros
+.git(|hub)                  @neutrinoceros
+
+
+# build
+setup(|ext).py              @neutrinoceros
+MANIFEST.in                 @neutrinoceros
+
+
+# testing
+conftest.py                 @neutrinoceros
+
+
+# frontends
+yt/frontends/amrvac         @neutrinoceros
