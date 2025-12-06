@@ -1,6 +1,7 @@
 from typing import Any, Optional, TypeAlias
 
 import numpy as np
+import numpy.typing as npt
 import unyt as un
 
 FieldDescT = tuple[str, tuple[str, list[str], str | None]]
@@ -12,12 +13,12 @@ FieldName = str
 FieldKey = tuple[FieldType, FieldName]
 ImplicitFieldKey = FieldName
 AnyFieldKey = FieldKey | ImplicitFieldKey
-DomainDimensions = tuple[int, ...] | list[int] | np.ndarray
+DomainDimensions = tuple[int, ...] | list[int] | npt.NDArray
 
 ParticleCoordinateTuple = tuple[
     str,  # particle type
-    tuple[np.ndarray, np.ndarray, np.ndarray],  # xyz
-    float | np.ndarray,  # hsml
+    tuple[npt.NDArray, npt.NDArray, npt.NDArray],  # xyz
+    float | npt.NDArray,  # hsml
 ]
 
 # Geometry specific types
@@ -33,5 +34,5 @@ Quantity = un.unyt_quantity | tuple[float, Unit]
 # np.ndarray[...] syntax is runtime-valid from numpy 1.22, we quote it until our minimal
 # runtime requirement is bumped to, or beyond this version
 
-MaskT = Optional["np.ndarray[Any, np.dtype[np.bool_]]"]
-AlphaT = Optional["np.ndarray[Any, np.dtype[np.float64]]"]
+MaskT = Optional["npt.NDArray[Any]"]
+AlphaT = Optional["npt.NDArray[Any]"]

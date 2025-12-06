@@ -7,6 +7,7 @@ from itertools import chain, count
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import numpy.typing as nptype
 
 from yt._typing import FieldKey
 from yt.config import ytcfg
@@ -71,7 +72,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
     #       assumed to be `self`).
     reader: Callable[
         ["RAMSESDomainSubset", list[FieldKey], int],
-        dict[FieldKey, np.ndarray],
+        dict[FieldKey, nptype.NDArray],
     ]
 
     # Name of the config section (if any)
@@ -162,7 +163,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
         self.read_header()
         return self._header
 
-    def handle_field(self, field: FieldKey, data_dict: dict[FieldKey, np.ndarray]):
+    def handle_field(self, field: FieldKey, data_dict: dict[FieldKey, nptype.NDArray]):
         """
         This function allows custom code to be called to handle special cases,
         such as the particle birth time.
@@ -173,7 +174,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
         ----------
         field : FieldKey
             The field name.
-        data_dict : dict[FieldKey, np.ndarray]
+        data_dict : dict[FieldKey, nptype.NDArray]
             A dictionary containing the data.
 
         By default, this function does nothing.
@@ -346,7 +347,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     def has_birth_file(self):
         return os.path.exists(self.birth_file_fname)
 
-    def handle_field(self, field: FieldKey, data_dict: dict[FieldKey, np.ndarray]):
+    def handle_field(self, field: FieldKey, data_dict: dict[FieldKey, nptype.NDArray]):
         _ptype, fname = field
         if not (fname == "particle_birth_time" and self.ds.cosmological_simulation):
             return
@@ -492,7 +493,7 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
         self._field_offsets = field_offsets
         self._field_types = _pfields
 
-    def handle_field(self, field: FieldKey, data_dict: dict[FieldKey, np.ndarray]):
+    def handle_field(self, field: FieldKey, data_dict: dict[FieldKey, nptype.NDArray]):
         _ptype, fname = field
         if not (fname == "particle_birth_time" and self.ds.cosmological_simulation):
             return

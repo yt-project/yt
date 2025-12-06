@@ -3,6 +3,7 @@ import weakref
 from collections import defaultdict
 
 import numpy as np
+import numpy.typing as npt
 
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
@@ -447,10 +448,10 @@ class GridIndex(Index, abc.ABC):
 
     def _icoords_to_fcoords(
         self,
-        icoords: np.ndarray,
-        ires: np.ndarray,
+        icoords: npt.NDArray,
+        ires: npt.NDArray,
         axes: tuple[int, ...] | None = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[npt.NDArray, npt.NDArray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured

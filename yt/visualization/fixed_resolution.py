@@ -4,6 +4,7 @@ from functools import partial
 from typing import TYPE_CHECKING
 
 import numpy as np
+import numpy.typing as nptype
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import FieldKey, MaskT
@@ -227,7 +228,7 @@ class FixedResolutionBuffer:
         # this method exists for clarity of intention
         return self[item]
 
-    def _apply_filters(self, buffer: np.ndarray) -> np.ndarray:
+    def _apply_filters(self, buffer: nptype.NDArray) -> nptype.NDArray:
         for f in self._filters:
             buffer = f(buffer)
         return buffer

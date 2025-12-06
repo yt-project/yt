@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 import numpy as np
+import numpy.typing as nptype
 
 from yt.data_objects.selection_objects.region import YTRegion
 from yt.geometry.selection_routines import (
@@ -49,8 +50,8 @@ _STATE_DIAGRAM = np.array(
 
 
 def hilbert3d(
-    ijk: "np.ndarray[Any, np.dtype[np.int64]]", bit_length: int
-) -> "np.ndarray[Any, np.dtype[np.float64]]":
+    ijk: "nptype.NDArray[Any, np.dtype[np.int64]]", bit_length: int
+) -> "nptype.NDArray[Any, np.dtype[np.float64]]":
     """Compute the order using Hilbert indexing.
 
     Arguments
@@ -70,11 +71,11 @@ def hilbert3d(
 def get_intersecting_cpus(
     ds,
     region: YTRegion,
-    LE: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
+    LE: Optional["nptype.NDArray[Any, np.dtype[np.float64]]"] = None,
     dx: float = 1.0,
     dx_cond: float | None = None,
     factor: float = 4.0,
-    bound_keys: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
+    bound_keys: Optional["nptype.NDArray[Any, np.dtype[np.float64]]"] = None,
 ) -> set[int]:
     """
     Find the subset of CPUs that intersect the bbox in a recursive fashion.
@@ -119,8 +120,8 @@ def get_intersecting_cpus(
 
 def get_cpu_list_cuboid(
     ds,
-    X: "np.ndarray[Any, np.dtype[np.float64]]",
-    bound_keys: "np.ndarray[Any, np.dtype[np.float64]]",
+    X: "nptype.NDArray[Any, np.dtype[np.float64]]",
+    bound_keys: "nptype.NDArray[Any, np.dtype[np.float64]]",
 ) -> set[int]:
     """
     Return the list of the CPU intersecting with the cuboid containing the positions.

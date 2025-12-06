@@ -3,6 +3,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Union
 
 import numpy as np
+import numpy.typing as nptype
 from unyt import unyt_array
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -37,7 +38,7 @@ def convert_ramses_ages(ds, conformal_ages):
 
 
 def convert_ramses_conformal_time_to_physical_time(
-    ds, conformal_time: np.ndarray
+    ds, conformal_time: nptype.NDArray
 ) -> unyt_array:
     """
     Convert conformal times (as defined in RAMSES) to physical times.
@@ -82,7 +83,7 @@ def _ramses_particle_binary_file_handler(
     subset: "RAMSESDomainSubset",
     fields: list[FieldKey],
     count: int,
-) -> dict[FieldKey, np.ndarray]:
+) -> dict[FieldKey, nptype.NDArray]:
     """General file handler for binary file, called by _read_particle_subset
 
     Parameters
@@ -130,7 +131,7 @@ def _ramses_particle_csv_file_handler(
     subset: "RAMSESDomainSubset",
     fields: list[FieldKey],
     count: int,
-) -> dict[FieldKey, np.ndarray]:
+) -> dict[FieldKey, nptype.NDArray]:
     """General file handler for csv file, called by _read_particle_subset
 
     Parameters
