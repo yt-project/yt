@@ -22,7 +22,7 @@ class RockstarBinaryFile(HaloCatalogFile):
     header: dict
     _position_offset: int
     _member_offset: int
-    _Npart: "nptype.NDArray[Any, np.dtype[np.int64]]"
+    _Npart: "nptype.NDArray[np.int64]"
     _ids_halos: list[int]
     _file_size: int
 
@@ -50,7 +50,7 @@ class RockstarBinaryFile(HaloCatalogFile):
 
     def _read_member(
         self, ihalo: int
-    ) -> Optional["nptype.NDArray[Any, np.dtype[np.int64]]"]:
+    ) -> Optional["nptype.NDArray[np.int64]"]:
         if ihalo not in self._ids_halos:
             return None
 

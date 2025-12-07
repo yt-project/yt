@@ -97,7 +97,7 @@ def _ramses_particle_binary_file_handler(
     count: integer
         The number of elements to count
     """
-    tr = {}
+    tr: dict[FieldKey, nptype.NDArray] = {}
     ds = subset.domain.ds
     foffsets = particle_handler.field_offsets
     fname = particle_handler.fname
@@ -147,7 +147,7 @@ def _ramses_particle_csv_file_handler(
     """
     from yt.utilities.on_demand_imports import _pandas as pd
 
-    tr = {}
+    tr: dict[FieldKey, nptype.NDArray] = {}
     ds = subset.domain.ds
     foffsets = particle_handler.field_offsets
     fname = particle_handler.fname

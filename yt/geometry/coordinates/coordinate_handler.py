@@ -159,7 +159,7 @@ class CoordinateHandler(abc.ABC):
         periodic=True,
         *,
         return_mask: Literal[False],
-    ) -> "npt.NDArray[Any, np.dtype[np.float64]]": ...
+    ) -> "npt.NDArray[np.float64]": ...
 
     @overload
     def pixelize(
@@ -174,7 +174,7 @@ class CoordinateHandler(abc.ABC):
         *,
         return_mask: Literal[True],
     ) -> tuple[
-        "npt.NDArray[Any, np.dtype[np.float64]]", "npt.NDArray[Any, np.dtype[np.bool_]]"
+        "npt.NDArray[np.float64]", "npt.NDArray[np.bool_]"
     ]: ...
 
     @abc.abstractmethod

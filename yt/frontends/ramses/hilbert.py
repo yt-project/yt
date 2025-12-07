@@ -50,8 +50,8 @@ _STATE_DIAGRAM = np.array(
 
 
 def hilbert3d(
-    ijk: "nptype.NDArray[Any, np.dtype[np.int64]]", bit_length: int
-) -> "nptype.NDArray[Any, np.dtype[np.float64]]":
+    ijk: "nptype.NDArray[np.int64]", bit_length: int
+) -> "nptype.NDArray[np.float64]":
     """Compute the order using Hilbert indexing.
 
     Arguments
@@ -71,11 +71,11 @@ def hilbert3d(
 def get_intersecting_cpus(
     ds,
     region: YTRegion,
-    LE: Optional["nptype.NDArray[Any, np.dtype[np.float64]]"] = None,
+    LE: Optional["nptype.NDArray[np.float64]"] = None,
     dx: float = 1.0,
     dx_cond: float | None = None,
     factor: float = 4.0,
-    bound_keys: Optional["nptype.NDArray[Any, np.dtype[np.float64]]"] = None,
+    bound_keys: Optional["nptype.NDArray[np.float64]"] = None,
 ) -> set[int]:
     """
     Find the subset of CPUs that intersect the bbox in a recursive fashion.
@@ -120,8 +120,8 @@ def get_intersecting_cpus(
 
 def get_cpu_list_cuboid(
     ds,
-    X: "nptype.NDArray[Any, np.dtype[np.float64]]",
-    bound_keys: "nptype.NDArray[Any, np.dtype[np.float64]]",
+    X: "nptype.NDArray[np.float64]",
+    bound_keys: "nptype.NDArray[np.float64]",
 ) -> set[int]:
     """
     Return the list of the CPU intersecting with the cuboid containing the positions.
