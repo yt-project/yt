@@ -875,6 +875,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         # their cell centers.
         self._data_source.loose_selection = True
 
+    def get_bbox(self):
+        return (self.left_edge, self.right_edge)
+
     def get_data(self, fields=None):
         if fields is None:
             return
