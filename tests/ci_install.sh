@@ -1,28 +1,16 @@
 set -x   # Show which command is being run
 
-# Sets default backend to Agg
-cp tests/matplotlibrc .
-
 # Step 1: pre-install required packages
 if [[ ${sync_args} == *"full"* || ${sync_args} == *"mapping"* ]]; then
     case ${RUNNER_OS} in
     linux|Linux)
         sudo apt-get -qqy update
-        sudo apt-get -qqy install \
-        libhdf5-serial-dev \
-        libnetcdf-dev \
-        libopenmpi-dev \
-        libfuse2
+        sudo apt-get -qqy install libfuse2
         ;;
     osx|macOS)
         sudo mkdir -p /usr/local/man
         sudo chown -R "${USER}:admin" /usr/local/man
-        # uninstalling pkg-config to workaround a bug in macOS image
-        # https://github.com/Homebrew/homebrew-core/pull/198691#issuecomment-2495500991
-        # this can be cleaned-up once the following patch is released:
-        # https://github.com/actions/runner-images/pull/11015
-        HOMEBREW_NO_AUTO_UPDATE=1 brew uninstall pkg-config@0.29.2 || true
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 open-mpi netcdf ccache macfuse
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install macfuse
         ;;
     esac
 fi
