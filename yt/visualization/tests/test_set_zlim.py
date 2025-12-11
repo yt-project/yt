@@ -1,5 +1,5 @@
 import numpy as np
-import numpy.testing as npt
+import numpy.testing as nptesting
 import pytest
 
 from yt.testing import fake_amr_ds
@@ -24,7 +24,7 @@ def test_float_vmin_then_set_unit():
     p.render()
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
-    npt.assert_almost_equal(new_lims, desired_lims)
+    nptesting.assert_almost_equal(new_lims, desired_lims)
 
     # 1 g/cm**3 == 1000 kg/m**3
     p.set_unit(field, "kg/m**3")
@@ -32,7 +32,7 @@ def test_float_vmin_then_set_unit():
 
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
-    npt.assert_almost_equal(new_lims, 1000 * desired_lims)
+    nptesting.assert_almost_equal(new_lims, 1000 * desired_lims)
 
 
 def test_set_unit_then_float_vmin():
@@ -70,7 +70,7 @@ def test_reset_zlim():
 
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
-    npt.assert_array_equal(new_lims, raw_lims)
+    nptesting.assert_array_equal(new_lims, raw_lims)
 
 
 def test_set_dynamic_range_with_vmin():
@@ -86,7 +86,7 @@ def test_set_dynamic_range_with_vmin():
     p.render()
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
-    npt.assert_almost_equal(new_lims, (zmin, 2 * zmin))
+    nptesting.assert_almost_equal(new_lims, (zmin, 2 * zmin))
 
 
 def test_set_dynamic_range_with_vmax():
@@ -102,7 +102,7 @@ def test_set_dynamic_range_with_vmax():
     p.render()
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
-    npt.assert_almost_equal(new_lims, (zmax / 2, zmax))
+    nptesting.assert_almost_equal(new_lims, (zmax / 2, zmax))
 
 
 def test_set_dynamic_range_with_min():
@@ -121,7 +121,7 @@ def test_set_dynamic_range_with_min():
     p.render()
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
-    npt.assert_almost_equal(new_lims, (vmin, 2 * vmin))
+    nptesting.assert_almost_equal(new_lims, (vmin, 2 * vmin))
 
 
 def test_set_dynamic_range_with_None():
@@ -141,4 +141,4 @@ def test_set_dynamic_range_with_None():
     p.render()
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
-    npt.assert_almost_equal(new_lims, (vmin, 2 * vmin))
+    nptesting.assert_almost_equal(new_lims, (vmin, 2 * vmin))
