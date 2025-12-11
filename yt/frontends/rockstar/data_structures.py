@@ -4,7 +4,7 @@ from functools import cached_property
 from typing import Any, Optional
 
 import numpy as np
-import numpy.typing as nptype
+import numpy.typing as npt
 
 from yt.data_objects.static_output import ParticleDataset
 from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
@@ -22,7 +22,7 @@ class RockstarBinaryFile(HaloCatalogFile):
     header: dict
     _position_offset: int
     _member_offset: int
-    _Npart: "nptype.NDArray[np.int64]"
+    _Npart: "npt.NDArray[np.int64]"
     _ids_halos: list[int]
     _file_size: int
 
@@ -50,7 +50,7 @@ class RockstarBinaryFile(HaloCatalogFile):
 
     def _read_member(
         self, ihalo: int
-    ) -> Optional["nptype.NDArray[np.int64]"]:
+    ) -> Optional["npt.NDArray[np.int64]"]:
         if ihalo not in self._ids_halos:
             return None
 

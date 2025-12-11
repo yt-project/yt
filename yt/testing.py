@@ -15,7 +15,7 @@ from unittest import SkipTest
 
 import matplotlib
 import numpy as np
-import numpy.typing as nptype
+import numpy.typing as npt
 from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
@@ -92,8 +92,8 @@ def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
 
 # tested: volume integral is 1.
 def cubicspline_python(
-    x: float | nptype.NDArray[np.floating],
-) -> nptype.NDArray[np.floating]:
+    x: float | npt.NDArray[np.floating],
+) -> npt.NDArray[np.floating]:
     """
     cubic spline SPH kernel function for testing against more
     effiecient cython methods
@@ -120,11 +120,11 @@ def cubicspline_python(
 
 def integrate_kernel(
     kernelfunc: Callable[
-        [float | nptype.NDArray[np.floating]], float | nptype.NDArray[np.floating]
+        [float | npt.NDArray[np.floating]], float | npt.NDArray[np.floating]
     ],
-    b: float | nptype.NDArray[np.floating],
-    hsml: float | nptype.NDArray[np.floating],
-) -> nptype.NDArray[np.floating]:
+    b: float | npt.NDArray[np.floating],
+    hsml: float | npt.NDArray[np.floating],
+) -> npt.NDArray[np.floating]:
     """
     integrates a kernel function over a line passing entirely
     through it
@@ -162,11 +162,11 @@ _FloatingT = TypeVar("_FloatingT", bound=np.floating)
 
 
 def distancematrix(
-    pos3_i0: nptype.NDArray[_FloatingT],
-    pos3_i1: nptype.NDArray[_FloatingT],
+    pos3_i0: npt.NDArray[_FloatingT],
+    pos3_i1: npt.NDArray[_FloatingT],
     periodic: tuple[bool, bool, bool] = (True,) * 3,
-    periods: nptype.NDArray[_FloatingT] = _zeroperiods,
-) -> nptype.NDArray[_FloatingT]:
+    periods: npt.NDArray[_FloatingT] = _zeroperiods,
+) -> npt.NDArray[_FloatingT]:
     """
     Calculates the distances between two arrays of points.
 
@@ -830,14 +830,14 @@ def fake_sph_flexible_grid_ds(
     hsml_factor: float = 1.0,
     nperside: int = 3,
     periodic: bool = True,
-    e1hat: nptype.NDArray = _xhat,
-    e2hat: nptype.NDArray = _yhat,
-    e3hat: nptype.NDArray = _zhat,
-    offsets: nptype.NDArray = _floathalves,
+    e1hat: np.ndarray = _xhat,
+    e2hat: np.ndarray = _yhat,
+    e3hat: np.ndarray = _zhat,
+    offsets: np.ndarray = _floathalves,
     massgenerator: Callable[[int, int, int], float] = constantmass,
     unitrho: float = 1.0,
-    bbox: nptype.NDArray | None = None,
-    recenter: nptype.NDArray | None = None,
+    bbox: np.ndarray | None = None,
+    recenter: np.ndarray | None = None,
 ) -> StreamParticlesDataset:
     """Returns an in-memory SPH dataset useful for testing
 
@@ -934,7 +934,7 @@ def fake_sph_flexible_grid_ds(
     else:
         okinds = np.ones((npart,), dtype=bool)
 
-    data: Mapping[AnyFieldKey, tuple[nptype.NDArray, str]] = {
+    data: Mapping[AnyFieldKey, tuple[np.ndarray, str]] = {
         "particle_position_x": (np.copy(pos[okinds, 0]), "cm"),
         "particle_position_y": (np.copy(pos[okinds, 1]), "cm"),
         "particle_position_z": (np.copy(pos[okinds, 2]), "cm"),
@@ -961,7 +961,7 @@ def fake_sph_flexible_grid_ds(
 
 def fake_random_sph_ds(
     npart: int,
-    bbox: nptype.NDArray,
+    bbox: np.ndarray,
     periodic: bool | tuple[bool, bool, bool] = True,
     massrange: tuple[float, float] = (0.5, 2.0),
     hsmlrange: tuple[float, float] = (0.5, 2.0),
@@ -1005,7 +1005,7 @@ def fake_random_sph_ds(
     hsml = gen.uniform(low=hsmlrange[0], high=hsmlrange[1], size=npart)
     dens = mass / hsml**3 * unitrho
 
-    data: Mapping[AnyFieldKey, tuple[nptype.NDArray, str]] = {
+    data: Mapping[AnyFieldKey, tuple[np.ndarray, str]] = {
         "particle_position_x": (posx, "cm"),
         "particle_position_y": (posy, "cm"),
         "particle_position_z": (posz, "cm"),

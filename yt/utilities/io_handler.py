@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from functools import _make_key, lru_cache
 
 import numpy as np
-import numpy.typing as nptype
+import numpy.typing as npt
 
 from yt._typing import FieldKey, ParticleCoordinateTuple
 from yt.geometry.selection_routines import GridSelector
@@ -97,7 +97,7 @@ class BaseIOHandler:
 
     def _read_fluid_selection(
         self, chunks, selector, fields: list[FieldKey], size
-    ) -> Mapping[FieldKey, nptype.NDArray]:
+    ) -> Mapping[FieldKey, npt.NDArray]:
         # This function has an interesting history.  It previously was mandate
         # to be defined by all of the subclasses.  But, to avoid having to
         # rewrite a whole bunch of IO handlers all at once, and to allow a
@@ -166,8 +166,8 @@ class BaseIOHandler:
 
     def _read_particle_selection(
         self, chunks, selector, fields: list[FieldKey]
-    ) -> dict[FieldKey, nptype.NDArray]:
-        data: dict[FieldKey, list[nptype.NDArray]] = {}
+    ) -> dict[FieldKey, npt.NDArray]:
+        data: dict[FieldKey, list[npt.NDArray]] = {}
 
         # Initialize containers for tracking particle, field information
         # ptf (particle field types) maps particle type to list of on-disk fields to read
@@ -197,7 +197,7 @@ class BaseIOHandler:
             for field_f in field_maps[field_r]:
                 data[field_f].append(vals)
 
-        rv: dict[FieldKey, nptype.NDArray] = {}  # the return dictionary
+        rv: dict[FieldKey, npt.NDArray] = {}  # the return dictionary
         fields = list(data.keys())
         for field_f in fields:
             # We need to ensure the arrays have the right shape if there are no

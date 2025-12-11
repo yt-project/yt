@@ -3,7 +3,7 @@ import weakref
 from collections import defaultdict
 
 import numpy as np
-import numpy.typing as nptype
+import numpy.typing as npt
 
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
@@ -340,10 +340,10 @@ class ARTIOIndex(Index):
 
     def _icoords_to_fcoords(
         self,
-        icoords: nptype.NDArray,
-        ires: nptype.NDArray,
+        icoords: npt.NDArray,
+        ires: npt.NDArray,
         axes: tuple[int, ...] | None = None,
-    ) -> tuple[nptype.NDArray, nptype.NDArray]:
+    ) -> tuple[npt.NDArray, npt.NDArray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured

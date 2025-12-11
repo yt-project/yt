@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Union
 
 import matplotlib
 import numpy as np
-import numpy.typing as nptype
+import numpy.typing as npt
 from more_itertools import always_iterable
 from unyt.exceptions import UnitConversionError
 
@@ -1394,7 +1394,7 @@ class NormalPlot:
     """
 
     @staticmethod
-    def sanitize_normal_vector(ds, normal) -> str | nptype.NDArray:
+    def sanitize_normal_vector(ds, normal) -> str | npt.NDArray:
         """Return the name of a cartesian axis whener possible,
         or a 3-element 1D ndarray of float64 in any other valid case.
         Fail with a descriptive error message otherwise.
