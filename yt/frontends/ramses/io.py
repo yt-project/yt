@@ -374,7 +374,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
 
     # Fields name from the default csv RAMSES sink algorithm in the yt default convention
     mapping = {
-        " # id": "particle_identifier",
+        "# id": "particle_identifier",
         "msink": "particle_mass",
         "x": "particle_position_x",
         "y": "particle_position_y",
@@ -405,6 +405,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     local_particle_count = len(dat)
 
     for varname in dat.columns:
+        varname = varname.strip()
         if varname in mapping:
             varname = mapping[varname]
         else:
