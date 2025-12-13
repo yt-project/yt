@@ -34,5 +34,5 @@ Quantity = un.unyt_quantity | tuple[float, Unit]
 # np.ndarray[...] syntax is runtime-valid from numpy 1.22, we quote it until our minimal
 # runtime requirement is bumped to, or beyond this version
 
-MaskT = Optional["npt.NDArray[Any]"]
-AlphaT = Optional["npt.NDArray[Any]"]
+MaskT = Optional["npt.NDArray[np.bool_]"]
+AlphaT = Optional["npt.NDArray[np.float64]"]
