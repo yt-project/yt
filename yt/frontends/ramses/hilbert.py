@@ -51,7 +51,7 @@ _STATE_DIAGRAM = np.array(
 
 def hilbert3d(
     ijk: "npt.NDArray[np.int64]", bit_length: int
-) -> "npt.NDArray[np.float64]":
+) -> "npt.NDArray[np.int64]":
     """Compute the order using Hilbert indexing.
 
     Arguments
