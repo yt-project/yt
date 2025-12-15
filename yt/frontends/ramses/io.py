@@ -158,7 +158,7 @@ def _ramses_particle_csv_file_handler(
     # read only selected fields
     dat = pd.read_csv(
         fname,
-        delimiter="\s*,\s*",
+        delimiter=r"\s*,\s*",
         usecols=[ind for _field, ind in list_field_ind],
         skiprows=2,
         header=None,
