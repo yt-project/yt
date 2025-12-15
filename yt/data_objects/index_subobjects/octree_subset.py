@@ -82,6 +82,9 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
     def nz(self):
         return self._num_zones + 2 * self._num_ghost_zones
 
+    def get_bbox(self):
+        return self.base_region.get_bbox()
+
     def _reshape_vals(self, arr):
         nz = self.nz
         if len(arr.shape) <= 2:
