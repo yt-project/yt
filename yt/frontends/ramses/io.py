@@ -159,6 +159,7 @@ def _ramses_particle_csv_file_handler(
     dat = pd.read_csv(
         fname,
         delimiter=r"\s*,\s*",
+        engine="python",
         usecols=[ind for _field, ind in list_field_ind],
         skiprows=2,
         header=None,
@@ -400,7 +401,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     }
 
     # read the all file to get the number of particle
-    dat = pd.read_csv(fname, delimiter=r"\s*,\s*")
+    dat = pd.read_csv(fname, delimiter=r"\s*,\s*", engine="python")
     fields = []
     local_particle_count = len(dat)
 
