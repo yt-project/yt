@@ -1,7 +1,7 @@
 import glob
 import os
 from functools import cached_property
-from typing import Any, Optional
+from typing import Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -48,9 +48,7 @@ class RockstarBinaryFile(HaloCatalogFile):
 
         super().__init__(ds, io, filename, file_id, range)
 
-    def _read_member(
-        self, ihalo: int
-    ) -> Optional["npt.NDArray[np.int64]"]:
+    def _read_member(self, ihalo: int) -> Optional["npt.NDArray[np.int64]"]:
         if ihalo not in self._ids_halos:
             return None
 

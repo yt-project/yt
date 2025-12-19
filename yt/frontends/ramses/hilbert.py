@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -49,9 +49,7 @@ _STATE_DIAGRAM = np.array(
 )
 
 
-def hilbert3d(
-    ijk: "npt.NDArray[np.int64]", bit_length: int
-) -> "npt.NDArray[np.int64]":
+def hilbert3d(ijk: "npt.NDArray[np.int64]", bit_length: int) -> "npt.NDArray[np.int64]":
     """Compute the order using Hilbert indexing.
 
     Arguments

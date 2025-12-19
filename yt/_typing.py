@@ -1,4 +1,4 @@
-from typing import Any, Optional, TypeAlias
+from typing import Optional, TypeAlias
 
 import numpy as np
 import numpy.typing as npt
