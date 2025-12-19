@@ -11,6 +11,8 @@ defaults:
   run:
     shell: bash
 
+permissions: {}
+
 jobs:
   check-lock-file:
     # validate uv.lock against requirements
