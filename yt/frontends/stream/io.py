@@ -258,6 +258,9 @@ class IOHandlerStreamOctree(BaseIOHandler):
                     field_vals[field] = self.fields[
                         subset.domain_id - subset._domain_offset
                     ][field]
+
+                    if callable(field_vals[field]):
+                        field_vals[field] = field_vals[field]()
                 subset.fill(field_vals, rv, selector, ind)
         return rv
 
