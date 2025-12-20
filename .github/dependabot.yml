@@ -4,10 +4,12 @@ updates:
   directory: /.github/workflows
   schedule:
     interval: monthly
+  cooldown:
+    default-days: 7
   groups:
-     actions:
-       patterns:
-       - '*'
+     gha-patches:
+      update-types:
+      - patch
 
 - package-ecosystem: uv
   directory: /
