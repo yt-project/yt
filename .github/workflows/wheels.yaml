@@ -16,6 +16,7 @@ on:
       - setupext.py
   workflow_dispatch:
 
+permissions: {}
 
 jobs:
   build_wheels:
@@ -48,10 +49,12 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Build wheels for CPython
-        uses: pypa/cibuildwheel@v3.3.0
+        uses: pypa/cibuildwheel@63fd63b352a9a8bdcc24791c9dbee952ee9a8abc # v3.3.0
         with:
           extras: uv
           output-dir: dist
@@ -59,7 +62,7 @@ jobs:
           CIBW_ARCHS: ${{ matrix.archs }}
           CIBW_BUILD: ${{ matrix.select }}
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.id }}
           path: ./dist/*.whl
@@ -69,10 +72,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
         with:
           python-version: '3.10'
           enable-cache: false
@@ -81,7 +86,7 @@ jobs:
         run: uv build --sdist
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -93,7 +98,7 @@ jobs:
           cp conftest.py cfg
 
       - name: Upload pytest configuration files
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: pytest-conf
           path: cfg
@@ -104,20 +109,20 @@ jobs:
     needs: [build_sdist]
     steps:
       - name: Download sdist
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: sdist
           path: dist
 
       - name: Set up Python
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
         with:
           python-version: '3.10'
           enable-cache: false
           activate-environment: true # allows using uv pip directly
 
       - name: Download pytest configuration files
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: pytest-conf
           path: cfg
@@ -140,11 +145,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         submodules: true
+        persist-credentials: false
     - name: Set up Python
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         python-version: '3.13'
         enable-cache: false
@@ -159,20 +165,20 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/yt-')
     steps:
       - name: Download sdist
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: sdist
           path: dist
 
       - name: Download wheels
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           path: dist
           pattern: wheels-*
           merge-multiple: true
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.13.0
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0 # zizmor: ignore[use-trusted-publishing]
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}

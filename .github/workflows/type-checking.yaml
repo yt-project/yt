@@ -11,6 +11,8 @@ on:
       - .github/workflows/type-checking.yaml
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,10 +26,12 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        persist-credentials: false
 
     - name: Set up Python
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         # run with oldest supported python version
         # so that we always get compatible versions of

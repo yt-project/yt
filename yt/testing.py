@@ -1080,10 +1080,11 @@ def fake_octree_ds(
 
     if quantities is None:
         quantities = {}
+        # Try both callable and arrays
         quantities["gas", "density"] = prng.random_sample((particles, 1))
         quantities["gas", "velocity_x"] = prng.random_sample((particles, 1))
         quantities["gas", "velocity_y"] = prng.random_sample((particles, 1))
-        quantities["gas", "velocity_z"] = prng.random_sample((particles, 1))
+        quantities["gas", "velocity_z"] = lambda: prng.random_sample((particles, 1))
 
     ds = load_octree(
         octree_mask=octree_mask,

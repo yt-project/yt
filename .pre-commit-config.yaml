@@ -27,6 +27,11 @@ repos:
     - id: check-executables-have-shebangs
     - id: check-yaml
 
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: v1.18.0
+  hooks:
+    - id: zizmor
+
 # TODO: replace this with ruff when it supports embedded python blocks
 # see https://github.com/astral-sh/ruff/issues/8237
 -   repo: https://github.com/adamchainz/blacken-docs

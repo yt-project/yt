@@ -1125,6 +1125,8 @@ def load_octree(
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
     >>> quantities["gas", "density"] = np.random.random((29, 1)) # num of false's
+    >>> # Quantities can also contain parameter-less callbacks
+    >>> quantities["gas", "temperature"] = lambda: np.random.random((29, 1)) * 1e4
     >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
     >>> ds = load_octree(
