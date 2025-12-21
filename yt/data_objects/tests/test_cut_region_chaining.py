@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.testing import assert_equal
+
 from yt.testing import fake_random_ds
 
 def test_chained_cut_region_with_locals():
