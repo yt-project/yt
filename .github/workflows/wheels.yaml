@@ -62,7 +62,7 @@ jobs:
           CIBW_ARCHS: ${{ matrix.archs }}
           CIBW_BUILD: ${{ matrix.select }}
 
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.id }}
           path: ./dist/*.whl
@@ -86,7 +86,7 @@ jobs:
         run: uv build --sdist
 
       - name: Upload sdist
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -98,7 +98,7 @@ jobs:
           cp conftest.py cfg
 
       - name: Upload pytest configuration files
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: pytest-conf
           path: cfg
