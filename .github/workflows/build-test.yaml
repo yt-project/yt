@@ -28,7 +28,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Set up uv
-      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+      uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
         version: ">=0.9.11,<0.10.0" # pin uv to avoid the lock file format going out-of-sync
         python-version: 3.14
@@ -103,7 +103,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Set up Python
-      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+      uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
         python-version: ${{ matrix.python-version }}
         cache-suffix: ${{ matrix.cache-suffix }}
@@ -157,7 +157,7 @@ jobs:
         submodules: true
         persist-credentials: false
     - name: Set up Python
-      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+      uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
         python-version: '3.11'
         enable-cache: false
