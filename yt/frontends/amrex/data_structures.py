@@ -4,9 +4,9 @@ import re
 from collections import namedtuple
 from functools import cached_property
 from stat import ST_CTIME
-from packaging.version import Version
 
 import numpy as np
+from packaging.version import Version
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
@@ -1670,7 +1670,7 @@ class QuokkaDataset(AMReXDataset):
                 }
 
         # Update parameters with particle info
-        self.parameters["particles"] = len(detected_particle_types),
+        self.parameters["particles"] = (len(detected_particle_types),)
         self.parameters["particle_types"] = tuple(detected_particle_types)
         self.parameters["particle_info"] = particle_info
 
@@ -1699,7 +1699,7 @@ class QuokkaDataset(AMReXDataset):
                     return
 
                 # Get quokka version, default to 0.0 if not present
-                quokka_version = Version(str(metadata.get("quokka_version", "0.0")))                
+                quokka_version = Version(str(metadata.get("quokka_version", "0.0")))
                 if quokka_version < Version("25.03"):
                     # For older versions
                     self.parameters.update(metadata)
@@ -1718,7 +1718,9 @@ class QuokkaDataset(AMReXDataset):
                             # For everything else, read in directly
                             self.parameters[key] = value
 
-                    mylog.debug(f"Metadata loaded successfully (version 25.03 or newer): {quokka_version}")
+                    mylog.debug(
+                        f"Metadata loaded successfully (version 25.03 or newer): {quokka_version}"
+                    )
 
         except FileNotFoundError:
             mylog.debug(f"Error: Metadata file '{metadata_filename}' not found.")
