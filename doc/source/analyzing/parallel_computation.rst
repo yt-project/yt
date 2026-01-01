@@ -24,6 +24,7 @@ Currently, yt is able to perform the following actions in parallel:
 * Halo analysis (:ref:`halo-analysis`)
 * Volume rendering (:ref:`volume_rendering`)
 * Isocontours & flux calculations (:ref:`extracting-isocontour-information`)
+* Parallelization over data containers (:ref:`_Data-objects`)
 
 This list covers just about every action yt can take!  Additionally, almost all
 scripts will benefit from parallelization with minimal modification.  The goal
@@ -219,6 +220,7 @@ The following operations use chunk decomposition:
 * Derived Quantities (see :ref:`derived-quantities`)
 * 1-, 2-, and 3-D profiles (see :ref:`generating-profiles-and-histograms`)
 * Isocontours & flux calculations (see :ref:`surfaces`)
+* Parallelization over data containers using ``piter`` (see :ref:`_Data-objects`)
 
 Parallelization over Multiple Objects and Datasets
 ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -229,8 +231,81 @@ independently to several different objects or datasets, a so-called
 task, yt can do that easily.  See the sections below on
 :ref:`parallelizing-your-analysis` and :ref:`parallel-time-series-analysis`.
 
-Use of ``piter()``
-^^^^^^^^^^^^^^^^^^
+Use of ``piter()`` on a data container
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can parallelize I/O on any data container using the
+:func:`~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer.piter` function.
+It dispatches all the chunks that make up the data container to different processors, and gives you the ability to store results from each chunk.
+
+Take the following example
+
+.. code-block:: python
+
+    import yt
+
+    yt.enable_parallelism()
+
+    ds = yt.load("output_00080")
+    ad = ds.all_data()
+
+    # Each processor reads a different chunk
+    my_storage = {}
+    for sto, chunk in ad.piter(storage=my_storage):
+        sto.result = {}
+        sto.result["gas", "density"] = chunk["gas", "density"]
+
+    my_storage  # now contains one entry per chunk
+    my_storage[0]["gas", "density"]  # contains the density for chunk 0
+    ...
+    my_storage[15]["gas", "density"]  # contains the density for chunk 15 (out of 15)
+
+
+Sometimes, it is also useful to combine the results. This is implemented using an optional ``reduction`` keyword argument to the
+:func:`~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer.piter` function.
+The following reductions are implemented:
+- ``None`` (default): no reduction, ``my_storage`` will contain one entry per chunk
+- ``"cat"``: concatenate the results from all chunks, ``my_storage`` will contain a flattened list of all results
+- ``"cat_on_root"``: concatenate the results from all chunks, but only on the root process. The other processes will have ``None`` in ``my_storage``
+- ``"sum"``, ``"min"`` or ``"max"``: reduce the results from all chunks using the specified operation, ``my_storage`` will contain the reduced result on all processes
+
+.. code-block:: python
+
+    # Gathering everything on root
+    my_storage = {}
+    for sto, chunk in ad.piter(storage=my_storage, reduction="cat_on_root"):
+        sto.result = {}
+        sto.result["gas", "density"] = chunk["gas", "density"]
+
+    # On root:
+    if yt.is_root():
+        my_storage["gas", "density"] == ad["gas", "density"]  # True for all entries
+    else:
+        my_storage["gas", "density"] is None
+
+    # Gather everything on all processes
+    my_storage = {}
+    for sto, chunk in ad.piter(storage=my_storage, reduction="cat"):
+        sto.result = {}
+        sto.result["gas", "density"] = chunk["gas", "density"]
+
+    my_storage["gas", "density"] == ad[
+        "gas", "density"
+    ]  # True for all entries on all processes
+
+    # Summing over all chunks
+    my_storage = {}
+    for sto, chunk in ad.piter(storage=my_storage, reduction="sum"):
+        sto.result = {}
+        sto.result["gas", "total_mass"] = chunk["gas", "cell_mass"].sum()
+        sto.result["gas", "total_volume"] = chunk["gas", "cell_volume"].sum()
+
+    my_storage["gas", "total_mass"]  # contains the total mass
+    my_storage["gas", "total_volume"]  # contains the total volume
+
+
+Use of ``piter()`` over objects and datasets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you use parallelism over objects or datasets, you will encounter
 the :func:`~yt.data_objects.time_series.DatasetSeries.piter` function.
