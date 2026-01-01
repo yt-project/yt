@@ -4,6 +4,7 @@ import re
 from collections import namedtuple
 from functools import cached_property
 from stat import ST_CTIME
+from packaging.version import Version
 
 import numpy as np
 
@@ -1487,7 +1488,7 @@ class QuokkaDataset(AMReXDataset):
             # Metadata flags
             rad_group_count = 0
 
-            for _i in range(num_fields):
+            for _ in range(num_fields):
                 current_field = f.readline().strip()
                 if current_field.startswith("radEnergy-Group"):
                     rad_group_count += 1
@@ -1669,13 +1670,9 @@ class QuokkaDataset(AMReXDataset):
                 }
 
         # Update parameters with particle info
-        self.parameters.update(
-            {
-                "particles": len(detected_particle_types),
-                "particle_types": tuple(detected_particle_types),
-                "particle_info": particle_info,
-            }
-        )
+        self.parameters["particles"] = len(detected_particle_types),
+        self.parameters["particle_types"] = tuple(detected_particle_types)
+        self.parameters["particle_info"] = particle_info
 
         # Debugging: Log parameters for verification
         mylog.debug("Updated ds.parameters with particle info: %s", self.parameters)
@@ -1702,16 +1699,8 @@ class QuokkaDataset(AMReXDataset):
                     return
 
                 # Get quokka version, default to 0.0 if not present
-                quokka_version = metadata.get("quokka_version", "0.0")
-
-                # Define version comparison function
-                def is_newer_or_equal(ver, compare_to):
-                    return tuple(map(int, str(ver).split("."))) >= tuple(
-                        map(int, str(compare_to).split("."))
-                    )
-
-                # Compare with version 25.03 (year 2025, month 3)
-                if not is_newer_or_equal(quokka_version, "25.03"):
+                quokka_version = Version(str(metadata.get("quokka_version", "0.0")))                
+                if quokka_version < Version("25.03"):
                     # For older versions
                     self.parameters.update(metadata)
                     mylog.debug("Metadata loaded successfully (older versions)")
@@ -1729,7 +1718,7 @@ class QuokkaDataset(AMReXDataset):
                             # For everything else, read in directly
                             self.parameters[key] = value
 
-                    mylog.debug("Metadata loaded successfully (version 25.03 or newer)")
+                    mylog.debug(f"Metadata loaded successfully (version 25.03 or newer): {quokka_version}")
 
         except FileNotFoundError:
             mylog.debug(f"Error: Metadata file '{metadata_filename}' not found.")

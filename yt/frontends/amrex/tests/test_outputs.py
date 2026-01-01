@@ -446,7 +446,7 @@ def test_maestro_parameters():
     assert type(ds.parameters["s0_interp_type"]) is int  # noqa: E721
 
 
-quokka = "quokka_RadiatingParticles_plt026"
+quokka = "quokka/RadiatingParticles/plt026"
 
 
 @requires_file(quokka)
@@ -510,7 +510,7 @@ def test_quokka():
     assert particle_info["units"]["end_time"] == "T^1"
 
 
-quokka_face_centered = "quokka_HydroWave_plt00004"
+quokka_face_centered = "quokka/HydroWave/plt00004"
 
 
 @requires_file(quokka_face_centered)
