@@ -875,6 +875,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         # their cell centers.
         self._data_source.loose_selection = True
 
+    def get_bbox(self):
+        return (self.left_edge, self.right_edge)
+
     def get_data(self, fields=None):
         if fields is None:
             return
@@ -1980,7 +1983,7 @@ class YTSurface(YTSelectionContainer3D):
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> def _Emissivity(field, data):
+        >>> def _Emissivity(data):
         ...     return (
         ...         data["gas", "density"]
         ...         * data["gas", "density"]
@@ -2316,7 +2319,7 @@ class YTSurface(YTSelectionContainer3D):
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> def _Emissivity(field, data):
+        >>> def _Emissivity(data):
         ...     return (
         ...         data["gas", "density"]
         ...         * data["gas", "density"]
@@ -2643,8 +2646,7 @@ class YTSurface(YTSelectionContainer3D):
         f.write(b"end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
-        vi = np.arange(nv, dtype="<i")
-        vi.shape = (nv // 3, 3)
+        vi = np.arange(nv, dtype="<i").reshape(nv // 3, 3)
         arr["v1"][:] = vi[:, 0]
         arr["v2"][:] = vi[:, 1]
         arr["v3"][:] = vi[:, 2]

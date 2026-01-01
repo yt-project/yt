@@ -18,17 +18,17 @@ Communication Channels
 
 There are three main communication channels for yt:
 
- * Many yt developers participate in the yt Slack community. Slack is a free
-   chat service that many teams use to organize their work. You can get an
-   invite to yt's Slack organization by clicking the "Join us @ Slack" button
-   on this page: https://yt-project.org/community.html
- * `yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_
-   is a relatively high-traffic mailing list where people are encouraged to ask
-   questions about the code, figure things out and so on.
- * `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ is
-   a much lower-traffic mailing list designed to focus on discussions of
-   improvements to the code, ideas about planning, development issues, and so
-   on.
+* Many yt developers participate in the yt Slack community. Slack is a free
+  chat service that many teams use to organize their work. You can get an
+  invite to yt's Slack organization by clicking the "Join us @ Slack" button
+  on this page: https://yt-project.org/community.html
+* `yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_
+  is a relatively high-traffic mailing list where people are encouraged to ask
+  questions about the code, figure things out and so on.
+* `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ is
+  a much lower-traffic mailing list designed to focus on discussions of
+  improvements to the code, ideas about planning, development issues, and so
+  on.
 
 The easiest way to get involved with yt is to read the mailing lists, hang out
 in IRC or slack chat, and participate.  If someone asks a question you know the
@@ -65,7 +65,7 @@ Gallery Images and Videos
 -------------------------
 
 If you have an image or video you'd like to display in the image or video
-galleries, getting it included it easy!  You can either fork the `yt homepage
+galleries, getting it included is easy!  You can either fork the `yt homepage
 repository <https://github.com/yt-project/website>`_ and add it there, or
 email it to us and we'll add it to the `Gallery
 <https://yt-project.org/gallery.html>`_.
@@ -713,57 +713,55 @@ enforced.
 Source code style guide
 -----------------------
 
- * In general, follow PEP-8 guidelines.
-   https://www.python.org/dev/peps/pep-0008/
- * Classes are ``ConjoinedCapitals``, methods and functions are
-   ``lowercase_with_underscores``.
- * Do not use nested classes unless you have a very good reason to, such as
-   requiring a namespace or class-definition modification.  Classes should live
-   at the top level.  ``__metaclass__`` is exempt from this.
- * Avoid copying memory when possible. For example, don't do
-   ``a = a.reshape(3, 4)`` when ``a.shape = (3, 4)`` will do, and ``a = a * 3``
-   should be ``np.multiply(a, 3, a)``.
- * In general, avoid all double-underscore method names: ``__something`` is
-   usually unnecessary.
- * When writing a subclass, use the super built-in to access the super class,
-   rather than explicitly.
-   Ex: ``super().__init__()`` rather than ``SpecialGrid.__init__()``.
- * Docstrings should describe input, output, behavior, and any state changes
-   that occur on an object.  See :ref:`docstrings` below for a fiducial example
-   of a docstring.
- * Unless there is a good reason not to (e.g., to avoid circular imports),
-   imports should happen at the top of the file.
- * If you are comparing with a numpy boolean array, just refer to the array.
-   Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Only declare local variables if they will be used later. If you do not use the
-   return value of a function, do not store it in a variable.
+* In general, follow PEP-8 guidelines.
+  https://www.python.org/dev/peps/pep-0008/
+* Classes are ``ConjoinedCapitals``, methods and functions are
+  ``lowercase_with_underscores``.
+* Do not use nested classes unless you have a very good reason to, such as
+  requiring a namespace or class-definition modification.  Classes should live
+  at the top level.  ``__metaclass__`` is exempt from this.
+* Avoid copying memory when possible.
+* In general, avoid all double-underscore method names: ``__something`` is
+  usually unnecessary.
+* When writing a subclass, use the super built-in to access the super class,
+  rather than explicitly.
+  Ex: ``super().__init__()`` rather than ``SpecialGrid.__init__()``.
+* Docstrings should describe input, output, behavior, and any state changes
+  that occur on an object.  See :ref:`docstrings` below for a fiducial example
+  of a docstring.
+* Unless there is a good reason not to (e.g., to avoid circular imports),
+  imports should happen at the top of the file.
+* If you are comparing with a numpy boolean array, just refer to the array.
+  Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
+* Only declare local variables if they will be used later. If you do not use the
+  return value of a function, do not store it in a variable.
 
 API Style Guide
 ---------------
 
- * Internally, only import from source files directly -- instead of:
+* Internally, only import from source files directly -- instead of:
 
-     ``from yt.visualization.api import ProjectionPlot``
+    ``from yt.visualization.api import ProjectionPlot``
 
-   do:
+  do:
 
-     ``from yt.visualization.plot_window import ProjectionPlot``
+    ``from yt.visualization.plot_window import ProjectionPlot``
 
- * Import symbols from the module where they are defined, avoid transitive
-   imports.
- * Import standard library modules, functions, and classes from builtins, do not
-   import them from other yt files.
- * Numpy is to be imported as ``np``.
- * Do not use too many keyword arguments.  If you have a lot of keyword
-   arguments, then you are doing too much in ``__init__`` and not enough via
-   parameter setting.
- * Don't create a new class to replicate the functionality of an old class --
-   replace the old class.  Too many options makes for a confusing user
-   experience.
- * Parameter files external to yt are a last resort.
- * The usage of the ``**kwargs`` construction should be avoided.  If they cannot
-   be avoided, they must be documented, even if they are only to be passed on to
-   a nested function.
+* Import symbols from the module where they are defined, avoid transitive
+  imports.
+* Import standard library modules, functions, and classes from builtins, do not
+  import them from other yt files.
+* Numpy is to be imported as ``np``.
+* Do not use too many keyword arguments.  If you have a lot of keyword
+  arguments, then you are doing too much in ``__init__`` and not enough via
+  parameter setting.
+* Don't create a new class to replicate the functionality of an old class --
+  replace the old class.  Too many options makes for a confusing user
+  experience.
+* Parameter files external to yt are a last resort.
+* The usage of the ``**kwargs`` construction should be avoided.  If they cannot
+  be avoided, they must be documented, even if they are only to be passed on to
+  a nested function.
 
 .. _docstrings:
 
@@ -869,25 +867,25 @@ Variable Names and Enzo-isms
 ----------------------------
 Avoid Enzo-isms.  This includes but is not limited to:
 
- * Hard-coding parameter names that are the same as those in Enzo.  The
-   following translation table should be of some help.  Note that the
-   parameters are now properties on a ``Dataset`` subclass: you access them
-   like ds.refine_by .
+* Hard-coding parameter names that are the same as those in Enzo.  The
+  following translation table should be of some help.  Note that the
+  parameters are now properties on a ``Dataset`` subclass: you access them
+  like ds.refine_by .
 
-    - ``RefineBy `` => `` refine_by``
-    - ``TopGridRank `` => `` dimensionality``
-    - ``TopGridDimensions `` => `` domain_dimensions``
-    - ``InitialTime `` => `` current_time``
-    - ``DomainLeftEdge `` => `` domain_left_edge``
-    - ``DomainRightEdge `` => `` domain_right_edge``
-    - ``CurrentTimeIdentifier `` => `` unique_identifier``
-    - ``CosmologyCurrentRedshift `` => `` current_redshift``
-    - ``ComovingCoordinates `` => `` cosmological_simulation``
-    - ``CosmologyOmegaMatterNow `` => `` omega_matter``
-    - ``CosmologyOmegaLambdaNow `` => `` omega_lambda``
-    - ``CosmologyHubbleConstantNow `` => `` hubble_constant``
+  - ``RefineBy `` => `` refine_by``
+  - ``TopGridRank `` => `` dimensionality``
+  - ``TopGridDimensions `` => `` domain_dimensions``
+  - ``InitialTime `` => `` current_time``
+  - ``DomainLeftEdge `` => `` domain_left_edge``
+  - ``DomainRightEdge `` => `` domain_right_edge``
+  - ``CurrentTimeIdentifier `` => `` unique_identifier``
+  - ``CosmologyCurrentRedshift `` => `` current_redshift``
+  - ``ComovingCoordinates `` => `` cosmological_simulation``
+  - ``CosmologyOmegaMatterNow `` => `` omega_matter``
+  - ``CosmologyOmegaLambdaNow `` => `` omega_lambda``
+  - ``CosmologyHubbleConstantNow `` => `` hubble_constant``
 
- * Do not assume that the domain runs from 0 .. 1.  This is not true
-   everywhere.
- * Variable names should be short but descriptive.
- * No globals!
+* Do not assume that the domain runs from 0 .. 1.  This is not true
+  everywhere.
+* Variable names should be short but descriptive.
+* No globals!

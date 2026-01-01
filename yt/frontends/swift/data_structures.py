@@ -42,6 +42,7 @@ class SwiftDataset(SPHDataset):
             default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
+        self.refine_by = 1
 
     def _set_code_unit_attributes(self):
         """

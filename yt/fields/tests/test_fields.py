@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.testing import (
     assert_almost_equal,
@@ -8,6 +10,7 @@ from numpy.testing import (
 )
 
 from yt import load
+from yt.data_objects.static_output import Dataset
 from yt.frontends.stream.fields import StreamFieldInfo
 from yt.testing import (
     assert_allclose_units,
@@ -59,61 +62,15 @@ def _strip_ftype(field):
     return field[1]
 
 
-class TestFieldAccess:
-    description = None
+@dataclass(slots=True, frozen=True)
+class FieldAccessTestCase:
+    field_name: str
+    ds: Dataset
+    nprocs: int
 
-    def __init__(self, field_name, ds, nprocs):
-        # Note this should be a field name
-        self.field_name = field_name
-        self.description = f"Accessing_{field_name}_{nprocs}"
-        self.nprocs = nprocs
-        self.ds = ds
-
-    def __call__(self):
-        field = self.ds._get_field_info(self.field_name)
-        skip_grids = False
-        needs_spatial = False
-        for v in field.validators:
-            if getattr(v, "ghost_zones", 0) > 0:
-                skip_grids = True
-            if hasattr(v, "ghost_zones"):
-                needs_spatial = True
-
-        ds = self.ds
-
-        # This gives unequal sized grids as well as subgrids
-        dd1 = ds.all_data()
-        dd2 = ds.all_data()
-        sp = get_params(ds)
-        dd1.field_parameters.update(sp)
-        dd2.field_parameters.update(sp)
-        with np.errstate(all="ignore"):
-            v1 = dd1[self.field_name]
-            # No more conversion checking
-            assert_equal(v1, dd1[self.field_name])
-            if not needs_spatial:
-                with field.unit_registry(dd2):
-                    res = field._function(field, dd2)
-                    res = dd2.apply_units(res, field.units)
-                assert_array_almost_equal_nulp(v1, res, 4)
-            if not skip_grids:
-                for g in ds.index.grids:
-                    g.field_parameters.update(sp)
-                    v1 = g[self.field_name]
-                    g.clear_data()
-                    g.field_parameters.update(sp)
-                    r1 = field._function(field, g)
-                    if field.sampling_type == "particle":
-                        assert_equal(v1.shape[0], g.NumberOfParticles)
-                    else:
-                        assert_array_equal(r1.shape, v1.shape)
-                        for ax in "xyz":
-                            assert_array_equal(g["index", ax].shape, v1.shape)
-                    with field.unit_registry(g):
-                        res = field._function(field, g)
-                        assert_array_equal(v1.shape, res.shape)
-                        res = g.apply_units(res, field.units)
-                    assert_array_almost_equal_nulp(v1, res, 4)
+    @property
+    def description(self) -> str:
+        return f"Accessing_{self.field_name}_{self.nprocs}"
 
 
 def get_base_ds(nprocs):
@@ -188,7 +145,53 @@ def test_all_fields():
 
         for nprocs in [1, 4, 8]:
             test_all_fields.__name__ = f"{field}_{nprocs}"
-            yield TestFieldAccess(field, datasets[nprocs], nprocs)
+
+            tc = FieldAccessTestCase(field, datasets[nprocs], nprocs)
+
+            field = tc.ds._get_field_info(tc.field_name)
+            skip_grids = False
+            needs_spatial = False
+            for v in field.validators:
+                if getattr(v, "ghost_zones", 0) > 0:
+                    skip_grids = True
+                if hasattr(v, "ghost_zones"):
+                    needs_spatial = True
+
+            ds = tc.ds
+
+            # This gives unequal sized grids as well as subgrids
+            dd1 = ds.all_data()
+            dd2 = ds.all_data()
+            sp = get_params(ds)
+            dd1.field_parameters.update(sp)
+            dd2.field_parameters.update(sp)
+            with np.errstate(all="ignore"):
+                v1 = dd1[tc.field_name]
+                # No more conversion checking
+                assert_equal(v1, dd1[tc.field_name])
+                if not needs_spatial:
+                    with field.unit_registry(dd2):
+                        res = field._eval(dd2)
+                        res = dd2.apply_units(res, field.units)
+                    assert_array_almost_equal_nulp(v1, res, 4)
+                if not skip_grids:
+                    for g in ds.index.grids:
+                        g.field_parameters.update(sp)
+                        v1 = g[tc.field_name]
+                        g.clear_data()
+                        g.field_parameters.update(sp)
+                        r1 = field._eval(g)
+                        if field.sampling_type == "particle":
+                            assert_equal(v1.shape[0], g.NumberOfParticles)
+                        else:
+                            assert_array_equal(r1.shape, v1.shape)
+                            for ax in "xyz":
+                                assert_array_equal(g["index", ax].shape, v1.shape)
+                        with field.unit_registry(g):
+                            res = field._eval(g)
+                            assert_array_equal(v1.shape, res.shape)
+                            res = g.apply_units(res, field.units)
+                        assert_array_almost_equal_nulp(v1, res, 4)
 
 
 def test_add_deposited_particle_field():
@@ -308,10 +311,10 @@ def test_add_field_unit_semantics():
     ds = fake_random_ds(16)
     ad = ds.all_data()
 
-    def density_alias(field, data):
+    def density_alias(data):
         return data["gas", "density"].in_cgs()
 
-    def unitless_data(field, data):
+    def unitless_data(data):
         return np.ones(data["gas", "density"].shape)
 
     ds.add_field(
@@ -381,7 +384,7 @@ def test_add_field_unit_semantics():
 def test_add_field_from_lambda():
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
 
-    def _function_density(field, data):
+    def _function_density(data):
         return data["gas", "density"]
 
     ds.add_field(
@@ -434,7 +437,7 @@ def test_add_field_string():
     ds = fake_random_ds(16)
     ad = ds.all_data()
 
-    def density_alias(field, data):
+    def density_alias(data):
         return data["gas", "density"]
 
     ds.add_field(
@@ -452,7 +455,7 @@ def test_add_field_string():
 def test_add_field_string_aliasing():
     ds = fake_random_ds(16)
 
-    def density_alias(field, data):
+    def density_alias(data):
         return data["gas", "density"]
 
     ds.add_field(
@@ -467,7 +470,7 @@ def test_add_field_string_aliasing():
 
     ds = fake_particle_ds()
 
-    def pmass_alias(field, data):
+    def pmass_alias(data):
         return data["all", "particle_mass"]
 
     ds.add_field(

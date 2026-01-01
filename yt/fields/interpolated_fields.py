@@ -38,7 +38,7 @@ def add_interpolated_field(
     int_class = _int_class[len(table_data.shape)]
     my_interpolator = int_class(table_data, axes_data, axes_fields, truncate=truncate)
 
-    def _interpolated_field(field, data):
+    def _interpolated_field(data):
         return my_interpolator(data)
 
     add_field(

@@ -70,7 +70,7 @@ square root of the gas density:
     >>> import yt
     >>> import numpy as np
 
-    >>> def root_density(field, data):
+    >>> def root_density(data):
     ...     return np.sqrt(data['gas', 'density'])
 
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')

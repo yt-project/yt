@@ -1080,10 +1080,11 @@ def fake_octree_ds(
 
     if quantities is None:
         quantities = {}
+        # Try both callable and arrays
         quantities["gas", "density"] = prng.random_sample((particles, 1))
         quantities["gas", "velocity_x"] = prng.random_sample((particles, 1))
         quantities["gas", "velocity_y"] = prng.random_sample((particles, 1))
-        quantities["gas", "velocity_z"] = prng.random_sample((particles, 1))
+        quantities["gas", "velocity_z"] = lambda: prng.random_sample((particles, 1))
 
     ds = load_octree(
         octree_mask=octree_mask,
@@ -1107,19 +1108,19 @@ def add_noise_fields(ds):
     """Add 4 classes of noise fields to a dataset"""
     prng = RandomState(0x4D3D3D3)
 
-    def _binary_noise(field, data):
+    def _binary_noise(data):
         """random binary data"""
         return prng.randint(low=0, high=2, size=data.size).astype("float64")
 
-    def _positive_noise(field, data):
+    def _positive_noise(data):
         """random strictly positive data"""
         return prng.random_sample(data.size) + 1e-16
 
-    def _negative_noise(field, data):
+    def _negative_noise(data):
         """random negative data"""
         return -prng.random_sample(data.size)
 
-    def _even_noise(field, data):
+    def _even_noise(data):
         """random data with mixed signs"""
         return 2 * prng.random_sample(data.size) - 1
 
@@ -1245,7 +1246,15 @@ def skip(reason: str):
     def dec(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            raise SkipTest(reason)
+            if os.getenv("PYTEST_VERSION") is not None:
+                # this is the recommended way to detect a pytest session
+                # https://docs.pytest.org/en/stable/reference/reference.html#envvar-PYTEST_VERSION
+                import pytest
+
+                pytest.skip(reason)
+            else:
+                # running from nose, or unittest
+                raise SkipTest(reason)
 
         return wrapper
 

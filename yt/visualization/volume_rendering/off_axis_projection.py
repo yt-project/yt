@@ -363,22 +363,18 @@ def off_axis_projection(
         weightfield = ("index", "temp_weightfield")
 
         def _make_wf(f, w):
-            def temp_weightfield(field, data):
+            def temp_weightfield(data):
                 tr = data[f].astype("float64") * data[w]
                 return tr.d
 
             return temp_weightfield
 
-        data_source.ds.field_info.add_field(
+        data_source.ds.add_field(
             weightfield,
             sampling_type="cell",
             function=_make_wf(item, weight),
             units="",
         )
-        # Now we have to tell the dataset to add it and to calculate
-        # its dependencies..
-        deps, _ = data_source.ds.field_info.check_derived_fields([weightfield])
-        data_source.ds.field_dependencies.update(deps)
         vol.set_field(weightfield)
         vol.set_weight_field(weight)
     ptf = ProjectionTransferFunction()
@@ -499,6 +495,10 @@ def off_axis_projection(
             info={"imtype": "rendering"},
         )
 
+        # Clear temporary field data associated to weightfield
+        if weight is not None:
+            data_source.clear_data(weightfield)
+
     else:
         for grid, mask in data_source.blocks:
             data = []
@@ -528,7 +528,8 @@ def off_axis_projection(
 
     # Remove the temporary weight field
     if weight is not None:
-        data_source.ds.field_info.pop(("index", "temp_weightfield"))
+        data_source.ds.field_info.pop(weightfield)
+        data_source.ds.field_dependencies.pop(weightfield)
 
     if method == "integrate":
         if weight is None:

@@ -25,6 +25,7 @@ from .io import (
 if TYPE_CHECKING:
     from yt.frontends.ramses.data_structures import RAMSESDomainSubset
 
+
 PARTICLE_HANDLERS: set[type["ParticleFileHandler"]] = set()
 
 
@@ -65,9 +66,12 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
     known_fields: list[FieldKey]
 
     # The function to employ to read the file
+    # NOTE: We omit the `ParticleFileHandler` argument since
+    #       it is accessed as a method (so the first argument is
+    #       assumed to be `self`).
     reader: Callable[
-        ["ParticleFileHandler", "RAMSESDomainSubset", list[tuple[str, str]], int],
-        dict[tuple[str, str], np.ndarray],
+        ["RAMSESDomainSubset", list[FieldKey], int],
+        dict[FieldKey, np.ndarray],
     ]
 
     # Name of the config section (if any)
@@ -75,10 +79,10 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
 
     ## These properties are computed dynamically
     # Mapping from field to offset in file
-    _field_offsets: dict[tuple[str, str], int]
+    _field_offsets: dict[FieldKey, int]
 
     # Mapping from field to the type of the data (float, integer, ...)
-    _field_types: dict[tuple[str, str], str]
+    _field_types: dict[FieldKey, str]
 
     # Number of particle in the domain
     _local_particle_count: int
@@ -131,14 +135,14 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
         pass
 
     @property
-    def field_offsets(self) -> dict[tuple[str, str], int]:
+    def field_offsets(self) -> dict[FieldKey, int]:
         if hasattr(self, "_field_offsets"):
             return self._field_offsets
         self.read_header()
         return self._field_offsets
 
     @property
-    def field_types(self) -> dict[tuple[str, str], str]:
+    def field_types(self) -> dict[FieldKey, str]:
         if hasattr(self, "_field_types"):
             return self._field_types
         self.read_header()
@@ -158,9 +162,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
         self.read_header()
         return self._header
 
-    def handle_field(
-        self, field: tuple[str, str], data_dict: dict[tuple[str, str], np.ndarray]
-    ):
+    def handle_field(self, field: FieldKey, data_dict: dict[FieldKey, np.ndarray]):
         """
         This function allows custom code to be called to handle special cases,
         such as the particle birth time.
@@ -169,9 +171,9 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
 
         Parameters
         ----------
-        field : tuple[str, str]
+        field : FieldKey
             The field name.
-        data_dict : dict[tuple[str, str], np.ndarray]
+        data_dict : dict[FieldKey, np.ndarray]
             A dictionary containing the data.
 
         By default, this function does nothing.
@@ -344,9 +346,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     def has_birth_file(self):
         return os.path.exists(self.birth_file_fname)
 
-    def handle_field(
-        self, field: tuple[str, str], data_dict: dict[tuple[str, str], np.ndarray]
-    ):
+    def handle_field(self, field: FieldKey, data_dict: dict[FieldKey, np.ndarray]):
         _ptype, fname = field
         if not (fname == "particle_birth_time" and self.ds.cosmological_simulation):
             return
@@ -492,9 +492,7 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
         self._field_offsets = field_offsets
         self._field_types = _pfields
 
-    def handle_field(
-        self, field: tuple[str, str], data_dict: dict[tuple[str, str], np.ndarray]
-    ):
+    def handle_field(self, field: FieldKey, data_dict: dict[FieldKey, np.ndarray]):
         _ptype, fname = field
         if not (fname == "particle_birth_time" and self.ds.cosmological_simulation):
             return

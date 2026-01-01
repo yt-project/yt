@@ -67,6 +67,9 @@ class YTCutRegion(YTSelectionContainer3D):
             # and set the source to be its source.
             # Preserve order of conditionals.
             self.conditionals = data_source.conditionals + self.conditionals
+            new_locals = data_source.locals.copy()
+            new_locals.update(locals)
+            locals = new_locals
             data_source = data_source.base_object
 
         super().__init__(

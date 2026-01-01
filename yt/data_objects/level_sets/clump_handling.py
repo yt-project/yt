@@ -13,7 +13,7 @@ from .contour_finder import identify_contours
 
 
 def add_contour_field(ds, contour_key):
-    def _contours(field, data):
+    def _contours(data):
         fd = data.get_field_parameter(f"contour_slices_{contour_key}")
         vals = data["index", "ones"] * -1
         if fd is None or fd == 0.0:

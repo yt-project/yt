@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
+from unyt import unyt_array
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import AnyFieldKey, FieldKey, FieldName
@@ -204,11 +205,24 @@ class YTDataContainer(abc.ABC):
         """
         return name in self.field_parameters
 
-    def clear_data(self):
+    def clear_data(self, fields: list[AnyFieldKey] | AnyFieldKey | None = None):
         """
-        Clears out all data from the YTDataContainer instance, freeing memory.
+        Clears out data from the YTDataContainer instance, freeing memory.
+
+        Parameters
+        ----------
+        fields : list[str] | str | None
+            The fields to clear. If None, all fields are cleared.
         """
-        self.field_data.clear()
+        if fields is None:
+            self.field_data.clear()
+            return
+
+        if isinstance(fields, (str, tuple)):
+            fields = [fields]
+
+        for field in fields:
+            self.field_data.pop(field, None)
 
     def has_key(self, key):
         """
@@ -260,6 +274,13 @@ class YTDataContainer(abc.ABC):
         if key not in self.field_data:
             key = self._determine_fields(key)[0]
         del self.field_data[key]
+
+    @abc.abstractmethod
+    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
+        """
+        Return the bounding box for this data container.
+        """
+        pass
 
     def _generate_field(self, field):
         ftype, fname = field

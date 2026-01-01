@@ -1,7 +1,7 @@
 [build-system]
 # keep in sync with .github/workflows/wheels.yaml
 requires = [
-  "setuptools>=61.2",
+  "setuptools>=77.0.0",
   "Cython>=3.0.3",
   "numpy>=2.0.0",
   "ewah-bool-utils>=1.2.0",
@@ -15,28 +15,39 @@ description = "An analysis and visualization toolkit for volumetric data"
 authors = [
     { name = "The yt project", email = "yt-dev@python.org" },
 ]
+license = "BSD-3-Clause"
+license-files = [
+    "COPYING.txt",
+    "yt/frontends/artio/artio_headers/LICENSE",
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Framework :: Matplotlib",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: POSIX :: AIX",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: C",
+    "Programming Language :: C++",
+    "Programming Language :: Cython",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
 keywords = [
-    "astronomy astrophysics visualization amr adaptivemeshrefinement",
+    "adaptivemeshrefinement",
+    "amr",
+    "astronomy",
+    "astrophysics",
+    "visualization",
 ]
 requires-python = ">=3.10.4"
 
@@ -49,21 +60,19 @@ dependencies = [
     "numpy>=1.21.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
     # https://github.com/numpy/numpy/issues/27037
     "numpy!=2.0.1 ; platform_machine=='arm64' and platform_system=='Darwin'",
-    "packaging>=20.9",
+    "packaging>=21.0",
     "pillow>=8.3.2",
+    "rlic>=0.3.2",
     "tomli-w>=0.4.0",
     "tqdm>=3.4.0",
     "unyt>=2.9.2",
     "tomli>=1.2.3;python_version < '3.11'",
-    "typing-extensions>=4.4.0;python_version < '3.12'",
+    "typing-extensions>=4.6.0 ; python_version < '3.12'",
 ]
 
 [project.readme]
 file = "README.md"
 content-type = "text/markdown"
-
-[project.license]
-text = "BSD 3-Clause"
 
 [project.urls]
 Homepage = "https://yt-project.org/"
@@ -77,7 +86,11 @@ answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 
 [project.optional-dependencies]
 # some generic, reusable constraints on optional-deps
-HDF5 = ["h5py>=3.1.0,!=3.12.0; platform_system=='Windows'"]  # see https://github.com/h5py/h5py/issues/2505
+HDF5 = [
+  "h5py>=3.6.0",
+  "h5py!=3.12.0 ; platform_system=='Windows'", # https://github.com/h5py/h5py/issues/2505
+  "h5py!=3.15.0 ; platform_system=='Darwin'", # https://github.com/yt-project/yt/issues/5301
+]
 netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
 Fortran = ["f90nml>=1.1"]
 
@@ -105,7 +118,7 @@ eagle = ["yt[HDF5]"]
 enzo-e = ["yt[HDF5]", "libconf>=1.0.1"]
 enzo = ["yt[HDF5]", "libconf>=1.0.1"]
 exodus-ii = ["yt[netCDF4]"]
-fits = ["astropy>=4.0.1", "regions>=0.7"]
+fits = ["astropy>=5.0.1", "regions>=0.7"]
 flash = ["yt[HDF5]"]
 gadget = ["yt[HDF5]"]
 gadget-fof = ["yt[HDF5]"]
@@ -122,7 +135,7 @@ owls = ["yt[HDF5]"]
 owls-subfind = ["yt[HDF5]"]
 parthenon = ["yt[HDF5]"]
 quokka = ["yt[amrex]", "PyYAML>=6.0.1"]
-ramses = ["yt[Fortran]", "scipy"]
+ramses = ["yt[Fortran]", "scipy>=1.7.2"]
 rockstar = []
 sdf = ["requests>=2.20.0"]
 stream = []
@@ -139,14 +152,13 @@ full = [
     "ipython>=7.16.2",
     "ipywidgets>=8.0.0",
     "miniballcpp>=0.2.1",
-    "mpi4py>=3.0.3",
-    "pandas>=1.1.2",
+    "mpi4py>=3.1.6",
+    "pandas>=1.3.4",
     "pooch>=0.7.0",
     "pyaml>=17.10.0",
-    "pykdtree>=1.3.1",
+    "pykdtree>=1.3.4",
     "pyx>=0.15",
-    "scipy>=1.5.0",
-    "glue-core!=1.2.4;python_version >= '3.10'",  # see https://github.com/glue-viz/glue/issues/2263
+    "scipy>=1.7.2",
     "ratarmount~=0.8.1;platform_system!='Windows' and platform_system!='Darwin'",
     "yt[adaptahop]",
     "yt[ahf]",
@@ -193,19 +205,48 @@ full = [
 ]
 
 # dev-only extra targets
-mapserver = [
-    "bottle",
-]
 test = [
     "pyaml>=17.10.0",
-    "pytest>=6.1",
+    "pytest>=8.0.1",
     "pytest-mpl>=0.16.1",
-    "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
-    "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
 ]
 
 [project.scripts]
 yt = "yt.utilities.command_line:run_main"
+
+[dependency-groups]
+docs = [
+    "alabaster>=0.7.13",
+    "bottle>=0.12.25",
+    "ipykernel>=6.29.4",
+    "jinja2<3.2.0",
+    "jupyter-client>=8.3.1",
+    "nbsphinx>=0.9.3",
+    "nose~=1.3.7 ; python_full_version < '3.10'",
+    "pytest>=6.1",
+    "pyx>=0.15",
+    "sphinx>=7.2.5",
+    "sphinx-bootstrap-theme>=0.8.1",
+    "sphinx-rtd-theme>=1.3.0",
+]
+mapserver = [
+    "bottle>=0.13.0",
+]
+mapping = [
+    "cartopy[plotting]>=0.22.0",
+]
+nosetest = [
+    "nose~=1.3.7",
+    "nose-exclude>=0.5.0",
+    "nose-timer~=1.0.0",
+]
+typecheck = [
+    "mypy>=1.18.2",
+    "types-chardet>=5.0.4.6",
+    "types-pyyaml>=6.0.12.20250915",
+    "types-requests>=2.32.4.20250913",
+    "typing-extensions>=4.6.0 ; python_full_version < '3.12'",
+]
 
 [tool.setuptools]
 include-package-data = true
@@ -270,7 +311,6 @@ ignore = [
     "E501",  # line too long
     "E741",  # Do not use variables named 'I', 'O', or 'l'
     "B018",  # Found useless expression. # disabled because ds.index is idiomatic
-    "UP038", # non-pep604-isinstance
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -302,13 +342,10 @@ known-first-party = ["yt"]
 # specified by the characters following the r. s: skipped, f: failed, E: error
 [tool.pytest.ini_options]
 addopts = '''
-    -s
-    -v
     -rsfE
     --ignore-glob='/*_nose.py'
     --ignore-glob='/*/yt/data_objects/level_sets/tests/test_clump_finding.py'
     --ignore-glob='/*/yt/data_objects/tests/test_connected_sets.py'
-    --ignore-glob='/*/yt/data_objects/tests/test_data_containers.py'
     --ignore-glob='/*/yt/data_objects/tests/test_dataset_access.py'
     --ignore-glob='/*/yt/data_objects/tests/test_particle_filter.py'
     --ignore-glob='/*/yt/data_objects/tests/test_particle_trajectories.py'
@@ -434,7 +471,6 @@ ignore = [
   "yt/utilities/lib/image_utilities.c",
   "yt/utilities/lib/interpolators.c",
   "yt/utilities/lib/lenses.c",
-  "yt/utilities/lib/line_integral_convolution.c",
   "yt/utilities/lib/marching_cubes.cpp",
   "yt/utilities/lib/mesh_triangulation.c",
   "yt/utilities/lib/mesh_utilities.c",
@@ -463,19 +499,78 @@ show_error_context = true
 exclude = "(test_*|lodgeit)"
 
 [tool.cibuildwheel]
-build = "cp310-* cp311-* cp312-* cp313-*"
 build-verbosity = 1
-test-skip = "*-musllinux*"
+skip = ["cp314t-*"]
+build-frontend = "build[uv]"
 test-extras = "test"
 test-command = [
-    "pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
+    'python -c "import yt"',
+    "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
+environment = {"YT_LIMITED_API" = "1"}
 
-[tool.cibuildwheel.linux]
-archs = "x86_64"
+[tool.uv]
+# never build the following packages from sources (always prefer wheels)
+no-build-package = [
+    # "arm-pyart", # temporarily disabled because there are no cp313 wheels yet
+    "astropy",
+    "appnope",
+    "bottleneck",
+    "cartopy",
+    "cffi",
+    "contourpy",
+    "ewah-bool-utils",
+    "fast-histogram",
+    "h5py",
+    "jinja2",
+    "kiwisolver",
+    "markupsafe",
+    "matplotlib",
+    "numpy",
+    "netCDF4",
+    "pandas",
+    "pillow",
+    "psutil",
+    "py",
+    "pykdtree",
+    "pyproj",
+    "pyyaml",
+    "rlic",
+    "scipy",
+    "shapely",
 
-[tool.cibuildwheel.macos]
-archs = "auto"
+    # via firefly
+    "flask",
+    "gevent",
+    "greenlet",
+    "zope-interface",
 
-[tool.cibuildwheel.windows]
-archs = "auto64"
+    # via astropy
+    "pyerfa",
+]
+constraint-dependencies = [
+    "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
+    "glue-core!=1.2.4",  # see https://github.com/glue-viz/glue/issues/2263
+    "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
+    "jinja2>=2.11.3",
+
+    # wheels
+    "mpmath>=1.2.1", # via sympy
+    "iniconfig>=1.0.1", # via pytest
+
+    # from ipython (these can be removed when ipython<9.7 is dropped)
+    "ipython-pygments-lexers>=1.0.0",
+    "decorator>=4.3.2",
+    "jedi>=0.18.1",
+    "stack_data>=0.6.0",
+    "pygments>=2.11.0",
+
+    # from pyart
+    # see https://github.com/ARM-DOE/pyart/pull/1813
+    "cftime>=1.5.1.1",
+    "fsspec>=2021.11.0",
+    "mda-xdrlib>=0.2.0",
+    "open-radar-data>=0.5.0",
+    "pint>=0.18.0",
+    "s3fs>=2021.11.0",
+]

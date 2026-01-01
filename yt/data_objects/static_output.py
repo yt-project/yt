@@ -171,6 +171,7 @@ class Dataset(abc.ABC):
     field_units: dict[AnyFieldKey, Unit] | None = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
+    _field_info = None
     conversion_factors: dict[str, float] | None = None
     # _instantiated represents an instantiation time (since Epoch)
     # the default is a place holder sentinel, falsy value
@@ -349,7 +350,7 @@ class Dataset(abc.ABC):
     @cached_property
     def unique_identifier(self) -> str:
         retv = int(os.stat(self.parameter_filename)[ST_CTIME])
-        name_as_bytes = bytearray(map(ord, self.parameter_filename))
+        name_as_bytes = bytearray(self.parameter_filename.encode("utf-8"))
         retv += fnv_hash(name_as_bytes)
         return str(retv)
 
@@ -654,7 +655,24 @@ class Dataset(abc.ABC):
     def field_list(self):
         return self.index.field_list
 
+    @property
+    def field_info(self):
+        if self._field_info is None:
+            self.index
+        return self._field_info
+
+    @field_info.setter
+    def field_info(self, value):
+        self._field_info = value
+
     def create_field_info(self):
+        # create_field_info will be called at the end of instantiating
+        # the index object. This will trigger index creation, which will
+        # call this function again.
+        if self._instantiated_index is None:
+            self.index
+            return
+
         self.field_dependencies = {}
         self.derived_field_list = []
         self.filtered_particle_types = []
@@ -1394,7 +1412,7 @@ class Dataset(abc.ABC):
                         new_unit,
                         my_u.base_value / (1 + self.current_redshift),
                         dimensions.length,
-                        f"\\rm{{{my_unit}}}/(1+z)",
+                        f"\\rm{{c{my_unit}}}",
                         prefixable=True,
                     )
                 self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
@@ -1734,7 +1752,7 @@ class Dataset(abc.ABC):
            is the name of the field.
         function : callable
            A function handle that defines the field.  Should accept
-           arguments (field, data)
+           arguments (data)
         sampling_type: str
            "cell" or "particle" or "local"
         force_override: bool
@@ -1885,7 +1903,7 @@ class Dataset(abc.ABC):
                 units = "dimensionless"
                 take_log = False
 
-        def _deposit_field(field, data):
+        def _deposit_field(data):
             """
             Create a grid field for particle quantities using given method.
             """

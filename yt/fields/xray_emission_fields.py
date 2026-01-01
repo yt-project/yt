@@ -226,7 +226,7 @@ def add_xray_emissivity_field(
         # APEC wants to scale by nH*ne
         other_n = "El_number_density"
 
-    def _norm_field(field, data):
+    def _norm_field(data):
         return data[ftype, "H_nuclei_density"] * data[ftype, other_n]
 
     ds.add_field(
@@ -241,7 +241,7 @@ def add_xray_emissivity_field(
         em_Z = my_si.get_interpolator("metals", e_min, e_max)
         emp_Z = my_si.get_interpolator("metals", e_min, e_max, energy=False)
 
-    def _emissivity_field(field, data):
+    def _emissivity_field(data):
         with np.errstate(all="ignore"):
             dd = {
                 "log_nH": np.log10(data[ftype, "H_nuclei_density"]),
@@ -269,7 +269,7 @@ def add_xray_emissivity_field(
         units="erg/cm**3/s",
     )
 
-    def _luminosity_field(field, data):
+    def _luminosity_field(data):
         return data[emiss_name] * data[ftype, "mass"] / data[ftype, "density"]
 
     lum_name = (ftype, f"xray_luminosity_{e_min}_{e_max}_keV")
@@ -281,7 +281,7 @@ def add_xray_emissivity_field(
         units="erg/s",
     )
 
-    def _photon_emissivity_field(field, data):
+    def _photon_emissivity_field(data):
         dd = {
             "log_nH": np.log10(data[ftype, "H_nuclei_density"]),
             "log_T": np.log10(data[ftype, "temperature"]),
@@ -342,7 +342,7 @@ def add_xray_emissivity_field(
 
         ei_name = (ftype, f"xray_intensity_{e_min}_{e_max}_keV")
 
-        def _intensity_field(field, data):
+        def _intensity_field(data):
             I = dist_fac * data[emiss_name]
             return I.in_units("erg/cm**3/s/arcsec**2")
 
@@ -356,7 +356,7 @@ def add_xray_emissivity_field(
 
         i_name = (ftype, f"xray_photon_intensity_{e_min}_{e_max}_keV")
 
-        def _photon_intensity_field(field, data):
+        def _photon_intensity_field(data):
             I = (1.0 + redshift) * dist_fac * data[phot_name]
             return I.in_units("photons/cm**3/s/arcsec**2")
 

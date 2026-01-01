@@ -6,6 +6,7 @@ import numpy as np
 from unyt import unyt_array
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.frontends.ramses.definitions import VAR_DESC_RE, VERSION_RE
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import (
@@ -18,6 +19,9 @@ from yt.utilities.logger import ytLogger as mylog
 
 if TYPE_CHECKING:
     import os
+
+    from yt.frontends.ramses.data_structures import RAMSESDomainSubset
+    from yt.frontends.ramses.particle_handlers import ParticleFileHandler
 
 
 def convert_ramses_ages(ds, conformal_ages):
@@ -73,7 +77,12 @@ def convert_ramses_conformal_time_to_physical_time(
     )
 
 
-def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count):
+def _ramses_particle_binary_file_handler(
+    particle_handler: "ParticleFileHandler",
+    subset: "RAMSESDomainSubset",
+    fields: list[FieldKey],
+    count: int,
+) -> dict[FieldKey, np.ndarray]:
     """General file handler for binary file, called by _read_particle_subset
 
     Parameters
@@ -116,7 +125,12 @@ def _ramses_particle_binary_file_handler(particle_handler, subset, fields, count
     return tr
 
 
-def _ramses_particle_csv_file_handler(particle_handler, subset, fields, count):
+def _ramses_particle_csv_file_handler(
+    particle_handler: "ParticleFileHandler",
+    subset: "RAMSESDomainSubset",
+    fields: list[FieldKey],
+    count: int,
+) -> dict[FieldKey, np.ndarray]:
     """General file handler for csv file, called by _read_particle_subset
 
     Parameters
@@ -144,7 +158,8 @@ def _ramses_particle_csv_file_handler(particle_handler, subset, fields, count):
     # read only selected fields
     dat = pd.read_csv(
         fname,
-        delimiter=",",
+        delimiter=r"\s*,\s*",
+        engine="python",
         usecols=[ind for _field, ind in list_field_ind],
         skiprows=2,
         header=None,
@@ -360,7 +375,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
 
     # Fields name from the default csv RAMSES sink algorithm in the yt default convention
     mapping = {
-        " # id": "particle_identifier",
+        "# id": "particle_identifier",
         "msink": "particle_mass",
         "x": "particle_position_x",
         "y": "particle_position_y",
@@ -386,11 +401,12 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     }
 
     # read the all file to get the number of particle
-    dat = pd.read_csv(fname, delimiter=",")
+    dat = pd.read_csv(fname, delimiter=r"\s*,\s*", engine="python")
     fields = []
     local_particle_count = len(dat)
 
     for varname in dat.columns:
+        varname = varname.strip()
         if varname in mapping:
             varname = mapping[varname]
         else:
