@@ -371,7 +371,9 @@ There are a number of options available, but the only mandatory ones are ``name`
      correct dimensions of the field.
 ``display_name``
      This is a name used in the plots, for instance ``"Divergence of
-     Velocity"``.  If not supplied, the ``name`` value is used.
+     Velocity"``.  If not supplied, the ``name`` value is used.  Note:
+     for math expressions, do not wrap in ``$``, i.e., use ``r"\epsilon"``
+     and not ``r"$\epsilon$"``.
 ``take_log``
      This is *True* or *False* and describes whether the field should be logged
      when plotted.
