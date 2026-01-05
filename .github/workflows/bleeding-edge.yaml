@@ -55,12 +55,12 @@ jobs:
     - name: Install dependencies
       run: |
         uv pip install setuptools numpy matplotlib Cython ewah-bool-utils
-        uv add --no-sync git+https://github.com/yt-project/unyt.git
-        uv add --no-sync --optional test git+https://github.com/pytest-dev/pytest.git
+        uv add --no-install-project git+https://github.com/yt-project/unyt.git
+        uv add --no-install-project --optional test git+https://github.com/pytest-dev/pytest.git
 
     - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
-      # are not installed by pip as specified from pyproject.toml, hence we get
+      # are not installed by uv sync as specified from pyproject.toml, hence we get
       # to use the dev version of numpy at build time.
       run: uv sync --extra test --no-build-isolation
 
