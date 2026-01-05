@@ -14,7 +14,7 @@
 pyproject.toml              @neutrinoceros
 uv.lock                     @neutrinoceros
 .pre-commit-config.yaml     @neutrinoceros
-.git(|hub)                  @neutrinoceros
+.git*                       @neutrinoceros
 
 
 # build
