@@ -189,10 +189,6 @@ class TestMultipanelPlot:
         ]
         cls.ds = fake_random_ds(16)
 
-    @pytest.mark.skipif(
-        mpl.__version_info__ < (3, 7),
-        reason="colorbar cannot currently be set horizontal in multi-panel plot with matplotlib older than 3.7.0",
-    )
     @pytest.mark.parametrize("cbar_location", ["top", "bottom", "left", "right"])
     @pytest.mark.mpl_image_compare
     def test_multipanelplot_colorbar_orientation_simple(self, cbar_location):
@@ -202,14 +198,7 @@ class TestMultipanelPlot:
     @pytest.mark.parametrize("cbar_location", ["top", "bottom"])
     def test_multipanelplot_colorbar_orientation_warning(self, cbar_location):
         p = SlicePlot(self.ds, "z", self.fields)
-        if mpl.__version_info__ < (3, 7):
-            with pytest.warns(
-                UserWarning,
-                match="Cannot properly set the orientation of colorbar.",
-            ):
-                p.export_to_mpl_figure((2, 2), cbar_location=cbar_location)
-        else:
-            p.export_to_mpl_figure((2, 2), cbar_location=cbar_location)
+        p.export_to_mpl_figure((2, 2), cbar_location=cbar_location)
 
 
 class TestProfilePlot:
