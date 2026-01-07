@@ -91,7 +91,7 @@ HDF5 = [
   "h5py!=3.12.0 ; platform_system=='Windows'", # https://github.com/h5py/h5py/issues/2505
   "h5py!=3.15.0 ; platform_system=='Darwin'", # https://github.com/yt-project/yt/issues/5301
 ]
-netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
+netCDF4 = ["netCDF4!=1.6.1,>=1.5.8"] # see https://github.com/Unidata/netcdf4-python/issues/1192
 Fortran = ["f90nml>=1.1"]
 
 # frontend-specific requirements
@@ -126,7 +126,7 @@ gamer = ["yt[HDF5]"]
 gdf = ["yt[HDF5]"]
 gizmo = ["yt[HDF5]"]
 halo-catalog = ["yt[HDF5]"]
-http-stream = ["requests>=2.20.0"]
+http-stream = ["requests>=2.30.0"]
 idefix = ["yt_idefix[HDF5]>=2.3.0"] # externally packaged frontend
 moab = ["yt[HDF5]"]
 nc4-cm1 = ["yt[netCDF4]"]
@@ -136,7 +136,7 @@ owls-subfind = ["yt[HDF5]"]
 parthenon = ["yt[HDF5]"]
 ramses = ["yt[Fortran]", "scipy>=1.7.2"]
 rockstar = []
-sdf = ["requests>=2.20.0"]
+sdf = ["requests>=2.30.0"]
 stream = []
 swift = ["yt[HDF5]"]
 tipsy = []
@@ -148,7 +148,7 @@ full = [
     "cartopy>=0.22.0",
     "firefly>=3.2.0",
     "glueviz>=0.13.3",
-    "ipython>=7.16.2",
+    "ipython>=7.23.1",
     "ipywidgets>=8.0.0",
     "miniballcpp>=0.2.1",
     "mpi4py>=3.1.6",
