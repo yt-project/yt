@@ -2436,7 +2436,7 @@ an example that includes slices and phase plots:
 Using yt's style with matplotlib
 --------------------------------
 
-It is possible to use yt's plot style in outside of yt itself, with the
+It is possible to use yt's plot style outside of yt itself, with the
 :func:`~matplotlib.pyplot.style_context` context manager
 
 .. code-block:: python
