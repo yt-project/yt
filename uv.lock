@@ -5747,7 +5747,7 @@ requires-dist = [
     { name = "ipywidgets", marker = "extra == 'full'", specifier = ">=8.0.0" },
     { name = "libconf", marker = "extra == 'enzo'", specifier = ">=1.0.1" },
     { name = "libconf", marker = "extra == 'enzo-e'", specifier = ">=1.0.1" },
-    { name = "matplotlib", specifier = ">=3.6.0" },
+    { name = "matplotlib", specifier = ">=3.7.0" },
     { name = "miniballcpp", marker = "extra == 'full'", specifier = ">=0.2.1" },
     { name = "more-itertools", specifier = ">=8.4" },
     { name = "mpi4py", marker = "extra == 'full'", specifier = ">=3.1.6" },
