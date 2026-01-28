@@ -178,7 +178,7 @@ answer_tests:
 
 other_tests:
   unittests:
-     # keep in sync with nose_ignores.txt
+     # keep in sync with nose_ignores
      - "--exclude=test_mesh_slices"  # disable randomly failing test
      - "--ignore=test_outputs_pytest"
      - "--ignore-file=test_add_field\\.py"
