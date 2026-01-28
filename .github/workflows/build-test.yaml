@@ -136,7 +136,7 @@ jobs:
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
       run: |
-        cat nose_ignores.txt | xargs uv run python -m nose -c nose_unit.cfg --traverse-namespace
+        cat nose_ignores | xargs uv run python -m nose -c nose_unit.cfg --traverse-namespace
       env:
         MPLCONFIGDIR: tests
 
