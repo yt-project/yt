@@ -166,7 +166,8 @@ def test_typo_filename():
     with pytest.raises(
         ValueError,
         match=re.escape(
-            f"'{wrong_name}' is not an available dataset. Did you mean 'IsolatedGalaxy' ?"
+            f"{wrong_name!r} is not an available dataset. "
+            "Did you mean to type any of the following ?\n"
         ),
     ):
         load_sample(wrong_name, timeout=1)
