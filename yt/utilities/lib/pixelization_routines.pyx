@@ -28,7 +28,6 @@ from yt.utilities.lib.fp_utils cimport (
     i64min,
     iclip,
 )
-
 from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
 
 from cpython.exc cimport PyErr_CheckSignals
@@ -49,6 +48,7 @@ from yt.utilities.lib.element_mappings cimport (
     Tet2Sampler3D,
     W1Sampler3D,
 )
+from yt.utilities.lib.coordinate_utilities cimport MixedCoordBBox
 
 from .vec3_ops cimport cross, dot, subtract
 
@@ -2265,3 +2265,166 @@ def normalization_1d_utility(np.float64_t[:] num,
     for i in range(num.shape[0]):
         if den[i] != 0.0:
             num[i] = num[i] / den[i]
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_off_axis_mixed_coords(
+                       MixedCoordBBox bbox_handler,
+                       np.float64_t[:,:] buff,
+                       np.float64_t[:,:] buff_pos0,
+                       np.float64_t[:,:] buff_pos1,
+                       np.float64_t[:,:] buff_pos2,
+                       np.float64_t[:] pos0,
+                       np.float64_t[:] pos1,
+                       np.float64_t[:] pos2,
+                       np.float64_t[:] dpos0,
+                       np.float64_t[:] dpos1,
+                       np.float64_t[:] dpos2,
+                       np.float64_t[:] plane_c,
+                       np.float64_t[:] plane_normal,
+                       np.float64_t[:] plane_east,
+                       np.float64_t[:] plane_north,
+                       np.int_t[:] indices,
+                       np.float64_t[:] data,
+                       bounds,
+                       *,
+                       int return_mask=0,
+                       np.float64_t edge_tol=1e-12,
+):
+
+    # pixelize a cartesian image plane passing through a non-cartesian geometry.
+    #
+    # buff
+    #   image buffer 2d array
+    # buff_pos0, buff_pos1, buff_pos2
+    #   native coordinates of image pixels, 2d arrays
+    # pos0, pos1, pos2
+    #   data coordinates in native coordinates
+    # dpos0, dpos1, dpos2
+    #   element widths in native coordinates
+    # plane_c
+    #   the cartesian coordinates of the plane center point
+    # plane_normal
+    #   normal vector for the plane
+    # plane_east
+    #   in-plane +x vector
+    # plane_north
+    #   in-plane +y vector
+    # indices
+    #   index mapping for the data values
+    # data
+    #   the data
+    # bounds
+    #   bounds of the image plain in in-plane coordinates
+    # return_mask
+    #   flag to return a mask
+    # edge_tol
+    #   tolerance for checking whether a pixel falls within an element. defaults
+    #   to 1e-12.
+    #
+    # most of this method is identical to pixelize_off_axis_cartesian. The initial
+    # identification of element-plane intersection uses the cartesian bounding
+    # boxes. When iterating over potential image pixels that intersect,
+    # it then checks that the spherical coordinates of the pixel coordinates
+    # fall within the spherical volume element.
+    #
+
+    cdef np.float64_t x_min, x_max, y_min, y_max
+    cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy, md
+    cdef int i, j, p, ip
+    cdef int x_ind_l, x_ind_r, y_ind_l, y_ind_r
+    cdef np.float64_t dxsp, dysp, dzsp, dsp
+    cdef np.float64_t pxsp, pysp
+    cdef np.ndarray[np.int64_t, ndim=2] mask
+    cdef np.float64_t xyz_i[3]
+    cdef np.float64_t dxyz_i[3]
+
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    width = x_max - x_min
+    height = y_max - y_min
+    px_dx = width / (<np.float64_t> buff.shape[0])
+    px_dy = height / (<np.float64_t> buff.shape[1])
+    ipx_dx = 1.0 / px_dx
+    ipx_dy = 1.0 / px_dy
+    if pos0.shape[0] != data.shape[0] or \
+       pos1.shape[0] != data.shape[0] or \
+       pos2.shape[0] != data.shape[0] or \
+       dpos0.shape[0] != data.shape[0] or \
+       dpos2.shape[0] != data.shape[0] or \
+       dpos2.shape[0] != data.shape[0] or \
+       indices.shape[0] != data.shape[0] :
+        raise YTPixelizeError("Arrays are not of correct shape.")
+    mask = np.zeros((buff.shape[0], buff.shape[1]), "int64")
+
+    with nogil:
+        for ip in range(indices.shape[0]):
+            p = indices[ip]
+            dsp = data[p]
+            # get the cartesian bounding box for this element
+            bbox_handler.get_cartesian_bbox(pos0[p],
+                                            pos1[p],
+                                            pos2[p],
+                                            dpos0[p],
+                                            dpos1[p],
+                                            dpos2[p],
+                                            xyz_i,
+                                            dxyz_i)
+
+            # project cartesian bounds onto plane
+            pxsp = 0.0
+            pysp = 0.0
+            for idim in range(3):
+                xyz_i[idim] = xyz_i[idim] - plane_c[idim]
+                pxsp += xyz_i[idim] * plane_east[idim]
+                pysp += xyz_i[idim] * plane_north[idim]
+                #pzsp += xyz_i[i] * plane_normal[i]
+
+            dxsp = dxyz_i[0] * 0.5
+            dysp = dxyz_i[1] * 0.5
+            dzsp = dxyz_i[2] * 0.5
+
+            # Any point we want to plot is at most this far from the center
+            md = 2.0 * math.sqrt(dxsp*dxsp + dysp*dysp + dzsp*dzsp)
+            if pxsp + md < x_min or \
+               pxsp - md > x_max or \
+               pysp + md < y_min or \
+               pysp - md > y_max:
+                continue
+
+            # identify pixels that fall within the cartesian bounding box
+            x_ind_l = <int> fmax(((pxsp - md - x_min)*ipx_dx),0)
+            x_ind_r = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), buff.shape[0])
+            y_ind_l = <int> fmax(((pysp - md - y_min)*ipx_dy),0)
+            y_ind_r = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), buff.shape[1])
+
+            for i in range(x_ind_l, x_ind_r):
+                for j in range(y_ind_l, y_ind_r):
+                    # final check to ensure the actual spherical coords of the
+                    # pixel falls within the spherical volume element. a small
+                    # tolerance for the edge check accounts for floating point
+                    # errors in the coordinate transformation (an edge_tol of
+                    # 0.0 may result in blank pixels).
+                    if buff_pos0[i,j] < pos0[p] - 0.5 * dpos0[p] - edge_tol  or \
+                       buff_pos0[i,j] > pos0[p] + 0.5 * dpos0[p] + edge_tol or \
+                       buff_pos1[i,j] < pos1[p] - 0.5 * dpos1[p] - edge_tol or \
+                       buff_pos1[i,j] > pos1[p] + 0.5 * dpos1[p] + edge_tol or \
+                       buff_pos2[i,j] < pos2[p] - 0.5 * dpos2[p] - edge_tol or \
+                       buff_pos2[i,j] > pos2[p] + 0.5 * dpos2[p] + edge_tol:
+                       continue
+                    mask[i, j] += 1
+                    # make sure pixel value is not a NaN before incrementing it
+                    if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
+                    buff[i, j] += dsp
+
+    for i in range(buff.shape[0]):
+        for j in range(buff.shape[1]):
+            if mask[i,j] == 0: continue
+            buff[i,j] /= mask[i,j]
+
+    if return_mask:
+        return mask!=0
