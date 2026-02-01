@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         persist-credentials: false
     - name: Set up uv
@@ -99,7 +99,7 @@ jobs:
     steps:
     - name: Checkout repo (bare)
       if: matrix.tests-type != 'answer'
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         persist-credentials: false
     - name: Set up Python
@@ -110,7 +110,7 @@ jobs:
         prune-cache: false
     - name: Checkout repo (with submodules)
       if: matrix.tests-type == 'answer'
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         submodules: true
         persist-credentials: false
@@ -152,7 +152,7 @@ jobs:
 
     steps:
     - name: Checkout repo (with submodules)
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         submodules: true
         persist-credentials: false
