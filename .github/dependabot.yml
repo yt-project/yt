@@ -2,6 +2,10 @@ version: 2
 updates:
 - package-ecosystem: github-actions
   directory: /.github/workflows
+  labels:
+    - dependencies
+    - github_actions
+    - infrastructure
   schedule:
     interval: monthly
   cooldown:
@@ -13,6 +17,10 @@ updates:
 
 - package-ecosystem: uv
   directory: /
+  labels:
+    - dependencies
+    - python:uv
+    - infrastructure
   schedule:
     interval: monthly
   cooldown:
