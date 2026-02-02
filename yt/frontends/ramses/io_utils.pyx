@@ -16,12 +16,12 @@ ctypedef np.int32_t INT32_t
 ctypedef np.int64_t INT64_t
 ctypedef np.float64_t DOUBLE_t
 
-cdef int INT32_SIZE = sizeof(np.int32_t)
-cdef int INT64_SIZE = sizeof(np.int64_t)
-cdef int DOUBLE_SIZE = sizeof(np.float64_t)
+cdef INT64_t INT32_SIZE = sizeof(np.int32_t)
+cdef INT64_t INT64_SIZE = sizeof(np.int64_t)
+cdef INT64_t DOUBLE_SIZE = sizeof(np.float64_t)
 
 
-cdef inline int skip_len(int Nskip, int record_len) noexcept nogil:
+cdef inline INT64_t skip_len(INT64_t Nskip, INT64_t record_len) noexcept nogil:
     return Nskip * (record_len * DOUBLE_SIZE + INT64_SIZE)
 
 
@@ -68,7 +68,7 @@ def read_amr(FortranFile f, dict headers,
     )
     # Initialize values
     max_level = 0
-    cdef int record_len
+    cdef INT64_t record_len
 
     for ilevel in range(nlevelmax):
         for icpu in range(ncpu_and_bound):
