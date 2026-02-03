@@ -59,8 +59,8 @@ def off_axis_projection(
         The number of pixels in each direction.
     item: tuple[str, str] or FieldKey
         The field to project through the volume, e.g. ("gas", "density").
-        This uses YT's (field_type, field_name) field pair. Common field types 
-        include "stream", "gas", "index"; common field names include "density", 
+        This uses YT's (field_type, field_name) field pair. Common field types
+        include "stream", "gas", "index"; common field names include "density",
         "number_density", "velocity_x", "velocity_y", and "velocity_z".
     weight : optional, default None
         If supplied, the field will be pre-multiplied by this, then divided by
