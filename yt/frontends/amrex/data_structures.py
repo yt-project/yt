@@ -6,6 +6,7 @@ from functools import cached_property
 from stat import ST_CTIME
 
 import numpy as np
+from packaging.version import Version
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
@@ -13,6 +14,7 @@ from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
+from yt.loaders import load
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
@@ -22,6 +24,7 @@ from .fields import (
     CastroFieldInfo,
     MaestroFieldInfo,
     NyxFieldInfo,
+    QuokkaFieldInfo,
     WarpXFieldInfo,
 )
 
@@ -1327,10 +1330,404 @@ class NyxDataset(BoxlibDataset):
         setdefaultattr(self, "velocity_unit", self.length_unit / self.time_unit)
 
 
+class QuokkaHierarchy(BoxlibHierarchy):
+    def __init__(self, ds, dataset_type="quokka_native"):
+        super().__init__(ds, dataset_type)
+
+        # Dynamically detect particle types by searching for "*_particles" directories
+        particle_dirs = glob.glob(os.path.join(self.ds.output_dir, "*_particles"))
+
+        for pdir in particle_dirs:
+            ptype = os.path.basename(pdir)
+            header_file = os.path.join(pdir, "Header")
+
+            if os.path.exists(header_file):
+                # Read the Header to determine the number of fields
+                with open(header_file) as f:
+                    _ = f.readline().strip()  # Skip version info
+                    _ = f.readline().strip()  # Skip number of particles
+                    num_fields = int(f.readline().strip())  # Number of fields
+
+                    # Read the field names
+                    fields = [f.readline().strip() for _ in range(num_fields)]
+
+                # Define extra real fields specific to Quokka
+                quokka_extra_real_fields = [
+                    "particle_velocity_x",
+                    "particle_velocity_y",
+                    "particle_velocity_z",
+                ]
+
+                is_checkpoint = False
+
+                # Pass the fields to _read_particles
+                extra_fields = quokka_extra_real_fields[: ds.dimensionality] + fields
+
+                # Read particle data for this type
+                self._read_particles(ptype, is_checkpoint, extra_fields)
+
+
 class QuokkaDataset(AMReXDataset):
-    # match any plotfiles that have a metadata.yaml file in the root
+    # Match any plotfiles that have a metadata.yaml file in the root
+    _index_class = QuokkaHierarchy
+    _field_info_class = QuokkaFieldInfo
     _subtype_keyword = ""
     _default_cparam_filename = "metadata.yaml"
+    _load_requirements = ["yaml"]
+
+    def __init__(
+        self,
+        output_dir,
+        cparam_filename=None,
+        fparam_filename=None,
+        dataset_type="boxlib_native",
+        storage_filename=None,
+        units_override=None,
+        unit_system="cgs",
+        default_species_fields=None,
+    ):
+        if cparam_filename is None:
+            cparam_filename = self._default_cparam_filename
+
+        super().__init__(
+            output_dir,
+            cparam_filename,
+            fparam_filename,
+            dataset_type,
+            storage_filename,
+            units_override,
+            unit_system,
+            default_species_fields=default_species_fields,
+        )
+
+        # Parse the metadata from metadata.yaml after initialization
+        self._parse_metadata_file()
+
+        # Add radiation fields in fluid_types only if detected
+        if self.parameters.get("radiation_field_groups", 0) > 0:
+            self.fluid_types += ("rad",)
+        # Add magnetic fields in fluid_types only if detected
+        if "Bfield" in self.parameters["fields"]:
+            self.fluid_types += ("mag",)
+
+        # Check for face-centered variables directories
+        self._load_face_centered_datasets()
+
+    def _load_face_centered_datasets(self):
+        """
+        Check for face-centered variables directories (fc_vars/x, fc_vars/y, fc_vars/z)
+        and load them as additional datasets if they exist.
+        """
+
+        fc_dir = os.path.join(self.output_dir, "fc_vars")
+        if not os.path.isdir(fc_dir):
+            mylog.debug(
+                f"No face-centered variables directory found at {fc_dir}. Skipping face-centered datasets."
+            )
+            return
+
+        try:
+            out_id = int(os.path.basename(self.output_dir)[-5:])
+        except ValueError as err:
+            raise ValueError(
+                f"Output directory {self.output_dir} does not end with at least 5 digits. Cannot infer output index. Cannot load face-centered datasets."
+            ) from err
+
+        # Define the possible face-centered directories
+        fc_dirs = {
+            "x": os.path.join(fc_dir, f"x{out_id:05d}"),
+            "y": os.path.join(fc_dir, f"y{out_id:05d}"),
+            "z": os.path.join(fc_dir, f"z{out_id:05d}"),
+        }
+
+        # For each direction, check if the directory exists and load it
+        for direction, fc_dir in fc_dirs.items():
+            if os.path.isdir(fc_dir):
+                try:
+                    # Load the face-centered dataset
+                    mylog.info(
+                        f"Loading face-centered {direction} dataset from {fc_dir}"
+                    )
+                    fc_ds = load(fc_dir)
+
+                    # Store the dataset as an attribute
+                    setattr(self, f"ds_fc_{direction}", fc_ds)
+
+                    # Add a reference back to the parent dataset
+                    fc_ds.parent_ds = self
+
+                    # Add information about this being a face-centered dataset
+                    fc_ds.fc_direction = direction
+                except Exception as e:
+                    mylog.warning(
+                        f"Failed to load face-centered {direction} dataset: {e}"
+                    )
+            else:
+                mylog.debug(f"No face-centered {direction} dataset found at {fc_dir}")
+
+    def _parse_parameter_file(self):
+        import yaml
+
+        # Call parent method to initialize core setup by yt
+        super()._parse_parameter_file()
+
+        # Define the path to the Header file
+        header_filename = os.path.join(self.output_dir, "Header")
+        if not os.path.exists(header_filename):
+            raise FileNotFoundError(f"Header file not found: {header_filename}")
+
+        with open(header_filename) as f:
+            # Parse header version
+            self.parameters["plot_file_type"] = f.readline().strip()
+
+            # expecting mandatory fields: gasDensity, x-GasMomentum, y-GasMomentum, z-GasMomentum, gasEnergy, gasInternalEnergy
+            # Number of fields
+            num_fields = int(f.readline().strip())
+            self.parameters["fields"] = []
+
+            # Metadata flags
+            rad_group_count = 0
+
+            for _ in range(num_fields):
+                current_field = f.readline().strip()
+                if current_field.startswith("radEnergy-Group"):
+                    rad_group_count += 1
+                self.parameters["fields"].append(current_field)
+
+            # Add metadata for radiation groups, scalars, and field existence flags
+            self.parameters["radiation_field_groups"] = rad_group_count
+
+            # Parse remaining metadata
+            self.parameters["dimensionality"] = int(
+                f.readline().strip()
+            )  # Dimensionality
+            self.parameters["current_time"] = float(
+                f.readline().strip()
+            )  # Simulation time
+            self.parameters["refinement_level"] = int(
+                f.readline().strip()
+            )  # Refinement levels
+
+            # Domain edges
+            self.parameters["domain_left_edge"] = list(
+                map(float, f.readline().strip().split())
+            )
+            self.parameters["domain_right_edge"] = list(
+                map(float, f.readline().strip().split())
+            )
+
+            # Skip empty line
+            f.readline()
+
+            # Grid info
+            self.parameters["grid_info"] = f.readline().strip()
+
+            # Timestamp
+            self.parameters["timestamp"] = list(map(int, f.readline().strip().split()))
+
+            # Grid sizes for all refinement levels
+            self.parameters["grid_sizes"] = []
+            for _ in range(self.parameters["refinement_level"] + 1):
+                self.parameters["grid_sizes"].append(
+                    list(map(float, f.readline().strip().split()))
+                )
+
+            # Skip placeholders
+            f.readline()  # Placeholder line 1
+            f.readline()  # Placeholder line 2
+
+            # Parse data for all refinement levels
+            self.parameters["refinement_details"] = []
+            max_refinement_level = -1
+
+            for level in range(self.parameters["refinement_level"] + 1):
+                level_data = {}
+
+                # Parse metadata line
+                metadata = f.readline().strip().split()
+                level_data["level"] = int(metadata[0])
+                level_data["num_boxes"] = int(
+                    metadata[1]
+                )  # Number of boxes in current level
+                level_data["current_time"] = float(metadata[2])
+
+                # Update max refinement level
+                max_refinement_level = max(max_refinement_level, level_data["level"])
+
+                # Parse timestamp
+                level_data["timestamp"] = int(f.readline().strip())
+
+                # Parse box information
+                level_data["boxes"] = []
+                for _ in range(level_data["num_boxes"]):
+                    box = {}
+                    for axis in range(self.parameters["dimensionality"]):
+                        left_edge, right_edge = map(float, f.readline().strip().split())
+                        box[f"axis_{axis}"] = {
+                            "left_edge": left_edge,
+                            "right_edge": right_edge,
+                        }
+                    level_data["boxes"].append(box)
+
+                # Append level data to refinement levels
+                self.parameters["refinement_details"].append(level_data)
+
+                # Skip level marker (e.g., Level_0/Cell)
+                marker = f.readline().strip()
+                if not marker.startswith(f"Level_{level}/Cell"):
+                    raise ValueError(f"Unexpected marker '{marker}' for level {level}")
+
+            # Update parameters for refinement
+            self.parameters["max_refinement_level"] = max_refinement_level
+            self.parameters["refinement"] = max_refinement_level > 0
+
+        # Handle particle information from "*_particles/Header"
+        particle_dirs = glob.glob(os.path.join(self.output_dir, "*_particles"))
+        detected_particle_types = []
+        particle_info = {}
+
+        for pdir in particle_dirs:
+            particle_type = os.path.basename(pdir)
+            header_file = os.path.join(pdir, "Header")
+            fields_yaml_file = os.path.join(pdir, "Fields.yaml")
+
+            if os.path.exists(header_file):
+                detected_particle_types.append(particle_type)
+
+                # Parse the Header
+                with open(header_file) as f:
+                    f.readline().strip()  # Skip version line
+                    num_particles = int(f.readline().strip())  # Second line
+                    num_fields = int(f.readline().strip())  # Third line
+                    fields = [
+                        f.readline().strip() for _ in range(num_fields)
+                    ]  # Remaining lines
+
+                # Default field names and units
+                field_names = fields[:]
+                field_units = dict.fromkeys(fields, "dimensionless")
+
+                # Initialize variables
+                yaml_field_names = None
+
+                # Check and parse Fields.yaml
+                if os.path.exists(fields_yaml_file):
+                    try:
+                        with open(fields_yaml_file) as f:
+                            field_data = yaml.safe_load(f)
+                            yaml_field_names = list(
+                                field_data.keys()
+                            )  # Extract field names
+                            raw_units = field_data
+
+                            # Validate field names count
+                            if len(yaml_field_names) == len(fields):
+                                # Replace the default fields (real_comp*) with those from Fields.yaml
+                                field_names = yaml_field_names
+                                field_units = {}
+
+                                # Translate raw unit dimensions into readable strings
+                                base_units = [
+                                    "M",
+                                    "L",
+                                    "T",
+                                    "Θ",
+                                ]  # Mass, Length, Time, Temperature
+                                for field, unit_dims in raw_units.items():
+                                    field_units[field] = (
+                                        " ".join(
+                                            f"{base_units[i]}^{exp}" if exp != 0 else ""
+                                            for i, exp in enumerate(unit_dims)
+                                        ).strip()
+                                        or "dimensionless"
+                                    )
+
+                                # Remove any `real_comp*` entries from the field_units
+                                for idx in range(len(fields)):
+                                    real_comp_field = f"real_comp{idx}"
+                                    if real_comp_field in field_units:
+                                        del field_units[real_comp_field]
+
+                            else:
+                                mylog.debug(
+                                    "Field names in Fields.yaml do not match the number of fields in Header for '%s'. "
+                                    "Using names from Header.",
+                                    particle_type,
+                                )
+                    except Exception as e:
+                        mylog.debug(
+                            "Failed to parse Fields.yaml for particle type '%s': %s",
+                            particle_type,
+                            e,
+                        )
+
+                # Add particle info
+                particle_info[particle_type] = {
+                    "num_particles": num_particles,
+                    "num_fields": num_fields,
+                    "fields": field_names,
+                    "units": field_units,
+                }
+
+        # Update parameters with particle info
+        self.parameters["particles"] = (len(detected_particle_types),)
+        self.parameters["particle_types"] = tuple(detected_particle_types)
+        self.parameters["particle_info"] = particle_info
+
+        # Debugging: Log parameters for verification
+        mylog.debug("Updated ds.parameters with particle info: %s", self.parameters)
+
+        # Set hydro method explicitly
+        self.parameters["HydroMethod"] = "Quokka"
+
+        # Debug output for verification
+        mylog.debug("Header loaded successfully")
+        mylog.debug("Parsed header parameters: %s", self.parameters)
+
+    def _parse_metadata_file(self):
+        import yaml
+
+        # Construct the full path to the metadata file
+        metadata_filename = os.path.join(self.output_dir, self.cparam_filename)
+        try:
+            with open(metadata_filename) as f:
+                # Load metadata using yaml
+                metadata = yaml.safe_load(f)
+
+                if not metadata:
+                    mylog.debug("Warning: Metadata file is empty.")
+                    return
+
+                # Get quokka version, default to 0.0 if not present
+                quokka_version = Version(str(metadata.get("quokka_version", "0.0")))
+                if quokka_version < Version("25.03"):
+                    # For older versions
+                    self.parameters.update(metadata)
+                    mylog.debug("Metadata loaded successfully (older versions)")
+                else:
+                    # For newer versions, process each section according to rules
+                    for key, value in metadata.items():
+                        if key == "units":
+                            # For units section, read everything underneath
+                            for unit_name, unit_value in value.items():
+                                self.parameters[unit_name] = unit_value
+                        elif key == "constants":
+                            # Ignore constants section
+                            continue
+                        else:
+                            # For everything else, read in directly
+                            self.parameters[key] = value
+
+                    mylog.debug(
+                        f"Metadata loaded successfully (version 25.03 or newer): {quokka_version}"
+                    )
+
+        except FileNotFoundError:
+            mylog.debug(f"Error: Metadata file '{metadata_filename}' not found.")
+        except yaml.YAMLError as e:
+            mylog.debug(f"Error parsing metadata file: {e}")
+        except ValueError as e:
+            mylog.debug(f"Error parsing version numbers: {e}")
 
 
 def _guess_pcast(vals):
