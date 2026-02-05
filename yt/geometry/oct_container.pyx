@@ -511,6 +511,13 @@ cdef class OctreeContainer:
         # iterate the same way visit_all_octs does, but we need to track the
         # number of octs total visited.
         cdef np.int64_t num_cells = -1
+
+        vector_field = dims > 1
+
+        if not vector_field:
+            source = source.reshape(np.shape(source) + (1,))
+
+        # If source is a vector field, we need to handle it differently.
         if dest is None:
             # Note that RAMSES can have partial refinement inside an Oct.  This
             # means we actually do want the number of Octs, not the number of
@@ -518,14 +525,11 @@ cdef class OctreeContainer:
             num_cells = selector.count_oct_cells(self, domain_id)
             dest = np.zeros((num_cells, dims), dtype=source.dtype,
                             order='C')
-        if dims != 1:
-            raise RuntimeError
+
         # Just make sure that we're in the right shape.  Ideally this will not
         # duplicate memory.  Since we're in Cython, we want to avoid modifying
         # the .shape attributes directly.
-        dest = dest.reshape((num_cells, 1))
-        source = source.reshape((source.shape[0], source.shape[1],
-                    source.shape[2], source.shape[3], dims))
+        dest = dest.reshape((num_cells, dims))
         cdef OctVisitor visitor
         cdef oct_visitors.CopyArrayI64 visitor_i64
         cdef oct_visitors.CopyArrayF64 visitor_f64

@@ -195,7 +195,11 @@ class FieldDetector(defaultdict):
             if isinstance(self.ds, (StreamParticlesDataset, ParticleDataset)):
                 raise ValueError
         rng = np.random.default_rng()
-        return rng.random((self.nd, self.nd, self.nd))
+        if kwargs.get("vector_field", False):
+            shape = (self.nd, self.nd, self.nd, 1)
+        else:
+            shape = (self.nd, self.nd, self.nd)
+        return rng.random(shape)
 
     def mesh_sampling_particle_field(self, *args, **kwargs):
         pos = args[0]
