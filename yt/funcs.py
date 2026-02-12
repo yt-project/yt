@@ -436,9 +436,14 @@ _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfA
 
 
 def _rdbeta(key):
-    enc_s = base64.decodestring(_ss)
-    dec_s = "".join(chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)))
+    enc_s = base64.decodebytes(_ss.encode("ascii"))
+
+    key_b = key.encode("utf-8") if isinstance(key, str) else key
+
+    dec_b = bytes(a ^ b for a, b in zip(enc_s, itertools.cycle(key_b)))
+    dec_s = dec_b.decode("latin-1")
     print(dec_s)
+    return dec_s
 
 
 #
