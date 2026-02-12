@@ -33,7 +33,7 @@ def validate_field_precision(fields: list[tuple[str, str]]):
         List of tuples containing field names and their precision
         ('f' for single, 'd' for double).
     """
-    if not fields:
+    if len(fields) == 0:
         return
 
     if not all(precision == fields[0][1] for _, precision in fields):
