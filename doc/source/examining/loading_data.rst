@@ -3179,7 +3179,7 @@ There are three way to make yt detect all the particle fields. For example, if y
       fields = [ "Potential,f", "Potential-old,f", "x-acceleration,f", "y-acceleration,f", "z-acceleration,f" ]
 
    Importantly, the order of the fields should match the order in which they are written in the RAMSES output files.
-   yt will also assume that each entry is formed of a field name followed by its type (``f`` for single precision, ``d`` for double precision), separated by a comma. Field names containing commas are not supported, other precisions (e.g. integers) are not supported either. All fields in a given file type (gravity, hydro, ...) need to have the same precision.
+   yt will also assume that each entry is formed of a field name followed by its type (``f`` for single precision, ``d`` for double precision), separated by a comma. Field names containing commas are not supported, other precisions (e.g. integers) are not supported either. Presently, all fields in a given file type (gravity, hydro, ...) need to have the same precision (e.g. all single-precision or all double-precision), combinations are not supported. Internally, yt will convert all data into double-precisoin floats, but this will allow it to read the data correctly from file.
 
 3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
 
