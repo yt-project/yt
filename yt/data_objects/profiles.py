@@ -50,11 +50,11 @@ def preserve_source_parameters(func):
         if hasattr(source, "field_parameters"):
             old_params = source.field_parameters
             source.field_parameters = prof._data_source.field_parameters
-            tr = func(*args, **kwargs)
-            source.field_parameters = old_params
-        else:
-            tr = func(*args, **kwargs)
-        return tr
+            try:
+                return func(*args, **kwargs)
+            finally:
+                source.field_parameters = old_params
+        return func(*args, **kwargs)
 
     return save_state
 
