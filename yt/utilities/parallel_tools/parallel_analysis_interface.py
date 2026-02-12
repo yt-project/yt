@@ -9,6 +9,7 @@ from io import StringIO
 from typing import Any, Literal
 
 import numpy as np
+import numpy.typing as npt
 from more_itertools import always_iterable
 
 import yt.utilities.logger
@@ -574,7 +575,7 @@ def parallel_objects(
             break
     if parallel_capable:
         communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
-    to_share: dict[int, np.ndarray | dict[Any, np.ndarray]] = {}
+    to_share: dict[int, npt.NDArray | dict[Any, npt.NDArray]] = {}
     # If our objects object is slice-aware, like time series data objects are,
     # this will prevent intermediate objects from being created.
     oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
@@ -982,7 +983,7 @@ class Communicator:
 
             return reduced_values
 
-    def all_concat(self, data: dict[Any, np.ndarray | dict[str, np.ndarray]]):
+    def all_concat(self, data: dict[Any, npt.NDArray | dict[str, npt.NDArray]]):
         """
         Concatenate all the values of data across all processors.
 
@@ -1015,7 +1016,7 @@ class Communicator:
             return all_values
 
     def concat(
-        self, data: dict[Any, np.ndarray | dict[str, np.ndarray]], root: int = 0
+        self, data: dict[Any, npt.NDArray | dict[str, npt.NDArray]], root: int = 0
     ):
         """
         Concatenate all the values of data and send them to the root.
