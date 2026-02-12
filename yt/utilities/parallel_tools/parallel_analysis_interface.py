@@ -3,10 +3,13 @@ import logging
 import os
 import sys
 import traceback
+from dataclasses import dataclass
 from functools import wraps
 from io import StringIO
+from typing import Any, Literal
 
 import numpy as np
+import numpy.typing as npt
 from more_itertools import always_iterable
 
 import yt.utilities.logger
@@ -460,13 +463,20 @@ class ProcessorPool:
         raise KeyError(key)
 
 
+@dataclass
 class ResultsStorage:
-    slots = ["result", "result_id"]
-    result = None
-    result_id = None
+    result_id: int
+    result: Any = None
 
 
-def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False):
+def parallel_objects(
+    objects,
+    njobs: int = 0,
+    storage: dict | None = None,
+    barrier: bool = True,
+    dynamic: bool = False,
+    reduction: Literal[None, "sum", "max", "min", "cat", "cat_on_root"] = None,
+):
     r"""This function dispatches components of an iterable to different
     processors.
 
@@ -497,13 +507,23 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
         indices and the values will be whatever is assigned to the *result*
         attribute on the storage during iteration.
     barrier : bool
-        Should a barier be placed at the end of iteration?
+        Should a barrier be placed at the end of iteration?
     dynamic : bool
         This governs whether or not dynamic load balancing will be enabled.
         This requires one dedicated processor; if this is enabled with a set of
         128 processors available, only 127 will be available to iterate over
         objects as one will be load balancing the rest.
-
+    reduction : Literal[None, "sum", "max", "min", "cat", "cat_on_root"]
+        This specifies the reduction operation to be applied to the results
+        from each processor.
+        - None: no reduction will be applied and the storage object will
+            contain one result per chunk in the container.
+        - cat: the storage object will contain a flattened list of
+            each result.
+        - cat_on_root: same as cat, but only the root processor will
+            contain anything.
+        - sum, min, max: the storage object will contain the result
+            of applying the operation until getting a single value.
 
     Examples
     --------
@@ -555,14 +575,13 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
             break
     if parallel_capable:
         communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
-    to_share = {}
+    to_share: dict[int, npt.NDArray | dict[Any, npt.NDArray]] = {}
     # If our objects object is slice-aware, like time series data objects are,
     # this will prevent intermediate objects from being created.
     oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
     for result_id, obj in oiter:
         if storage is not None:
-            rstore = ResultsStorage()
-            rstore.result_id = result_id
+            rstore = ResultsStorage(result_id=result_id)
             yield rstore, obj
             to_share[rstore.result_id] = rstore.result
         else:
@@ -570,10 +589,22 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     if parallel_capable:
         communication_system.pop()
     if storage is not None:
-        # Now we have to broadcast it
-        new_storage = my_communicator.par_combine_object(
-            to_share, datatype="dict", op="join"
-        )
+        match reduction:
+            case None:
+                new_storage = my_communicator.par_combine_object(
+                    to_share, datatype="dict", op="join"
+                )
+            case "cat":
+                new_storage = my_communicator.all_concat(to_share)
+            case "cat_on_root":
+                new_storage = my_communicator.concat(to_share, root=0)
+            case "sum" | "max" | "min":
+                new_storage = my_communicator.all_reduce(to_share, op=reduction)
+            case _:
+                raise NotImplementedError(
+                    f"Reduction operation {reduction} not implemented."
+                )
+
         storage.update(new_storage)
     if barrier:
         my_communicator.barrier()
@@ -916,6 +947,111 @@ class Communicator:
             # We use old-school pickling here on the assumption the arrays are
             # relatively small ( < 1e7 elements )
             return self.comm.allreduce(data, op)
+
+    def all_reduce(self, data, op="sum"):
+        reduction_op = {
+            "sum": np.sum,
+            "max": np.max,
+            "min": np.min,
+        }[op]
+        mpi_reduction_op = {
+            "sum": MPI.SUM,
+            "max": MPI.MAX,
+            "min": MPI.MIN,
+        }[op]
+
+        # We assume the dictionary is not empty!
+        first_value = next(iter(data.values()))
+
+        # If we have a dict of dicts, recurse
+        if isinstance(first_value, dict):
+            return {
+                deeper_key: self.reduce(
+                    {key: value[deeper_key] for key, value in data.items()},
+                    op=op,
+                )
+                for deeper_key in first_value.keys()
+            }
+        else:
+            # Otherwise, we assume our values can be concatenated
+            reduced_values = reduction_op([reduction_op(d) for d in data.values()])
+
+            if self._distributed:
+                reduced_values = self.comm.allreduce(
+                    reduced_values, op=mpi_reduction_op
+                )
+
+            return reduced_values
+
+    def all_concat(self, data: dict[Any, npt.NDArray | dict[str, npt.NDArray]]):
+        """
+        Concatenate all the values of data across all processors.
+
+        Notes:
+        ------
+        `data`'s values can either be a single object, or a dictionary of objects.
+        """
+        # We assume the dictionary is not empty!
+        first_value = next(iter(data.values()))
+
+        # If we have a dict of dicts, recurse
+        if isinstance(first_value, dict):
+            return {
+                deeper_key: self.all_concat(
+                    {key: value[deeper_key] for key, value in data.items()}
+                )
+                for deeper_key in first_value.keys()
+            }
+        else:
+            # Otherwise, we assume our values can be concatenated
+            # NOTE: mypy complains about incompatible types here
+            all_values = np.concatenate(
+                [np.atleast_1d(value) for value in data.values()]  # type: ignore[arg-type]
+            )
+
+            if self._distributed:
+                # NOTE: mypy thinks this statement is unreachable (it is not)
+                all_values = np.concatenate(self.comm.allgather(all_values))  # type: ignore[unreachable]
+
+            return all_values
+
+    def concat(
+        self, data: dict[Any, npt.NDArray | dict[str, npt.NDArray]], root: int = 0
+    ):
+        """
+        Concatenate all the values of data and send them to the root.
+        This returns None on all other processors.
+
+        Notes:
+        ------
+        `data`'s values can either be a single object, or a dictionary of objects.
+        """
+        # We assume the dictionary is not empty!
+        first_value = next(iter(data.values()))
+
+        # If we have a dict of dicts, recurse
+        if isinstance(first_value, dict):
+            return {
+                deeper_key: self.concat(
+                    {key: value[deeper_key] for key, value in data.items()},
+                    root=root,
+                )
+                for deeper_key in first_value.keys()
+            }
+        else:
+            # Otherwise, we assume our values can be concatenated
+            # NOTE: mypy complains about incompatible types here
+            all_values = np.concatenate(
+                [np.atleast_1d(value) for value in data.values()]  # type: ignore[arg-type]
+            )
+
+            if self._distributed:
+                # NOTE: mypy thinks this statement is unreachable (it is not)
+                tmp = self.comm.gather(all_values, root=root)  # type: ignore[unreachable]
+                if self.comm.rank == root:
+                    return np.concatenate(tmp)
+                else:
+                    return None
 
     ###
     # Non-blocking stuff.

@@ -678,6 +678,17 @@ class RAMSESIndex(OctreeIndex):
                     mylog.info("Identified %s intersecting domains", len(domains))
             base_region = getattr(dobj, "base_region", dobj)
 
+            # In case of MPI parallelism, we need to keep the intersection
+            # of all domains across all ranks
+            if self.comm.size > 1:
+                idomains = {dom.domain_id for dom in domains}
+                idomains = self.comm.comm.allreduce(
+                    set(idomains), op=lambda a, b: a & b
+                )
+
+                # Keep domains that every rank has
+                domains = [dom for dom in domains if dom.domain_id in idomains]
+
             subsets = [
                 RAMSESDomainSubset(
                     base_region,
