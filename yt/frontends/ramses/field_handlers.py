@@ -689,7 +689,7 @@ class RTFieldFileHandler(FieldFileHandler):
 
         ok = False
 
-        # Are fields are provided by users in the config?
+        # Are fields provided by users in the config?
         fields, single_precision = cls.load_fields_from_yt_config()
         ok = len(fields) > 0
 
