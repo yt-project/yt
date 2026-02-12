@@ -24,7 +24,7 @@ def register_field_handler(ph):
 DETECTED_FIELDS = {}  # type: ignore
 
 
-def check_field_precision(fields: list[tuple[str, str]]) -> bool:
+def validate_field_precision(fields: list[tuple[str, str]]):
     """Check if all fields have the same precision.
 
     Parameters
@@ -32,14 +32,9 @@ def check_field_precision(fields: list[tuple[str, str]]) -> bool:
     fields : list of (str, str)
         List of tuples containing field names and their precision
         ('f' for single, 'd' for double).
-
-    Returns
-    -------
-    bool
-        True if all fields have the same precision, False otherwise.
     """
     if not fields:
-        return True
+        return
 
     if not all(precision == fields[0][1] for _, precision in fields):
         raise RuntimeError("Mixed precision in field list. This is not supported.")
@@ -49,8 +44,6 @@ def check_field_precision(fields: list[tuple[str, str]]) -> bool:
             f"Unknown precision specifier '{fields[0][1]}'. "
             "Only 'f' or 'd' are supported."
         )
-
-    return True
 
 
 def get_fields_and_single_precision(
@@ -71,7 +64,7 @@ def get_fields_and_single_precision(
         if all fields are single precision, False if double precision.
     """
     field_names = [field for field, _ in fields]
-    check_field_precision(fields)
+    validate_field_precision(fields)
     if fields:
         single_precision = fields[0][1] == "f"
     else:
