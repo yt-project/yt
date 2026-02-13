@@ -75,20 +75,30 @@ def get_intersecting_cpus(
     dx_cond: float | None = None,
     factor: float = 4.0,
     bound_keys: Optional["np.ndarray[Any, np.dtype[np.float64]]"] = None,
+    bbox: Optional[Any] = None,
 ) -> set[int]:
     """
     Find the subset of CPUs that intersect the bbox in a recursive fashion.
     """
+    if bbox is None:
+        bbox = region.get_bbox()
     if LE is None:
         LE = np.array([0, 0, 0], dtype="d")
     if dx_cond is None:
-        bbox = region.get_bbox()
         dx_cond = float((bbox[1] - bbox[0]).min().to("code_length"))
     if bound_keys is None:
         ncpu = ds.parameters["ncpu"]
         bound_keys = np.empty(ncpu + 1, dtype="float64")
         bound_keys[:ncpu] = [ds.hilbert_indices[icpu + 1][0] for icpu in range(ncpu)]
         bound_keys[ncpu] = ds.hilbert_indices[ncpu][1]
+
+    # bbox rejection to avoid expensive selector checks. (greatly improves performance for small disks)
+    bbox_min = bbox[0].to("code_length").d
+    bbox_max = bbox[1].to("code_length").d
+    cube_min = LE
+    cube_max = LE + dx
+    if np.any(cube_max < bbox_min) or np.any(cube_min > bbox_max):
+        return set()
 
     # If the current dx is smaller than the smallest size of the bbox
     if dx < dx_cond / factor:
@@ -111,7 +121,7 @@ def get_intersecting_cpus(
                 if bbox_intersects(region.selector, LE_new, dx):
                     ret.update(
                         get_intersecting_cpus(
-                            ds, region, LE_new, dx, dx_cond, factor, bound_keys
+                            ds, region, LE_new, dx, dx_cond, factor, bound_keys, bbox
                         )
                     )
     return ret
