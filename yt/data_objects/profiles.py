@@ -53,6 +53,8 @@ def preserve_source_parameters(func):
             try:
                 return func(*args, **kwargs)
             finally:
+                # restore field_parameter state even if func raises an exception
+                # see https://github.com/yt-project/yt/pull/5377
                 source.field_parameters = old_params
         return func(*args, **kwargs)
 
