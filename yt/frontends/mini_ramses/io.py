@@ -1,11 +1,9 @@
 import os
 import struct
-from collections import defaultdict
 
 import numpy as np
 
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
 
 
 class IOHandlerMiniRAMSES(BaseIOHandler):
@@ -162,24 +160,22 @@ class IOHandlerMiniRAMSES(BaseIOHandler):
     def _get_particle_field_data(self, pdata, fname, ndim, boxlen):
         """Map a yt particle field name to data from the particle file."""
         field_map = {
-            "particle_position_x": ("pos_x", boxlen),
-            "particle_position_y": ("pos_y", boxlen),
-            "particle_position_z": ("pos_z", boxlen),
-            "particle_velocity_x": ("vel_x", 1.0),
-            "particle_velocity_y": ("vel_y", 1.0),
-            "particle_velocity_z": ("vel_z", 1.0),
-            "particle_mass": ("mass", 1.0),
-            "particle_refinement_level": ("level", 1.0),
-            "particle_identity": ("birth_id", 1.0),
-            "particle_metallicity": ("metallicity", 1.0),
-            "particle_birth_time": ("birth_date", 1.0),
+            "particle_position_x": "pos_x",
+            "particle_position_y": "pos_y",
+            "particle_position_z": "pos_z",
+            "particle_velocity_x": "vel_x",
+            "particle_velocity_y": "vel_y",
+            "particle_velocity_z": "vel_z",
+            "particle_mass": "mass",
+            "particle_refinement_level": "level",
+            "particle_identity": "birth_id",
+            "particle_metallicity": "metallicity",
+            "particle_birth_time": "birth_date",
         }
 
         if fname in field_map:
-            key, scale = field_map[fname]
+            key = field_map[fname]
             if key in pdata:
-                if scale != 1.0:
-                    return pdata[key].astype("float64")
                 return pdata[key].astype("float64")
         return None
 

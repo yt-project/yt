@@ -1,10 +1,4 @@
-import os
-import warnings
-
-import numpy as np
-
 from yt._typing import KnownFieldsT
-from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.utilities.physical_constants import (
     boltzmann_constant_cgs,

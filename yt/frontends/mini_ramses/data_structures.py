@@ -1,7 +1,5 @@
 import os
 import struct
-import weakref
-from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -15,9 +13,7 @@ from yt.geometry.oct_geometry_handler import OctreeIndex
 
 from .definitions import (
     MINI_RAMSES_FILE_RE,
-    OUTPUT_DIR_EXP,
     OUTPUT_DIR_RE,
-    field_aliases,
 )
 from .fields import MiniRAMSESFieldInfo
 

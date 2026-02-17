@@ -1,7 +1,5 @@
 import re
 
-from yt.funcs import mylog
-
 # mini-ramses uses different file naming than RAMSES:
 # - output_XXXXX/info.txt (no number in info filename)
 # - output_XXXXX/amr.NNNNN (dot-separated, no "out" suffix)
