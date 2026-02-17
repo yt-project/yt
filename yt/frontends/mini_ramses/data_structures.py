@@ -100,6 +100,7 @@ class MiniRAMSESDomainFile:
         self.ds = ds
         self.domain_id = domain_id
         self._level_count = None
+        self._level_offsets = None
         self._octree = None
 
         iout = int(ds.basename.split("_")[1])
@@ -118,12 +119,21 @@ class MiniRAMSESDomainFile:
         self._read_amr_header()
         return self._level_count
 
+    @property
+    def level_offsets(self):
+        """Return cumulative oct count up to (but not including) each level."""
+        if self._level_offsets is not None:
+            return self._level_offsets
+        self._read_amr_header()
+        return self._level_offsets
+
     def _read_amr_header(self):
         """Read the AMR header from the stream-based binary file."""
         if not os.path.exists(self.amr_fn):
             self._level_count = np.zeros(
                 self.ds.max_level - self.ds.min_level + 1, dtype="int64"
             )
+            self._level_offsets = np.zeros_like(self._level_count)
             return
 
         with open(self.amr_fn, "rb") as f:
@@ -142,11 +152,27 @@ class MiniRAMSESDomainFile:
             if 0 <= idx < nlevels:
                 self._level_count[idx] = noct[ilevel]
 
+        # Compute cumulative offsets: offset[i] = sum of octs at levels < i
+        self._level_offsets = np.zeros(nlevels, dtype="int64")
+        cumsum = 0
+        for i in range(nlevels):
+            self._level_offsets[i] = cumsum
+            cumsum += self._level_count[i]
+
     def _read_hydro_header(self):
         """Read the hydro header to get nvar."""
         if not os.path.exists(self.hydro_fn):
             return 0
         with open(self.hydro_fn, "rb") as f:
+            ndim = struct.unpack("i", f.read(4))[0]
+            nvar = struct.unpack("i", f.read(4))[0]
+        return nvar
+
+    def _read_grav_header(self):
+        """Read the gravity header to get nvar."""
+        if not os.path.exists(self.grav_fn):
+            return 0
+        with open(self.grav_fn, "rb") as f:
             ndim = struct.unpack("i", f.read(4))[0]
             nvar = struct.unpack("i", f.read(4))[0]
         return nvar
@@ -166,9 +192,151 @@ class MiniRAMSESDomainSubset(OctreeSubset):
         )
         self._base_domain = domain
 
-    def fill(self, fd, fields, selector, file_handler):
-        """Read and fill field data from the hydro file."""
-        raise NotImplementedError
+    @property
+    def oct_handler(self):
+        return self.ds.index.oct_handler
+
+    def fill(self, fn, fields, selector, field_list):
+        """Read and fill field data from a mini-ramses binary file.
+        
+        Parameters
+        ----------
+        fn : str
+            Filename to read from
+        fields : list
+            List of (ftype, fname) tuples to read
+        selector : SelectorObject
+            The selector determining which cells to include
+        field_list : list
+            List of all fields in the file (for determining indices)
+            
+        Returns
+        -------
+        data : dict
+            Dictionary of {fname: array} for each requested field
+        """
+        ndim = self.ds.dimensionality
+        twotondim = 2**ndim
+        oct_handler = self.oct_handler
+        domain = self._base_domain
+        
+        # Count selected cells
+        cell_count = selector.count_oct_cells(oct_handler, self.domain_id)
+        
+        # Get field names only (without ftype)
+        field_names = [f for ft, f in fields]
+        
+        # Initialize output data
+        data = {}
+        for fname in field_names:
+            data[fname] = np.zeros(cell_count, dtype="float64")
+        
+        if cell_count == 0:
+            return data
+        
+        # Get indices of selected cells
+        # level_inds: which level (0-indexed relative to min_level)
+        # cell_inds: which cell within the oct (0-7)
+        # file_inds: which oct within that level
+        level_inds, cell_inds, file_inds = oct_handler.file_index_octs(
+            selector, self.domain_id, cell_count
+        )
+        
+        # Read all data from file into a flat array
+        all_data = self._read_all_cell_data(fn, field_list)
+        
+        if all_data is None:
+            return data
+        
+        # Get level offsets to compute global oct index
+        level_offsets = domain.level_offsets
+        
+        # Compute global oct index: offset for this level + oct index within level
+        # file_inds gives oct index within each level
+        # level_offsets[level] gives cumulative count of octs at levels < level
+        global_oct_inds = np.zeros(cell_count, dtype="int64")
+        for i in range(cell_count):
+            level = level_inds[i]
+            if level < len(level_offsets):
+                global_oct_inds[i] = level_offsets[level] + file_inds[i]
+            else:
+                global_oct_inds[i] = file_inds[i]
+        
+        # Cell index in flat array: oct_idx * 8 + cell_idx
+        indices = global_oct_inds * twotondim + cell_inds
+        
+        # Select the requested cells
+        for ftype, fname in fields:
+            if fname in all_data:
+                data[fname] = all_data[fname][indices]
+        
+        return data
+    
+    def _read_all_cell_data(self, fn, field_list):
+        """Read all cell data from file into arrays indexed by oct.
+        
+        Returns dict with field name -> flat array where index = oct_idx * 8 + cell_idx
+        """
+        if not os.path.exists(fn):
+            return None
+            
+        ndim = self.ds.dimensionality
+        twotondim = 2**ndim
+        
+        with open(fn, "rb") as f:
+            # Read header
+            f_ndim = struct.unpack("i", f.read(4))[0]
+            f_nvar = struct.unpack("i", f.read(4))[0]
+            levelmin = struct.unpack("i", f.read(4))[0]
+            nlevelmax = struct.unpack("i", f.read(4))[0]
+            
+            noct = np.zeros(nlevelmax, dtype="int32")
+            for ilevel in range(levelmin - 1, nlevelmax):
+                noct[ilevel] = struct.unpack("i", f.read(4))[0]
+            
+            total_octs = noct.sum()
+            total_cells = total_octs * twotondim
+            
+            # Build field index map
+            all_field_names = [f for ft, f in field_list]
+            field_indices = {}
+            for ftype, fname in field_list:
+                if fname in all_field_names:
+                    try:
+                        fidx = all_field_names.index(fname)
+                        if fidx < f_nvar:
+                            field_indices[fname] = fidx
+                    except ValueError:
+                        pass
+            
+            # Pre-allocate arrays
+            raw_data = {fname: np.zeros(total_cells, dtype="float64") 
+                       for fname in field_indices}
+            
+            # Read all data
+            # Layout is: for each oct, nvar blocks of 8 cells each (field-major within oct)
+            cell_offset = 0
+            for ilevel in range(levelmin - 1, nlevelmax):
+                ncache = noct[ilevel]
+                if ncache == 0:
+                    continue
+                    
+                for igrid in range(ncache):
+                    # Each oct: nvar fields * twotondim cells * 4 bytes
+                    # Layout is (nvar, twotondim) - field-major
+                    oct_data = np.frombuffer(
+                        f.read(4 * twotondim * f_nvar),
+                        dtype="<f4"
+                    ).reshape(f_nvar, twotondim)
+                    
+                    # Store each field's data for this oct's cells
+                    for fname, fidx in field_indices.items():
+                        for icell in range(twotondim):
+                            raw_data[fname][cell_offset + icell] = oct_data[fidx, icell]
+                    
+                    cell_offset += twotondim
+            
+        return raw_data
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         new_subset = MiniRAMSESDomainSubset(
@@ -184,6 +352,8 @@ class MiniRAMSESDomainSubset(OctreeSubset):
 class MiniRAMSESIndex(OctreeIndex):
     def __init__(self, ds, dataset_type="mini_ramses"):
         self.fluid_field_list = ds._fields_in_file
+        self.over_refine_factor = 1
+        self.dataset_type = dataset_type
         super().__init__(ds, dataset_type)
 
     def _initialize_oct_handler(self):
@@ -195,16 +365,18 @@ class MiniRAMSESIndex(OctreeIndex):
             MiniRAMSESDomainFile(ds, i + 1) for i in range(ndomains)
         ]
 
-        total_octs = sum(d.level_count.sum() for d in self.domains)
-        mylog.info("Allocating %s octs", total_octs)
+        # domain_counts is an array with oct count per domain
+        domain_counts = np.array([d.level_count.sum() for d in self.domains])
+        # Root nodes are octs at the minimum level (index 0 in level_count)
+        root_nodes = sum(int(d.level_count[0]) for d in self.domains)
+        mylog.info("Allocating %s octs", domain_counts.sum())
 
         self.oct_handler = RAMSESOctreeContainer(
-            ds.domain_dimensions,
+            ds.domain_dimensions / 2,
             ds.domain_left_edge,
             ds.domain_right_edge,
-            over_refine=self.over_refine_factor,
         )
-        self.oct_handler.n_ref = 0
+        self.oct_handler.allocate_domains(domain_counts, root_nodes)
 
         # Read AMR data from each domain and add to octree
         for dom in self.domains:
@@ -230,14 +402,20 @@ class MiniRAMSESIndex(OctreeIndex):
             for ilevel in range(levelmin - 1, nlevelmax):
                 noct[ilevel] = struct.unpack("i", f.read(4))[0]
 
-            # Read grid data: for each level, for each grid:
+                # Read grid data: for each level, for each grid:
             # ckey (ndim ints) + refined (twotondim ints)
             for ilevel in range(levelmin - 1, nlevelmax):
                 ncache = noct[ilevel]
                 if ncache == 0:
                     continue
 
-                level = ilevel + 1  # 1-indexed level
+                # ilevel is 0-indexed (0 = level 1)
+                # For RAMSES octree, we pass level relative to levelmin
+                # ilevel=6 means level 7, and if levelmin=7, this is the root level (0)
+                yt_level = ilevel - (levelmin - 1)
+
+                # Read all grids at this level in batch
+                pos_all = np.zeros((ncache, 3), dtype="float64", order="F")
 
                 for igrid in range(ncache):
                     # Read Cartesian key (ndim int32 values)
@@ -252,22 +430,29 @@ class MiniRAMSESIndex(OctreeIndex):
                         dtype="int32",
                     )
 
-                    # Compute position from Cartesian key
-                    dx = 0.5 / 2**ilevel
-                    pos = np.zeros(3, dtype="float64")
+                    # Compute position in code units from Cartesian key
+                    # ckey gives grid indices at this level
+                    # For levelmin=7, root octs form a 2^(levelmin-1) = 64^3 grid
+                    # Number of octs per dimension at level L is 2^(L-1)
+                    # Position in normalized [0,1] = (ckey + 0.5) / 2^(L-1)
+                    # Then scale by boxlen to get code units
+                    boxlen = float(ds.domain_right_edge[0] - ds.domain_left_edge[0])
+                    n_octs_per_dim = 2 ** ilevel  # For level 7 (ilevel=6): 64
+                    dx = boxlen / n_octs_per_dim
                     for idim in range(ndim):
-                        pos[idim] = (2 * ckey[idim] + 1) * dx
+                        pos_all[igrid, idim] = (ckey[idim] + 0.5) * dx
 
-                    # Add oct to octree
-                    self.oct_handler.add(
-                        domain.domain_id,
-                        level,
-                        pos,
-                    )
+                # Add all octs at this level to octree in batch
+                self.oct_handler.add(
+                    domain.domain_id,
+                    yt_level,
+                    pos_all,
+                )
 
     def _detect_output_fields(self):
         ds = self.dataset
-        self.fluid_field_list = ds._fields_in_file
+        # Combine hydro and gravity fields
+        self.fluid_field_list = ds._fields_in_file + ds._gravity_fields_in_file
 
         # Particle fields - check for particle files
         self.particle_field_list = []
@@ -289,6 +474,8 @@ class MiniRAMSESIndex(OctreeIndex):
                 )
                 for f in pfields:
                     self.particle_field_list.append(f)
+
+        self.field_list = self.particle_field_list + self.fluid_field_list
 
     def _detect_particle_fields(self, fn, header_fn, prefix, ptype):
         """Detect available particle fields from header file."""
@@ -419,8 +606,9 @@ class MiniRAMSESDataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-        self.fluid_types += ("gas",)
+        self.fluid_types += ("mini-ramses", "gravity")
         self._fields_in_file = []
+        self._gravity_fields_in_file = []
         self.storage_filename = storage_filename
         self.default_species_fields = default_species_fields
 
@@ -510,7 +698,7 @@ class MiniRAMSESDataset(Dataset):
         self.omega_matter = params.get("omega_m", 0.0)
         self.omega_lambda = params.get("omega_l", 0.0)
         self.omega_radiation = 0.0
-        self.hubble_constant = params.get("H0", 0.0)
+        self.hubble_constant = params.get("H0", 0.0) / 100.0  # Convert to H100
         current_time = params.get("time", 0.0)
         self.current_time = current_time
 
@@ -519,11 +707,12 @@ class MiniRAMSESDataset(Dataset):
 
         # Determine if this is a cosmological simulation
         # Same logic as RAMSES: if time >= 0 and H0 == 1 and aexp == 1
-        # then it's NOT cosmological
-        if current_time >= 0 and h0 == 1.0 and aexp == 1.0:
-            self.cosmological_simulation = False
-            self.current_redshift = 0.0
-        elif h0 > 0 and aexp < 1.0:
+        # then it's NOT cosmological (all three must be true)
+        is_cosmological = not (
+            current_time >= 0 and h0 == 1.0 and aexp == 1.0
+        )
+        
+        if is_cosmological:
             self.cosmological_simulation = True
             self.current_redshift = 1.0 / aexp - 1.0
         else:
@@ -546,8 +735,9 @@ class MiniRAMSESDataset(Dataset):
         # Refine by 2 in each dimension
         self.refine_by = 2
 
-        # Detect fluid fields
+        # Detect fluid fields (hydro and gravity)
         self._detect_fluid_fields()
+        self._detect_gravity_fields()
 
         # Detect particle types
         self._detect_particle_types()
@@ -575,15 +765,15 @@ class MiniRAMSESDataset(Dataset):
         """Parse the mini-ramses hydro_header.txt file."""
         fields = []
         field_map = {
-            "density": ("gas", "Density"),
-            "velocity_x": ("gas", "x-velocity"),
-            "velocity_y": ("gas", "y-velocity"),
-            "velocity_z": ("gas", "z-velocity"),
-            "thermal_pressure": ("gas", "Pressure"),
-            "magnetic_field_x": ("gas", "B_x"),
-            "magnetic_field_y": ("gas", "B_y"),
-            "magnetic_field_z": ("gas", "B_z"),
-            "metal_mass_fraction": ("gas", "Metallicity"),
+            "density": ("mini-ramses", "Density"),
+            "velocity_x": ("mini-ramses", "x-velocity"),
+            "velocity_y": ("mini-ramses", "y-velocity"),
+            "velocity_z": ("mini-ramses", "z-velocity"),
+            "thermal_pressure": ("mini-ramses", "Pressure"),
+            "magnetic_field_x": ("mini-ramses", "B_x"),
+            "magnetic_field_y": ("mini-ramses", "B_y"),
+            "magnetic_field_z": ("mini-ramses", "B_z"),
+            "metal_mass_fraction": ("mini-ramses", "Metallicity"),
         }
         with open(header_fn) as f:
             for line in f:
@@ -598,25 +788,76 @@ class MiniRAMSESDataset(Dataset):
                         if fname in field_map:
                             fields.append(field_map[fname])
                         else:
-                            fields.append(("gas", fname))
+                            fields.append(("mini-ramses", fname))
         return fields
 
     def _default_hydro_fields(self, nvar):
         """Return default field names based on nvar count."""
         ndim = self.dimensionality
-        fields = [("gas", "Density")]
+        fields = [("mini-ramses", "Density")]
         for ax in "xyz"[:ndim]:
-            fields.append(("gas", f"{ax}-velocity"))
-        fields.append(("gas", "Pressure"))
+            fields.append(("mini-ramses", f"{ax}-velocity"))
+        fields.append(("mini-ramses", "Pressure"))
         # MHD fields
         if nvar > ndim + 2:
             remaining = nvar - (ndim + 2)
             if remaining >= 3:
                 for ax in "xyz":
-                    fields.append(("gas", f"B_{ax}"))
+                    fields.append(("mini-ramses", f"B_{ax}"))
                 remaining -= 3
             for i in range(remaining):
-                fields.append(("gas", f"scalar_{i + 1}"))
+                fields.append(("mini-ramses", f"scalar_{i + 1}"))
+        return fields
+
+    def _detect_gravity_fields(self):
+        """Detect available gravity fields from grav header or first grav file."""
+        # Try reading grav_header.txt first
+        header_fn = os.path.join(self.root_folder, "grav_header.txt")
+        if os.path.exists(header_fn):
+            self._gravity_fields_in_file = self._parse_grav_header(header_fn)
+            return
+
+        # Try reading the first grav file header
+        grav_fn = os.path.join(self.root_folder, "grav.00001")
+        if os.path.exists(grav_fn):
+            with open(grav_fn, "rb") as f:
+                ndim = struct.unpack("i", f.read(4))[0]
+                nvar = struct.unpack("i", f.read(4))[0]
+            self._gravity_fields_in_file = self._default_gravity_fields(nvar)
+            return
+
+        self._gravity_fields_in_file = []
+
+    def _parse_grav_header(self, header_fn):
+        """Parse the mini-ramses grav_header.txt file."""
+        fields = []
+        field_map = {
+            "potential": ("gravity", "Potential"),
+            "accel_x": ("gravity", "x-acceleration"),
+            "accel_y": ("gravity", "y-acceleration"),
+            "accel_z": ("gravity", "z-acceleration"),
+        }
+        with open(header_fn) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("nvar"):
+                    continue
+                if line.startswith("variable"):
+                    # Parse "variable # N: name"
+                    parts = line.split(":")
+                    if len(parts) >= 2:
+                        fname = parts[1].strip()
+                        if fname in field_map:
+                            fields.append(field_map[fname])
+                        else:
+                            fields.append(("gravity", fname))
+        return fields
+
+    def _default_gravity_fields(self, nvar):
+        """Return default gravity field names based on nvar count."""
+        fields = [("gravity", "Potential")]
+        for ax in "xyz"[:min(nvar - 1, 3)]:
+            fields.append(("gravity", f"{ax}-acceleration"))
         return fields
 
     def _detect_particle_types(self):

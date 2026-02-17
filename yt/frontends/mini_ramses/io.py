@@ -1,9 +1,11 @@
 import os
 import struct
+from collections import defaultdict
 
 import numpy as np
 
 from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.logger import ytLogger as mylog
 
 
 class IOHandlerMiniRAMSES(BaseIOHandler):
@@ -11,70 +13,58 @@ class IOHandlerMiniRAMSES(BaseIOHandler):
     _particle_reader = True
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        # Read fluid (hydro) data from mini-ramses output files
-        # Mini-ramses uses stream-based binary I/O with float32 data
+        # Read fluid (hydro and gravity) data from mini-ramses output files
+        # Use the selector to determine which cells to read
+        tr = defaultdict(list)
+
+        # Separate fields by type
+        ftypes = {f[0] for f in fields}
+        
+        for chunk in chunks:
+            for ft in ftypes:
+                # Get all fields of this type
+                field_subs = [f for f in fields if f[0] == ft]
+                
+                for subset in chunk.objs:
+                    domain = subset.domain
+                    ds = subset.ds
+                    
+                    # Determine file and field list based on field type
+                    if ft == "mini-ramses":
+                        fn = domain.hydro_fn
+                        field_list = ds._fields_in_file
+                    elif ft == "gravity":
+                        fn = domain.grav_fn
+                        field_list = ds._gravity_fields_in_file
+                    else:
+                        continue
+                    
+                    if not os.path.exists(fn):
+                        continue
+                    
+                    # Use subset.fill to read with selection
+                    rv = subset.fill(fn, field_subs, selector, field_list)
+                    
+                    for ftype, fname in field_subs:
+                        d = rv.get(fname, np.empty(0, dtype="float64"))
+                        if d.size == 0:
+                            continue
+                        mylog.debug(
+                            "Filling %s with %s (%0.3e %0.3e) (%s zones)",
+                            fname,
+                            d.size,
+                            d.min(),
+                            d.max(),
+                            d.size,
+                        )
+                        tr[ftype, fname].append(d)
+
+        # Concatenate results
         rv = {}
         for field in fields:
-            rv[field] = np.empty(size, dtype="float64")
+            tmp = tr.pop(field, None)
+            rv[field] = np.concatenate(tmp) if tmp else np.empty(0, dtype="float64")
 
-        ng = 0
-        for chunk in chunks:
-            for subset in chunk.objs:
-                domain = subset.domain
-                ds = subset.ds
-                ndim = ds.dimensionality
-                twotondim = 2**ndim
-
-                # Read hydro data
-                if not os.path.exists(domain.hydro_fn):
-                    continue
-
-                nvar = domain._read_hydro_header()
-                if nvar == 0:
-                    continue
-
-                field_list = ds._fields_in_file
-
-                with open(domain.hydro_fn, "rb") as f:
-                    # Skip header: ndim(4) + nvar(4) + levelmin(4) +
-                    # nlevelmax(4) + noct array
-                    f_ndim = struct.unpack("i", f.read(4))[0]
-                    f_nvar = struct.unpack("i", f.read(4))[0]
-                    levelmin = struct.unpack("i", f.read(4))[0]
-                    nlevelmax = struct.unpack("i", f.read(4))[0]
-
-                    noct = np.zeros(nlevelmax, dtype="int32")
-                    for ilevel in range(levelmin - 1, nlevelmax):
-                        noct[ilevel] = struct.unpack("i", f.read(4))[0]
-
-                    # Read cell data per level
-                    for ilevel in range(levelmin - 1, nlevelmax):
-                        ncache = noct[ilevel]
-                        if ncache == 0:
-                            continue
-
-                        for igrid in range(ncache):
-                            # Each grid writes qout(twotondim, nprim)
-                            # as float32
-                            data = np.frombuffer(
-                                f.read(4 * twotondim * f_nvar),
-                                dtype="<f4",
-                            ).reshape(twotondim, f_nvar)
-
-                            # Match fields and fill
-                            for fi, field in enumerate(fields):
-                                if field in field_list:
-                                    fidx = field_list.index(field)
-                                    if fidx < f_nvar:
-                                        for ind in range(twotondim):
-                                            if ng < size:
-                                                rv[field][ng] = data[
-                                                    ind, fidx
-                                                ]
-                                                ng += 1
-
-        for field in fields:
-            rv[field] = rv[field][:ng]
         return rv
 
     def _read_particle_coords(self, chunks, ptf):
@@ -146,16 +136,12 @@ class IOHandlerMiniRAMSES(BaseIOHandler):
                     if mask is None:
                         continue
 
-                    field_data = {}
-                    for field in field_list:
-                        fname = field[1]
+                    for fname in field_list:
                         data = self._get_particle_field_data(
                             pdata, fname, ndim, boxlen
                         )
                         if data is not None:
-                            field_data[field] = data[mask]
-
-                    yield (ptype, field_data)
+                            yield (ptype, fname), data[mask]
 
     def _get_particle_field_data(self, pdata, fname, ndim, boxlen):
         """Map a yt particle field name to data from the particle file."""
