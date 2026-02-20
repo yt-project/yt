@@ -482,7 +482,7 @@ def fake_amr_ds(
         if particles:
             for i, f in enumerate(f"particle_position_{ax}" for ax in "xyz"):
                 pdata = prng.random_sample(particles)
-                pdata /= right_edge[i] - left_edge[i]
+                pdata *= right_edge[i] - left_edge[i]
                 pdata += left_edge[i]
                 gdata["io", f] = (pdata, "code_length")
             for f in (f"particle_velocity_{ax}" for ax in "xyz"):
