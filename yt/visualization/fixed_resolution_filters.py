@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from functools import update_wrapper, wraps
 
 import numpy as np
+import numpy.typing as npt
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -60,10 +61,10 @@ class FixedResolutionBufferFilter(ABC):
         pass
 
     @abstractmethod
-    def apply(self, buff: np.ndarray) -> np.ndarray:
+    def apply(self, buff: npt.NDArray) -> npt.NDArray:
         pass
 
-    def __call__(self, buff: np.ndarray) -> np.ndarray:
+    def __call__(self, buff: npt.NDArray) -> npt.NDArray:
         # alias to apply
         return self.apply(buff)
 
