@@ -185,7 +185,7 @@ def distancematrix(
 
     Returns:
     --------
-    a 2D-array of distances between postions `pos3_i0` (changes along
+    a 2D-array of distances between positions `pos3_i0` (changes along
     index 0) and `pos3_i1` (changes along index 1)
 
     """
