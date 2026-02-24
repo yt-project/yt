@@ -1118,7 +1118,7 @@ def validate_float(obj):
     Raises
     ------
     TypeError
-        Raised if `obj` is not a single float value or YTQunatity
+        Raised if `obj` is not a single float value or YTQuantity
 
     Examples
     --------
@@ -1234,7 +1234,7 @@ def parse_center_array(center, ds, axis: int | None = None):
         "Expected any of the following\n"
         "- 'c', 'center', 'l', 'left', 'r', 'right', 'm', 'max', or 'min'\n"
         "- a 2 element tuple with 'min' or 'max' as the first element, followed by a field identifier\n"
-        "- a 3 element array-like: for a unyt_array, expects length dimensions, otherwise code_lenght is assumed"
+        "- a 3 element array-like: for a unyt_array, expects length dimensions, otherwise code_length is assumed"
     )
     # store an unmodified copy of user input to be inserted in error messages
     center_input = deepcopy(center)
