@@ -1486,6 +1486,14 @@ class YTDataContainer(abc.ABC):
         explicit_fields = []
         for field in iter_fields(fields):
             if field in self._container_fields:
+                if not isinstance(field, (str, tuple)):
+                    # NOTE: Container fields must be strings or tuples
+                    # otherwise, we end up filling _determined_fields
+                    # with DerivedFields (typing error, and causes
+                    # bugs down the line).
+                    raise RuntimeError(
+                        f"Container fields must be tuples, got {field!r}"
+                    )
                 explicit_fields.append(field)
                 continue
 

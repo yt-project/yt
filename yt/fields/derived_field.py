@@ -1,10 +1,12 @@
+import abc
 import contextlib
 import enum
 import inspect
+import operator
 import re
 import sys
-from collections.abc import Iterable
-from functools import cached_property
+from collections.abc import Callable, Iterable
+from functools import cached_property, reduce
 from typing import Optional
 
 from more_itertools import always_iterable
@@ -71,7 +73,151 @@ def DeprecatedFieldFunc(ret_field, func, since, removal):
     return _DeprecatedFieldFunc
 
 
-class DerivedField:
+class DerivedFieldBase(abc.ABC):
+    @abc.abstractmethod
+    def __call__(self, field, data):
+        pass
+
+    @abc.abstractmethod
+    def __repr__(self) -> str:
+        pass
+
+    # Multiplication (left and right side)
+    def __mul__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.mul)
+
+    def __rmul__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.mul)
+
+    # Division (left side)
+    def __truediv__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.truediv)
+
+    def __rtruediv__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([other, self], op=operator.truediv)
+
+    # Addition (left and right side)
+    def __add__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.add)
+
+    def __radd__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.add)
+
+    # Subtraction (left and right side)
+    def __sub__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.sub)
+
+    def __rsub__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([other, self], op=operator.sub)
+
+    # Unary minus
+    def __neg__(self) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self], op=operator.neg)
+
+    # Comparison operators
+    def __leq__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.le)
+
+    def __lt__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.lt)
+
+    def __geq__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.ge)
+
+    def __gt__(self, other) -> "DerivedFieldCombination":
+        return DerivedFieldCombination([self, other], op=operator.gt)
+
+    # NOTE: we need to ignore type checking for these methods
+    # since mypy expects the following two to return `bool`
+    def __eq__(self, other) -> "DerivedFieldCombination":  # type: ignore[override]
+        return DerivedFieldCombination([self, other], op=operator.eq)
+
+    def __ne__(self, other) -> "DerivedFieldCombination":  # type: ignore[override]
+        return DerivedFieldCombination([self, other], op=operator.ne)
+
+    @abc.abstractmethod
+    def __hash__(self) -> int:
+        pass
+
+
+class DerivedFieldCombination(DerivedFieldBase):
+    sampling_type: str | None
+    terms: list
+    op: Callable
+
+    def __init__(self, terms: list, op: Callable):
+        if not terms:
+            raise ValueError("DerivedFieldCombination requires at least one term.")
+
+        # Make sure all terms have the same sampling type
+        sampling_types = set()
+        for term in terms:
+            if isinstance(term, DerivedField):
+                sampling_types.add(term.sampling_type)
+
+        if len(sampling_types) > 1:
+            raise ValueError(
+                "All terms in a DerivedFieldCombination must "
+                "have the same sampling type."
+            )
+        self.sampling_type = sampling_types.pop() if sampling_types else None
+        self.terms = terms
+        self.op = op
+
+    def __hash__(self) -> int:
+        return hash((self.sampling_type, tuple(self.terms), self.op))
+
+    def __call__(self, field, data):
+        """
+        Return the value of the field in a given data object.
+        """
+        qties = []
+        for term in self.terms:
+            if isinstance(term, DerivedField):
+                qties.append(data[term.name])
+            elif isinstance(term, DerivedFieldCombination):
+                qties.append(term(field, data))
+            else:
+                qties.append(term)
+
+        if len(qties) == 1:
+            return self.op(qties[0])
+        else:
+            return reduce(self.op, qties)
+
+    def __repr__(self):
+        return f"DerivedFieldCombination(terms={self.terms!r}, op={self.op!r})"
+
+    def getDependentFields(self):
+        fields = []
+        for term in self.terms:
+            if isinstance(term, DerivedField):
+                fields.append(term.name)
+            elif isinstance(term, DerivedFieldCombination):
+                fields.extend(term.getDependentFields())
+            else:
+                continue
+        return fields
+
+    @property
+    def name(self):
+        return f"{self!r}"
+
+    def __bool__(self):
+        match self.op:
+            # Special case for equality, check terms are aliases of each other
+            case operator.eq if len(self.terms) == 2:
+                return self.terms[0] is self.terms[1]
+            case operator.eq:
+                raise ValueError(
+                    "The truth value of a DerivedFieldCombination with more "
+                    "than two terms is ambiguous."
+                )
+            case _:
+                return True
+
+
+class DerivedField(DerivedFieldBase):
     """
     This is the base class used to describe a cell-by-cell derived field.
 
@@ -194,6 +340,26 @@ class DerivedField:
         else:
             self._shared_aliases_list = alias._shared_aliases_list
             self._shared_aliases_list.append(self)
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.name,
+                self.sampling_type,
+                self._function,
+                self.units,
+                self.take_log,
+                tuple(self.validators),
+                self.vector_field,
+                self.display_field,
+                self.not_in_all,
+                self.display_name,
+                self.output_units,
+                self.dimensions,
+                self.ds,
+                tuple(self.nodal_flag),
+            )
+        )
 
     def _copy_def(self):
         dd = {}
