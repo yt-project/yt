@@ -7,6 +7,7 @@ from collections.abc import Iterable
 import h5py
 import numpy as np
 
+from yt.frontends.dyablo.definitions import PARTICLE_FILE_TEMPLATE
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.selection_routines import SelectorObject
 from yt.utilities.io_handler import BaseIOHandler
@@ -159,49 +160,38 @@ class DyabloIOHandler(BaseIOHandler):
         tuple
             ((ptype, field), data_array) for each field in ptf
         """
-        filename = self.ds._particle_filename
-        if filename is None or not filename:
-            return
-
-        # Handle single file or list of files
-        if isinstance(filename, str):
-            filename = [filename]
+        name = self.ds.parameters["name"]
+        iteration = self.ds.parameters["iter"]
+        root_folder = self.ds.root_folder
 
         for ptype in ptf:
-            for field_name in ptf[ptype]:
-                data_list = []
-                for fname in filename:
-                    try:
-                        with h5py.File(fname, "r") as f:
-                            # Try different field name patterns
-                            coords_path = "/coordinates"
-                            mass_path = "/mass"
-                            stripped = field_name.replace("particle_", "")
-                            stripped_path = f"/{stripped}"
+            fname = PARTICLE_FILE_TEMPLATE.format(
+                name=name, ptype=ptype, iter=iteration
+            )
+            with h5py.File(root_folder / fname, "r") as f:
+                # Read the coordinates to apply selections
+                coords = f["/coordinates"][:]
 
-                            field_candidates = [
-                                f"/{field_name}",
-                                stripped_path,
-                                coords_path if "position" in field_name else None,
-                                mass_path if field_name == "mass" else None,
-                            ]
+                # Apply selection
+                mask = selector.select_points(*coords.T, radii=0)
 
-                            for field_path in field_candidates:
-                                if field_path and field_path in f:
-                                    field_data = f[field_path][:]
-                                    # Handle position fields
-                                    if "position" in field_name and field_data.ndim > 1:
-                                        axis_map = {"x": 0, "y": 1, "z": 2}
-                                        axis = axis_map.get(
-                                            field_name.split("_")[-1], 0
-                                        )
-                                        if axis < field_data.shape[1]:
-                                            field_data = field_data[:, axis]
-                                    data_list.append(field_data.ravel())
-                                    break
-                    except Exception:
-                        continue
+                # Early break if no particles are selected
+                if mask is None or not np.any(mask):
+                    for field_name in ptf[ptype]:
+                        yield ((ptype, field_name), np.array([]))
+                    continue
 
-                if data_list:
-                    field_data = np.concatenate(data_list)
-                    yield ((ptype, field_name), field_data)
+                # Now read the requested fields
+                for field_name in ptf[ptype]:
+                    if field_name == "particle_position_x":
+                        data = coords[:, 0]
+                    elif field_name == "particle_position_y":
+                        data = coords[:, 1]
+                    elif field_name == "particle_position_z":
+                        data = coords[:, 2]
+                    else:
+                        stripped = field_name.replace("particle_", "")
+
+                        data = f[f"/{stripped}"][:]
+
+                    yield ((ptype, field_name), data[mask].astype("float64"))

@@ -30,10 +30,12 @@ class DyabloFieldInfo(FieldInfoContainer):
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
-        ("particle_velocity_x", (vel_units, [], None)),
-        ("particle_velocity_y", (vel_units, [], None)),
-        ("particle_velocity_z", (vel_units, [], None)),
+        ("particle_identity", ("", ["particle_index"], None)),
+        ("particle_vx", (vel_units, ["particle_velocity_x"], None)),
+        ("particle_vy", (vel_units, ["particle_velocity_y"], None)),
+        ("particle_vz", (vel_units, ["particle_velocity_z"], None)),
         ("particle_mass", ("code_mass", [], None)),
+        ("particle_birth_time", ("code_time", [], None)),
     )
 
     def setup_fluid_fields(self):

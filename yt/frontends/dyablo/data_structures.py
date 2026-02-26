@@ -2,8 +2,7 @@
 Data structures for Dyablo frontend.
 """
 
-import glob
-import os
+from pathlib import Path
 
 import h5py
 import numpy as np
@@ -16,7 +15,7 @@ from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.logger import ytLogger as mylog
 
-from .definitions import HYDRO_FILE_PATTERN
+from .definitions import HYDRO_FILE_PATTERN, PARTICLE_FILE_PATTERN
 from .fields import DyabloFieldInfo
 from .io import DyabloIOHandler
 
@@ -30,7 +29,7 @@ class DyabloOctreeIndex(OctreeIndex):
         self.dataset_type = dataset_type
         self.dataset = ds
         self.index_filename = ds.parameter_filename
-        self.directory = os.path.dirname(self.index_filename)
+        self.directory = Path(self.index_filename).parent
         self.float_type = np.float64
         super().__init__(ds, dataset_type)
 
@@ -181,7 +180,42 @@ class DyabloOctreeIndex(OctreeIndex):
             mylog.warning(f"Error detecting output fields: {e}")
 
         self.fluid_field_list = list(dsl)
-        self.particle_field_list = []
+
+        # Detect particle fields from particle files
+        particle_field_list = []
+        particle_types = set()
+        particle_files = self.dataset._particle_filename or []
+        for pfile in particle_files:
+            pmatch = PARTICLE_FILE_PATTERN.match(Path(pfile).name)
+            if not pmatch:
+                continue
+            ptype = pmatch.group(2)
+            try:
+                with h5py.File(pfile, "r") as f:
+                    particle_field_list.append((ptype, "particle_position_x"))
+                    particle_field_list.append((ptype, "particle_position_y"))
+                    particle_field_list.append((ptype, "particle_position_z"))
+                    for key in (_ for _ in f.keys() if isinstance(f[_], h5py.Dataset)):
+                        if key == "coordinates":
+                            continue
+                        yt_key = f"particle_{key}"
+                        particle_field_list.append((ptype, yt_key))
+                        particle_types.add(ptype)
+            except Exception as e:
+                mylog.warning(f"Error reading particle file {pfile}: {e}")
+
+        # Ensure all detected particles have been registered
+        for ptype in (
+            _ for _ in particle_types if _ not in self.dataset.particle_types
+        ):
+            raise RuntimeError(
+                f"Detected particle type '{ptype}' from file {pfile} "
+                "but it was not registered in dataset.particle_types. "
+                "Please ensure the particle file is named correctly and "
+                "that _parse_parameter_file is correctly detecting particle types."
+            )
+
+        self.particle_field_list = particle_field_list
         self.field_list = self.fluid_field_list + self.particle_field_list
 
     @property
@@ -241,7 +275,7 @@ class DyabloOctreeSubset(OctreeSubset):
     def __init__(self, base_region, domain, ds):
         super().__init__(base_region, domain, ds, num_zones=ds.block_size)
 
-        self._current_particle_type = "io"
+        self._current_particle_type = "all"
         self._current_fluid_type = self.ds.default_fluid_type
 
     @property
@@ -451,79 +485,71 @@ class DyabloDataset(Dataset):
             # Try to read metadata
             metadata = {}
             if "/metadata" in f:
-                try:
-                    # Metadata might be a dataset or group with attributes
-                    if isinstance(f["/metadata"], h5py.Dataset):
-                        metadata = dict(f["/metadata"].attrs)
-                    else:
-                        metadata = dict(f["/metadata"].attrs)
-                except Exception:
-                    pass
-
-            # Extract coordinate bounds - required
-            if "/coordinates" not in f or "/connectivity" not in f:
-                raise ValueError(
-                    "Dyablo HDF5 file must contain /coordinates and /connectivity datasets"
-                )
+                metadata = dict(f["/metadata"].attrs)
+            if "/scalar_data" in f:
+                scalar_attrs = dict(f["/scalar_data"].attrs)
+                metadata.update(scalar_attrs)
 
             coordinates = f["/coordinates"][:]
             connectivity = f["/connectivity"][:]
-            n_cells = connectivity.shape[0] if len(connectivity.shape) > 0 else 1
 
-            # Infer domain bounds from coordinate extrema
-            if self.domain_left_edge_override is not None:
-                domain_left = self.domain_left_edge_override
-            else:
-                domain_left = np.min(coordinates, axis=0)
+        # Also store simulation name into metadata
+        sim_name = HYDRO_FILE_PATTERN.match(Path(self.parameter_filename).name).group(1)
+        metadata["name"] = sim_name
 
-            if self.domain_right_edge_override is not None:
-                domain_right = self.domain_right_edge_override
-            else:
-                domain_right = np.max(coordinates, axis=0)
+        self.parameters.update(metadata)
 
-            # Get periodicity
-            if "periodicity" in metadata:
-                periodicity = tuple(bool(metadata["periodicity"][i]) for i in range(3))
-            elif self.periodicity_override is not None:
-                periodicity = self.periodicity_override
-            else:
-                periodicity = (False, False, False)
+        self.root_folder = Path(self.parameter_filename).parent
 
-            # Get block size - try metadata first, then infer from connectivity
-            if "block_size" in metadata:
-                block_size = tuple(int(x) for x in metadata["block_size"][:3])
-            elif self.block_size_override is not None:
-                block_size = self.block_size_override
-            else:
-                # Infer from spatial layout
-                block_size, n_blocks = self._infer_block_structure(
-                    connectivity, coordinates, n_cells
-                )
-                mylog.info(
-                    "Inferred block size: %s, number of blocks: %s",
-                    block_size,
-                    n_blocks,
-                )
+        n_cells = connectivity.shape[0] if len(connectivity.shape) > 0 else 1
 
-            # Infer min level
-            min_level = np.max(np.log2(block_size).astype(int))
+        # Infer domain bounds from coordinate extrema
+        if self.domain_left_edge_override is not None:
+            domain_left = self.domain_left_edge_override
+        else:
+            domain_left = np.min(coordinates, axis=0)
 
-            # Get max refinement level
-            if "max_level" in metadata:
-                max_level = int(metadata["max_level"])
-            elif self.max_level_override is not None:
-                max_level = self.max_level_override
-            else:
-                max_level = min_level  # Default: no refinement
+        if self.domain_right_edge_override is not None:
+            domain_right = self.domain_right_edge_override
+        else:
+            domain_right = np.max(coordinates, axis=0)
 
-            # Extract time and iteration
-            current_time = 0.0
-            if "/scalar_data" in f:
-                try:
-                    scalar_attrs = dict(f["/scalar_data"].attrs)
-                    current_time = float(scalar_attrs.get("time", 0.0))
-                except Exception:
-                    pass
+        # Get periodicity
+        if "periodicity" in metadata:
+            periodicity = tuple(bool(metadata["periodicity"][i]) for i in range(3))
+        elif self.periodicity_override is not None:
+            periodicity = self.periodicity_override
+        else:
+            periodicity = (False, False, False)
+
+        # Get block size - try metadata first, then infer from connectivity
+        if "block_size" in metadata:
+            block_size = tuple(int(x) for x in metadata["block_size"][:3])
+        elif self.block_size_override is not None:
+            block_size = self.block_size_override
+        else:
+            # Infer from spatial layout
+            block_size, n_blocks = self._infer_block_structure(
+                connectivity, coordinates, n_cells
+            )
+            mylog.info(
+                "Inferred block size: %s, number of blocks: %s",
+                block_size,
+                n_blocks,
+            )
+
+        # Infer min level
+        min_level = np.max(np.log2(block_size).astype(int))
+
+        # Get max refinement level
+        if "max_level" in metadata:
+            max_level = int(metadata["max_level"])
+        elif self.max_level_override is not None:
+            max_level = self.max_level_override
+        else:
+            max_level = min_level  # Default: no refinement
+
+        current_time = float(metadata.get("time", 0.0))
 
         # Set dataset parameters
         self.domain_left_edge = np.array(domain_left, dtype=np.float64)
@@ -557,20 +583,30 @@ class DyabloDataset(Dataset):
         self._hydro_filename = self.parameter_filename
         self._particle_filename = self._find_particle_file()
 
+        # Set particle_types from detected particle files so the 'all' union
+        # is built correctly in create_field_info (before it runs).
+        ptypes = []
+        for pfile in self._particle_filename or []:
+            m = PARTICLE_FILE_PATTERN.match(Path(pfile).name)
+            if m:
+                ptype = m.group(2)
+                if ptype not in ptypes:
+                    ptypes.append(ptype)
+        if ptypes:
+            self.particle_types = self.particle_types_raw = tuple(ptypes)
+
     def _find_particle_file(self):
         """Find and validate particle file matching the hydro file."""
-        hydro_match = HYDRO_FILE_PATTERN.match(
-            os.path.basename(self.parameter_filename)
-        )
+        hydro_match = HYDRO_FILE_PATTERN.match(Path(self.parameter_filename).name)
         if not hydro_match:
             return None
 
         name, iteration = hydro_match.groups()
-        directory = os.path.dirname(self.parameter_filename)
+        directory = Path(self.parameter_filename).parent
 
         # Look for particle files with matching iteration
-        pattern = os.path.join(directory, f"{name}_particles_*_iter{iteration}.h5")
-        particle_files = sorted(glob.glob(pattern))
+        pattern = directory.glob(f"{name}_particles_*_iter{iteration}.h5")
+        particle_files = sorted(pattern)
 
         if particle_files:
             return particle_files  # Return list of particle files
@@ -579,14 +615,14 @@ class DyabloDataset(Dataset):
     @staticmethod
     def _is_valid(filename, *args, **kwargs) -> bool:
         """Check if file is a valid Dyablo output."""
-        if not os.path.exists(filename):
+        if not Path(filename).exists():
             return False
 
-        if not filename.endswith(".h5"):
+        if not Path(filename).suffix == ".h5":
             return False
 
         # Check if it looks like a Dyablo hydro file
-        if not HYDRO_FILE_PATTERN.match(os.path.basename(filename)):
+        if not HYDRO_FILE_PATTERN.match(Path(filename).name):
             return False
 
         # Verify it's an HDF5 file with expected Dyablo datasets
