@@ -121,7 +121,9 @@ cdef class ParticleSmoothOperation:
             periodicity = (False, False, False)
         else:
             raise NotImplementedError
-        dims[0] = dims[1] = dims[2] = mesh_octree.nz
+        dims[0] = mesh_octree.nz[0]
+        dims[1] = mesh_octree.nz[1]
+        dims[2] = mesh_octree.nz[2]
         cdef int nz = dims[0] * dims[1] * dims[2]
         # pcount is the number of particles per oct.
         pcount = np.zeros_like(pdom_ind)
@@ -151,7 +153,6 @@ cdef class ParticleSmoothOperation:
         for i in range(3):
             self.DW[i] = (mesh_octree.DRE[i] - mesh_octree.DLE[i])
             self.periodicity[i] = periodicity[i]
-        cdef np.float64_t factor = particle_octree.nz
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
@@ -168,7 +169,7 @@ cdef class ParticleSmoothOperation:
             # in octs that we know are too far away
             for j in range(3):
                 oct_left_edges[offset, j] = oinfo.left_edge[j]
-                oct_dds[offset, j] = oinfo.dds[j] * factor
+                oct_dds[offset, j] = oinfo.dds[j] * particle_octree.nz[j]
         # Now we have oct assignments.  Let's sort them.
         # Note that what we will be providing to our processing functions will
         # actually be indirectly-sorted fields.  This preserves memory at the
