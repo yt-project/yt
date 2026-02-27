@@ -57,8 +57,11 @@ def off_axis_projection(
         cubical, but if not, it is left/right, top/bottom, front/back
     resolution : int or list of ints
         The number of pixels in each direction.
-    item: string
-        The field to project through the volume
+    item: tuple[str, str] or FieldKey
+        The field to project through the volume, e.g. ("gas", "density").
+        This uses YT's (field_type, field_name) field pair. Common field types
+        include "stream", "gas", "index"; common field names include "density",
+        "number_density", "velocity_x", "velocity_y", and "velocity_z".
     weight : optional, default None
         If supplied, the field will be pre-multiplied by this, then divided by
         the integrated value of this field.  This returns an average rather
