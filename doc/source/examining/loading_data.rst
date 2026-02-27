@@ -3171,12 +3171,15 @@ There are three way to make yt detect all the particle fields. For example, if y
          particle_metallicity, d
       """
 
-   Each line should contain the name of the field and its data type (``d`` for double precision, ``f`` for single precision, ``i`` for integer and ``l`` for long integer). You can also configure the auto detected fields for fluid types by adding a section ``ramses-hydro``, ``ramses-grav`` or ``ramses-rt`` in the config file. For example, if you customized your gravity files so that they contain the potential, the potential in the previous timestep and the x, y and z accelerations, you can use :
+   Each line should contain the name of the field and its data type (``d`` for double precision, ``f`` for single precision, ``i`` for integer and ``l`` for long integer). You can also configure the auto detected fields for fluid types by adding a section ``ramses-hydro``, ``ramses-grav`` or ``ramses-rt`` in the config file. For example, if you customized your gravity files so that they contain the potential, the potential in the previous timestep and the x, y and z accelerations, all in single-precision, you can use :
 
    .. code-block:: none
 
       [ramses-grav]
-      fields = [ "Potential", "Potential-old", "x-acceleration", "y-acceleration", "z-acceleration" ]
+      fields = [ "Potential,f", "Potential-old,f", "x-acceleration,f", "y-acceleration,f", "z-acceleration,f" ]
+
+   Importantly, the order of the fields should match the order in which they are written in the RAMSES output files.
+   yt will also assume that each entry is formed of a field name followed by its type (``f`` for single precision, ``d`` for double precision), separated by a comma. Field names containing commas are not supported, other precisions (e.g. integers) are not supported either. Presently, all fields in a given file type (gravity, hydro, ...) need to have the same precision (e.g. all single-precision or all double-precision), combinations are not supported. Internally, yt will convert all data into double-precisoin floats, but this will allow it to read the data correctly from file.
 
 3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
 
@@ -3197,6 +3200,8 @@ There are three way to make yt detect all the particle fields. For example, if y
       11, metallicity, d
 
    It is important to note that this file should not end with an empty line (but in this case with ``11, metallicity, d``).
+   Note that, for grid fields (hydro, gravity, rt), all the fields need to have the same precision (``f`` or ``d``).
+   Combinations are not supported.
 
 .. note::
 
