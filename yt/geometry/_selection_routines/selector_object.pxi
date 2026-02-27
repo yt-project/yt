@@ -159,7 +159,7 @@ cdef class SelectorObject:
                             visitor.pos[1] = (visitor.pos[1] >> 1)
                             visitor.pos[2] = (visitor.pos[2] >> 1)
                             visitor.level -= 1
-                        elif this_level == 1 and visitor.nz > 1:
+                        elif this_level == 1 and (visitor.nz[0] > 1 or visitor.nz[1] > 1 or visitor.nz[2] > 1):
                             visitor.global_index += increment
                             increment = 0
                             self.visit_oct_cells(root, ch, spos, sdds,
@@ -178,10 +178,22 @@ cdef class SelectorObject:
     cdef void visit_oct_cells(self, Oct *root, Oct *ch,
                               np.float64_t spos[3], np.float64_t sdds[3],
                               OctVisitor visitor, int i, int j, int k):
-        # We can short-circuit the whole process if data.nz == 2.
-        # This saves us some funny-business.
+        """Visit the cells in this oct.
+
+        Parameters
+        ----------
+        root: The oct whose cells we are visiting.
+        ch: The child oct, if it exists.
+        spos: The position of a potential cell center, assuming that the
+              oct contains 8 cells.
+        sdds: The cell size, assuming that the oct contains 8 cells.
+        visitor: The visitor object that is visiting the cells.
+        i, j, k: The indices of the cell within the oct.
+        """
         cdef int selected
-        if visitor.nz == 2:
+        # If visitor.nz is 2 in all dimensions, then the passed spos and sdds
+        # are correct and we just need to call `select_cell` on them.
+        if visitor.nz[0] == 2 and visitor.nz[1] == 2 and visitor.nz[2] == 2:
             selected = self.select_cell(spos, sdds)
             if ch != NULL:
                 selected *= self.overlap_cells
@@ -191,34 +203,42 @@ cdef class SelectorObject:
             visitor.ind[2] = k
             visitor.visit(root, selected)
             return
-        # Okay, now that we've got that out of the way, we have to do some
-        # other checks here.  In this case, spos[] is the position of the
-        # center of a *possible* oct child, which means it is the center of a
-        # cluster of cells.  That cluster might have 1, 8, 64, ... cells in it.
-        # But, we can figure it out by calculating the cell dds.
+        # Otherwise, we have to do some work to figure out where the cell centers are.
+        # We assign integer index ranges to each octant using half-open bounds.
         cdef np.float64_t dds[3]
         cdef np.float64_t pos[3]
+        cdef np.float64_t full_left[3]
         cdef int ci, cj, ck
-        cdef int nr = (visitor.nz >> 1)
+        cdef int start[3]
+        cdef int end[3]
+        cdef int split
+        cdef int oct_ind[3]
+        oct_ind[0] = i
+        oct_ind[1] = j
+        oct_ind[2] = k
         for ci in range(3):
-            dds[ci] = sdds[ci] / nr
-        # Boot strap at the first index.
-        pos[0] = (spos[0] - sdds[0]/2.0) + dds[0] * 0.5
-        for ci in range(nr):
-            pos[1] = (spos[1] - sdds[1]/2.0) + dds[1] * 0.5
-            for cj in range(nr):
-                pos[2] = (spos[2] - sdds[2]/2.0) + dds[2] * 0.5
-                for ck in range(nr):
+            dds[ci] = (2.0 * sdds[ci]) / visitor.nz[ci]
+            full_left[ci] = (spos[ci] - sdds[ci] / 2.0) - oct_ind[ci] * sdds[ci]
+            split = visitor.nz[ci] // 2
+            if oct_ind[ci] == 0:
+                start[ci] = 0
+                end[ci] = split
+            else:
+                start[ci] = split
+                end[ci] = visitor.nz[ci]
+        for ci in range(start[0], end[0]):
+            pos[0] = full_left[0] + (ci + 0.5) * dds[0]
+            for cj in range(start[1], end[1]):
+                pos[1] = full_left[1] + (cj + 0.5) * dds[1]
+                for ck in range(start[2], end[2]):
+                    pos[2] = full_left[2] + (ck + 0.5) * dds[2]
                     selected = self.select_cell(pos, dds)
                     if ch != NULL:
                         selected *= self.overlap_cells
-                    visitor.ind[0] = ci + i * nr
-                    visitor.ind[1] = cj + j * nr
-                    visitor.ind[2] = ck + k * nr
+                    visitor.ind[0] = ci
+                    visitor.ind[1] = cj
+                    visitor.ind[2] = ck
                     visitor.visit(root, selected)
-                    pos[2] += dds[2]
-                pos[1] += dds[1]
-            pos[0] += dds[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

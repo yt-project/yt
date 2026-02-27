@@ -1988,7 +1988,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef oct_visitors.AssignDomainInd visitor
         visitor = oct_visitors.AssignDomainInd(self)
         self.visit_all_octs(selector, visitor)
-        assert ((visitor.global_index+1)*visitor.nz == visitor.index)
+        assert ((visitor.global_index+1)*visitor.nzones == visitor.index)
         # Copy indexes
         self._ptr_index_base_octs = <np.uint8_t*> malloc(sizeof(np.uint8_t)*self.nocts)
         self._index_base_octs = <np.uint8_t[:self.nocts]> self._ptr_index_base_octs

@@ -46,7 +46,10 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
 
     def __init__(self, base_region, domain, ds, num_zones=2, num_ghost_zones=0):
         super().__init__(ds, None)
-        self._num_zones = num_zones
+        if hasattr(num_zones, "__len__"):
+            self._num_zones = np.array(num_zones, dtype="int64")
+        else:
+            self._num_zones = np.array([num_zones, num_zones, num_zones], dtype="int64")
         self._num_ghost_zones = num_ghost_zones
         self.domain = domain
         self.domain_id = domain.domain_id
@@ -80,23 +83,28 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
 
     @property
     def nz(self):
-        return self._num_zones + 2 * self._num_ghost_zones
+        nz = self._num_zones + 2 * self._num_ghost_zones
+        if hasattr(nz, "__len__"):
+            return nz
+        return np.array([nz, nz, nz], dtype="int64")
 
     def get_bbox(self):
         return self.base_region.get_bbox()
 
     def _reshape_vals(self, arr):
         nz = self.nz
+        nzx, nzy, nzz = nz[0], nz[1], nz[2]
+        nzones = nzx * nzy * nzz
         if len(arr.shape) <= 2:
-            n_oct = arr.shape[0] // (nz**3)
+            n_oct = arr.shape[0] // nzones
         elif arr.shape[-1] == 3:
             n_oct = arr.shape[-2]
         else:
             n_oct = arr.shape[-1]
-        if arr.size == nz * nz * nz * n_oct:
-            new_shape = (nz, nz, nz, n_oct)
-        elif arr.size == nz * nz * nz * n_oct * 3:
-            new_shape = (nz, nz, nz, n_oct, 3)
+        if arr.size == nzones * n_oct:
+            new_shape = (nzx, nzy, nzz, n_oct)
+        elif arr.size == nzones * n_oct * 3:
+            new_shape = (nzx, nzy, nzz, n_oct, 3)
         else:
             raise RuntimeError
         # Note that if arr is already F-contiguous, this *shouldn't* copy the
@@ -172,7 +180,7 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
-        nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
+        nvals = (int(nz[0]), int(nz[1]), int(nz[2]), (self.domain_ind >= 0).sum())
         if np.max(self.domain_ind) >= nvals[-1]:
             print(
                 f"nocts, domain_ind >= 0, max {self.oct_handler.nocts} {nvals[-1]} {np.max(self.domain_ind)}"
@@ -335,7 +343,7 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
                 [1, 1, 1],
                 self.ds.domain_left_edge,
                 self.ds.domain_right_edge,
-                num_zones=self._nz,
+                num_zones=self._num_zones,
             )
             # This should ensure we get everything within one neighbor of home.
             particle_octree.n_ref = nneighbors * 2
@@ -354,7 +362,7 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         mdom_ind = self.domain_ind
-        nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
+        nvals = (int(nz[0]), int(nz[1]), int(nz[2]), (mdom_ind >= 0).sum())
         op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
         mylog.debug(
@@ -455,7 +463,7 @@ class OctreeSubset(YTSelectionContainer, abc.ABC):
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         mdom_ind = self.domain_ind
-        nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
+        nvals = (int(nz[0]), int(nz[1]), int(nz[2]), (mdom_ind >= 0).sum())
         op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
         mylog.debug(
@@ -548,7 +556,7 @@ class OctreeSubsetBlockSlicePosition:
         self.ind = ind
         self.block_slice = block_slice
         nz = self.block_slice.octree_subset.nz
-        self.ActiveDimensions = np.array([nz, nz, nz], dtype="int64")
+        self.ActiveDimensions = np.array([nz[0], nz[1], nz[2]], dtype="int64")
         self.ds = block_slice.ds
 
     def __getitem__(self, key):
