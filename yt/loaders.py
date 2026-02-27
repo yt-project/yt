@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Union, cast
 from urllib.parse import urlsplit
 
 import numpy as np
+import numpy.typing as npt
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import (
@@ -687,7 +688,7 @@ def load_amr_grids(
 
 
 def load_particles(
-    data: Mapping[AnyFieldKey, np.ndarray | tuple[np.ndarray, str]],
+    data: Mapping[AnyFieldKey, npt.NDArray | tuple[npt.NDArray, str]],
     length_unit=None,
     bbox=None,
     sim_time=None,
@@ -826,7 +827,7 @@ def load_particles(
     field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
-    pdata: dict[AnyFieldKey, np.ndarray | tuple[np.ndarray, str]] = {}
+    pdata: dict[AnyFieldKey, npt.NDArray | tuple[npt.NDArray, str]] = {}
     for key in data.keys():
         field: FieldKey
         if not isinstance(key, tuple):
@@ -1818,7 +1819,7 @@ def load_hdf5_file(
     fn: Union[str, "os.PathLike[str]"],
     root_node: str | None = "/",
     fields: list[str] | None = None,
-    bbox: np.ndarray | None = None,
+    bbox: npt.NDArray | None = None,
     nchunks: int = 0,
     dataset_arguments: dict | None = None,
 ):

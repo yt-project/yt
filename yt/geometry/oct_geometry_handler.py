@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 
 from yt.fields.field_detector import FieldDetector
 from yt.geometry.geometry_handler import Index
@@ -119,10 +120,10 @@ class OctreeIndex(Index):
 
     def _icoords_to_fcoords(
         self,
-        icoords: np.ndarray,
-        ires: np.ndarray,
+        icoords: npt.NDArray,
+        ires: npt.NDArray,
         axes: tuple[int, ...] | None = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[npt.NDArray, npt.NDArray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured

@@ -9,6 +9,7 @@ from typing import Any, TypeGuard
 
 import matplotlib
 import numpy as np
+import numpy.typing as npt
 import rlic
 from unyt import unyt_quantity
 
@@ -1057,7 +1058,7 @@ class ContourCallback(PlotCallback):
         else:
             clim = self.clim
 
-        levels: np.ndarray | int
+        levels: npt.NDArray | int
         if clim is not None:
             levels = np.linspace(clim[0], clim[1], self.levels)
         else:

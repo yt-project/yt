@@ -2,9 +2,10 @@ import abc
 import weakref
 from functools import cached_property
 from numbers import Number
-from typing import Any, Literal, overload
+from typing import Literal, overload
 
 import numpy as np
+import numpy.typing as npt
 
 from yt._typing import AxisOrder
 from yt.funcs import fix_unitary, is_sequence, parse_center_array, validate_width_tuple
@@ -158,7 +159,7 @@ class CoordinateHandler(abc.ABC):
         periodic=True,
         *,
         return_mask: Literal[False],
-    ) -> "np.ndarray[Any, np.dtype[np.float64]]": ...
+    ) -> "npt.NDArray[np.float64]": ...
 
     @overload
     def pixelize(
@@ -172,9 +173,7 @@ class CoordinateHandler(abc.ABC):
         periodic=True,
         *,
         return_mask: Literal[True],
-    ) -> tuple[
-        "np.ndarray[Any, np.dtype[np.float64]]", "np.ndarray[Any, np.dtype[np.bool_]]"
-    ]: ...
+    ) -> tuple["npt.NDArray[np.float64]", "npt.NDArray[np.bool_]"]: ...
 
     @abc.abstractmethod
     def pixelize(
