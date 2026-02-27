@@ -317,14 +317,16 @@ class YTDataContainer(abc.ABC):
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
+        rv = None
         try:
-            rv = self.ds.arr(np.zeros(self.ires.size, dtype="float64"), units)
+            total_size = self.ires.size
             accumulate = False
         except YTNonIndexedDataContainer:
             # In this case, we'll generate many tiny arrays of unknown size and
             # then concatenate them.
             outputs = []
             accumulate = True
+
         ind = 0
         if ngz == 0:
             deps = self._identify_dependencies([field], spatial=True)
@@ -332,15 +334,29 @@ class YTDataContainer(abc.ABC):
             for _io_chunk in self.chunks([], "io", cache=False):
                 for _chunk in self.chunks([], "spatial", ngz=0, preload_fields=deps):
                     o = self._current_chunk.objs[0]
-                    if accumulate:
-                        rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"), units)
-                        outputs.append(rv)
-                        ind = 0  # Does this work with mesh?
                     with o._activate_cache():
+                        source = self[field]
+                        if accumulate:
+                            if finfo.vector_field:
+                                shape = (o.ires.size, source.shape[-1])
+                            else:
+                                shape = (o.ires.size,)
+                            rv = self.ds.arr(np.empty(shape, dtype="float64"), units)
+                            outputs.append(rv)
+                            ind = 0  # Does this work with mesh?
+                        elif rv is None:
+                            if finfo.vector_field:
+                                shape = (total_size, source.shape[-1])
+                            else:
+                                shape = (total_size,)
+                            rv = self.ds.arr(np.empty(shape, dtype="float64"), units)
+
                         ind += o.select(
                             self.selector, source=self[field], dest=rv, offset=ind
                         )
         else:
+            if finfo.vector_field:
+                raise NotImplementedError("Ghost zones not supported for vector fields")
             chunks = self.index._chunk(self, "spatial", ngz=ngz)
             for chunk in chunks:
                 with self._chunked_read(chunk):
@@ -352,6 +368,12 @@ class YTDataContainer(abc.ABC):
                             np.empty(wogz.ires.size, dtype="float64"), units
                         )
                         outputs.append(rv)
+                    elif rv is None:
+                        if finfo.vector_field:
+                            shape = (total_size, source.shape[-1])
+                        else:
+                            shape = (total_size,)
+                        rv = self.ds.arr(np.empty(shape, dtype="float64"), units)
                     ind += wogz.select(
                         self.selector,
                         source=gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
