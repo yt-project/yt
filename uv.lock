@@ -5568,6 +5568,9 @@ cholla = [
 chombo = [
     { name = "h5py" },
 ]
+dyablo = [
+    { name = "h5py" },
+]
 eagle = [
     { name = "h5py" },
 ]
@@ -5805,6 +5808,7 @@ requires-dist = [
     { name = "yt", extras = ["hdf5"], marker = "extra == 'chimera'" },
     { name = "yt", extras = ["hdf5"], marker = "extra == 'cholla'" },
     { name = "yt", extras = ["hdf5"], marker = "extra == 'chombo'" },
+    { name = "yt", extras = ["hdf5"], marker = "extra == 'dyablo'" },
     { name = "yt", extras = ["hdf5"], marker = "extra == 'eagle'" },
     { name = "yt", extras = ["hdf5"], marker = "extra == 'enzo'" },
     { name = "yt", extras = ["hdf5"], marker = "extra == 'enzo-e'" },
@@ -5841,7 +5845,7 @@ requires-dist = [
     { name = "yt", extras = ["ytdata"], marker = "extra == 'full'" },
     { name = "yt-idefix", extras = ["hdf5"], marker = "extra == 'idefix'", specifier = ">=2.3.0" },
 ]
-provides-extras = ["hdf5", "netcdf4", "fortran", "adaptahop", "ahf", "amrex", "amrvac", "art", "arepo", "artio", "athena", "athena-pp", "boxlib", "cf-radial", "chimera", "chombo", "cholla", "eagle", "enzo-e", "enzo", "exodus-ii", "fits", "flash", "gadget", "gadget-fof", "gamer", "gdf", "gizmo", "halo-catalog", "http-stream", "idefix", "moab", "nc4-cm1", "open-pmd", "owls", "owls-subfind", "parthenon", "ramses", "rockstar", "sdf", "stream", "swift", "tipsy", "ytdata", "full", "test"]
+provides-extras = ["hdf5", "netcdf4", "fortran", "adaptahop", "ahf", "amrex", "amrvac", "art", "arepo", "artio", "athena", "athena-pp", "boxlib", "cf-radial", "chimera", "chombo", "cholla", "dyablo", "eagle", "enzo-e", "enzo", "exodus-ii", "fits", "flash", "gadget", "gadget-fof", "gamer", "gdf", "gizmo", "halo-catalog", "http-stream", "idefix", "moab", "nc4-cm1", "open-pmd", "owls", "owls-subfind", "parthenon", "ramses", "rockstar", "sdf", "stream", "swift", "tipsy", "ytdata", "full", "test"]
 
 [package.metadata.requires-dev]
 docs = [

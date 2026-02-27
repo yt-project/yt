@@ -467,8 +467,8 @@ class RAMSESDomainSubset(OctreeSubset):
         fields = [f for ft, f in fields]
         tr = {}
 
-        cell_count = (
-            selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
+        cell_count = selector.count_octs(self.oct_handler, self.domain_id) * int(
+            np.prod(self.nz[:ndim])
         )
 
         # Initializing data container
@@ -520,7 +520,7 @@ class RAMSESDomainSubset(OctreeSubset):
             # new_fwidth contains the fwidth of the oct+ghost zones
             # this is a constant array in each oct, so we simply copy
             # the oct value using numpy fancy-indexing
-            new_fwidth = np.zeros((n_oct, self.nz**3, 3), dtype=fwidth.dtype)
+            new_fwidth = np.zeros((n_oct, int(np.prod(self.nz)), 3), dtype=fwidth.dtype)
             new_fwidth[:, :, :] = fwidth[:, 0:1, :]
             fwidth = new_fwidth.reshape(-1, 3)
         return fwidth
@@ -538,7 +538,7 @@ class RAMSESDomainSubset(OctreeSubset):
             self.selector, self._num_ghost_zones
         )
 
-        N_per_oct = self.nz**3
+        N_per_oct = int(np.prod(self.nz))
         oct_inds = oct_inds.reshape(-1, N_per_oct)
         cell_inds = cell_inds.reshape(-1, N_per_oct)
 

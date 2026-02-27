@@ -61,7 +61,9 @@ cdef class ParticleDepositOperation:
         cdef np.float64_t pos[3]
         cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
         cdef int dims[3]
-        dims[0] = dims[1] = dims[2] = octree.nz
+        dims[0] = octree.nz[0]
+        dims[1] = octree.nz[1]
+        dims[2] = octree.nz[2]
         cdef OctInfo oi
         cdef np.int64_t offset, moff
         cdef Oct *oct
