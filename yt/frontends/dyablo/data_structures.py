@@ -464,6 +464,12 @@ class DyabloDataset(Dataset):
                 prev_pos = pos
                 ii += 1
                 i += jump_size
+            else:
+                # Loop exhausted all cells without detecting a boundary;
+                # this happens when all blocks in this dimension have been
+                # visited (e.g. block_size=1 in this dimension).
+                NML[idim] = ii
+                jump_size *= ii
         # Now we have the number of cells/block.
         # Compute number of blocks in each dimension
         domain_size = np.max(coordinates, axis=0) - np.min(coordinates, axis=0)
