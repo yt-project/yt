@@ -691,14 +691,14 @@ cdef class OctreeContainer:
                         num_cells = -1):
         # We create oct arrays of the correct size
         cdef np.ndarray[np.uint8_t, ndim=1] levels
-        cdef np.ndarray[np.uint8_t, ndim=1] cell_inds
+        cdef np.ndarray[np.uint32_t, ndim=1] cell_inds
         cdef np.ndarray[np.int64_t, ndim=1] file_inds
         if num_cells < 0:
             num_cells = selector.count_oct_cells(self, domain_id)
         # Initialize variables with dummy values
         levels = np.full(num_cells, 255, dtype="uint8")
         file_inds = np.full(num_cells, -1, dtype="int64")
-        cell_inds = np.full(num_cells, self.nz[0] * self.nz[1] * self.nz[2], dtype="uint8")
+        cell_inds = np.full(num_cells, self.nz[0] * self.nz[1] * self.nz[2], dtype="uint32")
         cdef oct_visitors.FillFileIndicesO visitor_o
         cdef oct_visitors.FillFileIndicesR visitor_r
         if self.fill_style == "r":
