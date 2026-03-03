@@ -191,13 +191,17 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
 
     if len(registry.ds.field_info.species_names) > 0:
+        snames = registry.ds.field_info.species_names
 
         def _number_density(data):
-            field_data = np.zeros_like(
-                data["gas", f"{data.ds.field_info.species_names[0]}_number_density"]
-            )
-            for species in data.ds.field_info.species_names:
-                field_data += data["gas", f"{species}_number_density"]
+            field_data = np.zeros_like(data["gas", f"{snames[0]}_number_density"])
+            for species in snames:
+                field_data += data[ftype, f"{species}_number_density"]
+            if (ftype, "El_number_density") in registry.ds.field_info and (
+                ftype,
+                "El_number_density",
+            ) not in snames:
+                field_data += data[ftype, "El_number_density"]
             return field_data
 
     else:
