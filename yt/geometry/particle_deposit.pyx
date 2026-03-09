@@ -26,8 +26,7 @@ from yt.utilities.lib.misc_utilities import OnceIndirect
 cdef append_axes(np.ndarray arr, int naxes):
     if arr.ndim == naxes:
         return arr
-    for _ in range((naxes - arr.ndim)):
-        arr = np.expand_dims(arr)
+    arr = np.expand_dims(arr, axis=tuple(range(arr.ndim, naxes)))
     return arr
 
 cdef class ParticleDepositOperation:
