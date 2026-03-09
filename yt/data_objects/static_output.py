@@ -1884,7 +1884,6 @@ class Dataset(abc.ABC):
             ptype, deposit_field = deposit_field[0], deposit_field[1]
         else:
             raise RuntimeError
-
         if weight_field is None:
             weight_field = (ptype, "particle_mass")
         units = self.field_info[ptype, deposit_field].output_units
@@ -1923,13 +1922,16 @@ class Dataset(abc.ABC):
             fields = [data[ptype, deposit_field]]
             if method == "weighted_mean":
                 fields.append(data[ptype, weight_field])
-            fields = [np.ascontiguousarray(f) for f in fields]
+            # Cython deposition kernels operate on float64 buffers.
+            fields = [np.ascontiguousarray(f, dtype="float64") for f in fields]
             d = data.deposit(
                 pos,
                 fields,
                 method=method,
                 kernel_name=kernel_name,
-                vector_field=vector_field,
+                # Count deposition tracks number of particles per cell and
+                # should remain scalar even if the source field is vector-valued.
+                vector_field=vector_field and method != "count",
             )
 
             d = data.ds.arr(d, units=units)

@@ -26,8 +26,7 @@ from yt.utilities.lib.misc_utilities import OnceIndirect
 cdef append_axes(np.ndarray arr, int naxes):
     if arr.ndim == naxes:
         return arr
-    for _ in range((naxes - arr.ndim)):
-        arr = np.expand_dims(arr)
+    arr = np.expand_dims(arr, axis=tuple(range(arr.ndim, naxes)))
     return arr
 
 cdef class ParticleDepositOperation:
@@ -58,7 +57,7 @@ cdef class ParticleDepositOperation:
         nf = len(fields)
 
         # Convert scalar fields into vector fields of length 1
-        fields = [append_axes(field, 2) for field in fields]
+        fields = [append_axes(field, 1) for field in fields]
 
         # Make sure all of them have the same length
         nvec = 1
@@ -140,7 +139,7 @@ cdef class ParticleDepositOperation:
         nf = len(fields)
 
         # Convert scalar fields into vector fields of length 1
-        fields = [append_axes(field, 2) for field in fields]
+        fields = [append_axes(field, 1) for field in fields]
 
         # Make sure all of them have the same length
         nvec = 1
@@ -382,11 +381,11 @@ cdef class CICDeposit(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:,:] field
     cdef public object ofield
     def initialize(self):
-        if not all(_ > 1 for _ in self.nvals[:-1]):
+        if not all(_ > 1 for _ in self.nvals[:3]):
             from yt.utilities.exceptions import YTBoundsDefinitionError
             raise YTBoundsDefinitionError(
                 "CIC requires minimum of 2 zones in all spatial dimensions.",
-                self.nvals[:-1])
+                self.nvals[:3])
         self.field = append_axes(
             np.zeros(self.nvals, dtype="float64", order='F'), 5)
 
