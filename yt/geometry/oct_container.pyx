@@ -754,7 +754,7 @@ cdef class OctreeContainer:
         self,
         const int level,
         const np.uint8_t[::1] levels,
-        const np.uint8_t[::1] cell_inds,
+        const np.uint32_t[::1] cell_inds,
         const np.int64_t[::1] file_inds,
         dict dest_fields,
         dict source_fields,
@@ -807,7 +807,7 @@ cdef class OctreeContainer:
         -------
         oct_inds : int64 ndarray (nocts*8, )
             The on-domain index of the octs containing each cell
-        cell_inds : uint8 ndarray (nocts*8, )
+        cell_inds : uint32 ndarray (nocts*8, )
             The index of the cell in its parent oct
 
         Note
@@ -819,10 +819,10 @@ cdef class OctreeContainer:
 
         cdef NeighbourCellIndexVisitor visitor
 
-        cdef np.uint8_t[::1] cell_inds
+        cdef np.uint32_t[::1] cell_inds
         cdef np.int64_t[::1] oct_inds
 
-        cell_inds = np.full(num_octs*4**3, self.nz[0] * self.nz[1] * self.nz[2], dtype=np.uint8)
+        cell_inds = np.full(num_octs*4**3, self.nz[0] * self.nz[1] * self.nz[2], dtype=np.uint32)
         oct_inds = np.full(num_octs*4**3, -1, dtype=np.int64)
 
         visitor = NeighbourCellIndexVisitor(self, -1, n_ghost_zones)
@@ -840,7 +840,7 @@ cdef class OctreeContainer:
         self,
         const int level,
         const np.uint8_t[::1] level_inds,
-        const np.uint8_t[::1] cell_inds,
+        const np.uint32_t[::1] cell_inds,
         const np.int64_t[::1] file_inds,
         const np.int32_t[::1] domain_inds,
         dict dest_fields,
@@ -896,7 +896,7 @@ cdef class OctreeContainer:
         -------
         levels : uint8, shape (num_cells,)
             The level of each cell of the super oct
-        cell_inds : uint8, shape (num_cells, )
+        cell_inds : uint32, shape (num_cells, )
             The index of each cell of the super oct within its own oct
         file_inds : int64, shape (num_cells, )
             The on-file position of the cell. See notes below.
@@ -933,12 +933,12 @@ cdef class OctreeContainer:
         cdef NeighbourCellVisitor visitor
 
         cdef np.ndarray[np.uint8_t, ndim=1] levels
-        cdef np.ndarray[np.uint8_t, ndim=1] cell_inds
+        cdef np.ndarray[np.uint32_t, ndim=1] cell_inds
         cdef np.ndarray[np.int64_t, ndim=1] file_inds
         cdef np.ndarray[np.int32_t, ndim=1] domains
         levels = np.full(num_cells, 255, dtype="uint8")
         file_inds = np.full(num_cells, -1, dtype="int64")
-        cell_inds = np.full(num_cells, self.nz[0] * self.nz[1] * self.nz[2], dtype="uint8")
+        cell_inds = np.full(num_cells, self.nz[0] * self.nz[1] * self.nz[2], dtype="uint32")
         domains = np.full(num_cells, -1, dtype="int32")
 
         visitor = NeighbourCellVisitor(self, -1, n_ghost_zones)

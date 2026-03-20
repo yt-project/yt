@@ -152,7 +152,7 @@ cdef class StoreIndex(OctVisitor):
 cdef class BaseNeighbourVisitor(OctVisitor):
     cdef int idim      # 0,1,2 for x,y,z
     cdef int direction # +1 for +x, -1 for -x
-    cdef np.uint8_t neigh_ind[3]
+    cdef np.uint32_t neigh_ind[3]
     cdef bint other_oct
     cdef Oct *neighbour
     cdef OctreeContainer octree
@@ -161,15 +161,15 @@ cdef class BaseNeighbourVisitor(OctVisitor):
 
     cdef void set_neighbour_info(self, Oct *o, int ishift[3])
 
-    cdef inline np.uint8_t neighbour_rind(self):
+    cdef inline np.uint32_t neighbour_rind(self):
         return (self.neigh_ind[2]*self.nz[1]+self.neigh_ind[1])*self.nz[0]+self.neigh_ind[0]
 
 cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
-    cdef np.uint8_t[::1] cell_inds
+    cdef np.uint32_t[::1] cell_inds
     cdef np.int64_t[::1] domain_inds
 
 cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
     cdef np.uint8_t[::1] levels
     cdef np.int64_t[::1] file_inds
-    cdef np.uint8_t[::1] cell_inds
+    cdef np.uint32_t[::1] cell_inds
     cdef np.int32_t[::1] domains

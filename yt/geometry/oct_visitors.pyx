@@ -412,7 +412,7 @@ cdef class BaseNeighbourVisitor(OctVisitor):
 
         # Index of neighbouring cell within its oct
         for i in range(3):
-            self.neigh_ind[i] = <np.uint8_t>(ishift[i]) % 2
+            self.neigh_ind[i] = <np.uint32_t>(ishift[i]) % 2
 
         self.other_oct = other_oct
         if other_oct:
@@ -452,7 +452,7 @@ cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
     cdef void visit(self, Oct* o, np.uint8_t selected):
         cdef int i, j, k
         cdef int ishift[3]
-        cdef np.uint8_t neigh_cell_ind
+        cdef np.uint32_t neigh_cell_ind
         cdef np.int64_t neigh_domain_ind
         if selected == 0: return
         # Work at oct level
@@ -497,7 +497,7 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
         cdef int i, j, k
         cdef int ishift[3]
         cdef np.int64_t neigh_file_ind
-        cdef np.uint8_t neigh_cell_ind
+        cdef np.uint32_t neigh_cell_ind
         cdef np.int32_t neigh_domain
         cdef np.uint8_t neigh_level
         if selected == 0: return
