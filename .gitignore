@@ -95,6 +95,7 @@ yt/utilities/lib/partitioned_grid.cpp
 *.pyc
 *.pyd
 .*.swp
+*.DS_Store
 *.so
 .idea/*
 tests/results/*
