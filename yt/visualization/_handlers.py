@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, TypeAlias, Union
 
 import matplotlib as mpl
 import numpy as np
+import numpy.typing as npt
 import unyt as un
 from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm
 from unyt import unyt_quantity
@@ -291,7 +292,7 @@ class NormHandler:
         if newval is not None:
             self.norm_type = SymLogNorm
 
-    def get_norm(self, data: np.ndarray, *args, **kw) -> Normalize:
+    def get_norm(self, data: npt.NDArray, *args, **kw) -> Normalize:
         if self.norm is not None:
             return self.norm
 
