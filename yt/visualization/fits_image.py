@@ -648,28 +648,6 @@ class FITSImageData:
                 hdus.append(self.hdulist[field])
         hdus.writeto(fileobj, overwrite=overwrite, **kwargs)
 
-    def to_glue(self, label="yt", data_collection=None):
-        """
-        Takes the data in the FITSImageData instance and exports it to
-        Glue (http://glueviz.org) for interactive analysis. Optionally
-        add a *label*. If you are already within the Glue environment, you
-        can pass a *data_collection* object, otherwise Glue will be started.
-        """
-        from glue.app.qt.application import GlueApplication
-        from glue.core import Data, DataCollection
-        from glue.core.coordinates import coordinates_from_header
-
-        image = Data(label=label)
-        image.coords = coordinates_from_header(self.wcs.to_header())
-        for k in self.fields:
-            image.add_component(self[k].data, k)
-        if data_collection is None:
-            dc = DataCollection([image])
-            app = GlueApplication(dc)
-            app.start()
-        else:
-            data_collection.append(image)
-
     def to_aplpy(self, **kwargs):
         """
         Use APLpy (http://aplpy.github.io) for plotting. Returns an
