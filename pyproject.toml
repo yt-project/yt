@@ -246,7 +246,6 @@ typecheck = [
     "types-requests>=2.32.4.20250913",
     "typing-extensions>=4.6.0 ; python_full_version < '3.12'",
 ]
-full = []
 
 [tool.setuptools]
 include-package-data = true
