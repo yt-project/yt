@@ -118,7 +118,6 @@ def pytest_configure(config):
 
     if SETUPTOOLS_VERSION is not None and SETUPTOOLS_VERSION >= Version("67.3.0"):
         # may be triggered by multiple dependencies
-        # see https://github.com/glue-viz/glue/issues/2364
         # see https://github.com/matplotlib/matplotlib/issues/25244
         config.addinivalue_line(
             "filterwarnings",
@@ -129,7 +128,6 @@ def pytest_configure(config):
 
     if SETUPTOOLS_VERSION is not None and SETUPTOOLS_VERSION >= Version("67.5.0"):
         # may be triggered by multiple dependencies
-        # see https://github.com/glue-viz/glue/issues/2364
         # see https://github.com/matplotlib/matplotlib/issues/25244
         config.addinivalue_line(
             "filterwarnings",
