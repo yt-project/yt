@@ -1497,6 +1497,7 @@ class QuokkaDataset(AMReXDataset):
                 self.parameters["fields"].append(current_field)
 
             # Add metadata for radiation groups, scalars, and field existence flags
+            # note: considering using parameter-mapping if it grows with additional parameters
             self.parameters["radiation_field_groups"] = rad_group_count
             self.parameters["scalar_field_count"] = scalar_count
 
