@@ -1594,83 +1594,78 @@ class QuokkaDataset(AMReXDataset):
             header_file = os.path.join(pdir, "Header")
             fields_yaml_file = os.path.join(pdir, "Fields.yaml")
 
-            if os.path.exists(header_file):
-                detected_particle_types.append(particle_type)
+            if not os.path.exists(header_file):
+                continue
 
-                # Parse the Header
-                with open(header_file) as f:
-                    f.readline().strip()  # Skip version line
-                    num_particles = int(f.readline().strip())  # Second line
-                    num_fields = int(f.readline().strip())  # Third line
-                    fields = [
-                        f.readline().strip() for _ in range(num_fields)
-                    ]  # Remaining lines
+            detected_particle_types.append(particle_type)
 
-                # Default field names and units
-                field_names = fields[:]
-                field_units = dict.fromkeys(fields, "dimensionless")
+            # Parse the Header
+            with open(header_file) as f:
+                f.readline().strip()  # Skip version line
+                num_particles = int(f.readline().strip())  # Second line
+                num_fields = int(f.readline().strip())  # Third line
+                fields = [
+                    f.readline().strip() for _ in range(num_fields)
+                ]  # Remaining lines
 
-                # Initialize variables
-                yaml_field_names = None
+            # Default field names and units
+            field_names = fields[:]
+            field_units = dict.fromkeys(fields, "dimensionless")
 
-                # Check and parse Fields.yaml
-                if os.path.exists(fields_yaml_file):
-                    try:
-                        with open(fields_yaml_file) as f:
-                            field_data = yaml.safe_load(f)
-                            yaml_field_names = list(
-                                field_data.keys()
-                            )  # Extract field names
-                            raw_units = field_data
+            # Initialize variables
+            yaml_field_names = None
 
-                            # Validate field names count
-                            if len(yaml_field_names) == len(fields):
-                                # Replace the default fields (real_comp*) with those from Fields.yaml
-                                field_names = yaml_field_names
-                                field_units = {}
+            # Check and parse Fields.yaml
+            if not os.path.exists(fields_yaml_file):
+                continue
 
-                                # Translate raw unit dimensions into readable strings
-                                base_units = [
-                                    "M",
-                                    "L",
-                                    "T",
-                                    "Θ",
-                                ]  # Mass, Length, Time, Temperature
-                                for field, unit_dims in raw_units.items():
-                                    field_units[field] = (
-                                        " ".join(
-                                            f"{base_units[i]}^{exp}" if exp != 0 else ""
-                                            for i, exp in enumerate(unit_dims)
-                                        ).strip()
-                                        or "dimensionless"
-                                    )
+            with open(fields_yaml_file) as f:
+                field_data = yaml.safe_load(f)
+                yaml_field_names = list(field_data.keys())  # Extract field names
+                raw_units = field_data
 
-                                # Remove any `real_comp*` entries from the field_units
-                                for idx in range(len(fields)):
-                                    real_comp_field = f"real_comp{idx}"
-                                    if real_comp_field in field_units:
-                                        del field_units[real_comp_field]
+                # Validate field names count
+                if len(yaml_field_names) == len(fields):
+                    # Replace the default fields (real_comp*) with those from Fields.yaml
+                    field_names = yaml_field_names
+                    field_units = {}
 
-                            else:
-                                mylog.debug(
-                                    "Field names in Fields.yaml do not match the number of fields in Header for '%s'. "
-                                    "Using names from Header.",
-                                    particle_type,
-                                )
-                    except Exception as e:
-                        mylog.debug(
-                            "Failed to parse Fields.yaml for particle type '%s': %s",
-                            particle_type,
-                            e,
+                    # Translate raw unit dimensions into readable strings
+                    base_units = [
+                        "M",
+                        "L",
+                        "T",
+                        "Θ",
+                    ]  # Mass, Length, Time, Temperature
+                    for field, unit_dims in raw_units.items():
+                        field_units[field] = (
+                            " ".join(
+                                f"{base_units[i]}^{exp}" if exp != 0 else ""
+                                for i, exp in enumerate(unit_dims)
+                            ).strip()
+                            or "dimensionless"
                         )
 
-                # Add particle info
-                particle_info[particle_type] = {
-                    "num_particles": num_particles,
-                    "num_fields": num_fields,
-                    "fields": field_names,
-                    "units": field_units,
-                }
+                    # Remove any `real_comp*` entries from the field_units
+                    for idx in range(len(fields)):
+                        real_comp_field = f"real_comp{idx}"
+                        if real_comp_field in field_units:
+                            del field_units[real_comp_field]
+
+                else:
+                    mylog.debug(
+                        "Field names in Fields.yaml do not match the number of fields in Header for '%s'. "
+                        "Using names from Header.",
+                        particle_type,
+                    )
+
+            # Add particle info
+            particle_info[particle_type] = {
+                "num_particles": num_particles,
+                "num_fields": num_fields,
+                "fields": field_names,
+                "units": field_units,
+            }
 
         # Update parameters with particle info
         self.parameters["particles"] = (len(detected_particle_types),)
