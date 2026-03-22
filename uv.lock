@@ -1472,35 +1472,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/04/0b/4506cb2e831cea4b0214d3625430e921faaa05a7fb520458c75a2dbd2152/fusepy-3.0.1.tar.gz", hash = "sha256:72ff783ec2f43de3ab394e3f7457605bf04c8cf288a2f4068b4cde141d4ee6bd", size = 11519, upload-time = "2018-09-17T00:14:52.666Z" }
 
 [[package]]
-name = "glue-core"
-version = "1.24.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "astropy", version = "6.1.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "astropy", version = "7.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "dill" },
-    { name = "echo" },
-    { name = "fast-histogram" },
-    { name = "h5py" },
-    { name = "ipython", version = "8.37.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "ipython", version = "9.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "matplotlib" },
-    { name = "mpl-scatter-density" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "openpyxl" },
-    { name = "pandas" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.16.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "shapely" },
-    { name = "xlrd" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0a/09/105e31603fbd070ba33df6012dddb0849bae5d85b66ab212c22e30b5638e/glue_core-1.24.1.tar.gz", hash = "sha256:73ae968daf31ae48c3c213685631d2e32589479e84494bf3577ab700e1225418", size = 960369, upload-time = "2025-10-01T14:15:05.423Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8b/8f/a6987fd0716247581203af25b08d06099530e624cf6339b358824d7b4359/glue_core-1.24.1-py3-none-any.whl", hash = "sha256:85a76a76a558e2b208ec1026fc0fbdcda04b96f05d1a5ff2fc0dcb92af58bc18", size = 1046242, upload-time = "2025-10-01T14:15:04.123Z" },
-]
-
-[[package]]
 name = "greenlet"
 version = "3.2.4"
 source = { registry = "https://pypi.org/simple" }
@@ -2411,21 +2382,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b9/66/b342e330ac543d0147ebfab754f69854c4777ac9785cb5b7610e3cd0c29a/mpi4py-4.1.1-pp311-pypy311_pp73-manylinux1_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:027b1a1ff9d57afed10af6b79041b95f85fd11b2af74e4c34ef4866ce81ecc24", size = 1380452, upload-time = "2025-10-10T13:55:14.582Z" },
     { url = "https://files.pythonhosted.org/packages/dd/61/bbf87de6f3a8a9c54e7a4b72878c9069646ca9cafac8217fa5493a54b068/mpi4py-4.1.1-pp311-pypy311_pp73-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:c1191856906967a48fdcc484b326c179747e68c186261d76480a75156bcc73bf", size = 1255980, upload-time = "2025-10-10T13:55:17.075Z" },
     { url = "https://files.pythonhosted.org/packages/8d/4b/227091dec11518e5545bd1ec91f52e06f64bdae697adc5fb33f9f20c04dc/mpi4py-4.1.1-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:189d49b0ae963f8f6f5dd8ed0f5f37923285c97bc725476990ec0556972bb4b2", size = 1452641, upload-time = "2025-10-10T13:55:18.562Z" },
-]
-
-[[package]]
-name = "mpl-scatter-density"
-version = "0.8"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "fast-histogram" },
-    { name = "matplotlib" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/8c/f5c1ddc7d35f0337b2698b52e60f558db3bf03e80ec0b13b8f8b9e2cf2e8/mpl_scatter_density-0.8.tar.gz", hash = "sha256:2dbabdcc3f98b04af49aa8ac3efa392d9a9fe175b125b31f9d5d4c337398d633", size = 5216767, upload-time = "2024-12-03T14:16:26.809Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/e1/4ba1e8dcb4a3732e99f82fcd36d0404374e19b4f92bc10834dac8f954719/mpl_scatter_density-0.8-py3-none-any.whl", hash = "sha256:0752fe5be86c1334f0be1cb493a15b5c29712c5165d5bbbb975ca7c70614dbd0", size = 749472, upload-time = "2024-12-03T14:16:23.545Z" },
 ]
 
 [[package]]
@@ -5140,7 +5096,6 @@ full = [
     { name = "cartopy" },
     { name = "f90nml" },
     { name = "firefly" },
-    { name = "glue-core" },
     { name = "h5py" },
     { name = "ipython", version = "8.37.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "ipython", version = "9.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -5253,10 +5208,15 @@ mapserver = [
     { name = "bottle" },
 ]
 nosetest = [
+    { name = "dill" },
+    { name = "echo" },
+    { name = "fast-histogram" },
     { name = "nose" },
     { name = "nose-exclude" },
     { name = "nose-timer" },
+    { name = "openpyxl" },
     { name = "setuptools" },
+    { name = "xlrd" },
 ]
 typecheck = [
     { name = "mypy" },
@@ -5275,7 +5235,6 @@ requires-dist = [
     { name = "ewah-bool-utils", specifier = ">=1.2.0" },
     { name = "f90nml", marker = "extra == 'fortran'", specifier = ">=1.1" },
     { name = "firefly", marker = "extra == 'full'", specifier = ">=3.2.0" },
-    { name = "glue-core", marker = "extra == 'full'", specifier = ">=1.24.1" },
     { name = "h5py", marker = "sys_platform == 'darwin' and extra == 'hdf5'", specifier = "!=3.15.0" },
     { name = "h5py", marker = "sys_platform == 'win32' and extra == 'hdf5'", specifier = "!=3.12.0" },
     { name = "h5py", marker = "extra == 'hdf5'", specifier = ">=3.6.0" },
@@ -5402,10 +5361,15 @@ full = []
 mapping = [{ name = "cartopy", extras = ["plotting"], specifier = ">=0.22.0" }]
 mapserver = [{ name = "bottle", specifier = ">=0.13.0" }]
 nosetest = [
+    { name = "dill", specifier = ">=0.4.0" },
+    { name = "echo", specifier = ">=0.11.1" },
+    { name = "fast-histogram", specifier = ">=0.14" },
     { name = "nose", specifier = "~=1.3.7" },
     { name = "nose-exclude", specifier = ">=0.5.0" },
     { name = "nose-timer", specifier = "~=1.0.0" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "setuptools", specifier = ">=80.9.0" },
+    { name = "xlrd", specifier = ">=2.0.2" },
 ]
 typecheck = [
     { name = "mypy", specifier = ">=1.18.2" },
