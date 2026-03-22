@@ -64,7 +64,6 @@ jobs:
       # to use the dev version of numpy at build time.
       run: uv pip install --editable .[test] --no-build-isolation
 
-    - run: yt config set --local yt log_level 50  # Disable excessive output
     - name: Run Tests
       run: uv run --no-sync pytest yt -vvv --color=yes
 

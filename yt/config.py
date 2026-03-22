@@ -11,7 +11,9 @@ ytcfg_defaults["yt"] = {
     "colored_logs": False,
     "suppress_stream_logging": False,
     "stdout_stream_logging": False,
-    "log_level": 20,
+    # 50=CRITICAL practically represents *no logging*
+    # because critical errors are normally reported as show-stopping exceptions
+    "log_level": 50,
     "inline": False,
     "num_threads": -1,
     "store_parameter_files": False,
