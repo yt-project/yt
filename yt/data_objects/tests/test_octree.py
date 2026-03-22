@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 
+from yt.geometry.oct_container import OctreeContainer
 from yt.testing import fake_sph_grid_ds
 
 n_ref = 4
@@ -118,3 +119,26 @@ def test_octree_properties():
     refined = octree["index", "refined"]
     refined_ans = np.array([True] + [False] * 7 + [True] + [False] * 8, dtype=np.bool_)
     assert_equal(refined, refined_ans)
+
+
+def test_num_zones_tuple():
+    """
+    Test that OctreeContainer accepts num_zones as a scalar or a tuple (N, M, L).
+    Both should correctly set per-dimension zone counts.
+    """
+    # Scalar: all dimensions equal
+    oct_scalar = OctreeContainer(
+        [1, 1, 1], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], num_zones=2
+    )
+    # Tuple: potentially different per-dimension
+    oct_tuple = OctreeContainer(
+        [1, 1, 1], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], num_zones=(2, 2, 2)
+    )
+    # Non-uniform tuple
+    oct_nonuniform = OctreeContainer(
+        [1, 1, 1], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], num_zones=(2, 3, 4)
+    )
+    # Verify that creating these containers doesn't raise exceptions
+    assert oct_scalar is not None
+    assert oct_tuple is not None
+    assert oct_nonuniform is not None

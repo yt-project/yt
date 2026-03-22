@@ -12,6 +12,7 @@ __all__ = [
     "chimera",
     "chombo",
     "cholla",
+    "dyablo",
     "enzo_e",
     "enzo",
     "exodus_ii",
