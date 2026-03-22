@@ -1840,7 +1840,12 @@ class Dataset(abc.ABC):
         return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
 
     def add_deposited_particle_field(
-        self, deposit_field, method, kernel_name="cubic", weight_field=None
+        self,
+        deposit_field,
+        method,
+        kernel_name="cubic",
+        weight_field=None,
+        vector_field=False,
     ):
         """Add a new deposited particle field
 
@@ -1866,6 +1871,8 @@ class Dataset(abc.ABC):
         weight_field : (field_type, field_name) or None
            Weighting field name for deposition method `weighted_mean`.
            If None, use the particle mass.
+        vector_field : bool, default False
+           If True, the deposited field is treated as a vector field.
 
         Returns
         -------
@@ -1877,11 +1884,15 @@ class Dataset(abc.ABC):
             ptype, deposit_field = deposit_field[0], deposit_field[1]
         else:
             raise RuntimeError
-
         if weight_field is None:
             weight_field = (ptype, "particle_mass")
         units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
+        if vector_field != self.field_info[ptype, deposit_field].vector_field:
+            raise RuntimeError(
+                "vector_field argument does not match the field's vector_field attribute"
+            )
+
         name_map = {
             "sum": "sum",
             "std": "std",
@@ -1911,8 +1922,18 @@ class Dataset(abc.ABC):
             fields = [data[ptype, deposit_field]]
             if method == "weighted_mean":
                 fields.append(data[ptype, weight_field])
-            fields = [np.ascontiguousarray(f) for f in fields]
-            d = data.deposit(pos, fields, method=method, kernel_name=kernel_name)
+            # Cython deposition kernels operate on float64 buffers.
+            fields = [np.ascontiguousarray(f, dtype="float64") for f in fields]
+            d = data.deposit(
+                pos,
+                fields,
+                method=method,
+                kernel_name=kernel_name,
+                # Count deposition tracks number of particles per cell and
+                # should remain scalar even if the source field is vector-valued.
+                vector_field=vector_field and method != "count",
+            )
+
             d = data.ds.arr(d, units=units)
             if method == "weighted_mean":
                 d[np.isnan(d)] = 0.0
@@ -1925,6 +1946,7 @@ class Dataset(abc.ABC):
             units=units,
             take_log=take_log,
             validators=[ValidateSpatial()],
+            vector_field=vector_field,
         )
         return ("deposit", field_name)
 
