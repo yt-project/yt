@@ -32,6 +32,8 @@ from .fields import (
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
+# Ordered base-unit symbols used when decoding Quokka Fields.yaml unit dimension vectors
+_QUOKKA_UNIT_DIMS = ("M", "L", "T", "Θ")  # Mass, Length, Time, Temperature
 # This is the dimensions in the Cell_H file for each level
 # It is different for different dimensionalities, so we make a list
 _1dregx = r"-?\d+"
@@ -1608,58 +1610,35 @@ class QuokkaDataset(AMReXDataset):
                     f.readline().strip() for _ in range(num_fields)
                 ]  # Remaining lines
 
-            # Default field names and units
             field_names = fields[:]
             field_units = dict.fromkeys(fields, "dimensionless")
 
-            # Initialize variables
-            yaml_field_names = None
+            # override field_names and field_units when Fields.yaml exists
+            if os.path.exists(fields_yaml_file):
+                with open(fields_yaml_file) as f:
+                    field_data = yaml.safe_load(f)
 
-            # Check and parse Fields.yaml
-            if not os.path.exists(fields_yaml_file):
-                continue
-
-            with open(fields_yaml_file) as f:
-                field_data = yaml.safe_load(f)
-                yaml_field_names = list(field_data.keys())  # Extract field names
-                raw_units = field_data
-
-                # Validate field names count
+                yaml_field_names = list(field_data)
                 if len(yaml_field_names) == len(fields):
-                    # Replace the default fields (real_comp*) with those from Fields.yaml
                     field_names = yaml_field_names
-                    field_units = {}
-
-                    # Translate raw unit dimensions into readable strings
-                    base_units = [
-                        "M",
-                        "L",
-                        "T",
-                        "Θ",
-                    ]  # Mass, Length, Time, Temperature
-                    for field, unit_dims in raw_units.items():
-                        field_units[field] = (
+                    field_units = {
+                        field: (
                             " ".join(
-                                f"{base_units[i]}^{exp}" if exp != 0 else ""
+                                f"{_QUOKKA_UNIT_DIMS[i]}^{exp}"
                                 for i, exp in enumerate(unit_dims)
-                            ).strip()
+                                if exp != 0
+                            )
                             or "dimensionless"
                         )
-
-                    # Remove any `real_comp*` entries from the field_units
-                    for idx in range(len(fields)):
-                        real_comp_field = f"real_comp{idx}"
-                        if real_comp_field in field_units:
-                            del field_units[real_comp_field]
-
+                        for field, unit_dims in field_data.items()
+                    }
                 else:
                     mylog.debug(
-                        "Field names in Fields.yaml do not match the number of fields in Header for '%s'. "
-                        "Using names from Header.",
+                        "Field names in Fields.yaml do not match the number of fields "
+                        "in Header for '%s'. Using names from Header.",
                         particle_type,
                     )
 
-            # Add particle info
             particle_info[particle_type] = {
                 "num_particles": num_particles,
                 "num_fields": num_fields,
