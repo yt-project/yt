@@ -1368,7 +1368,7 @@ class QuokkaHierarchy(BoxlibHierarchy):
 
                 # Read particle data for this type
                 self._read_particles(
-                    ptype, is_checkpoint=False, extra_fields=extra_fields
+                    ptype, is_checkpoint=False, extra_field_names=extra_fields
                 )
 
 
@@ -1452,7 +1452,7 @@ class QuokkaDataset(AMReXDataset):
             try:
                 # Load the face-centered dataset directly to avoid circular imports
                 mylog.info(f"Loading face-centered {direction} dataset from {fc_dir}")
-                fc_ds = AMReXDataset(fc_dir)
+                fc_ds = QuokkaDataset(fc_dir)
 
                 # Store the dataset as an attribute
                 setattr(self, f"ds_fc_{direction}", fc_ds)
