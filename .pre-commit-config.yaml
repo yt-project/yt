@@ -28,7 +28,7 @@ repos:
     - id: check-yaml
 
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: v1.18.0
+  rev: v1.22.0
   hooks:
     - id: zizmor
 
@@ -41,13 +41,22 @@ repos:
         additional_dependencies: [black==24.3.0]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.7
+  rev: v0.15.4
   hooks:
   - id: ruff-format
   - id: ruff-check
     args: [
       --fix,
       --show-fixes,
+    ]
+  - id: ruff-check
+    name: ruff-check (preview)
+    args: [
+      --preview,
+      --fix,
+      --show-fixes,
+      --select,
+      RUF031, # incorrectly-parenthesized-tuple-in-subscript
     ]
 
 -   repo: https://github.com/pre-commit/pygrep-hooks
@@ -56,7 +65,7 @@ repos:
     -   id: rst-backticks
 
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.18.1
+  rev: v0.19.0
   hooks:
   - id: cython-lint
     args: [--no-pycodestyle]

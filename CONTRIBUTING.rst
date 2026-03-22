@@ -368,7 +368,7 @@ the following subdirectories:
    This is where all of the derived fields that ship with yt are defined.
 
 ``geometry``
-   This is where geometric helpler routines are defined. Handlers
+   This is where geometric helper routines are defined. Handlers
    for grid and oct data, as well as helpers for coordinate transformations
    can be found here.
 
@@ -449,7 +449,7 @@ For all types of contributions, it is required that all tests pass, or that all 
   * Unit test is encouraged, to ensure breakage does not happen again in the
     future. (See :ref:`testing`)
   * At a minimum, a minimal, self-contained example demonstrating the bug should
-    because included in the body of the Pull Request, or as part of an
+    be included in the body of the Pull Request, or as part of an
     independent issue.
 
 When submitting, you will be asked to make sure that your changes meet all of

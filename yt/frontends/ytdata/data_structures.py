@@ -528,7 +528,7 @@ class YTGridDataset(YTDataset):
                 self.domain_right_edge = (
                     self.domain_left_edge + self.parameters["ActiveDimensions"] * dx
                 )
-                self.domain_dimensions = (
+                self.domain_dimensions = np.rint(
                     (self.domain_right_edge - self.domain_left_edge) / dx
                 ).astype("int64")
             else:

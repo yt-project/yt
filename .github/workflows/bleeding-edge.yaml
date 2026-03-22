@@ -33,12 +33,12 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         persist-credentials: false
 
     - name: Set up Python (newest testable version)
-      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+      uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
         # this version should be upgraded as often as possible, typically once a year when
         # Cython, numpy and matplotlib are known to be compatible
@@ -54,15 +54,15 @@ jobs:
 
     - name: Install dependencies
       run: |
-        uv pip install setuptools numpy matplotlib Cython ewah-bool-utils
-        uv add --no-sync git+https://github.com/yt-project/unyt.git
-        uv add --no-sync --optional test git+https://github.com/pytest-dev/pytest.git
+        uv add --no-install-project git+https://github.com/yt-project/unyt.git
+        uv add --no-install-project --optional test git+https://github.com/pytest-dev/pytest.git
+        uv pip install --upgrade setuptools numpy matplotlib Cython ewah-bool-utils
 
     - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
-      # are not installed by pip as specified from pyproject.toml, hence we get
+      # are not installed by uv sync as specified from pyproject.toml, hence we get
       # to use the dev version of numpy at build time.
-      run: uv sync --extra test --no-build-isolation
+      run: uv pip install --editable .[test] --no-build-isolation
 
     - run: yt config set --local yt log_level 50  # Disable excessive output
     - name: Run Tests

@@ -26,10 +26,8 @@ from yt.utilities.lib.misc_utilities import OnceIndirect
 cdef append_axes(np.ndarray arr, int naxes):
     if arr.ndim == naxes:
         return arr
-    # Avoid copies
-    arr2 = arr.view()
-    arr2.shape = arr2.shape + (1,) * (naxes - arr2.ndim)
-    return arr2
+    arr = np.expand_dims(arr, axis=tuple(range(arr.ndim, naxes)))
+    return arr
 
 cdef class ParticleDepositOperation:
     def __init__(self, nvals, kernel_name):
@@ -187,9 +185,7 @@ cdef class CountParticles(ParticleDepositOperation):
         return 0
 
     def finalize(self):
-        arr = np.asarray(self.count)
-        arr.shape = self.nvals
-        return arr.astype("float64")
+        return np.asarray(self.count).reshape(self.nvals).astype("float64")
 
 deposit_count = CountParticles
 
@@ -285,9 +281,7 @@ cdef class SumParticleField(ParticleDepositOperation):
         return 0
 
     def finalize(self):
-        sum = np.asarray(self.sum)
-        sum.shape = self.nvals
-        return sum
+        return np.asarray(self.sum).reshape(self.nvals)
 
 deposit_sum = SumParticleField
 
@@ -344,8 +338,7 @@ cdef class StdParticleField(ParticleDepositOperation):
         i = np.asarray(self.i)
         std2 = np.asarray(self.qk) / i
         std2[i == 0.0] = 0.0
-        std2.shape = self.nvals
-        return np.sqrt(std2)
+        return np.sqrt(std2.reshape(self.nvals))
 
 deposit_std = StdParticleField
 
@@ -395,9 +388,7 @@ cdef class CICDeposit(ParticleDepositOperation):
         return 0
 
     def finalize(self):
-        rv = np.asarray(self.field)
-        rv.shape = self.nvals
-        return rv
+        return np.asarray(self.field).reshape(self.nvals)
 
 deposit_cic = CICDeposit
 
@@ -435,8 +426,7 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
         w = np.asarray(self.w)
         with np.errstate(divide='ignore', invalid='ignore'):
             rv = wf / w
-        rv.shape = self.nvals
-        return rv
+        return rv.reshape(self.nvals)
 
 deposit_weighted_mean = WeightedMeanParticleField
 
@@ -544,8 +534,6 @@ cdef class NNParticleField(ParticleDepositOperation):
         return 0
 
     def finalize(self):
-        nn = np.asarray(self.nnfield)
-        nn.shape = self.nvals
-        return nn
+        return np.asarray(self.nnfield).reshape(self.nvals)
 
 deposit_nearest = NNParticleField
