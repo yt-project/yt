@@ -1485,7 +1485,6 @@ class QuokkaDataset(AMReXDataset):
             num_fields = int(f.readline().strip())
             self.parameters["fields"] = []
 
-            # Metadata flags
             rad_group_count = 0
 
             for _ in range(num_fields):
