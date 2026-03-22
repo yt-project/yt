@@ -1,7 +1,7 @@
 set -x   # Show which command is being run
 
-# Step 1: pre-install required packages
-if [[ ${sync_args} == *"full"* || ${sync_args} == *"mapping"* ]]; then
+# Step 1: install system level dependencies for ratarmount
+if [[ ${sync_args} == *"full"* ]]; then
     case ${RUNNER_OS} in
     linux|Linux)
         sudo apt-get -qqy update
