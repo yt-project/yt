@@ -8,6 +8,7 @@ from stat import ST_CTIME
 import numpy as np
 from packaging.version import Version
 
+from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import FieldInfoContainer
@@ -27,9 +28,6 @@ from .fields import (
     QuokkaFieldInfo,
     WarpXFieldInfo,
 )
-
-# Set to True to re-raise exceptions during Quokka dataset loading (e.g., face-centered data)
-DEBUG_QUOKKA = False
 
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -1463,7 +1461,7 @@ class QuokkaDataset(AMReXDataset):
                 # Add information about this being a face-centered dataset
                 fc_ds.fc_direction = direction
             except Exception as e:
-                if DEBUG_QUOKKA:
+                if ytcfg.get("yt", "quokka_debug"):
                     raise
                 mylog.warning(f"Failed to load face-centered {direction} dataset: {e}")
 
@@ -1692,18 +1690,19 @@ class QuokkaDataset(AMReXDataset):
     def _parse_metadata_file(self):
         # Construct the full path to the metadata file
         metadata_filename = os.path.join(self.output_dir, self.cparam_filename)
-        try:
-            with open(metadata_filename) as f:
-                try:
-                    metadata = yaml.safe_load(f)
-                except yaml.YAMLError as e:
-                    if DEBUG_QUOKKA:
-                        raise
-                    mylog.debug(f"Error parsing metadata file: {e}")
-                    return
-        except FileNotFoundError:
-            mylog.debug(f"Error: Metadata file '{metadata_filename}' not found.")
+        if not os.path.exists(metadata_filename):
+            mylog.error(f"Error: Metadata file '{metadata_filename}' not found.")
+            print(f"Error: Metadata file '{metadata_filename}' not found.")
             return
+
+        with open(metadata_filename) as f:
+            try:
+                metadata = yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                if ytcfg.get("yt", "quokka_debug"):
+                    raise
+                mylog.debug(f"Error parsing metadata file: {e}")
+                return
 
         if not metadata:
             mylog.debug("Warning: Metadata file is empty.")

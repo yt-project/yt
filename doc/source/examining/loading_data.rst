@@ -2290,6 +2290,16 @@ reference back to the parent dataset, ``ds.ds_fc_x.parent_ds``. This allows for
 easy access to both cell-centered and face-centered data in the same analysis
 workflow.
 
+Debugging QUOKKA datasets
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   import yt
+
+   yt.config.ytcfg.set("yt", "quokka_debug", True)  # must be before yt.load
+   ds = yt.load("/path/to/quokka/plt")
+
 Support for Legacy Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
