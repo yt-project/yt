@@ -330,7 +330,6 @@ known-third-party = [
   "coverage",
   "pytest",
   "pyx",
-  "glue",
 ]
 known-first-party = ["yt"]
 
@@ -545,15 +544,9 @@ no-build-package = [
 
     # via astropy
     "pyerfa",
-
-    # via glue-qt
-    "spectral-cube",
-    "joblib",
-    "radio-beam",
 ]
 constraint-dependencies = [
     "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
-    "glue-core!=1.2.4",  # see https://github.com/glue-viz/glue/issues/2263
     "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
     "jinja2>=2.11.3",
 
