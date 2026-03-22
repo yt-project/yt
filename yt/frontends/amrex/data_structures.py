@@ -1363,13 +1363,13 @@ class QuokkaHierarchy(BoxlibHierarchy):
                     "particle_velocity_z",
                 ]
 
-                is_checkpoint = False
-
                 # Pass the fields to _read_particles
                 extra_fields = quokka_extra_real_fields[: ds.dimensionality] + fields
 
                 # Read particle data for this type
-                self._read_particles(ptype, is_checkpoint, extra_fields)
+                self._read_particles(
+                    ptype, is_checkpoint=False, extra_fields=extra_fields
+                )
 
 
 class QuokkaDataset(AMReXDataset):
@@ -1526,13 +1526,15 @@ class QuokkaDataset(AMReXDataset):
             self.parameters["grid_info"] = f.readline().strip()
 
             # Timestamp
-            self.parameters["timestamp"] = list(map(int, f.readline().strip().split()))
+            self.parameters["timestamp"] = [
+                int(_) for _ in f.readline().strip().split()
+            ]
 
             # Grid sizes for all refinement levels
             self.parameters["grid_sizes"] = []
             for _ in range(self.parameters["refinement_level"] + 1):
                 self.parameters["grid_sizes"].append(
-                    list(map(float, f.readline().strip().split()))
+                    [float(_) for _ in f.readline().strip().split()]
                 )
 
             # Skip placeholders
