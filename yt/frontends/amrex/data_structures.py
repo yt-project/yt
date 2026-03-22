@@ -14,9 +14,9 @@ from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.loaders import load
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.on_demand_imports import _yaml as yaml
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 
 from .fields import (
@@ -27,6 +27,9 @@ from .fields import (
     QuokkaFieldInfo,
     WarpXFieldInfo,
 )
+
+# Set to True to re-raise exceptions during Quokka dataset loading (e.g., face-centered data)
+DEBUG_QUOKKA = False
 
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -1335,7 +1338,9 @@ class QuokkaHierarchy(BoxlibHierarchy):
         super().__init__(ds, dataset_type)
 
         # Dynamically detect particle types by searching for "*_particles" directories
-        particle_dirs = glob.glob(os.path.join(self.ds.output_dir, "*_particles"))
+        particle_dirs = sorted(
+            glob.glob(os.path.join(self.ds.output_dir, "*_particles"))
+        )
 
         for pdir in particle_dirs:
             ptype = os.path.basename(pdir)
@@ -1373,7 +1378,6 @@ class QuokkaDataset(AMReXDataset):
     _field_info_class = QuokkaFieldInfo
     _subtype_keyword = ""
     _default_cparam_filename = "metadata.yaml"
-    _load_requirements = ["yaml"]
 
     def __init__(
         self,
@@ -1442,32 +1446,28 @@ class QuokkaDataset(AMReXDataset):
 
         # For each direction, check if the directory exists and load it
         for direction, fc_dir in fc_dirs.items():
-            if os.path.isdir(fc_dir):
-                try:
-                    # Load the face-centered dataset
-                    mylog.info(
-                        f"Loading face-centered {direction} dataset from {fc_dir}"
-                    )
-                    fc_ds = load(fc_dir)
-
-                    # Store the dataset as an attribute
-                    setattr(self, f"ds_fc_{direction}", fc_ds)
-
-                    # Add a reference back to the parent dataset
-                    fc_ds.parent_ds = self
-
-                    # Add information about this being a face-centered dataset
-                    fc_ds.fc_direction = direction
-                except Exception as e:
-                    mylog.warning(
-                        f"Failed to load face-centered {direction} dataset: {e}"
-                    )
-            else:
+            if not os.path.isdir(fc_dir):
                 mylog.debug(f"No face-centered {direction} dataset found at {fc_dir}")
+                continue
+            try:
+                # Load the face-centered dataset directly to avoid circular imports
+                mylog.info(f"Loading face-centered {direction} dataset from {fc_dir}")
+                fc_ds = AMReXDataset(fc_dir)
+
+                # Store the dataset as an attribute
+                setattr(self, f"ds_fc_{direction}", fc_ds)
+
+                # Add a reference back to the parent dataset
+                fc_ds.parent_ds = self
+
+                # Add information about this being a face-centered dataset
+                fc_ds.fc_direction = direction
+            except Exception as e:
+                if DEBUG_QUOKKA:
+                    raise
+                mylog.warning(f"Failed to load face-centered {direction} dataset: {e}")
 
     def _parse_parameter_file(self):
-        import yaml
-
         # Call parent method to initialize core setup by yt
         super()._parse_parameter_file()
 
@@ -1486,15 +1486,19 @@ class QuokkaDataset(AMReXDataset):
             self.parameters["fields"] = []
 
             rad_group_count = 0
+            scalar_count = 0
 
             for _ in range(num_fields):
                 current_field = f.readline().strip()
                 if current_field.startswith("radEnergy-Group"):
                     rad_group_count += 1
+                if current_field.startswith("scalar_"):
+                    scalar_count += 1
                 self.parameters["fields"].append(current_field)
 
             # Add metadata for radiation groups, scalars, and field existence flags
             self.parameters["radiation_field_groups"] = rad_group_count
+            self.parameters["scalar_field_count"] = scalar_count
 
             # Parse remaining metadata
             self.parameters["dimensionality"] = int(
@@ -1581,7 +1585,7 @@ class QuokkaDataset(AMReXDataset):
             self.parameters["refinement"] = max_refinement_level > 0
 
         # Handle particle information from "*_particles/Header"
-        particle_dirs = glob.glob(os.path.join(self.output_dir, "*_particles"))
+        particle_dirs = sorted(glob.glob(os.path.join(self.output_dir, "*_particles")))
         detected_particle_types = []
         particle_info = {}
 
@@ -1684,49 +1688,53 @@ class QuokkaDataset(AMReXDataset):
         mylog.debug("Parsed header parameters: %s", self.parameters)
 
     def _parse_metadata_file(self):
-        import yaml
-
         # Construct the full path to the metadata file
         metadata_filename = os.path.join(self.output_dir, self.cparam_filename)
         try:
             with open(metadata_filename) as f:
-                # Load metadata using yaml
-                metadata = yaml.safe_load(f)
-
-                if not metadata:
-                    mylog.debug("Warning: Metadata file is empty.")
+                try:
+                    metadata = yaml.safe_load(f)
+                except yaml.YAMLError as e:
+                    if DEBUG_QUOKKA:
+                        raise
+                    mylog.debug(f"Error parsing metadata file: {e}")
                     return
-
-                # Get quokka version, default to 0.0 if not present
-                quokka_version = Version(str(metadata.get("quokka_version", "0.0")))
-                if quokka_version < Version("25.03"):
-                    # For older versions
-                    self.parameters.update(metadata)
-                    mylog.debug("Metadata loaded successfully (older versions)")
-                else:
-                    # For newer versions, process each section according to rules
-                    for key, value in metadata.items():
-                        if key == "units":
-                            # For units section, read everything underneath
-                            for unit_name, unit_value in value.items():
-                                self.parameters[unit_name] = unit_value
-                        elif key == "constants":
-                            # Ignore constants section
-                            continue
-                        else:
-                            # For everything else, read in directly
-                            self.parameters[key] = value
-
-                    mylog.debug(
-                        f"Metadata loaded successfully (version 25.03 or newer): {quokka_version}"
-                    )
-
         except FileNotFoundError:
             mylog.debug(f"Error: Metadata file '{metadata_filename}' not found.")
-        except yaml.YAMLError as e:
-            mylog.debug(f"Error parsing metadata file: {e}")
+            return
+
+        if not metadata:
+            mylog.debug("Warning: Metadata file is empty.")
+            return
+
+        try:
+            # Get quokka version, default to 0.0 if not present
+            quokka_version = Version(str(metadata.get("quokka_version", "0.0")))
         except ValueError as e:
             mylog.debug(f"Error parsing version numbers: {e}")
+            return
+
+        if quokka_version < Version("25.03"):
+            # For older versions
+            self.parameters.update(metadata)
+            mylog.debug("Metadata loaded successfully (older versions)")
+        else:
+            # For newer versions, process each section according to rules
+            for key, value in metadata.items():
+                if key == "units":
+                    # For units section, read everything underneath
+                    for unit_name, unit_value in value.items():
+                        self.parameters[unit_name] = unit_value
+                elif key == "constants":
+                    # Ignore constants section
+                    continue
+                else:
+                    # For everything else, read in directly
+                    self.parameters[key] = value
+
+            mylog.debug(
+                f"Metadata loaded successfully (version 25.03 or newer): {quokka_version}"
+            )
 
 
 def _guess_pcast(vals):

@@ -549,10 +549,6 @@ class QuokkaFieldInfo(FieldInfoContainer):
         ),
         # Temperature field is not present in early Quokka datasets
         ("gasTemperature", ("K", ["temperature"], r"T")),
-        # Scalar fields are not always present
-        ("scalar_0", ("", ["scalar_0"], "Scalar 0")),
-        ("scalar_1", ("", ["scalar_1"], "Scalar 1")),
-        ("scalar_2", ("", ["scalar_2"], "Scalar 2")),
     )
 
     known_particle_fields: KnownFieldsT = (
@@ -604,18 +600,19 @@ class QuokkaFieldInfo(FieldInfoContainer):
                 self.add_field(
                     ("gas", face_velocity_name),
                     sampling_type="cell",
-                    function=lambda field, data, axis=axis: data[
-                        "boxlib", f"{axis}-velocity"
-                    ]
-                    * self.ds.unit_system["length"]
-                    / self.ds.unit_system["time"],
+                    function=lambda field, data, axis=axis: (
+                        data["boxlib", f"{axis}-velocity"]
+                        * self.ds.unit_system["length"]
+                        / self.ds.unit_system["time"]
+                    ),
                     units=self.ds.unit_system["length"] / self.ds.unit_system["time"],
                     display_name=f"v_{axis} (face-centered)",
                 )
 
-        # Call the Bfields and radiation fields setup
+        # Call the Bfields, radiation fields, and scalar fields setup
         self.setup_Bfields()  # magnetic fields are still placeholder here
         self.setup_radiation_fields()
+        self.setup_scalar_fields()
 
     def setup_Bfields(self):
         """
@@ -632,10 +629,10 @@ class QuokkaFieldInfo(FieldInfoContainer):
                 self.add_field(
                     ("mag", f"{axis}-field"),
                     sampling_type="cell",
-                    function=lambda field, data, axis=axis: data[
-                        "boxlib", f"{axis}-BField"
-                    ]
-                    * self.ds.unit_system["magnetic_field_strength"],
+                    function=lambda field, data, axis=axis: (
+                        data["boxlib", f"{axis}-BField"]
+                        * self.ds.unit_system["magnetic_field_strength"]
+                    ),
                     units=self.ds.unit_system["magnetic_field_strength"],
                     display_name=f"B_{axis} (magnetic field)",
                 )
@@ -650,9 +647,11 @@ class QuokkaFieldInfo(FieldInfoContainer):
                 self.add_field(
                     ("rad", f"energy_density_{group}"),
                     sampling_type="cell",
-                    function=lambda _, data, ef=energy_field: data["boxlib", ef]
-                    * self.ds.unit_system["energy"]
-                    / self.ds.unit_system["length"] ** 3,
+                    function=lambda _, data, ef=energy_field: (
+                        data["boxlib", ef]
+                        * self.ds.unit_system["energy"]
+                        / self.ds.unit_system["length"] ** 3
+                    ),
                     units=self.ds.unit_system["energy"]
                     / self.ds.unit_system["length"] ** 3,
                     display_name=f"Radiation Energy Density Group {group}",
@@ -665,12 +664,12 @@ class QuokkaFieldInfo(FieldInfoContainer):
                     self.add_field(
                         ("rad", f"flux_density_{axis}_{group}"),
                         sampling_type="cell",
-                        function=lambda field, data, flux_field=flux_field: data[
-                            "boxlib", flux_field
-                        ]
-                        * self.ds.unit_system["energy"]
-                        / self.ds.unit_system["length"] ** 2
-                        / self.ds.unit_system["time"],
+                        function=lambda field, data, flux_field=flux_field: (
+                            data["boxlib", flux_field]
+                            * self.ds.unit_system["energy"]
+                            / self.ds.unit_system["length"] ** 2
+                            / self.ds.unit_system["time"]
+                        ),
                         units=self.ds.unit_system["energy"]
                         / self.ds.unit_system["length"] ** 2
                         / self.ds.unit_system["time"],
@@ -680,6 +679,23 @@ class QuokkaFieldInfo(FieldInfoContainer):
         # Dynamically set up custom particle fields (convert `real_comp` to physics) for all particle types
         for ptype in self.ds.particle_types:
             self.setup_custom_particle_fields(ptype)
+
+    def setup_scalar_fields(self):
+        num_scalars = self.ds.parameters.get("scalar_field_count", 0)
+        for i in range(num_scalars):
+            scalar_field = f"scalar_{i}"
+            if ("boxlib", scalar_field) in self.field_list:
+                self.add_output_field(
+                    ("boxlib", scalar_field),
+                    sampling_type="cell",
+                    units="",
+                    display_name=f"Scalar {i}",
+                )
+                self.alias(
+                    ("gas", scalar_field),
+                    ("boxlib", scalar_field),
+                    units="",
+                )
 
     def setup_custom_particle_fields(self, ptype):
         """
@@ -745,10 +761,9 @@ class QuokkaFieldInfo(FieldInfoContainer):
                 self.add_field(
                     (ptype, field_name),
                     sampling_type="particle",
-                    function=lambda field,
-                    data,
-                    real_comp_field=real_comp_field,
-                    conv=conversion_factor: (data[ptype, real_comp_field] * conv),
+                    function=lambda field, data, real_comp_field=real_comp_field, conv=conversion_factor: (
+                        data[ptype, real_comp_field] * conv
+                    ),
                     units=conversion_factor.units
                     if hasattr(conversion_factor, "units")
                     else "",
