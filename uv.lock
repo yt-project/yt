@@ -21,7 +21,6 @@ constraints = [
     { name = "cftime", specifier = ">=1.5.1.1" },
     { name = "decorator", specifier = ">=4.3.2" },
     { name = "fsspec", specifier = ">=2021.11.0" },
-    { name = "glue-core", specifier = "!=1.2.4" },
     { name = "imageio", specifier = "!=2.35.0" },
     { name = "iniconfig", specifier = ">=1.0.1" },
     { name = "ipython-pygments-lexers", specifier = ">=1.0.0" },
@@ -5291,7 +5290,6 @@ docs = [
     { name = "sphinx-bootstrap-theme", specifier = ">=0.8.1" },
     { name = "sphinx-rtd-theme", specifier = ">=1.3.0" },
 ]
-full = []
 mapping = [{ name = "cartopy", extras = ["plotting"], specifier = ">=0.22.0" }]
 mapserver = [{ name = "bottle", specifier = ">=0.13.0" }]
 nosetest = [
