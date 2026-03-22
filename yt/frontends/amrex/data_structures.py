@@ -1378,6 +1378,7 @@ class QuokkaDataset(AMReXDataset):
     _field_info_class = QuokkaFieldInfo
     _subtype_keyword = ""
     _default_cparam_filename = "metadata.yaml"
+    _load_requirements = ["yaml"]
 
     def __init__(
         self,
