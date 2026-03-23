@@ -1,5 +1,4 @@
 import os
-import os.path
 import shutil
 import tempfile
 from unittest import TestCase
