@@ -43,6 +43,7 @@ ytcfg_defaults["yt"] = {
     "supp_data_dir": "/does/not/exist",
     "default_colormap": "cmyt.arbre",
     "ray_tracing_engine": "yt",
+    "quokka_debug": False,
     "internals": {
         "within_testing": False,
         "parallel": False,
