@@ -291,6 +291,8 @@ exclude = [
 ]
 
 [tool.ruff.lint]
+preview = true
+explicit-preview-rules = true
 select = [
     "E",
     "F",
@@ -298,11 +300,14 @@ select = [
     "C4",   # flake8-comprehensions
     "B",    # flake8-bugbear
     "G",    # flake8-logging-format
-    "TCH",  # flake8-type-checking
+    "TC",   # flake8-type-checking
     "YTT",  # flake8-2020
     "UP",   # pyupgrade
     "I",    # isort
     "NPY",  # numpy specific rules
+
+    # preview rules
+    "RUF031", # incorrectly-parenthesized-tuple-in-subscript
 ]
 ignore = [
     "E501",  # line too long
@@ -315,22 +320,6 @@ ignore = [
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-third-party = [
-  "IPython",
-  "nose",
-  "numpy",
-  "sympy",
-  "matplotlib",
-  "unyt",
-  "git",
-  "yaml",
-  "dateutil",
-  "requests",
-  "coverage",
-  "pytest",
-  "pyx",
-]
-known-first-party = ["yt"]
 
 # The -s option prevents pytest from capturing output sent to stdout
 # -v runs pytest in verbose mode

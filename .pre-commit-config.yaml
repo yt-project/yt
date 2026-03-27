@@ -49,15 +49,6 @@ repos:
       --fix,
       --show-fixes,
     ]
-  - id: ruff-check
-    name: ruff-check (preview)
-    args: [
-      --preview,
-      --fix,
-      --show-fixes,
-      --select,
-      RUF031, # incorrectly-parenthesized-tuple-in-subscript
-    ]
 
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
