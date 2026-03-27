@@ -3,6 +3,7 @@ import os
 import weakref
 
 import numpy as np
+import numpy.typing as npt
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
@@ -51,10 +52,10 @@ class Index(ParallelAnalysisInterface, abc.ABC):
 
     def _icoords_to_fcoords(
         self,
-        icoords: np.ndarray,
-        ires: np.ndarray,
+        icoords: npt.NDArray,
+        ires: npt.NDArray,
         axes: tuple[int, ...] | None = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[npt.NDArray, npt.NDArray]:
         # What's the use of raising NotImplementedError for this, when it's an
         # abstract base class?  Well, only *some* of the subclasses have it --
         # and for those that *don't*, we should not be calling it -- and since
