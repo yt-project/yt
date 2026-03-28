@@ -39,8 +39,8 @@ cdef class OctVisitor:
     cdef int dims
     cdef np.int32_t domain
     cdef np.int8_t level
-    cdef np.int8_t nz # This is number of zones along each dimension.  1 => 1 zones, 2 => 8, etc.
-                        # To calculate nzones, nz**3
+    cdef np.int8_t nz[3] # This is number of zones along each dimension.  1 => 1 zones, 2 => 8, etc.
+                        # To calculate nzones, nz[0]*nz[1]*nz[2]
     cdef np.int32_t nzones
 
     # There will also be overrides for the memoryviews associated with the
@@ -49,12 +49,10 @@ cdef class OctVisitor:
     cdef void visit(self, Oct*, np.uint8_t selected)
 
     cdef inline int oind(self):
-        cdef int d = self.nz
-        return (((self.ind[0]*d)+self.ind[1])*d+self.ind[2])
+        return (self.ind[0]*self.nz[1]+self.ind[1])*self.nz[2]+self.ind[2]
 
     cdef inline int rind(self):
-        cdef int d = self.nz
-        return (((self.ind[2]*d)+self.ind[1])*d+self.ind[0])
+        return (self.ind[2]*self.nz[1]+self.ind[1])*self.nz[0]+self.ind[0]
 
 cdef class CountTotalOcts(OctVisitor):
     pass
@@ -116,12 +114,12 @@ cdef class AssignDomainInd(OctVisitor):
 cdef class FillFileIndicesO(OctVisitor):
     cdef np.uint8_t[:] levels
     cdef np.int64_t[:] file_inds
-    cdef np.uint8_t[:] cell_inds
+    cdef np.uint32_t[:] cell_inds
 
 cdef class FillFileIndicesR(OctVisitor):
     cdef np.uint8_t[:] levels
     cdef np.int64_t[:] file_inds
-    cdef np.uint8_t[:] cell_inds
+    cdef np.uint32_t[:] cell_inds
 
 cdef class CountByDomain(OctVisitor):
     cdef np.int64_t[:] domain_counts
@@ -154,7 +152,7 @@ cdef class StoreIndex(OctVisitor):
 cdef class BaseNeighbourVisitor(OctVisitor):
     cdef int idim      # 0,1,2 for x,y,z
     cdef int direction # +1 for +x, -1 for -x
-    cdef np.uint8_t neigh_ind[3]
+    cdef np.uint32_t neigh_ind[3]
     cdef bint other_oct
     cdef Oct *neighbour
     cdef OctreeContainer octree
@@ -163,16 +161,15 @@ cdef class BaseNeighbourVisitor(OctVisitor):
 
     cdef void set_neighbour_info(self, Oct *o, int ishift[3])
 
-    cdef inline np.uint8_t neighbour_rind(self):
-        cdef int d = self.nz
-        return (((self.neigh_ind[2]*d)+self.neigh_ind[1])*d+self.neigh_ind[0])
+    cdef inline np.uint32_t neighbour_rind(self):
+        return (self.neigh_ind[2]*self.nz[1]+self.neigh_ind[1])*self.nz[0]+self.neigh_ind[0]
 
 cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
-    cdef np.uint8_t[::1] cell_inds
+    cdef np.uint32_t[::1] cell_inds
     cdef np.int64_t[::1] domain_inds
 
 cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
     cdef np.uint8_t[::1] levels
     cdef np.int64_t[::1] file_inds
-    cdef np.uint8_t[::1] cell_inds
+    cdef np.uint32_t[::1] cell_inds
     cdef np.int32_t[::1] domains

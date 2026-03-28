@@ -832,8 +832,8 @@ class StreamOctreeSubset(OctreeSubset):
     def _fill_with_ghostzones(self, content, dest, selector, offset):
         oct_handler = self.oct_handler
         ndim = self.ds.dimensionality
-        cell_count = (
-            selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
+        cell_count = selector.count_octs(self.oct_handler, self.domain_id) * int(
+            np.prod(self.nz[:ndim])
         )
 
         gz_cache = getattr(self, "_ghost_zone_cache", None)
