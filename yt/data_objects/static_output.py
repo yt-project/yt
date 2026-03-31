@@ -1194,7 +1194,7 @@ class Dataset(abc.ABC):
             funit = self._get_field_info(field).units
             out.append(self.arr(np.empty((len(coords),)), funit))
             for coord_index, coord in enumerate(coords):
-                out[field_index][coord_index] = self.point(coord)[field]
+                out[field_index][coord_index] = self.point(coord)[field].item()
         if len(fields) == 1:
             return out[0]
         else:
