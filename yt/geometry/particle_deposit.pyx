@@ -57,7 +57,7 @@ cdef class ParticleDepositOperation:
         nf = len(fields)
 
         # Convert scalar fields into vector fields of length 1
-        fields = [append_axes(field, 1) for field in fields]
+        fields = [append_axes(field, 2) for field in fields]
 
         # Make sure all of them have the same length
         nvec = 1
@@ -139,7 +139,7 @@ cdef class ParticleDepositOperation:
         nf = len(fields)
 
         # Convert scalar fields into vector fields of length 1
-        fields = [append_axes(field, 1) for field in fields]
+        fields = [append_axes(field, 2) for field in fields]
 
         # Make sure all of them have the same length
         nvec = 1
