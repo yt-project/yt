@@ -24,6 +24,54 @@ def register_field_handler(ph):
 DETECTED_FIELDS = {}  # type: ignore
 
 
+def validate_field_precision(fields: list[tuple[str, str]]):
+    """Check if all fields have the same precision.
+
+    Parameters
+    ----------
+    fields : list of (str, str)
+        List of tuples containing field names and their precision
+        ('f' for single, 'd' for double).
+    """
+    if len(fields) == 0:
+        return
+
+    if not all(precision == fields[0][1] for _, precision in fields):
+        raise RuntimeError("Mixed precision in field list. This is not supported.")
+
+    if fields[0][1] not in ("f", "d"):
+        raise ValueError(
+            f"Unknown precision specifier '{fields[0][1]}'. "
+            "Only 'f' or 'd' are supported."
+        )
+
+
+def get_fields_and_single_precision(
+    fields: list[tuple[str, str]],
+) -> tuple[list[str], bool]:
+    """Get the common precision of fields.
+
+    Parameters
+    ----------
+    fields : list of (str, str)
+        List of tuples containing field names and their precision
+        ('f' for single, 'd' for double).
+
+    Returns
+    -------
+    tuple of (list of str, bool)
+        A tuple containing a list of field names and a boolean indicating
+        if all fields are single precision, False if double precision.
+    """
+    field_names = [field for field, _ in fields]
+    validate_field_precision(fields)
+    if fields:
+        single_precision = fields[0][1] == "f"
+    else:
+        single_precision = False
+    return field_names, single_precision
+
+
 class HandlerMixin:
     """This contains all the shared methods to handle RAMSES files.
 
@@ -156,6 +204,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
     field_types = (
         None  # Mapping from field to the type of the data (float, integer, ...)
     )
+    parameters: dict  # Parameters read from the header
 
     def __init_subclass__(cls, *args, **kwargs):
         """
@@ -169,7 +218,6 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         cls._unique_registry = {}
         cls.parameters = {}
         cls.rt_parameters = {}
-        cls._detected_field_list = {}
         return cls
 
     def __init__(self, domain):
@@ -177,7 +225,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
 
     @classmethod
     @abc.abstractmethod
-    def detect_fields(cls, ds):
+    def detect_fields(cls, ds) -> tuple[list[str], bool]:
         """
         Called once to setup the fields of this type
 
@@ -192,7 +240,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         pass
 
     @classmethod
-    def get_detected_fields(cls, ds):
+    def get_detected_fields(cls, ds) -> tuple[list[str], bool] | None:
         """
         Get the detected fields from the registry.
         """
@@ -204,14 +252,16 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         return None
 
     @classmethod
-    def set_detected_fields(cls, ds, fields):
+    def set_detected_fields(cls, ds, fields, single_precision):
         """
         Store the detected fields into the registry.
         """
         if ds.unique_identifier not in DETECTED_FIELDS:
             DETECTED_FIELDS[ds.unique_identifier] = {}
 
-        DETECTED_FIELDS[ds.unique_identifier].update({cls.ftype: fields})
+        DETECTED_FIELDS[ds.unique_identifier].update(
+            {cls.ftype: (fields, single_precision)}
+        )
 
     @classmethod
     def purge_detected_fields(cls, ds):
@@ -237,7 +287,13 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
 
     @property
     def field_list(self):
-        return self._detected_field_list[self.ds.unique_identifier]
+        field_list, _single_precision = self.detect_fields(self.ds)
+        return [(self.ftype, f) for f in field_list]
+
+    @property
+    def single_precision(self):
+        _field_list, single_precision = self.detect_fields(self.ds)
+        return single_precision
 
     @cached_property
     def offset(self):
@@ -250,7 +306,8 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         It should be generic enough for most of the cases, but if the
         *structure* of your fluid file is non-canonical, change this.
         """
-        nvars = len(self._detected_field_list[self.ds.unique_identifier])
+        nvars = len(self.field_list)
+
         with FortranFile(self.fname) as fd:
             # Skip headers
             nskip = len(self.attrs)
@@ -269,6 +326,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
             #
             # So there are 8 * nvars records each with length (nocts, )
             # at each (level, cpus)
+
             offset, level_count = read_offset(
                 fd,
                 min_level,
@@ -276,19 +334,36 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 self.parameters[self.ds.unique_identifier]["nvar"],
                 self.domain.amr_header,
                 Nskip=nvars * 8,
+                single_precision=self.single_precision,
             )
 
         self._level_count = level_count
         return offset
 
     @classmethod
-    def load_fields_from_yt_config(cls) -> list[str]:
+    def load_fields_from_yt_config(cls) -> tuple[list[str], bool]:
         if cls.config_field and ytcfg.has_section(cls.config_field):
             cfg = ytcfg.get(cls.config_field, "fields")
-            fields = [_.strip() for _ in cfg if _.strip() != ""]
-            return fields
+            fields = []
+            for item in cfg:
+                item = item.strip()
+                if not item:
+                    continue
+                content = item.split(",")
+                if len(content) == 2:
+                    field_name, precision = content
+                elif len(content) == 1:
+                    field_name, precision = content[0], "d"
+                else:
+                    raise ValueError(
+                        f"Invalid field specification '{item}' in config section "
+                        f"'{cls.config_field}'. Expected format: field_name[,precision]"
+                    )
+                fields.append((field_name.strip(), precision.strip()))
 
-        return []
+            return get_fields_and_single_precision(fields)
+
+        return ([], False)
 
 
 class HydroFieldFileHandler(FieldFileHandler):
@@ -307,7 +382,7 @@ class HydroFieldFileHandler(FieldFileHandler):
     )
 
     @classmethod
-    def detect_fields(cls, ds):
+    def detect_fields(cls, ds) -> tuple[list[str], bool]:
         # Try to get the detected fields
         detected_fields = cls.get_detected_fields(ds)
         if detected_fields:
@@ -329,24 +404,31 @@ class HydroFieldFileHandler(FieldFileHandler):
         nvar = hvals["nvar"]
 
         ok = False
+        single_precision = False
 
-        if ds._fields_in_file is not None:
+        if ds._fields_in_file:
             # Case 1: fields are provided by users on construction of dataset
-            fields = list(ds._fields_in_file)
+            fields, single_precision = get_fields_and_single_precision(
+                ds._fields_in_file
+            )
             ok = True
         else:
             # Case 2: fields are provided by users in the config
-            fields = cls.load_fields_from_yt_config()
+            fields, single_precision = cls.load_fields_from_yt_config()
+
             ok = len(fields) > 0
 
         if not ok and os.path.exists(fname_desc):
             # Case 3: there is a file descriptor
             # Or there is an hydro file descriptor
             mylog.debug("Reading hydro file descriptor.")
-            # For now, we can only read double precision fields
-            fields = [
-                e[0] for e in _read_fluid_file_descriptor(fname_desc, prefix="hydro")
-            ]
+
+            field_with_precision = _read_fluid_file_descriptor(
+                fname_desc, prefix="hydro"
+            )
+            fields, single_precision = get_fields_and_single_precision(
+                field_with_precision
+            )
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
@@ -453,13 +535,10 @@ class HydroFieldFileHandler(FieldFileHandler):
             count_extra += 1
         if count_extra > 0:
             mylog.debug("Detected %s extra fluid fields.", count_extra)
-        cls._detected_field_list[ds.unique_identifier] = [
-            (cls.ftype, e) for e in fields
-        ]
 
-        cls.set_detected_fields(ds, fields)
+        cls.set_detected_fields(ds, fields, single_precision)
 
-        return fields
+        return (fields, single_precision)
 
 
 class GravFieldFileHandler(FieldFileHandler):
@@ -475,7 +554,7 @@ class GravFieldFileHandler(FieldFileHandler):
     )
 
     @classmethod
-    def detect_fields(cls, ds):
+    def detect_fields(cls, ds) -> tuple[list[str], bool]:
         # Try to get the detected fields
         detected_fields = cls.get_detected_fields(ds)
         if detected_fields:
@@ -491,7 +570,7 @@ class GravFieldFileHandler(FieldFileHandler):
         nvar = cls.parameters[ds.unique_identifier]["nvar"]
         ndim = ds.dimensionality
 
-        fields = cls.load_fields_from_yt_config()
+        fields, single_precision = cls.load_fields_from_yt_config()
 
         if not fields:
             if nvar == ndim + 1:
@@ -507,13 +586,9 @@ class GravFieldFileHandler(FieldFileHandler):
                 for i in range(nvar - ndetected):
                     fields.append(f"var{i}")
 
-        cls._detected_field_list[ds.unique_identifier] = [
-            (cls.ftype, e) for e in fields
-        ]
+        cls.set_detected_fields(ds, fields, single_precision)
 
-        cls.set_detected_fields(ds, fields)
-
-        return fields
+        return (fields, single_precision)
 
 
 class RTFieldFileHandler(FieldFileHandler):
@@ -530,6 +605,7 @@ class RTFieldFileHandler(FieldFileHandler):
         ("nboundary", 1, "i"),
         ("gamma", 1, "d"),
     )
+    rt_parameters: dict
 
     @classmethod
     def detect_fields(cls, ds):
@@ -542,10 +618,13 @@ class RTFieldFileHandler(FieldFileHandler):
 
         rheader = {}
 
-        def read_rhs(cast):
+        def read_rhs(cast, group=None):
             line = f.readline()
             p, v = line.split("=")
-            rheader[p.strip()] = cast(v)
+            if group is not None:
+                rheader[f"Group {group} {p.strip()}"] = cast(v)
+            else:
+                rheader[p.strip()] = cast(v)
 
         with open(fname) as f:
             # Read nRTvar, nions, ngroups, iions
@@ -567,7 +646,7 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(float)
             f.readline()
 
-            # Reat unit_np, unit_pfd
+            # Read unit_np, unit_pf
             for _ in range(2):
                 read_rhs(float)
 
@@ -580,9 +659,22 @@ class RTFieldFileHandler(FieldFileHandler):
             # Read n star, t2star, g_star
             for _ in range(3):
                 read_rhs(float)
+            f.readline()
+            f.readline()
 
-            # Touchy part, we have to read the photon group properties
-            mylog.debug("Not reading photon group properties")
+            # Get global group properties (groupL0, groupL1, spec2group)
+            for _ in range(3):
+                read_rhs(lambda line: [float(e) for e in line.split()])
+
+            # get egy for each group (used to get proper energy densities)
+            line = f.readline().strip()
+            while line.startswith("---Group"):
+                group = int(line.split()[1])
+                read_rhs(lambda line: [float(e) for e in line.split()], group)
+                # Skip cross sections weighted by number/energy
+                f.readline()
+                f.readline()
+                line = f.readline().strip()
 
             cls.rt_parameters[ds.unique_identifier] = rheader
 
@@ -597,23 +689,20 @@ class RTFieldFileHandler(FieldFileHandler):
 
         ok = False
 
-        if ds._fields_in_file is not None:
-            # Case 1: fields are provided by users on construction of dataset
-            fields = list(ds._fields_in_file)
-            ok = True
-        else:
-            # Case 2: fields are provided by users in the config
-            fields = cls.load_fields_from_yt_config()
-            ok = len(fields) > 0
+        # Are fields provided by users in the config?
+        fields, single_precision = cls.load_fields_from_yt_config()
+        ok = len(fields) > 0
 
         if not ok and os.path.exists(fname_desc):
             # Case 3: there is a file descriptor
             # Or there is an hydro file descriptor
             mylog.debug("Reading rt file descriptor.")
-            # For now, we can only read double precision fields
-            fields = [
-                e[0] for e in _read_fluid_file_descriptor(fname_desc, prefix="rt")
-            ]
+
+            field_with_precision = _read_fluid_file_descriptor(fname_desc, prefix="rt")
+            fields, single_precision = get_fields_and_single_precision(
+                field_with_precision
+            )
+
             ok = len(fields) > 0
 
         if not ok:
@@ -627,12 +716,8 @@ class RTFieldFileHandler(FieldFileHandler):
             for ng in range(ngroups):
                 fields.extend([t % (ng + 1) for t in tmp])
 
-        cls._detected_field_list[ds.unique_identifier] = [
-            (cls.ftype, e) for e in fields
-        ]
-
-        cls.set_detected_fields(ds, fields)
-        return fields
+        cls.set_detected_fields(ds, fields, single_precision)
+        return (fields, single_precision)
 
     @classmethod
     def get_rt_parameters(cls, ds):

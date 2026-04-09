@@ -205,6 +205,40 @@ using basic arithmetic if necessary:
 If you find yourself using the same custom-defined fields over and over, you should put them in your plugins file as
 described in :ref:`plugin-file`.
 
+Short-hand syntax for simple cases
+----------------------------------
+The workflow described above (define a function, pass it to ``ds.add_field`` specifying
+``name``, ``sampling_type``, and ``units``) gives you maximal freedom. However, it can
+be somewhat verbose, especially for simple cases. Take the first example, where we
+derive the pressure from the gas density and specific thermal energy. We can employ
+the following short-hand syntax:
+
+.. code-block:: python
+
+    ds.add_field(
+        ("gas", "pressure"),
+        ds.fields.gas.density / ds.fields.gas.specific_thermal_energy * (ds.gamma - 1.0),
+        units="dyne/cm**2",
+    )
+
+This saves you from writing a separate function. Another allowed -- an even more compact -- syntax
+is:
+
+.. code-block:: python
+
+    ds.fields.gas.pressure = (
+        ds.fields.gas.density / ds.fields.gas.specific_thermal_energy * (ds.gamma - 1.0)
+    )
+
+Note that, here, you lose the ability to specify the ``sampling_type`` and the ``units``.
+Internally, yt will inherit the sampling type from the terms of the equation and infer the units
+automatically.
+
+These two syntaxes only support simple algebraic expressions (``+``, ``-``, ``*``, ``/``, ``<``, ``>``, ``<=`` and ``==``)
+with operands that are either (combination of) fields or constants.
+It is sufficient for many simple cases, but if you need to do something more complex, you
+will need to write a separate function. See for example the following section.
+
 A More Complicated Example
 --------------------------
 

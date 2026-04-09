@@ -91,7 +91,7 @@ HDF5 = [
   "h5py!=3.12.0 ; platform_system=='Windows'", # https://github.com/h5py/h5py/issues/2505
   "h5py!=3.15.0 ; platform_system=='Darwin'", # https://github.com/yt-project/yt/issues/5301
 ]
-netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
+netCDF4 = ["netCDF4!=1.6.1,>=1.5.8"] # see https://github.com/Unidata/netcdf4-python/issues/1192
 Fortran = ["f90nml>=1.1"]
 
 # frontend-specific requirements
@@ -126,7 +126,7 @@ gamer = ["yt[HDF5]"]
 gdf = ["yt[HDF5]"]
 gizmo = ["yt[HDF5]"]
 halo-catalog = ["yt[HDF5]"]
-http-stream = ["requests>=2.20.0"]
+http-stream = ["requests>=2.30.0"]
 idefix = ["yt_idefix[HDF5]>=2.3.0"] # externally packaged frontend
 moab = ["yt[HDF5]"]
 nc4-cm1 = ["yt[netCDF4]"]
@@ -136,7 +136,7 @@ owls-subfind = ["yt[HDF5]"]
 parthenon = ["yt[HDF5]"]
 ramses = ["yt[Fortran]", "scipy>=1.7.2"]
 rockstar = []
-sdf = ["requests>=2.20.0"]
+sdf = ["requests>=2.30.0"]
 stream = []
 swift = ["yt[HDF5]"]
 tipsy = []
@@ -147,8 +147,7 @@ ytdata = ["yt[HDF5]"]
 full = [
     "cartopy>=0.22.0",
     "firefly>=3.2.0",
-    "glueviz>=0.13.3",
-    "ipython>=7.16.2",
+    "ipython>=7.23.1",
     "ipywidgets>=8.0.0",
     "miniballcpp>=0.2.1",
     "mpi4py>=3.1.6",
@@ -237,6 +236,7 @@ nosetest = [
     "nose~=1.3.7",
     "nose-exclude>=0.5.0",
     "nose-timer~=1.0.0",
+    "setuptools>=77.0.1", # undeclared runtime dependency to nose
 ]
 typecheck = [
     "mypy>=1.18.2",
@@ -291,6 +291,8 @@ exclude = [
 ]
 
 [tool.ruff.lint]
+preview = true
+explicit-preview-rules = true
 select = [
     "E",
     "F",
@@ -298,12 +300,14 @@ select = [
     "C4",   # flake8-comprehensions
     "B",    # flake8-bugbear
     "G",    # flake8-logging-format
-    "TCH",  # flake8-type-checking
+    "TC",   # flake8-type-checking
     "YTT",  # flake8-2020
     "UP",   # pyupgrade
     "I",    # isort
     "NPY",  # numpy specific rules
-    "RUF031"# incorrectly-parenthesized-tuple-in-subscript
+
+    # preview rules
+    "RUF031", # incorrectly-parenthesized-tuple-in-subscript
 ]
 ignore = [
     "E501",  # line too long
@@ -316,23 +320,6 @@ ignore = [
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-third-party = [
-  "IPython",
-  "nose",
-  "numpy",
-  "sympy",
-  "matplotlib",
-  "unyt",
-  "git",
-  "yaml",
-  "dateutil",
-  "requests",
-  "coverage",
-  "pytest",
-  "pyx",
-  "glue",
-]
-known-first-party = ["yt"]
 
 # The -s option prevents pytest from capturing output sent to stdout
 # -v runs pytest in verbose mode
@@ -548,7 +535,6 @@ no-build-package = [
 ]
 constraint-dependencies = [
     "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
-    "glue-core!=1.2.4",  # see https://github.com/glue-viz/glue/issues/2263
     "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
     "jinja2>=2.11.3",
 

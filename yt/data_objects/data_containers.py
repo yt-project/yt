@@ -9,7 +9,6 @@ from unyt import unyt_array
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import AnyFieldKey, FieldKey, FieldName
-from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
@@ -657,39 +656,6 @@ class YTDataContainer(abc.ABC):
         )
 
         return filename
-
-    def to_glue(self, fields, label="yt", data_collection=None):
-        """
-        Takes specific *fields* in the container and exports them to
-        Glue (http://glueviz.org) for interactive
-        analysis. Optionally add a *label*. If you are already within
-        the Glue environment, you can pass a *data_collection* object,
-        otherwise Glue will be started.
-        """
-        from glue.core import Data, DataCollection
-
-        if ytcfg.get("yt", "internals", "within_testing"):
-            from glue.core.application_base import Application as GlueApplication
-        else:
-            try:
-                from glue.app.qt.application import GlueApplication
-            except ImportError:
-                from glue.qt.glue_application import GlueApplication
-        gdata = Data(label=label)
-        for component_name in fields:
-            gdata.add_component(self[component_name], component_name)
-
-        if data_collection is None:
-            dc = DataCollection([gdata])
-            app = GlueApplication(dc)
-            try:
-                app.start()
-            except AttributeError:
-                # In testing we're using a dummy glue application object
-                # that doesn't have a start method
-                pass
-        else:
-            data_collection.append(gdata)
 
     def create_firefly_object(
         self,
@@ -1486,6 +1452,14 @@ class YTDataContainer(abc.ABC):
         explicit_fields = []
         for field in iter_fields(fields):
             if field in self._container_fields:
+                if not isinstance(field, (str, tuple)):
+                    # NOTE: Container fields must be strings or tuples
+                    # otherwise, we end up filling _determined_fields
+                    # with DerivedFields (typing error, and causes
+                    # bugs down the line).
+                    raise RuntimeError(
+                        f"Container fields must be tuples, got {field!r}"
+                    )
                 explicit_fields.append(field)
                 continue
 

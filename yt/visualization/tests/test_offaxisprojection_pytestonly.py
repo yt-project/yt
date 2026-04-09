@@ -236,5 +236,5 @@ def test_offaxisprojection_sph_defaultdepth(normal_vec, n_particles):
     p.render()
 
     # get the number of circles in the plot
-    cg = contour_generator(z=p.frb[("gas", "mass")].d)
+    cg = contour_generator(z=p.frb["gas", "mass"].d)
     assert n_particles == len(cg.lines(1.0))

@@ -7,7 +7,6 @@ import unittest
 import unittest.mock as mock
 from io import StringIO
 
-import yt.config
 import yt.utilities.command_line
 from yt.utilities.configure import YTConfig
 

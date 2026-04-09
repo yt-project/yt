@@ -32,10 +32,18 @@ from yt._typing import (
     ParticleType,
 )
 from yt.config import ytcfg
-from yt.data_objects.particle_filters import ParticleFilter, filter_registry
+from yt.data_objects.particle_filters import (
+    ParticleFilter,
+    add_particle_filter,
+    filter_registry,
+)
 from yt.data_objects.region_expression import RegionExpression
 from yt.data_objects.unions import ParticleUnion
-from yt.fields.derived_field import DerivedField, ValidateSpatial
+from yt.fields.derived_field import (
+    DerivedField,
+    DerivedFieldCombination,
+    ValidateSpatial,
+)
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.funcs import iter_fields, mylog, set_intersection, setdefaultattr
@@ -893,6 +901,9 @@ class Dataset(abc.ABC):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
+        if isinstance(filter, DerivedFieldCombination):
+            add_particle_filter(filter.name, filter)
+            filter = filter.name
         if isinstance(filter, str):
             used = False
             f = filter_registry.get(filter, None)
@@ -1735,7 +1746,7 @@ class Dataset(abc.ABC):
         return self._quan
 
     def add_field(
-        self, name, function, sampling_type, *, force_override=False, **kwargs
+        self, name, function, *, sampling_type=None, force_override=False, **kwargs
     ):
         """
         Dataset-specific call to add_field
@@ -1775,7 +1786,13 @@ class Dataset(abc.ABC):
         """
         from yt.fields.field_functions import validate_field_function
 
-        validate_field_function(function)
+        if not isinstance(function, DerivedFieldCombination):
+            if sampling_type is None:
+                raise ValueError("You must specify a sampling_type for the field.")
+            validate_field_function(function)
+        else:
+            sampling_type = function.sampling_type
+
         self.index
         if force_override and name in self.index.field_list:
             raise RuntimeError(

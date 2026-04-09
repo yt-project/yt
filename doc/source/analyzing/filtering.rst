@@ -94,14 +94,9 @@ used if you simply need to access the NumPy arrays:
 Cut Regions
 ^^^^^^^^^^^
 
-Cut regions are a more general solution to filtering mesh fields.  The output
+Cut regions are a more general solution to filtering mesh fields. The output
 of a cut region is an entirely new data object, which can be treated like any
 other data object to generate images, examine its values, etc. See `this <mesh_filter>`_.
-
-In addition to inputting string parameters into cut_region to specify filters,
-wrapper functions exist that allow the user to use a simplified syntax for
-filtering out unwanted regions. Such wrapper functions are methods of
-:func: ``YTSelectionContainer3D``.
 
 .. notebook-cell::
 
@@ -109,6 +104,19 @@ filtering out unwanted regions. Such wrapper functions are methods of
 
    ds = yt.load("Enzo_64/DD0042/data0042")
    ad = ds.all_data()
+
+   low_density = ad.cut_region(
+      ds.fields.gas.density < ds.quan(0.1, "mp/cm**3")
+   )
+   high_temperature = ad.cut_region(
+       ds.fields.gas.temperature > ds.quan(1e5, "K")
+   )
+
+In addition to using directly cut_region to specify filters,
+wrapper functions exist that allow the user to use a simplified syntax for
+filtering out unwanted regions. Such wrapper functions are methods of
+:func: ``YTSelectionContainer3D``.
+
    overpressure_and_fast = ad.include_above(("gas", "pressure"), 1e-14)
    # You can chain include_xx and exclude_xx to produce the intersection of cut regions
    overpressure_and_fast = overpressure_and_fast.include_above(

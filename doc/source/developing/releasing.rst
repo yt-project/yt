@@ -228,9 +228,6 @@ Upload to PyPI is automated via Github Actions `upload-artifact
 <https://github.com/actions/upload-artifact>`_ and `download-artifact
 <https://github.com/actions/upload-artifact>`_.
 
-Note that automated uploads are currently perfomed using Matt Turk's
-credentials.
-
 If that worked, you can skip to the next section. Otherwise, upload can be
 perfomed manually by first downloading the artifacts ``wheels`` and ``tarball``
 from the workflow webpage, then at the command line (make sure that the
