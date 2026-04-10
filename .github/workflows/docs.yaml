@@ -6,10 +6,12 @@ on:
       - main
     paths:
       - "doc/**"
+      - ".github/workflows/docs.yaml"
       - "pyproject.toml"
   pull_request:
     paths:
       - "doc/**"
+      - ".github/workflows/docs.yaml"
   workflow_dispatch:
 
 permissions: {}
@@ -35,9 +37,8 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
-        version: ">=0.9.11,<0.10.0"
         python-version: "3.12"
-        prune-cache: false
+        enable-cache: false
 
     - name: Install pandoc
       run: sudo apt-get update && sudo apt-get install -y pandoc
