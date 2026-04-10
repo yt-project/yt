@@ -199,9 +199,9 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
                 field_data += data[ftype, f"{species}_number_density"]
             # add electrons unless already included as a species
             if (
-                (ftype, "El_number_density") in data.ds.field_info
-                and "El" not in snames
-            ):
+                ftype,
+                "El_number_density",
+            ) in data.ds.field_info and "El" not in snames:
                 field_data += data[ftype, "El_number_density"]
             return field_data
 
