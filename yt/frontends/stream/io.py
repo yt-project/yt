@@ -264,6 +264,29 @@ class IOHandlerStreamOctree(BaseIOHandler):
                 subset.fill(field_vals, rv, selector, ind)
         return rv
 
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        for chunk in chunks:
+            for subset in chunk.objs:
+                sf = self.fields[subset.domain_id - subset._domain_offset]
+                for ptype, field_list in sorted(ptf.items()):
+                    if (ptype, "particle_position") in sf:
+                        x, y, z = sf[ptype, "particle_position"].T
+                    else:
+                        x, y, z = (
+                            sf[ptype, f"particle_position_{ax}"]
+                            for ax in self.ds.coordinates.axis_order
+                        )
+
+                    mask = selector.select_points(x, y, z, 0.0)
+
+                    if mask is None:
+                        continue
+
+                    for field in field_list:
+                        data = np.asarray(sf[ptype, field])
+                        yield (ptype, field), data[mask]
+
 
 class IOHandlerStreamUnstructured(BaseIOHandler):
     _dataset_type = "stream_unstructured"
