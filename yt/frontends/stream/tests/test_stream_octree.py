@@ -40,6 +40,8 @@ def test_octree():
     quantities = {}
     rng = np.random.default_rng(12345)
     quantities["gas", "density"] = rng.random((22, 1))
+    quantities["gas", "dinos"] = (np.linspace(0, 1, 22).reshape(22, 1), "Msun")
+    quantities["gas", "turtle"] = (lambda: np.linspace(0, 1, 22).reshape(22, 1), "Msun")
 
     bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
@@ -60,6 +62,15 @@ def test_octree():
     rho1.sort()
     rho2.sort()
     assert_equal(rho1, rho2)
+
+    # Make sure units aren't stripped
+    assert str(ds.r[:]["dinos"].units) == "Msun"
+    assert ds.r[:]["dinos"].min().to("Msun") == 0
+    assert ds.r[:]["dinos"].max().to("Msun") == 1
+
+    assert str(ds.r[:]["turtle"].units) == "Msun"
+    assert ds.r[:]["turtle"].min().to("Msun") == 0
+    assert ds.r[:]["turtle"].max().to("Msun") == 1
 
 
 @pytest.mark.parametrize("build_pos", ["component_by_component", "combined"])
