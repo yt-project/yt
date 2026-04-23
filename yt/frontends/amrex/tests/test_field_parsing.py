@@ -12,6 +12,7 @@ from yt.frontends.amrex.fields import Substance
         pytest.param("X(C12H24)", [("C", 12), ("H", 24)], id="molecule_2"),
         pytest.param("X(H2O)", [("H", 2), ("O", 1)], id="molecule_3"),
         pytest.param("X(ash)", [("ash", 0)], id="descriptive_name"),
+        pytest.param("X(P_nse)", [("P_nse", 0)], id="descriptive_underscore"),
     ],
 )
 def test_Substance_spec(data, expected):
@@ -27,6 +28,7 @@ def test_Substance_spec(data, expected):
         pytest.param("X(C12H24)", "molecule", id="molecule_2"),
         pytest.param("X(H2O)", "molecule", id="molecule_3"),
         pytest.param("X(ash)", "descriptive_name", id="descriptive_name"),
+        pytest.param("X(P_nse)", "descriptive_name", id="descriptive_underscore"),
     ],
 )
 def test_Substance_type(data, expected_type):
@@ -43,6 +45,7 @@ def test_Substance_type(data, expected_type):
         pytest.param("X(C12H24)", "C12H24", "C_{12}H_{24}", id="molecule_2"),
         pytest.param("X(H2O)", "H2O", "H_{2}O_{}", id="molecule_2"),
         pytest.param("X(ash)", "ash", "ash", id="descriptive_name"),
+        pytest.param("X(P_nse)", "P_nse", r"P\_nse", id="descriptive_underscore"),
     ],
 )
 def test_Substance_to_str(data, expected_str, expected_tex):

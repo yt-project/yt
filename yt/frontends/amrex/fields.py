@@ -504,8 +504,8 @@ class MaestroFieldInfo(FieldInfoContainer):
                 )
 
 
-substance_expr_re = re.compile(r"\(([a-zA-Z][a-zA-Z0-9]*)\)")
-substance_elements_re = re.compile(r"(?P<element>[a-zA-Z]+)(?P<digits>\d*)")
+substance_expr_re = re.compile(r"\(([a-zA-Z]\w*)\)")
+substance_elements_re = re.compile(r"(?P<element>[a-zA-Z_]+)(?P<digits>\d*)")
 SubstanceSpec: TypeAlias = list[tuple[str, int]]
 
 
@@ -539,18 +539,22 @@ class Substance:
             f"{element}{count if count > 1 else ''}" for element, count in self._spec
         )
 
+    @staticmethod
+    def _tex_escape(s: str) -> str:
+        return s.replace("_", r"\_")
+
     def _to_tex_isotope(self) -> str:
         element, count = self._spec[0]
-        return rf"^{{{count}}}{element}"
+        return rf"^{{{count}}}{self._tex_escape(element)}"
 
     def _to_tex_molecule(self) -> str:
         return "".join(
-            rf"{element}_{{{count if count > 1 else ''}}}"
+            rf"{self._tex_escape(element)}_{{{count if count > 1 else ''}}}"
             for element, count in self._spec
         )
 
     def _to_tex_descriptive(self) -> str:
-        return str(self)
+        return self._tex_escape(str(self))
 
     def to_tex(self) -> str:
         if self.is_isotope():
