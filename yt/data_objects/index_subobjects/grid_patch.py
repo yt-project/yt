@@ -356,7 +356,14 @@ class AMRGridPatch(YTSelectionContainer):
     def particle_operation(self, *args, **kwargs):
         raise NotImplementedError
 
-    def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
+    def deposit(
+        self,
+        positions,
+        fields=None,
+        method=None,
+        kernel_name="cubic",
+        vector_field=False,
+    ):
         # Here we perform our particle deposition.
         cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
@@ -365,10 +372,27 @@ class AMRGridPatch(YTSelectionContainer):
         # inside this is Fortran ordered because of the ordering in the
         # octree deposit routines, so we reverse it here to match the
         # convention there
+
         nvals = tuple(self.ActiveDimensions[::-1])
-        # append a dummy dimension because we are only depositing onto
-        # one grid
-        op = cls(nvals + (1,), kernel_name)
+        scalar_as_vector = (
+            not vector_field
+            and method != "count"
+            and fields is not None
+            and len(fields) > 0
+            and getattr(fields[0], "ndim", 0) == 1
+        )
+        if scalar_as_vector:
+            fields = [np.ascontiguousarray(f.reshape(f.shape[0], 1)) for f in fields]
+
+        use_vector_path = vector_field or scalar_as_vector
+        # Append a dummy grid dimension because we only deposit onto one grid.
+        # For vector fields, append an additional vector-component dimension.
+        if use_vector_path:
+            vec_size = fields[0].shape[-1] if fields else 1
+            op = cls(nvals + (1, vec_size), kernel_name)
+        else:
+            op = cls(nvals + (1,), kernel_name)
+
         op.initialize()
         if positions.size > 0:
             op.process_grid(self, positions, fields)
@@ -377,8 +401,16 @@ class AMRGridPatch(YTSelectionContainer):
             return
         # Fortran-ordered, so transpose.
         vals = vals.transpose()
-        # squeeze dummy dimension we appended above
-        return np.squeeze(vals, axis=0)
+        if use_vector_path:
+            # (vec, 1, Nx, Ny, Nz) -> (Nx, Ny, Nz, vec)
+            vals = np.squeeze(vals, axis=1)
+            vals = np.moveaxis(vals, 0, -1)
+            if scalar_as_vector:
+                vals = np.squeeze(vals, axis=-1)
+        else:
+            # (1, Nx, Ny, Nz) -> (Nx, Ny, Nz)
+            vals = np.squeeze(vals, axis=0)
+        return vals
 
     def select_blocks(self, selector):
         mask = self._get_selector_mask(selector)

@@ -210,6 +210,9 @@ def test_add_deposited_particle_field():
         else:
             assert_almost_equal(ret.sum(), ad["io", "particle_mass"].sum())
 
+        # Make sure the shapes are correct
+        assert_equal(ret.ndim, 1)
+
     # Test "weighted_mean" method
     fn = base_ds.add_deposited_particle_field(
         ("io", "particle_ones"), "weighted_mean", weight_field="particle_ones"
@@ -218,6 +221,54 @@ def test_add_deposited_particle_field():
     ret = ad[fn]
     # The sum should equal the number of cells that have particles
     assert_equal(ret.sum(), np.count_nonzero(ad["deposit", "io_count"]))
+    assert_equal(ret.ndim, 1)
+
+
+def test_add_deposited_particle_vector_field():
+    ds = get_base_ds(1)
+    ad = ds.all_data()
+
+    def vector_field(data):
+        return np.ones(data["io", "particle_mass"].shape + (10,))
+
+    ds.add_field(
+        ("io", "vector_field"),
+        function=vector_field,
+        units="",
+        sampling_type="particle",
+        vector_field=True,
+    )
+
+    # We need to mention the vector_field=True flag here
+    assert_raises(
+        RuntimeError,
+        ds.add_deposited_particle_field,
+        ("io", "vector_field"),
+        method="nearest",
+    )
+
+    Ncell = len(ad["index", "dx"])
+
+    for method in ("sum", "cic", "nearest"):
+        fname = ds.add_deposited_particle_field(
+            ("io", "vector_field"), method=method, vector_field=True
+        )
+        ad = ds.all_data()
+        ret = ad[fname]
+        assert_equal(ret.shape, (Ncell, 10))
+
+        if method == "sum":
+            ref = ds.add_deposited_particle_field(("io", "particle_ones"), method="sum")
+            ref_data = ad[ref]
+            assert_equal(ret.sum(), ref_data.sum() * 10)
+
+    fname = ds.add_deposited_particle_field(
+        ("io", "vector_field"), method="count", vector_field=True
+    )
+    ref_fname = ds.add_deposited_particle_field(("io", "particle_ones"), method="count")
+    # Note here: some particles may fall outside the domain,
+    # so we compare wrt the non-vectorized result
+    assert_equal(ad[fname].sum(), ad[ref_fname].sum())
 
 
 def test_add_gradient_fields():

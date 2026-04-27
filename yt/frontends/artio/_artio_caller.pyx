@@ -1560,7 +1560,7 @@ cdef class ARTIORootMeshContainer:
         nf = len(fields)
         cdef np.float64_t[::cython.view.indirect, ::1] field_pointers
         if nf > 0: field_pointers = OnceIndirect(fields)
-        cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
+        cdef np.float64_t[:, :] field_vals = np.empty((nf, 1), dtype="float64")
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector, -1)
         cdef np.ndarray[np.int64_t, ndim=1] domain_ind
@@ -1583,7 +1583,7 @@ cdef class ARTIORootMeshContainer:
         cdef np.int64_t offset
         for i in range(positions.shape[0]):
             for j in range(nf):
-                field_vals[j] = field_pointers[j][i]
+                field_vals[j,0] = field_pointers[j][i]
             for j in range(3):
                 pos[j] = positions[i, j]
                 coords[j] = <int>((pos[j] - self.DLE[j])/self.dds[j])
@@ -1598,7 +1598,7 @@ cdef class ARTIORootMeshContainer:
                          offset, pos, field_vals, sfc)
             if pdeposit.update_values == 1:
                 for j in range(nf):
-                    field_pointers[j][i] = field_vals[j]
+                    field_pointers[j][i] = field_vals[j,0]
 
 cdef class SFCRangeSelector(SelectorObject):
 
