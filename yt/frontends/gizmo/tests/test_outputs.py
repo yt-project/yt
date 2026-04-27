@@ -132,6 +132,7 @@ def test_star_particle_fields():
     for field in derived_fields:
         assert (ptype, field) in ds.derived_field_list
 
+
 @requires_module("h5py")
 @requires_file("FIRE_M12i_ref11/snapshot_600.hdf5")
 def test_gizmo_creation_time_handles_empty_particle_chunks():
