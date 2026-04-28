@@ -57,7 +57,7 @@ cdef class OctreeContainer:
     cdef int partial_coverage
     cdef int level_offset
     cdef int nn[3]
-    cdef np.uint8_t nz
+    cdef np.uint8_t nz[3]
     cdef np.float64_t DLE[3]
     cdef np.float64_t DRE[3]
     cdef public np.int64_t nocts
@@ -86,7 +86,7 @@ cdef class OctreeContainer:
         self,
         const int level,
         const np.uint8_t[::1] level_inds,
-        const np.uint8_t[::1] cell_inds,
+        const np.uint32_t[::1] cell_inds,
         const np.int64_t[::1] file_inds,
         dict dest_fields,
         dict source_fields,
@@ -96,7 +96,7 @@ cdef class OctreeContainer:
         self,
         const int level,
         const np.uint8_t[::1] level_inds,
-        const np.uint8_t[::1] cell_inds,
+        const np.uint32_t[::1] cell_inds,
         const np.int64_t[::1] file_inds,
         const np.int32_t[::1] domain_inds,
         dict dest_fields,
