@@ -33,6 +33,7 @@ from .utils import (
     data_source_or_all,
     get_corners,
     new_interpolated_projection_sampler,
+    new_light_render_sampler,
     new_mesh_sampler,
     new_projection_sampler,
     new_volume_render_sampler,
@@ -478,6 +479,8 @@ class VolumeSource(RenderSource, abc.ABC):
         """
         if self.sampler_type == "volume-render":
             sampler = new_volume_render_sampler(camera, self)
+        elif self.sampler_type == "light-render":
+            sampler = new_light_render_sampler(camera, self)
         elif self.sampler_type == "projection" and interpolated:
             sampler = new_interpolated_projection_sampler(camera, self)
         elif self.sampler_type == "projection":
