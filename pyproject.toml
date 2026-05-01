@@ -240,7 +240,7 @@ nosetest = [
     "nose-timer~=1.0.0",
     # nose's plugin system silently requires pkg_resources,
     # which was part of setuptools but removed in version 82.0.0
-    "setuptools>=77.0.1, <82.0.0",
+    "setuptools>=77.0.1,<83.0.0",
 ]
 typecheck = [
     "mypy>=1.18.2",
