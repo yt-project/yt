@@ -78,7 +78,7 @@ jobs:
 
     steps:
     - name: Create issue on failure
-      uses: imjohnbo/issue-bot@572eed14422c4d6ca37e870f97e7da209422f5bd # v3.4.4
+      uses: imjohnbo/issue-bot@3188c6ce06249206709d3b1f274d0d4c5a521601 # v3.4.5
       with:
         title: 'TST: Upcoming dependency test failures'
         body: |
