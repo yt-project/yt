@@ -529,7 +529,7 @@ class VolumeSource(RenderSource, abc.ABC):
         image: :class:`yt.data_objects.image_array.ImageArray` instance
             A reference to an image to fill
         """
-        image.shape = camera.resolution[0], camera.resolution[1], 4
+        image = image.reshape(*camera.resolution, 4)
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
         if not self.transfer_function.grey_opacity:
@@ -1295,10 +1295,11 @@ class BoxSource(LineSource):
         assert right_edge.shape == (3,)
 
         if color is None:
-            color = np.array([1.0, 1.0, 1.0, 1.0])
+            color = np.array([[1.0, 1.0, 1.0, 1.0]])
+        else:
+            color = np.atleast_2d(ensure_numpy_array(color))
+        assert color.shape == (1, 4)
 
-        color = ensure_numpy_array(color)
-        color.shape = (1, 4)
         corners = get_corners(left_edge.copy(), right_edge.copy())
         order = [0, 1, 1, 2, 2, 3, 3, 0]
         order += [4, 5, 5, 6, 6, 7, 7, 4]

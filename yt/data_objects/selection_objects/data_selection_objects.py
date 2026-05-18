@@ -33,6 +33,7 @@ from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_f
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
+    parallel_objects,
 )
 
 if sys.version_info >= (3, 11):
@@ -534,6 +535,108 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         self.shape = None
         self._current_chunk = None
         self._min_level = value
+
+    def piter(
+        self,
+        njobs: int = 0,
+        storage: dict | None = None,
+        barrier: bool = True,
+        dynamic: bool = False,
+        reduction: Literal[None, "sum", "max", "min", "cat", "cat_on_root"] = None,
+    ):
+        """Iterate in parallel over data in the container.
+
+        Parameters
+        ----------
+        njobs : int
+            How many jobs to spawn.  By default, one job will be dispatched for
+            each available processor.
+        storage : dict
+            This is a dictionary, which will be filled with results during the
+            course of the iteration.  The keys will be the dataset
+            indices and the values will be whatever is assigned to the *result*
+            attribute on the storage during iteration.
+        barrier : bool
+            Should a barrier be placed at the end of iteration?
+        dynamic : bool
+            This governs whether or not dynamic load balancing will be enabled.
+            This requires one dedicated processor; if this is enabled with a set of
+            128 processors available, only 127 will be available to iterate over
+            objects as one will be load balancing the rest.
+        reduction : Literal[None, "sum", "max", "min", "cat", "cat_on_root"]
+            This specifies the reduction operation to be applied to the results
+            from each processor.
+            - None: no reduction will be applied and the storage object will
+                contain one result per chunk in the container.
+            - cat: the storage object will contain a flattened list of
+                each result.
+            - cat_on_root: same as cat, but only the root processor will
+                contain anything.
+            - sum, min, max: the storage object will contain the result
+                of applying the operation until getting a single value.
+
+        Important limitation
+        --------------------
+        When using `storage`, the result *must* be a dictionary. See the
+        examples below.
+
+        Example
+        -------
+
+        Here is an example of how to gather all data on root, reading in
+        parallel. Other MPI tasks will have nothing in `my_storage`.
+
+        >>> import yt
+        >>> ds = yt.load("output_00080")
+        ... ad = ds.all_data()
+        >>> my_storage = {}
+        ... for sto, chunk in ad.piter(storage=my_storage, reduction="cat_on_root"):
+        ...     sto.result = {
+        ...         ("gas", "density"): chunk["gas", "density"],
+        ...         ("gas", "temperature"): chunk["gas", "temperature"],
+        ...     }
+        ... if yt.is_root():
+        ...     # Contains *all* the gas densities
+        ...     my_storage["gas", "density"]
+        ...     # Contains *all* the gas temperatures
+        ...     my_storage["gas", "temperature"]
+
+        Here is an example of how to sum the total mass of all gas cells in
+        the dataset, storing the result in `my_storage` on all processors.
+
+        >>> my_storage = {}
+        ... for sto, chunk in ad.piter(storage=my_storage, reduction="sum"):
+        ...     sto.result = {
+        ...         "total_mass": chunk["gas", "cell_mass"].sum(),
+        ...     }
+        ... print("Total mass: ", my_storage["total_mass"])
+
+        Here is an example of how to read all data in parallel and
+        have the results available on all processors.
+
+        >>> my_storage = {}
+        ... for sto, chunk in ad.piter(storage=my_storage, reduction="cat"):
+        ...     sto.result = {("gas", "density"): chunk["gas", "density"]}
+        ... print(my_storage["gas", "density"])
+
+        This is equivalent (but faster, since reading is parallelized) to the
+        following
+
+        >>> my_storage = {("gas", "density"): ad["gas", "density"]}
+        """
+        if reduction is not None and storage is None:
+            raise ValueError(
+                "If reduction is specified, you must pass in a storage dictionary."
+            )
+
+        yield from parallel_objects(
+            self.chunks([], "io"),
+            njobs=njobs,
+            storage=storage,
+            barrier=barrier,
+            dynamic=dynamic,
+            reduction=reduction,
+        )
 
 
 class YTSelectionContainer0D(YTSelectionContainer):

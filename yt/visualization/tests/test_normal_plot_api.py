@@ -49,7 +49,11 @@ def test_error_with_missing_fields_with_positional(ds, plot_cls):
 
 @pytest.mark.parametrize(
     "plot_cls, normal",
-    product([SlicePlot, ProjectionPlot], [(0, 0, 1), [0, 0, 1], np.array((0, 0, 1))]),
+    list(
+        product(
+            [SlicePlot, ProjectionPlot], [(0, 0, 1), [0, 0, 1], np.array((0, 0, 1))]
+        )
+    ),
 )
 def test_normalplot_normal_array(ds, plot_cls, normal):
     # see regression https://github.com/yt-project/yt/issues/3736

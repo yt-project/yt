@@ -749,3 +749,34 @@ def test_export_pandas():
         prof.standard_deviation["gas", "density"].d,
         np.nan_to_num(df3["density_stddev"]),
     )
+
+
+def test_preserve_source_parameters_restores_field_parameters_on_exception():
+    # Regression test for preserve_source_parameters:
+    # the decorator must restore source.field_parameters even if the wrapped
+    # function raises.
+    from yt.data_objects.profiles import preserve_source_parameters
+
+    class Dummy:
+        pass
+
+    prof = Dummy()
+    prof._data_source = Dummy()
+    prof._data_source.field_parameters = {"from_data_source": 1}
+
+    source = Dummy()
+    original_params = {"original": True}
+    source.field_parameters = original_params
+
+    @preserve_source_parameters
+    def boom(_prof, _source):
+        # While executing, field_parameters should be temporarily redirected
+        assert _source.field_parameters is _prof._data_source.field_parameters
+        raise RuntimeError("boom")
+
+    with assert_raises(RuntimeError):
+        boom(prof, source)
+
+    # The key: even after an exception, state should be restored
+    assert source.field_parameters is original_params
+    assert_equal(source.field_parameters, {"original": True})

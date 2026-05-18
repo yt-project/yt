@@ -720,9 +720,7 @@ class Camera(ParallelAnalysisInterface):
             pbar.update(total_cells)
 
         pbar.finish()
-        image = sampler.aimage
-        image = self.finalize_image(image)
-        return image
+        return self.finalize_image(sampler.aimage)
 
     def _pyplot(self):
         from matplotlib import pyplot
@@ -1318,18 +1316,14 @@ class PerspectiveCamera(Camera):
             sample_y.reshape(1, self.resolution[1], 3), self.resolution[0], axis=0
         )
 
-        normal_vec = np.zeros(
-            (self.resolution[0], self.resolution[1], 3), dtype="float64", order="C"
-        )
+        normal_vec = np.empty((*self.resolution, 3), dtype="float64", order="C")
         normal_vec[:, :, 0] = self.orienter.unit_vectors[2, 0]
         normal_vec[:, :, 1] = self.orienter.unit_vectors[2, 1]
         normal_vec[:, :, 2] = self.orienter.unit_vectors[2, 2]
 
         vectors = sample_x + sample_y + normal_vec * self.width[2]
 
-        positions = np.zeros(
-            (self.resolution[0], self.resolution[1], 3), dtype="float64", order="C"
-        )
+        positions = np.empty((*self.resolution, 3), dtype="float64", order="C")
         positions[:, :, 0] = self.center[0]
         positions[:, :, 1] = self.center[1]
         positions[:, :, 2] = self.center[2]
@@ -1337,7 +1331,7 @@ class PerspectiveCamera(Camera):
         positions = self.ds.arr(positions, units="code_length")
 
         dummy = np.ones(3, dtype="float64")
-        image.shape = (self.resolution[0], self.resolution[1], 4)
+        image = image.reshape(*self.resolution, 4)
 
         args = (
             positions,
@@ -1373,13 +1367,13 @@ class PerspectiveCamera(Camera):
             pbar.update(total_cells)
 
         pbar.finish()
-        image = self.finalize_image(sampler.aimage)
-        return image
+        return self.finalize_image(sampler.aimage)
 
     def finalize_image(self, image):
         view_pos = self.front_center
-        image.shape = self.resolution[0], self.resolution[1], 4
-        image = self.volume.reduce_tree_images(image, view_pos)
+        image = self.volume.reduce_tree_images(
+            image.reshape(*self.resolution, 4), view_pos
+        )
         if not self.transfer_function.grey_opacity:
             image[:, :, 3] = 1.0
         return image
@@ -1498,8 +1492,7 @@ class HEALpixCamera(Camera):
 
     def get_sampler_args(self, image):
         nv = 12 * self.nside**2
-        vs = arr_pix2vec_nest(self.nside, np.arange(nv))
-        vs.shape = (nv, 1, 3)
+        vs = arr_pix2vec_nest(self.nside, np.arange(nv)).reshape(nv, 1, 3)
         vs += 1e-8
         uv = np.ones(3, dtype="float64")
         positions = np.ones((nv, 1, 3), dtype="float64") * self.center
@@ -1541,16 +1534,10 @@ class HEALpixCamera(Camera):
             pbar.update(total_cells)
 
         pbar.finish()
-        image = sampler.aimage
-
-        self.finalize_image(image)
-
-        return image
+        return self.finalize_image(sampler.aimage)
 
     def finalize_image(self, image):
-        view_pos = self.center
-        image = self.volume.reduce_tree_images(image, view_pos)
-        return image
+        return self.volume.reduce_tree_images(image, self.center)
 
     def get_information(self):
         info_dict = {
@@ -1718,8 +1705,9 @@ class FisheyeCamera(Camera):
         return image
 
     def get_sampler_args(self, image):
-        vp = arr_fisheye_vectors(self.resolution, self.fov)
-        vp.shape = (self.resolution**2, 1, 3)
+        vp = arr_fisheye_vectors(self.resolution, self.fov).reshape(
+            self.resolution**2, 1, 3
+        )
         vp2 = vp.copy()
         for i in range(3):
             vp[:, :, i] = (vp2 * self.rotation_matrix[:, i]).sum(axis=2)
@@ -1744,7 +1732,7 @@ class FisheyeCamera(Camera):
         return args, {}
 
     def finalize_image(self, image):
-        image.shape = self.resolution, self.resolution, 4
+        return image.reshape(self.resolution, self.resolution, 4)
 
     def _render(self, double_check, num_threads, image, sampler):
         pbar = get_pbar(
@@ -1764,11 +1752,7 @@ class FisheyeCamera(Camera):
             pbar.update(total_cells)
 
         pbar.finish()
-        image = sampler.aimage
-
-        self.finalize_image(image)
-
-        return image
+        return self.finalize_image(sampler.aimage)
 
 
 class MosaicCamera(Camera):
@@ -2191,8 +2175,7 @@ class ProjectionCamera(Camera):
             grid.clear_data()
             sampler(pg, num_threads=num_threads)
 
-        image = self.finalize_image(sampler.aimage)
-        return image
+        return self.finalize_image(sampler.aimage)
 
     def save_image(self, image, fn=None, clip_ratio=None):
         dd = self.ds.all_data()
@@ -2248,9 +2231,7 @@ class SphericalCamera(Camera):
             None, :
         ]
 
-        vectors = np.zeros(
-            (self.resolution[0], self.resolution[1], 3), dtype="float64", order="C"
-        )
+        vectors = np.empty((*self.resolution, 3), dtype="float64", order="C")
         vectors[:, :, 0] = np.cos(px) * np.cos(py)
         vectors[:, :, 1] = np.sin(px) * np.cos(py)
         vectors[:, :, 2] = np.sin(py)
@@ -2261,14 +2242,13 @@ class SphericalCamera(Camera):
         R2 = get_rotation_matrix(0.5 * np.pi, [0, 0, 1])
         uv = np.dot(R1, self.orienter.unit_vectors)
         uv = np.dot(R2, uv)
-        vectors.reshape((self.resolution[0] * self.resolution[1], 3))
         vectors = np.dot(vectors, uv)
-        vectors.reshape((self.resolution[0], self.resolution[1], 3))
 
         dummy = np.ones(3, dtype="float64")
-        image.shape = (self.resolution[0] * self.resolution[1], 1, 4)
-        vectors.shape = (self.resolution[0] * self.resolution[1], 1, 3)
-        positions.shape = (self.resolution[0] * self.resolution[1], 1, 3)
+        size = np.prod(self.resolution)
+        image = image.reshape(*size, 1, 4)
+        vectors = vectors.reshape(size, 1, 3)
+        positions = positions.reshape(size, 1, 3)
         args = (
             positions,
             vectors,
@@ -2299,17 +2279,16 @@ class SphericalCamera(Camera):
             pbar.update(total_cells)
 
         pbar.finish()
-        image = self.finalize_image(sampler.aimage)
-        return image
+        return self.finalize_image(sampler.aimage)
 
     def finalize_image(self, image):
         view_pos = self.front_center
-        image.shape = self.resolution[0], self.resolution[1], 4
-        image = self.volume.reduce_tree_images(image, view_pos)
+        image = self.volume.reduce_tree_images(
+            image.reshape(*self.resolution, 4), view_pos
+        )
         if not self.transfer_function.grey_opacity:
             image[:, :, 3] = 1.0
-        image = image[1:-1, 1:-1, :]
-        return image
+        return image[1:-1, 1:-1, :]
 
 
 data_object_registry["spherical_camera"] = SphericalCamera
@@ -2337,33 +2316,28 @@ class StereoSphericalCamera(Camera):
             None, :
         ]
 
-        vectors = np.zeros(
-            (self.resolution[0], self.resolution[1], 3), dtype="float64", order="C"
-        )
+        vectors = np.empty((*self.resolution, 3), dtype="float64", order="C")
         vectors[:, :, 0] = np.cos(px) * np.cos(py)
         vectors[:, :, 1] = np.sin(px) * np.cos(py)
         vectors[:, :, 2] = np.sin(py)
-        vectors2 = np.zeros(
-            (self.resolution[0], self.resolution[1], 3), dtype="float64", order="C"
-        )
+        vectors2 = np.empty((*self.resolution, 3), dtype="float64", order="C")
         vectors2[:, :, 0] = -np.sin(px) * np.ones((1, self.resolution[1]))
         vectors2[:, :, 1] = np.cos(px) * np.ones((1, self.resolution[1]))
         vectors2[:, :, 2] = 0
 
         positions = self.center + vectors2 * self.disparity_s
-        vectors = vectors * self.width[0]
+        vectors *= self.width[0]
         R1 = get_rotation_matrix(0.5 * np.pi, [1, 0, 0])
         R2 = get_rotation_matrix(0.5 * np.pi, [0, 0, 1])
         uv = np.dot(R1, self.orienter.unit_vectors)
         uv = np.dot(R2, uv)
-        vectors.reshape((self.resolution[0] * self.resolution[1], 3))
         vectors = np.dot(vectors, uv)
-        vectors.reshape((self.resolution[0], self.resolution[1], 3))
 
         dummy = np.ones(3, dtype="float64")
-        image.shape = (self.resolution[0] * self.resolution[1], 1, 4)
-        vectors.shape = (self.resolution[0] * self.resolution[1], 1, 3)
-        positions.shape = (self.resolution[0] * self.resolution[1], 1, 3)
+        size = np.prod(self.resolution)
+        image = image.reshape(size, 1, 4)
+        vectors = vectors.reshape(size, 1, 3)
+        positions = positions.reshape(size, 1, 3)
         args = (
             positions,
             vectors,
@@ -2428,8 +2402,7 @@ class StereoSphericalCamera(Camera):
 
         pbar.finish()
 
-        image = sampler.aimage.copy()
-        image.shape = self.resolution[0], self.resolution[1], 4
+        image = sampler.aimage.copy().reshape(*self.resolution, 4)
         if not self.transfer_function.grey_opacity:
             image[:, :, 3] = 1.0
         image = image[1:-1, 1:-1, :]

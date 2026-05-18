@@ -2756,7 +2756,7 @@ def plot_2d(
         if not c0_string and not c1_string:
             if obj_length(center[0]) == 2 and c1_string:
                 # turning off type checking locally because center arg is hard to type correctly
-                center = ds.arr(center[0], center[1])  # type: ignore [unreachable]
+                center = ds.arr(center[0], center[1])
             elif not isinstance(center, YTArray):
                 center = ds.arr(center, "code_length")
             center.convert_to_units("code_length")

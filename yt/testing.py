@@ -185,7 +185,7 @@ def distancematrix(
 
     Returns:
     --------
-    a 2D-array of distances between postions `pos3_i0` (changes along
+    a 2D-array of distances between positions `pos3_i0` (changes along
     index 0) and `pos3_i1` (changes along index 1)
 
     """
@@ -482,7 +482,7 @@ def fake_amr_ds(
         if particles:
             for i, f in enumerate(f"particle_position_{ax}" for ax in "xyz"):
                 pdata = prng.random_sample(particles)
-                pdata /= right_edge[i] - left_edge[i]
+                pdata *= right_edge[i] - left_edge[i]
                 pdata += left_edge[i]
                 gdata["io", f] = (pdata, "code_length")
             for f in (f"particle_velocity_{ax}" for ax in "xyz"):
@@ -1080,10 +1080,11 @@ def fake_octree_ds(
 
     if quantities is None:
         quantities = {}
+        # Try both callable and arrays
         quantities["gas", "density"] = prng.random_sample((particles, 1))
         quantities["gas", "velocity_x"] = prng.random_sample((particles, 1))
         quantities["gas", "velocity_y"] = prng.random_sample((particles, 1))
-        quantities["gas", "velocity_z"] = prng.random_sample((particles, 1))
+        quantities["gas", "velocity_z"] = lambda: prng.random_sample((particles, 1))
 
     ds = load_octree(
         octree_mask=octree_mask,

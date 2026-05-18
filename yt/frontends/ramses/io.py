@@ -158,7 +158,8 @@ def _ramses_particle_csv_file_handler(
     # read only selected fields
     dat = pd.read_csv(
         fname,
-        delimiter=",",
+        delimiter=r"\s*,\s*",
+        engine="python",
         usecols=[ind for _field, ind in list_field_ind],
         skiprows=2,
         header=None,
@@ -374,7 +375,7 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
 
     # Fields name from the default csv RAMSES sink algorithm in the yt default convention
     mapping = {
-        " # id": "particle_identifier",
+        "# id": "particle_identifier",
         "msink": "particle_mass",
         "x": "particle_position_x",
         "y": "particle_position_y",
@@ -400,11 +401,12 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     }
 
     # read the all file to get the number of particle
-    dat = pd.read_csv(fname, delimiter=",")
+    dat = pd.read_csv(fname, delimiter=r"\s*,\s*", engine="python")
     fields = []
     local_particle_count = len(dat)
 
     for varname in dat.columns:
+        varname = varname.strip()
         if varname in mapping:
             varname = mapping[varname]
         else:

@@ -455,8 +455,8 @@ limits to versions unless we need to).
 The ``test`` target specifies the tools needed to run the tests, but
 not needed by yt itself.
 
-Documentation and typechecking requirements are found in ``requirements/``,
-and used in ``tests/ci_install.sh``.
+Documentation and typechecking requirements are defined as ``docs`` and
+``typecheck`` dependency groups respectively.
 
 **Python version support.**
 We vow to follow numpy's deprecation plan regarding our supported versions for Python

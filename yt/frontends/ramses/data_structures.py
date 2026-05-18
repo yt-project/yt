@@ -85,7 +85,7 @@ class RAMSESFileSanitizer:
         # This last case is (erroneously ?) marked as unreachable by mypy
         # If/when this bug is fixed upstream, mypy will warn that the unused
         # 'type: ignore' comment can be removed
-        if self.info_fname is None:  # type: ignore [unreachable]
+        if self.info_fname is None:
             raise ValueError(f"Failed to detect info file from '{filename!s}'")
 
     @property
@@ -261,8 +261,15 @@ class RAMSESDomainFile:
             else:
                 self._ngridbound = np.zeros(hvals["nlevelmax"], dtype="int64")
             _free_mem = f.read_attrs((("free_mem", 5, "i"),))
-            _ordering = f.read_vector("c")
-            f.skip(4)
+            ordering = f.read_vector("c")
+            ordering = "".join(_.decode() for _ in ordering).strip()
+            if ordering == "hilbert":
+                Nskip = 1  # bound_key
+            elif ordering == "bisection":
+                Nskip = 5  #  bisec_wall, bisec_next, bisec_indx, bisec_cpubox_min, bisec_cpubox_max
+            else:
+                raise RuntimeError(f"Unknown ordering {ordering!r} in AMR file")
+            f.skip(Nskip + 3)  # skip son, flag1, cpu_map
             # Now we're at the tree itself
             # Now we iterate over each level and each CPU.
             position = f.tell()
@@ -452,6 +459,7 @@ class RAMSESDomainSubset(OctreeSubset):
             fields,
             data,
             oct_handler,
+            file_handler.single_precision,
         )
         return data
 
@@ -467,8 +475,8 @@ class RAMSESDomainSubset(OctreeSubset):
         fields = [f for ft, f in fields]
         tr = {}
 
-        cell_count = (
-            selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
+        cell_count = selector.count_octs(self.oct_handler, self.domain_id) * int(
+            np.prod(self.nz[:ndim])
         )
 
         # Initializing data container
@@ -507,6 +515,7 @@ class RAMSESDomainSubset(OctreeSubset):
             fields,
             tr,
             oct_handler,
+            file_handler.single_precision,
             domain_inds=domain_inds,
         )
         return tr
@@ -520,7 +529,7 @@ class RAMSESDomainSubset(OctreeSubset):
             # new_fwidth contains the fwidth of the oct+ghost zones
             # this is a constant array in each oct, so we simply copy
             # the oct value using numpy fancy-indexing
-            new_fwidth = np.zeros((n_oct, self.nz**3, 3), dtype=fwidth.dtype)
+            new_fwidth = np.zeros((n_oct, int(np.prod(self.nz)), 3), dtype=fwidth.dtype)
             new_fwidth[:, :, :] = fwidth[:, 0:1, :]
             fwidth = new_fwidth.reshape(-1, 3)
         return fwidth
@@ -538,7 +547,7 @@ class RAMSESDomainSubset(OctreeSubset):
             self.selector, self._num_ghost_zones
         )
 
-        N_per_oct = self.nz**3
+        N_per_oct = int(np.prod(self.nz))
         oct_inds = oct_inds.reshape(-1, N_per_oct)
         cell_inds = cell_inds.reshape(-1, N_per_oct)
 
@@ -678,6 +687,17 @@ class RAMSESIndex(OctreeIndex):
                     mylog.info("Identified %s intersecting domains", len(domains))
             base_region = getattr(dobj, "base_region", dobj)
 
+            # In case of MPI parallelism, we need to keep the intersection
+            # of all domains across all ranks
+            if self.comm.size > 1:
+                idomains = {dom.domain_id for dom in domains}
+                idomains = self.comm.comm.allreduce(
+                    set(idomains), op=lambda a, b: a & b
+                )
+
+                # Keep domains that every rank has
+                domains = [dom for dom in domains if dom.domain_id in idomains]
+
             subsets = [
                 RAMSESDomainSubset(
                     base_region,
@@ -805,7 +825,7 @@ class RAMSESDataset(Dataset):
         if isinstance(fields, str):
             fields = field_aliases[fields]
         """
-        fields:
+        fields: list[tuple[str, str]] | list[str] | None
         An array of hydro variable fields in order of position in the
         hydro_XXXXX.outYYYYY file. If set to None, will try a default set of fields.
 
@@ -822,7 +842,13 @@ class RAMSESDataset(Dataset):
         This affects the fields related to cooling and the mean molecular weight.
         """
 
-        self._fields_in_file = fields
+        self._fields_in_file: list[tuple[str, str]] = []
+        if fields:
+            for field in fields:
+                if isinstance(field, tuple):
+                    self._fields_in_file.append(field)
+                else:
+                    self._fields_in_file.append((field, "d"))
         # By default, extra fields have not triggered a warning
         self._warned_extra_fields = defaultdict(lambda: False)
         self._extra_particle_fields = extra_particle_fields

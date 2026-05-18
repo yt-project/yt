@@ -3,7 +3,8 @@ import os
 from functools import wraps
 from typing import TYPE_CHECKING, Any
 
-import matplotlib
+import matplotlib as mpl
+import matplotlib.style
 import numpy as np
 from more_itertools.more import always_iterable, unzip
 
@@ -12,7 +13,7 @@ from yt._typing import FieldKey
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
-from yt.funcs import iter_fields, matplotlib_style_context
+from yt.funcs import iter_fields
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.visualization._commons import _get_units_label
 from yt.visualization._handlers import ColorbarHandler, NormHandler
@@ -322,7 +323,7 @@ class ProfilePlot(BaseLinePlot):
                 uid = uid[1]
             uid_name = f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}"
             names.append(uid_name)
-            with matplotlib_style_context():
+            with mpl.style.context("yt.default"):
                 plot.save(uid_name, mpl_kwargs=mpl_kwargs)
         return names
 
@@ -364,7 +365,7 @@ class ProfilePlot(BaseLinePlot):
         else:
             iters = self.plots.values()
         for plot in iters:
-            with matplotlib_style_context():
+            with mpl.style.context("yt.default"):
                 img = plot._repr_png_()
             img = base64.b64encode(img).decode()
             ret += (
@@ -1085,7 +1086,7 @@ class PhasePlot(ImagePlotContainer):
             # override the colorbar here.
             splat_color = getattr(self, "splat_color", None)
             if splat_color is not None:
-                cbh.cmap = matplotlib.colors.ListedColormap(splat_color, "dummy")
+                cbh.cmap = mpl.colors.ListedColormap(splat_color, "dummy")
 
             masked_data = data.copy()
             masked_data[~self.profile.used] = np.nan

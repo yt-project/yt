@@ -387,6 +387,18 @@ class yaml_imports(OnDemand):
 
         return FullLoader
 
+    @safe_import
+    def safe_load(self):
+        from yaml import safe_load
+
+        return safe_load
+
+    @safe_import
+    def YAMLError(self):
+        from yaml import YAMLError
+
+        return YAMLError
+
 
 _yaml = yaml_imports()
 

@@ -4,7 +4,8 @@ from abc import ABC
 from io import BytesIO
 from typing import TYPE_CHECKING, Optional, TypedDict
 
-import matplotlib
+import matplotlib as mpl
+import matplotlib.style
 import numpy as np
 from matplotlib.scale import SymmetricalLogTransform
 from matplotlib.ticker import LogFormatterMathtext
@@ -13,7 +14,6 @@ from yt._typing import AlphaT
 from yt.funcs import (
     get_interactivity,
     is_sequence,
-    matplotlib_style_context,
     mylog,
     setdefault_mpl_metadata,
     setdefaultattr,
@@ -25,7 +25,7 @@ from ._commons import (
     validate_image_name,
 )
 
-if matplotlib.__version_info__ >= (3, 8):
+if mpl.__version_info__ >= (3, 8):
     from matplotlib.ticker import SymmetricalLogLocator
 else:
     from ._commons import _MPL38_SymmetricalLogLocator as SymmetricalLogLocator
@@ -114,13 +114,13 @@ class PlotMPL:
         axes: Optional["Axes"] = None,
     ):
         """Initialize PlotMPL class"""
-        import matplotlib.figure
+        from matplotlib.figure import Figure
 
         self._plot_valid = True
         if figure is None:
             if not is_sequence(fsize):
                 fsize = (fsize, fsize)
-            self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
+            self.figure = Figure(figsize=fsize, frameon=True)
         else:
             figure.set_size_inches(fsize)
             self.figure = figure
@@ -150,11 +150,11 @@ class PlotMPL:
 
     def _get_canvas_classes(self):
         if self.interactivity:
-            key = str(matplotlib.get_backend())
+            key = str(mpl.get_backend())
         else:
             key = "agg"
 
-        if matplotlib.__version_info__ >= (3, 9):
+        if mpl.__version_info__ >= (3, 9):
             # once yt has a minimum matplotlib version of 3.9, this branch
             # can replace the rest of this function and BACKEND_SPECS can
             # be removed. See https://github.com/yt-project/yt/issues/5138
@@ -195,7 +195,7 @@ class PlotMPL:
             canvas = self.canvas
 
         mylog.info("Saving plot %s", name)
-        with matplotlib_style_context():
+        with mpl.style.context("yt.default"):
             canvas.print_figure(name, **mpl_kwargs)
         return name
 
@@ -230,7 +230,7 @@ class PlotMPL:
 
         canvas = FigureCanvasAgg(self.figure)
         f = BytesIO()
-        with matplotlib_style_context():
+        with mpl.style.context("yt.default"):
             canvas.print_figure(f)
         f.seek(0)
         return f.read()
@@ -351,20 +351,10 @@ class ImagePlotMPL(PlotMPL, ABC):
 
         self.cax.tick_params(which="both", direction="in")
 
-        # For creating a multipanel plot by ImageGrid
-        # we may need the location keyword, which requires Matplotlib >= 3.7.0
+        # For creating a multipanel plot by ImageGrid,
+        # we may need the location keyword
         cb_location = getattr(self.cax, "orientation", None)
-        if matplotlib.__version_info__ >= (3, 7):
-            self.cb = self.figure.colorbar(self.image, self.cax, location=cb_location)
-        else:
-            if cb_location in ["top", "bottom"]:
-                warnings.warn(
-                    "Cannot properly set the orientation of colorbar. "
-                    "Consider upgrading matplotlib to version 3.7 or newer",
-                    stacklevel=6,
-                )
-            self.cb = self.figure.colorbar(self.image, self.cax)
-
+        self.cb = self.figure.colorbar(self.image, self.cax, location=cb_location)
         cb_axis: Axis
         if self.cb.orientation == "vertical":
             cb_axis = self.cb.ax.yaxis
@@ -623,7 +613,6 @@ def get_multi_plot(nx, ny, colorbar="vertical", bw=4, dpi=300, cbar_padding=0.4)
     can be instructive, and is encouraged to see how to generate more
     complicated or more specific sets of multiplots for your own purposes.
     """
-    import matplotlib.figure
     from matplotlib.backends.backend_agg import FigureCanvasAgg
 
     hf, wf = 1.0 / ny, 1.0 / nx
@@ -636,7 +625,7 @@ def get_multi_plot(nx, ny, colorbar="vertical", bw=4, dpi=300, cbar_padding=0.4)
     elif colorbar.lower() == "horizontal":
         fudge_x = 1.0
         fudge_y = ny / (cbar_padding + ny)
-    fig = matplotlib.figure.Figure((bw * nx / fudge_x, bw * ny / fudge_y), dpi=dpi)
+    fig = mpl.figure.Figure((bw * nx / fudge_x, bw * ny / fudge_y), dpi=dpi)
 
     fig.set_canvas(FigureCanvasAgg(fig))
     fig.subplots_adjust(

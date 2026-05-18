@@ -56,6 +56,12 @@ include yt/utilities/lib/platform_dep_math.hpp
 include yt/utilities/lib/tsearch.c
 include yt/utilities/lib/tsearch.h
 
+include COPYING
+include doc/docstring_idioms
+include doc/source/analyzing/_static/axes_calculator_setup
+include yt/utilities/grid_data_format/docs/IRATE_notes
+include yt/utilities/grid_data_format/docs/gdf_specification
+
 include doc/README doc/activate doc/activate.csh doc/cheatsheet.tex
 exclude doc/cheatsheet.pdf
 include doc/extensions/README doc/Makefile
@@ -73,5 +79,5 @@ recursive-include yt/frontends/amrvac *.par
 recursive-exclude requirements *.txt
 exclude minimal_requirements.txt
 exclude .codecov.yml .coveragerc .git-blame-ignore-revs .gitmodules .hgchurn .mailmap
-exclude .pre-commit-config.yaml clean.sh
-exclude nose_answer.cfg nose_unit.cfg nose_ignores.txt nose_requirements.txt
+exclude .pre-commit-config.yaml clean.sh uv.lock
+exclude nose_answer.cfg nose_unit.cfg nose_ignores nose_requirements.txt

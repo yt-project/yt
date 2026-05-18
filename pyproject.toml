@@ -55,19 +55,19 @@ requires-python = ">=3.10.4"
 dependencies = [
     "cmyt>=1.1.2",
     "ewah-bool-utils>=1.2.0",
-    "matplotlib>=3.6.0",
+    "matplotlib>=3.7.0",
     "more-itertools>=8.4",
     "numpy>=1.21.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
     # https://github.com/numpy/numpy/issues/27037
     "numpy!=2.0.1 ; platform_machine=='arm64' and platform_system=='Darwin'",
-    "packaging>=20.9",
+    "packaging>=21.0",
     "pillow>=8.3.2",
     "rlic>=0.3.2",
     "tomli-w>=0.4.0",
     "tqdm>=3.4.0",
     "unyt>=2.9.2",
     "tomli>=1.2.3;python_version < '3.11'",
-    "typing-extensions>=4.4.0;python_version < '3.12'",
+    "typing-extensions>=4.6.0 ; python_version < '3.12'",
 ]
 
 [project.readme]
@@ -87,11 +87,11 @@ answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 [project.optional-dependencies]
 # some generic, reusable constraints on optional-deps
 HDF5 = [
-  "h5py>=3.1.0",
+  "h5py>=3.6.0",
   "h5py!=3.12.0 ; platform_system=='Windows'", # https://github.com/h5py/h5py/issues/2505
   "h5py!=3.15.0 ; platform_system=='Darwin'", # https://github.com/yt-project/yt/issues/5301
 ]
-netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
+netCDF4 = ["netCDF4!=1.6.1,>=1.5.8"] # see https://github.com/Unidata/netcdf4-python/issues/1192
 Fortran = ["f90nml>=1.1"]
 
 # frontend-specific requirements
@@ -118,7 +118,7 @@ eagle = ["yt[HDF5]"]
 enzo-e = ["yt[HDF5]", "libconf>=1.0.1"]
 enzo = ["yt[HDF5]", "libconf>=1.0.1"]
 exodus-ii = ["yt[netCDF4]"]
-fits = ["astropy>=4.0.1", "regions>=0.7"]
+fits = ["astropy>=5.0.1", "regions>=0.7"]
 flash = ["yt[HDF5]"]
 gadget = ["yt[HDF5]"]
 gadget-fof = ["yt[HDF5]"]
@@ -126,7 +126,7 @@ gamer = ["yt[HDF5]"]
 gdf = ["yt[HDF5]"]
 gizmo = ["yt[HDF5]"]
 halo-catalog = ["yt[HDF5]"]
-http-stream = ["requests>=2.20.0"]
+http-stream = ["requests>=2.30.0"]
 idefix = ["yt_idefix[HDF5]>=2.3.0"] # externally packaged frontend
 moab = ["yt[HDF5]"]
 nc4-cm1 = ["yt[netCDF4]"]
@@ -134,9 +134,10 @@ open-pmd = ["yt[HDF5]"]
 owls = ["yt[HDF5]"]
 owls-subfind = ["yt[HDF5]"]
 parthenon = ["yt[HDF5]"]
-ramses = ["yt[Fortran]", "scipy"]
+quokka = ["yt[amrex]", "PyYAML>=6.0.1"]
+ramses = ["yt[Fortran]", "scipy>=1.7.2"]
 rockstar = []
-sdf = ["requests>=2.20.0"]
+sdf = ["requests>=2.30.0"]
 stream = []
 swift = ["yt[HDF5]"]
 tipsy = []
@@ -147,18 +148,16 @@ ytdata = ["yt[HDF5]"]
 full = [
     "cartopy>=0.22.0",
     "firefly>=3.2.0",
-    "glueviz>=0.13.3",
-    "ipython>=7.16.2",
+    "ipython>=7.23.1",
     "ipywidgets>=8.0.0",
     "miniballcpp>=0.2.1",
-    "mpi4py>=3.0.3",
-    "pandas>=1.1.2",
+    "mpi4py>=3.1.6",
+    "pandas>=1.3.4",
     "pooch>=0.7.0",
     "pyaml>=17.10.0",
-    "pykdtree>=1.3.1",
+    "pykdtree>=1.3.4",
     "pyx>=0.15",
-    "scipy>=1.5.0",
-    "glue-core!=1.2.4;python_version >= '3.10'",  # see https://github.com/glue-viz/glue/issues/2263
+    "scipy>=1.7.2",
     "ratarmount~=0.8.1;platform_system!='Windows' and platform_system!='Darwin'",
     "yt[adaptahop]",
     "yt[ahf]",
@@ -194,6 +193,7 @@ full = [
     "yt[owls]",
     "yt[owls_subfind]",
     "yt[parthenon]",
+    "yt[quokka]",
     "yt[ramses]",
     "yt[rockstar]",
     "yt[sdf]",
@@ -204,19 +204,51 @@ full = [
 ]
 
 # dev-only extra targets
-mapserver = [
-    "bottle",
-]
 test = [
     "pyaml>=17.10.0",
-    "pytest>=6.1",
+    "pytest>=8.0.1",
     "pytest-mpl>=0.16.1",
-    "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
-    "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
 ]
 
 [project.scripts]
 yt = "yt.utilities.command_line:run_main"
+
+[dependency-groups]
+docs = [
+    "alabaster>=0.7.13",
+    "bottle>=0.12.25",
+    "ipykernel>=6.29.4",
+    "jinja2<3.2.0",
+    "jupyter-client>=8.3.1",
+    "nbsphinx>=0.9.3",
+    "nose~=1.3.7 ; python_full_version < '3.10'",
+    "pytest>=6.1",
+    "pyx>=0.15",
+    "sphinx>=7.2.5",
+    "sphinx-bootstrap-theme>=0.8.1",
+    "sphinx-rtd-theme>=1.3.0",
+]
+mapserver = [
+    "bottle>=0.13.0",
+]
+mapping = [
+    "cartopy[plotting]>=0.22.0",
+]
+nosetest = [
+    "nose~=1.3.7",
+    "nose-exclude>=0.5.0",
+    "nose-timer~=1.0.0",
+    # nose's plugin system silently requires pkg_resources,
+    # which was part of setuptools but removed in version 82.0.0
+    "setuptools>=77.0.1, <82.0.0",
+]
+typecheck = [
+    "mypy>=1.18.2",
+    "types-chardet>=5.0.4.6",
+    "types-pyyaml>=6.0.12.20250915",
+    "types-requests>=2.32.4.20250913",
+    "typing-extensions>=4.6.0 ; python_full_version < '3.12'",
+]
 
 [tool.setuptools]
 include-package-data = true
@@ -263,6 +295,8 @@ exclude = [
 ]
 
 [tool.ruff.lint]
+preview = true
+explicit-preview-rules = true
 select = [
     "E",
     "F",
@@ -270,18 +304,19 @@ select = [
     "C4",   # flake8-comprehensions
     "B",    # flake8-bugbear
     "G",    # flake8-logging-format
-    "TCH",  # flake8-type-checking
+    "TC",   # flake8-type-checking
     "YTT",  # flake8-2020
     "UP",   # pyupgrade
     "I",    # isort
     "NPY",  # numpy specific rules
-    "RUF031"# incorrectly-parenthesized-tuple-in-subscript
+
+    # preview rules
+    "RUF031", # incorrectly-parenthesized-tuple-in-subscript
 ]
 ignore = [
     "E501",  # line too long
     "E741",  # Do not use variables named 'I', 'O', or 'l'
     "B018",  # Found useless expression. # disabled because ds.index is idiomatic
-    "UP038", # non-pep604-isinstance
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -289,23 +324,6 @@ ignore = [
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-third-party = [
-  "IPython",
-  "nose",
-  "numpy",
-  "sympy",
-  "matplotlib",
-  "unyt",
-  "git",
-  "yaml",
-  "dateutil",
-  "requests",
-  "coverage",
-  "pytest",
-  "pyx",
-  "glue",
-]
-known-first-party = ["yt"]
 
 # The -s option prevents pytest from capturing output sent to stdout
 # -v runs pytest in verbose mode
@@ -465,16 +483,81 @@ show_error_codes = true
 ignore_missing_imports = true
 warn_unused_configs = true
 warn_unused_ignores = true
-warn_unreachable = true
 show_error_context = true
 exclude = "(test_*|lodgeit)"
 
 [tool.cibuildwheel]
 build-verbosity = 1
 skip = ["cp314t-*"]
+build-frontend = "build[uv]"
 test-extras = "test"
 test-command = [
     'python -c "import yt"',
     "python -m pytest -c {project}/pyproject.toml --rootdir . --color=yes --pyargs yt -ra",
 ]
 environment = {"YT_LIMITED_API" = "1"}
+
+[tool.uv]
+# never build the following packages from sources (always prefer wheels)
+no-build-package = [
+    # "arm-pyart", # temporarily disabled because there are no cp313 wheels yet
+    "astropy",
+    "appnope",
+    "bottleneck",
+    "cartopy",
+    "cffi",
+    "contourpy",
+    "ewah-bool-utils",
+    "fast-histogram",
+    "h5py",
+    "jinja2",
+    "kiwisolver",
+    "markupsafe",
+    "matplotlib",
+    "numpy",
+    "netCDF4",
+    "pandas",
+    "pillow",
+    "psutil",
+    "py",
+    "pykdtree",
+    "pyproj",
+    "pyyaml",
+    "rlic",
+    "scipy",
+    "shapely",
+
+    # via firefly
+    "flask",
+    "gevent",
+    "greenlet",
+    "zope-interface",
+
+    # via astropy
+    "pyerfa",
+]
+constraint-dependencies = [
+    "imageio!=2.35.0", # see https://github.com/yt-project/yt/issues/4966
+    "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
+    "jinja2>=2.11.3",
+
+    # wheels
+    "mpmath>=1.2.1", # via sympy
+    "iniconfig>=1.0.1", # via pytest
+
+    # from ipython (these can be removed when ipython<9.7 is dropped)
+    "ipython-pygments-lexers>=1.0.0",
+    "decorator>=4.3.2",
+    "jedi>=0.18.1",
+    "stack_data>=0.6.0",
+    "pygments>=2.11.0",
+
+    # from pyart
+    # see https://github.com/ARM-DOE/pyart/pull/1813
+    "cftime>=1.5.1.1",
+    "fsspec>=2021.11.0",
+    "mda-xdrlib>=0.2.0",
+    "open-radar-data>=0.5.0",
+    "pint>=0.18.0",
+    "s3fs>=2021.11.0",
+]

@@ -2133,6 +2133,195 @@ zero.
 * Particles may be difficult to integrate.
 * Data must already reside in memory.
 
+
+.. _loading-quokka-data:
+
+QUOKKA Data
+-----------
+
+`QUOKKA <https://github.com/quokka-astro/quokka>`_ data is supported and cared
+for by ChongChong He and Rongjun Huang. QUOKKA is based on the AMReX framework.
+Uniform-grid and AMR datasets in cartesian coordinates and particle data are
+fully supported.
+
+A standard QUOKKA dataset includes the following components:
+
+.. code-block:: bash
+
+    plt00007/
+    ├── Level_0/         # QUOKKA data
+    ├── Header           # Dataset header information
+    ├── metadata.yaml    # Configuration file
+    ├── XXX_particles/     # Optional, particle data (e.g., Rad or Sink)
+    │   ├── Fields.yaml    # Particle field names and units
+    │   ├── Header
+    │   └── Level_0/
+
+Loading QUOKKA data is straightforward with the ``load`` command:
+
+.. code-block:: python
+
+    import yt
+
+    ds = yt.load("sample/RadBeam/plt00007")
+
+Boxlib Fields and Units
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The QUOKKA frontend is built upon the AMReX framework, which follows the BoxLib
+data format. When a QUOKKA dataset is loaded, yt automatically:
+
+- Detects and loads all available fields in the dataset from the ``Header`` file
+- Maps the native field names to (field_type, field_name) tuples
+- Assigns physical units based on metadata information
+
+QUOKKA datasets include six mandatory gas fields:
+
+.. code-block:: python
+
+    [
+        ("boxlib", "gasDensity"),
+        ("boxlib", "gasEnergy"),
+        ("boxlib", "gasInternalEnergy"),
+        ("boxlib", "x-GasMomentum"),
+        ("boxlib", "y-GasMomentum"),
+        ("boxlib", "z-GasMomentum"),
+    ]
+
+For simulations with radiative transfer, the following fields are also available:
+
+.. code-block:: python
+
+    [
+        ("boxlib", "radEnergy-Group0"),
+        ("boxlib", "x-RadFlux-Group0"),
+        ("boxlib", "y-RadFlux-Group0"),
+        ("boxlib", "z-RadFlux-Group0"),
+        ("boxlib", "radEnergy-Group1"),
+        ("boxlib", "x-RadFlux-Group1"),
+        ("boxlib", "y-RadFlux-Group1"),
+        ("boxlib", "z-RadFlux-Group1"),
+        ...,
+    ]
+
+To see all available native fields in your dataset, do ``print(ds.field_list)``.
+
+Derived Fields
+^^^^^^^^^^^^^
+
+When a QUOKKA dataset is loaded by yt, the native fields are mapped to derived
+fields with appropriate physical units. The frontend handles:
+
+- Converting dimensionless native fields to physically meaningful units
+- Creating convenient derived fields for analysis and visualization
+
+You can view all available derived fields with ``print(ds.derived_field_list)``.
+For example, the native ('boxlib', 'gasDensity') field is mapped to ('gas',
+'density') with proper units:
+
+.. code-block:: python
+
+    # Accessing density with units
+    print(ds.r[("boxlib", "gasDensity")])
+    print(ds.r[("gas", "density")])
+
+.. code-block:: python
+
+    unyt_array([1.0, 1.0, 1.0, ..., 1.0, 1.0, 1.0], "code_mass/code_length**3")
+    unyt_array([1.0, 1.0, 1.0, ..., 1.0, 1.0, 1.0], "g/cm**3")
+
+Particle Data
+^^^^^^^^^^^^
+
+QUOKKA supports various types of particle data. When particles are present,
+they're stored in dedicated directories:
+
+.. code-block:: bash
+
+    dataset_folder/
+    ├── Level_0/
+    ├── Header
+    ├── metadata.yaml
+    ├── XXX_particles/     # Particle fields (e.g., Rad or Sink or CIC)
+    │   ├── Fields.yaml    # Particle field names and units
+    │   ├── Header
+    │   └── Level_0/
+
+The particle types and fields are automatically detected and loaded. The
+``Fields.yaml`` file defines particle field names and their units, which YT will
+read and automatically convert to physical units.
+
+To access particle data in your analysis:
+
+.. code-block:: python
+
+    # Access particle data
+    ad = ds.all_data()
+
+    # print particle info
+    print(ds.parameters["particle_info"])
+
+    # List particle fields available for the selected particle type
+    print(ad["Rad_particles", "particle_position_x"])
+    print(ad["Rad_particles", "luminosity"])
+
+    # Convert to physical units
+    print(ad["Rad_particles", "luminosity"].to("erg/s"))
+
+To annotate particles in a plot, use the ``annotate_particles`` method:
+
+.. code-block:: python
+
+    yt.SlicePlot(ds, "z", ("gas", "density")).annotate_particles(
+        1, p_size=400.0, col="blue", marker="*", ptype="Rad_particles"
+    )
+
+Face-Centered Variables
+^^^^^^^^^^^^^^^^^^^^^^^
+
+QUOKKA datasets can also include face-centered variables. These are stored in
+the ``fc_vars`` directory which is inside the plotfile directory. When loading a
+Quokka dataset, YT automatically detects and loads any face-centered variables
+from the ``fc_vars/x*****``, ``fc_vars/y*****``, and ``fc_vars/z*****``
+subdirectories. These are made available as attributes of the main dataset
+(``ds.ds_fc_x``, ``ds.ds_fc_y``, ``ds.ds_fc_z``). Each face-centered dataset is a full
+YT dataset object with its own fields and mesh structure, and includes a
+reference back to the parent dataset, ``ds.ds_fc_x.parent_ds``. This allows for
+easy access to both cell-centered and face-centered data in the same analysis
+workflow.
+
+Debugging QUOKKA datasets
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To enable verbose debug output when loading QUOKKA datasets, set the log level
+to ``"debug"`` before calling :func:`~yt.loaders.load`:
+
+.. code-block:: python
+
+   import yt
+
+   yt.set_log_level("debug")
+   ds = yt.load("/path/to/quokka/plt")
+
+Support for Legacy Datasets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``metadata.yaml`` file is the key to determining if a dataset is a QUOKKA
+data object. For data generated by early versions of QUOKKA that might be
+missing this file, you can bypass metadata parsing:
+
+.. code-block:: python
+
+    from yt.frontends.amrex.data_structures import QuokkaDataset
+
+
+    class OldQuokkaDataset(QuokkaDataset):
+        def _parse_metadata_file(self):
+            pass
+
+
+    ds_old = OldQuokkaDataset("sample/RadBeam/plt007")
+
 .. _loading-semi-structured-mesh-data:
 
 Semi-Structured Grid Data
@@ -3171,12 +3360,15 @@ There are three way to make yt detect all the particle fields. For example, if y
          particle_metallicity, d
       """
 
-   Each line should contain the name of the field and its data type (``d`` for double precision, ``f`` for single precision, ``i`` for integer and ``l`` for long integer). You can also configure the auto detected fields for fluid types by adding a section ``ramses-hydro``, ``ramses-grav`` or ``ramses-rt`` in the config file. For example, if you customized your gravity files so that they contain the potential, the potential in the previous timestep and the x, y and z accelerations, you can use :
+   Each line should contain the name of the field and its data type (``d`` for double precision, ``f`` for single precision, ``i`` for integer and ``l`` for long integer). You can also configure the auto detected fields for fluid types by adding a section ``ramses-hydro``, ``ramses-grav`` or ``ramses-rt`` in the config file. For example, if you customized your gravity files so that they contain the potential, the potential in the previous timestep and the x, y and z accelerations, all in single-precision, you can use :
 
    .. code-block:: none
 
       [ramses-grav]
-      fields = [ "Potential", "Potential-old", "x-acceleration", "y-acceleration", "z-acceleration" ]
+      fields = [ "Potential,f", "Potential-old,f", "x-acceleration,f", "y-acceleration,f", "z-acceleration,f" ]
+
+   Importantly, the order of the fields should match the order in which they are written in the RAMSES output files.
+   yt will also assume that each entry is formed of a field name followed by its type (``f`` for single precision, ``d`` for double precision), separated by a comma. Field names containing commas are not supported, other precisions (e.g. integers) are not supported either. Presently, all fields in a given file type (gravity, hydro, ...) need to have the same precision (e.g. all single-precision or all double-precision), combinations are not supported. Internally, yt will convert all data into double-precisoin floats, but this will allow it to read the data correctly from file.
 
 3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
 
@@ -3197,6 +3389,8 @@ There are three way to make yt detect all the particle fields. For example, if y
       11, metallicity, d
 
    It is important to note that this file should not end with an empty line (but in this case with ``11, metallicity, d``).
+   Note that, for grid fields (hydro, gravity, rt), all the fields need to have the same precision (``f`` or ``d``).
+   Combinations are not supported.
 
 .. note::
 

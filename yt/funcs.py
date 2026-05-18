@@ -996,15 +996,14 @@ def matplotlib_style_context(style="yt.default", after_reset=False):
     Arguments are passed to matplotlib.style.context() if specified. Defaults
     to setting yt's "yt.default" style, after resetting to the default config parameters.
     """
-    # FUTURE: this function should be deprecated in favour of matplotlib.style.context
-    # after support for matplotlib 3.6 and older versions is dropped.
-    import importlib.resources as importlib_resources
-
-    import matplotlib as mpl
     import matplotlib.style
 
-    if style == "yt.default" and mpl.__version_info__ < (3, 7):
-        style = importlib_resources.files("yt") / "default.mplstyle"
+    issue_deprecation_warning(
+        "yt.funcs.matplotlib_style_context is deprecated.\n"
+        f"Use matplotlib.style.context({style=!r}) instead.",
+        since="4.5",
+        stacklevel=3,
+    )
 
     return matplotlib.style.context(style, after_reset=after_reset)
 
@@ -1112,7 +1111,7 @@ def validate_float(obj):
     Raises
     ------
     TypeError
-        Raised if `obj` is not a single float value or YTQunatity
+        Raised if `obj` is not a single float value or YTQuantity
 
     Examples
     --------
@@ -1228,7 +1227,7 @@ def parse_center_array(center, ds, axis: int | None = None):
         "Expected any of the following\n"
         "- 'c', 'center', 'l', 'left', 'r', 'right', 'm', 'max', or 'min'\n"
         "- a 2 element tuple with 'min' or 'max' as the first element, followed by a field identifier\n"
-        "- a 3 element array-like: for a unyt_array, expects length dimensions, otherwise code_lenght is assumed"
+        "- a 3 element array-like: for a unyt_array, expects length dimensions, otherwise code_length is assumed"
     )
     # store an unmodified copy of user input to be inserted in error messages
     center_input = deepcopy(center)

@@ -368,7 +368,7 @@ the following subdirectories:
    This is where all of the derived fields that ship with yt are defined.
 
 ``geometry``
-   This is where geometric helpler routines are defined. Handlers
+   This is where geometric helper routines are defined. Handlers
    for grid and oct data, as well as helpers for coordinate transformations
    can be found here.
 
@@ -449,7 +449,7 @@ For all types of contributions, it is required that all tests pass, or that all 
   * Unit test is encouraged, to ensure breakage does not happen again in the
     future. (See :ref:`testing`)
   * At a minimum, a minimal, self-contained example demonstrating the bug should
-    because included in the body of the Pull Request, or as part of an
+    be included in the body of the Pull Request, or as part of an
     independent issue.
 
 When submitting, you will be asked to make sure that your changes meet all of
@@ -720,9 +720,7 @@ Source code style guide
 * Do not use nested classes unless you have a very good reason to, such as
   requiring a namespace or class-definition modification.  Classes should live
   at the top level.  ``__metaclass__`` is exempt from this.
-* Avoid copying memory when possible. For example, don't do
-  ``a = a.reshape(3, 4)`` when ``a.shape = (3, 4)`` will do, and ``a = a * 3``
-  should be ``np.multiply(a, 3, a)``.
+* Avoid copying memory when possible.
 * In general, avoid all double-underscore method names: ``__something`` is
   usually unnecessary.
 * When writing a subclass, use the super built-in to access the super class,

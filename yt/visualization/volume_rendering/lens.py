@@ -341,13 +341,13 @@ class StereoPerspectiveLens(Lens):
 
         uv = np.ones(3, dtype="float64")
 
-        image = self.new_image(camera)
-        vectors_comb = uvstack([vectors_left, vectors_right])
-        positions_comb = uvstack([positions_left, positions_right])
-
-        image.shape = (camera.resolution[0], camera.resolution[1], 4)
-        vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
-        positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
+        image = self.new_image(camera).reshape(*camera.resolution, 4)
+        vectors_comb = uvstack([vectors_left, vectors_right]).reshape(
+            *camera.resolution, 3
+        )
+        positions_comb = uvstack([positions_left, positions_right]).reshape(
+            *camera.resolution, 3
+        )
 
         sampler_params = {
             "vp_pos": positions_comb,
@@ -549,15 +549,12 @@ class FisheyeLens(Lens):
         return self.current_image
 
     def _get_sampler_params(self, camera, render_source):
-        vp = -arr_fisheye_vectors(camera.resolution[0], self.fov)
-        vp.shape = (camera.resolution[0], camera.resolution[0], 3)
+        shape = (camera.resolution[0], camera.resolution[0], 3)
+        vp = -arr_fisheye_vectors(camera.resolution[0], self.fov).reshape(shape)
         vp = vp.dot(np.linalg.inv(self.rotation_matrix))
         vp *= self.radius
         uv = np.ones(3, dtype="float64")
-        positions = (
-            np.ones((camera.resolution[0], camera.resolution[0], 3), dtype="float64")
-            * camera.position
-        )
+        positions = np.full(shape, camera.position, dtype="float64")
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
@@ -652,9 +649,16 @@ class SphericalLens(Lens):
             -np.pi / 2.0, np.pi / 2.0, camera.resolution[1], endpoint=True
         )[None, :]
 
-        vectors = np.zeros(
-            (camera.resolution[0], camera.resolution[1], 3), dtype="float64", order="C"
+        positions = np.tile(camera.position, np.prod(camera.resolution)).reshape(
+            *camera.resolution, 3
         )
+
+        R1 = get_rotation_matrix(0.5 * np.pi, [1, 0, 0])
+        R2 = get_rotation_matrix(0.5 * np.pi, [0, 0, 1])
+        uv = np.dot(R1, camera.unit_vectors)
+        uv = np.dot(R2, uv)
+
+        vectors = np.empty((*camera.resolution, 3), dtype="float64", order="C")
         vectors[:, :, 0] = np.cos(px) * np.cos(py)
         vectors[:, :, 1] = np.sin(px) * np.cos(py)
         vectors[:, :, 2] = np.sin(py)
@@ -663,30 +667,15 @@ class SphericalLens(Lens):
         max_length = unorm(camera.position - camera._domain_center) + 0.5 * unorm(
             camera._domain_width
         )
-        # Rescale the ray to be long enough to cover the entire domain
-        vectors = vectors * max_length
-
-        positions = np.tile(
-            camera.position, camera.resolution[0] * camera.resolution[1]
-        ).reshape(camera.resolution[0], camera.resolution[1], 3)
-
-        R1 = get_rotation_matrix(0.5 * np.pi, [1, 0, 0])
-        R2 = get_rotation_matrix(0.5 * np.pi, [0, 0, 1])
-        uv = np.dot(R1, camera.unit_vectors)
-        uv = np.dot(R2, uv)
-        vectors.reshape((camera.resolution[0] * camera.resolution[1], 3))
-        vectors = np.dot(vectors, uv)
-        vectors.reshape((camera.resolution[0], camera.resolution[1], 3))
+        vectors = np.dot((vectors * max_length), uv).reshape(*camera.resolution, 3)
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
         else:
             image = self.new_image(camera)
 
+        image = image.reshape(*camera.resolution, 4)
         dummy = np.ones(3, dtype="float64")
-        image.shape = (camera.resolution[0], camera.resolution[1], 4)
-        vectors.shape = (camera.resolution[0], camera.resolution[1], 3)
-        positions.shape = (camera.resolution[0], camera.resolution[1], 3)
 
         sampler_params = {
             "vp_pos": positions,
@@ -816,14 +805,14 @@ class StereoSphericalLens(Lens):
         else:
             image = self.new_image(camera)
 
+        image = image.reshape(*camera.resolution, 4)
+
         dummy = np.ones(3, dtype="float64")
 
-        vectors_comb = uhstack([vectors, vectors])
-        positions_comb = uhstack([positions_left, positions_right])
-
-        image.shape = (camera.resolution[0], camera.resolution[1], 4)
-        vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
-        positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
+        vectors_comb = uhstack([vectors, vectors]).reshape(*camera.resolution, 3)
+        positions_comb = uhstack([positions_left, positions_right]).reshape(
+            *camera.resolution, 3
+        )
 
         sampler_params = {
             "vp_pos": positions_comb,
