@@ -8,3 +8,4 @@ from .geographic_coordinates import (
 from .polar_coordinates import PolarCoordinateHandler
 from .spec_cube_coordinates import SpectralCubeCoordinateHandler
 from .spherical_coordinates import SphericalCoordinateHandler
+from .subject_cartesian_coordinates import CartesianSubjectCoordinateHandler
