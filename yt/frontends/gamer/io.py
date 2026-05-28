@@ -1,8 +1,9 @@
+from functools import lru_cache
 from itertools import groupby
 
 import numpy as np
 
-from yt.geometry.selection_routines import AlwaysSelector
+from yt.geometry.selection_routines import AlwaysSelector, GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 
@@ -91,13 +92,39 @@ class IOHandlerGAMER(BaseIOHandler):
                     data = self._group_particle[field][start:end]
                     yield (ptype, field), data[mask]
 
+    @lru_cache(maxsize=8)  # noqa
+    def _get_grid_field(self, field_name):
+        return self._group_grid[field_name]
+
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)  # generator --> list
 
         if any((ftype != "gamer" for ftype, fname in fields)):
             raise NotImplementedError
 
+        # shortcuts
+        ps2 = self.patch_size
+        ps1 = ps2 // 2
+        data = np.empty((ps2, ps2, ps2), dtype=self._field_dtype)
         rv = {}
+
+        if isinstance(selector, GridSelector):
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+            g = chunks[0].objs[0]
+            for ftype, fname in fields:
+                buf = self._get_grid_field(fname)[g.id : g.id + 8, ...]
+                data[0:ps1, 0:ps1, 0:ps1] = buf[0, :, :, :]
+                data[0:ps1, 0:ps1, ps1:ps2] = buf[1, :, :, :]
+                data[0:ps1, ps1:ps2, 0:ps1] = buf[2, :, :, :]
+                data[ps1:ps2, 0:ps1, 0:ps1] = buf[3, :, :, :]
+                data[0:ps1, ps1:ps2, ps1:ps2] = buf[4, :, :, :]
+                data[ps1:ps2, ps1:ps2, 0:ps1] = buf[5, :, :, :]
+                data[ps1:ps2, 0:ps1, ps1:ps2] = buf[6, :, :, :]
+                data[ps1:ps2, ps1:ps2, ps1:ps2] = buf[7, :, :, :]
+                rv[(ftype, fname)] = data.transpose()
+            return rv
+
         for field in fields:
             rv[field] = np.empty(size, dtype=self._field_dtype)
 
@@ -109,10 +136,6 @@ class IOHandlerGAMER(BaseIOHandler):
             ng,
         )
 
-        # shortcuts
-        ps2 = self.patch_size
-        ps1 = ps2 // 2
-
         for field in fields:
             ds = self._group_grid[field[1]]
             offset = 0
@@ -121,24 +144,19 @@ class IOHandlerGAMER(BaseIOHandler):
                     start = (gs[0].id) * self.pgroup
                     end = (gs[-1].id + 1) * self.pgroup
                     buf = ds[start:end, :, :, :]
-                    ngrid = len(gs)
-                    data = np.empty((ngrid, ps2, ps2, ps2), dtype=self._field_dtype)
-
-                    for g in range(ngrid):
-                        pid0 = g * self.pgroup
-                        data[g, 0:ps1, 0:ps1, 0:ps1] = buf[pid0 + 0, :, :, :]
-                        data[g, 0:ps1, 0:ps1, ps1:ps2] = buf[pid0 + 1, :, :, :]
-                        data[g, 0:ps1, ps1:ps2, 0:ps1] = buf[pid0 + 2, :, :, :]
-                        data[g, ps1:ps2, 0:ps1, 0:ps1] = buf[pid0 + 3, :, :, :]
-                        data[g, 0:ps1, ps1:ps2, ps1:ps2] = buf[pid0 + 4, :, :, :]
-                        data[g, ps1:ps2, ps1:ps2, 0:ps1] = buf[pid0 + 5, :, :, :]
-                        data[g, ps1:ps2, 0:ps1, ps1:ps2] = buf[pid0 + 6, :, :, :]
-                        data[g, ps1:ps2, ps1:ps2, ps1:ps2] = buf[pid0 + 7, :, :, :]
-
-                    data = data.transpose()
 
                     for i, g in enumerate(gs):
-                        offset += g.select(selector, data[..., i], rv[field], offset)
+                        pid0 = i * self.pgroup
+                        data[0:ps1, 0:ps1, 0:ps1] = buf[pid0 + 0, :, :, :]
+                        data[0:ps1, 0:ps1, ps1:ps2] = buf[pid0 + 1, :, :, :]
+                        data[0:ps1, ps1:ps2, 0:ps1] = buf[pid0 + 2, :, :, :]
+                        data[ps1:ps2, 0:ps1, 0:ps1] = buf[pid0 + 3, :, :, :]
+                        data[0:ps1, ps1:ps2, ps1:ps2] = buf[pid0 + 4, :, :, :]
+                        data[ps1:ps2, ps1:ps2, 0:ps1] = buf[pid0 + 5, :, :, :]
+                        data[ps1:ps2, 0:ps1, ps1:ps2] = buf[pid0 + 6, :, :, :]
+                        data[ps1:ps2, ps1:ps2, ps1:ps2] = buf[pid0 + 7, :, :, :]
+                        offset += g.select(selector, data.T, rv[field], offset)
+
         return rv
 
     def _read_chunk_data(self, chunk, fields):
