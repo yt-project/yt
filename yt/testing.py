@@ -28,7 +28,6 @@ from yt.loaders import load, load_particles
 from yt.units.yt_array import YTArray, YTQuantity
 
 if TYPE_CHECKING:
-
     from yt._typing import AnyFieldKey
 
 

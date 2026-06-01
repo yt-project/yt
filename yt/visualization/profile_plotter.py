@@ -9,7 +9,6 @@ import numpy as np
 from more_itertools.more import always_iterable, unzip
 
 from yt._maintenance.ipython_compat import IS_IPYTHON
-from yt._typing import FieldKey
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
@@ -31,6 +30,7 @@ from .plot_container import (
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from yt._typing import FieldKey
 
 
 def invalidate_profile(f):
