@@ -28,8 +28,6 @@ from yt.loaders import load, load_particles
 from yt.units.yt_array import YTArray, YTQuantity
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from yt._typing import AnyFieldKey
 
 
