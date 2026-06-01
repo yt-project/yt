@@ -31,7 +31,6 @@ from .plot_container import (
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from yt._typing import FieldKey
 
 
 def invalidate_profile(f):
