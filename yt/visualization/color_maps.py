@@ -1,14 +1,14 @@
 import cmyt  # noqa: F401
 import matplotlib as mpl
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import Colormap, LinearSegmentedColormap
 
 from yt.funcs import get_brewer_cmap
 from yt.utilities.logger import ytLogger as mylog
 
 from . import _colormap_data as _cm
 
-yt_colormaps = {}
+yt_colormaps: dict[str, Colormap] = {}
 
 
 def add_colormap(name, cdict):

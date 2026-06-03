@@ -1,3 +1,4 @@
+import sys
 from collections import defaultdict
 
 import numpy as np
@@ -6,6 +7,11 @@ from yt.units.yt_array import YTArray
 from yt.utilities.io_handler import io_registry
 
 from .field_exceptions import NeedsGridType
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
 
 fp_units = {
     "bulk_velocity": "cm/s",
@@ -158,10 +164,14 @@ class FieldDetector(defaultdict):
             if hasattr(io, "_vector_fields") and (
                 _item in io._vector_fields or _item[1] in io._vector_fields
             ):
-                try:
-                    cols = io._vector_fields[_item]
-                except KeyError:
-                    cols = io._vector_fields[_item[1]]
+                match _item:
+                    case str(fname):
+                        pass
+                    case (str(_ftype), str(fname)):
+                        pass
+                    case _ as unreachable:
+                        assert_never(unreachable)
+                cols = io._vector_fields[fname]
                 # A vector
                 self[_item] = YTArray(
                     np.ones((self.NumberOfParticles, cols)),
