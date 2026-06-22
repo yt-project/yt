@@ -191,6 +191,86 @@ class AMRVACHierarchy(GridIndex):
         dim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype="object")
+        if self._nonuniform:
+            meshlist = self.dataset.namelist["meshlist"]
+            stretch_baselevel = meshlist.get("qstretch_baselevel")
+            # nlevelshi = 20 hardcoded in AMRVAC
+            qstretch = np.zeros((21, self.ds.dimensionality), dtype="float64")
+            dxfirst = np.zeros((21, self.ds.dimensionality), dtype="float64")
+            nstretchedblocks = np.zeros((20, self.ds.dimensionality), dtype="int32")
+            if "qstretch_baselevel" not in meshlist:
+                # compute default values dynamically, just as done in AMRVAC
+                stretched_dims = [bool(k) for k in self.stretch_dim]
+                assert sum(stretched_dims) == 1  # exactly one stretched direction
+                stretched_dim = stretched_dims.index(True)
+                _sbl = [
+                    1.0,
+                ] * self.ds.dimensionality
+                _sbl[stretched_dim] = (
+                    meshlist[f"xprobmax{stretched_dim + 1}"]
+                    / meshlist[f"xprobmin{stretched_dim + 1}"]
+                ) ** (1.0 / meshlist[f"domain_nx{stretched_dim + 1}"])
+                stretch_baselevel = tuple(_sbl)
+            elif isinstance(stretch_baselevel := meshlist["qstretch_baselevel"], list):
+                assert len(stretch_baselevel) >= self.ds.dimensionality
+                stretch_baselevel = (
+                    float(b) for b in stretch_baselevel[: self.ds.dimensionality]
+                )
+            else:
+                assert isinstance(stretch_baselevel, float | int)
+                stretched_dims = [bool(k) for k in self.stretch_dim]
+                assert sum(stretched_dims) == 1  # exactly one stretched direction
+                stretched_dim = stretched_dims.index(True)
+                _sbl = [
+                    1.0,
+                ] * self.ds.dimensionality
+                _sbl[stretched_dim] = stretch_baselevel
+                stretch_baselevel = tuple(_sbl)
+
+            for dim in range(self.ds.dimensionality):
+                if self.stretch_dim[dim] in ["uni", "uniform"]:
+                    qstretch[1, dim] = stretch_baselevel[dim]
+                    dxfirst[1, dim] = (
+                        domain_width[dim] * (1.0 - qstretch[1, dim])
+                        / (1.0 - qstretch[1, dim] ** meshlist[f"domain_nx{dim + 1}"])
+                    )
+                    qstretch[0, dim] = qstretch[1, dim] ** 2
+                    dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
+                    if self.meshlist["refine_max_level"] > 1:
+                        for ilev in range(2, self.meshlist["refine_max_level"] + 1):
+                            qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
+                            dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
+                                1.0 + np.sqrt(qstretch[ilev - 1, dim])
+                            )
+                elif self.stretch_dim[dim] in ["symm", "symmetric"]:
+                    ipower = (meshlist[f"nstretchedblocks_baselevel{dim + 1}"] / 2) * block_nx[dim]
+                    if meshlist[f"nstretchedblocks_baselevel{dim + 1}"] == meshlist[f"domain_nx{dim + 1}"] / block_nx[dim]:
+                        xstretch = 0.5 * domain_width[dim]
+                    else:
+                        xstretch = domain_width[dim] / (
+                            2.0
+                            + (meshlist[f"domain_nx{dim + 1}"] - meshlist[f"nstretchedblocks_baselevel{dim + 1}"] * block_nx[dim])
+                            * (1.0 - stretch_baselevel[dim])
+                            / (1.0 - stretch_baselevel[dim] ** ipower)
+                        )
+                    dxfirst[1, dim] = (xstretch * (1.0 - stretch_baselevel[dim])
+                        / (1.0 - stretch_baselevel[dim] ** ipower))
+                    nstretchedblocks[1, dim] = meshlist[f"nstretchedblocks_baselevel{dim + 1}"]
+                    qstretch[1, dim] = stretch_baselevel[dim]
+                    qstretch[0, dim] = qstretch[1, dim] ** 2
+                    dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
+                    dxmid[1, dim] = dxfirst[1, dim]
+                    dxmid[0, dim] = dxfirst[1, dim] * 2
+                    if meshlist["refine_max_level"] > 1:
+                        for ilev in range(2, meshlist["refine_max_level"] + 1):
+                            nstretchedblocks[ilev, dim] = 2 * nstretchedblocks[ilev - 1, dim]
+                            qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
+                            dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
+                                1.0 + np.sqrt(qstretch[ilev - 1, dim])
+                            )
+                            dxmid[ilev, dim] = dxmid[ilev - 1, dim] / 2.0
+            dxfirst_1mq = dxfirst / (1.0 - qstretch)
+        
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
         ):
