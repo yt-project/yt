@@ -16,6 +16,7 @@ from more_itertools import always_iterable
 
 from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.stretched_grid import StretchedGrid
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.api import Geometry
@@ -89,18 +90,66 @@ class AMRVACGrid(AMRGridPatch):
         )
 
 
-class AMRVACHierarchy(GridIndex):
-    grid = AMRVACGrid
+class AMRVACStretchedGrid(StretchedGrid):
+    """A class to populate AMRVACHierarchy.grids, setting parent/children relations."""
 
+    _id_offset = 0
+
+    def __init__(self, id, cell_widths, filename, index, level, dims):
+        # <level> should use yt's convention (start from 0)
+        super().__init__(id=id, filename=filename, index=index, cell_widths=cell_widths)
+        self.Parent = None
+        self.Children = []
+        self.Level = level
+        self.ActiveDimensions = dims
+
+    def get_global_startindex(self):
+        """Refresh and retrieve the starting index for each dimension at current level.
+
+        Returns
+        -------
+        self.start_index : int
+        """
+        start_index = (self.LeftEdge - self.ds.domain_left_edge) / self.dds
+        self.start_index = np.rint(start_index).astype("int64").ravel()
+        return self.start_index
+
+    def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):
+        if smoothed:
+            warnings.warn(
+                "ghost-zones interpolation/smoothing is not "
+                "currently supported for AMRVAC data.",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+            smoothed = False
+        return super().retrieve_ghost_zones(
+            n_zones, fields, all_levels=all_levels, smoothed=smoothed
+        )
+
+
+class AMRVACHierarchy(GridIndex):
     def __init__(self, ds, dataset_type="amrvac"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
+        self._verify_uniformity()
+        self.grid = AMRVACStretchedGrid if self._nonuniform else AMRVACGrid
         # the index file *is* the datfile
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
 
         super().__init__(ds, dataset_type)
+
+    def _verify_uniformity(self):
+        """Check whether the dataset is nonuniform (i.e. has stretched grids)."""
+        self._nonuniform = False
+        meshlist = self.dataset.namelist["meshlist"]
+        if (stretch_dim := meshlist.get("stretch_dim")) is not None:
+            assert isinstance(stretch_dim, list)
+            assert len(stretch_dim) >= self.ds.dimensionality
+            self._nonuniform = True
+            self.stretch_dim = stretch_dim
 
     def _detect_output_fields(self):
         """Parse field names from the header, as stored in self.dataset.parameters"""
@@ -152,7 +201,17 @@ class AMRVACHierarchy(GridIndex):
             self.grid_left_edge[igrid, :dim] = left_edge
             self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
             self.grid_dimensions[igrid, :dim] = block_nx
-            self.grids[igrid] = self.grid(igrid, self, ytlevels[igrid])
+            if self._nonuniform:
+                self.grids[igrid] = self.grid(
+                    id=igrid,
+                    index=self,
+                    level=ytlevel,
+                    filename=self.index_filename,
+                    cell_widths=_cell_widths,
+                    dims=self.grid_dimensions[igrid],
+                )
+            else:
+                self.grids[igrid] = self.grid(igrid, self, ytlevel)
 
     def _populate_grid_objects(self):
         # required method
