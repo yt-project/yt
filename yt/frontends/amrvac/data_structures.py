@@ -198,6 +198,7 @@ class AMRVACHierarchy(GridIndex):
             qstretch = np.zeros((21, self.ds.dimensionality), dtype="float64")
             dxfirst = np.zeros((21, self.ds.dimensionality), dtype="float64")
             nstretchedblocks = np.zeros((20, self.ds.dimensionality), dtype="int32")
+            dxmid = np.zeros((21, self.ds.dimensionality), dtype="float64")
             if "qstretch_baselevel" not in meshlist:
                 # compute default values dynamically, just as done in AMRVAC
                 stretched_dims = [bool(k) for k in self.stretch_dim]
@@ -270,7 +271,7 @@ class AMRVACHierarchy(GridIndex):
                             )
                             dxmid[ilev, dim] = dxmid[ilev - 1, dim] / 2.0
             dxfirst_1mq = dxfirst / (1.0 - qstretch)
-        
+
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
         ):
