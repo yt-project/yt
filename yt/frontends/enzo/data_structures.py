@@ -972,9 +972,15 @@ class EnzoDataset(Dataset):
                 mylog.warning("Setting 1.0 in code units to be 1.0 s")
                 length_unit = mass_unit = time_unit = 1.0
 
-            setdefaultattr(self, "length_unit", self.quan(length_unit, "cm"))
-            setdefaultattr(self, "mass_unit", self.quan(mass_unit, "g"))
-            setdefaultattr(self, "time_unit", self.quan(time_unit, "s"))
+            setdefaultattr(
+                self, "length_unit", self.quan(length_unit, "cm").astype("float64")
+            )
+            setdefaultattr(
+                self, "mass_unit", self.quan(mass_unit, "g").astype("float64")
+            )
+            setdefaultattr(
+                self, "time_unit", self.quan(time_unit, "s").astype("float64")
+            )
             setdefaultattr(self, "velocity_unit", self.length_unit / self.time_unit)
 
         density_unit = self.mass_unit / self.length_unit**3
