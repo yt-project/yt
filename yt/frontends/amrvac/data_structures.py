@@ -244,45 +244,57 @@ class AMRVACHierarchy(GridIndex):
                                 1.0 + np.sqrt(qstretch[ilev - 1, dim])
                             )
                 elif self.stretch_dim[dim] in ["symm", "symmetric"]:
-                    ipower = (meshlist[f"nstretchedblocks_baselevel{dim + 1}"] / 2) * block_nx[dim]
-                    if meshlist[f"nstretchedblocks_baselevel{dim + 1}"] == meshlist[f"domain_nx{dim + 1}"] / block_nx[dim]:
-                        xstretch = 0.5 * domain_width[dim]
-                    else:
-                        xstretch = domain_width[dim] / (
-                            2.0
-                            + (meshlist[f"domain_nx{dim + 1}"] - meshlist[f"nstretchedblocks_baselevel{dim + 1}"] * block_nx[dim])
-                            * (1.0 - stretch_baselevel[dim])
-                            / (1.0 - stretch_baselevel[dim] ** ipower)
-                        )
-                    dxfirst[1, dim] = (xstretch * (1.0 - stretch_baselevel[dim])
-                        / (1.0 - stretch_baselevel[dim] ** ipower))
-                    nstretchedblocks[1, dim] = meshlist[f"nstretchedblocks_baselevel{dim + 1}"]
-                    qstretch[1, dim] = stretch_baselevel[dim]
-                    qstretch[0, dim] = qstretch[1, dim] ** 2
-                    dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
-                    dxmid[1, dim] = dxfirst[1, dim]
-                    dxmid[0, dim] = dxfirst[1, dim] * 2
-                    if meshlist["refine_max_level"] > 1:
-                        for ilev in range(2, meshlist["refine_max_level"] + 1):
-                            nstretchedblocks[ilev, dim] = 2 * nstretchedblocks[ilev - 1, dim]
-                            qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
-                            dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
-                                1.0 + np.sqrt(qstretch[ilev - 1, dim])
-                            )
-                            dxmid[ilev, dim] = dxmid[ilev - 1, dim] / 2.0
+                    warnings.warn(
+                        "symmetric stretching is not currently supported for AMRVAC data.",
+                        category=RuntimeWarning,
+                        stacklevel=2,
+                    )
+                    # ipower = (meshlist[f"nstretchedblocks_baselevel{dim + 1}"] / 2) * block_nx[dim]
+                    # if meshlist[f"nstretchedblocks_baselevel{dim + 1}"] == meshlist[f"domain_nx{dim + 1}"] / block_nx[dim]:
+                    #     xstretch = 0.5 * domain_width[dim]
+                    # else:
+                    #     xstretch = domain_width[dim] / (
+                    #         2.0
+                    #         + (meshlist[f"domain_nx{dim + 1}"] - meshlist[f"nstretchedblocks_baselevel{dim + 1}"] * block_nx[dim])
+                    #         * (1.0 - stretch_baselevel[dim])
+                    #         / (1.0 - stretch_baselevel[dim] ** ipower)
+                    #     )
+                    # dxfirst[1, dim] = (xstretch * (1.0 - stretch_baselevel[dim])
+                    #     / (1.0 - stretch_baselevel[dim] ** ipower))
+                    # nstretchedblocks[1, dim] = meshlist[f"nstretchedblocks_baselevel{dim + 1}"]
+                    # qstretch[1, dim] = stretch_baselevel[dim]
+                    # qstretch[0, dim] = qstretch[1, dim] ** 2
+                    # dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
+                    # dxmid[1, dim] = dxfirst[1, dim]
+                    # dxmid[0, dim] = dxfirst[1, dim] * 2
+                    # if meshlist["refine_max_level"] > 1:
+                    #     for ilev in range(2, meshlist["refine_max_level"] + 1):
+                    #         nstretchedblocks[ilev, dim] = 2 * nstretchedblocks[ilev - 1, dim]
+                    #         qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
+                    #         dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
+                    #             1.0 + np.sqrt(qstretch[ilev - 1, dim])
+                    #         )
+                    #         dxmid[ilev, dim] = dxmid[ilev - 1, dim] / 2.0
+                elif self.stretch_dim[dim] == "none":
+                    continue
+                else:
+                    raise ValueError(
+                        f"Unknown stretch_dim '{self.stretch_dim[dim]}' for dimension {dim}."
+                    )
             dxfirst_1mq = dxfirst / (1.0 - qstretch)
 
-        for igrid, (ytlevel, morton_index) in enumerate(
-            zip(ytlevels, morton_indices, strict=True)
-        ):
-            dx = dx0 / self.dataset.refine_by**ytlevel
-            left_edge = xmin + (morton_index - 1) * block_nx * dx
+            for igrid, (ytlevel, morton_index) in enumerate(
+                zip(ytlevels, morton_indices, strict=True)
+            ):
+                # dx = dx0 / self.dataset.refine_by**ytlevel
+                # left_edge = xmin + (morton_index - 1) * block_nx * dx
+                imin = (morton_index - 1) * block_nx
+                imax = morton_index * block_nx
 
-            # edges and dimensions are filled in a dimensionality-agnostic way
-            self.grid_left_edge[igrid, :dim] = left_edge
-            self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
-            self.grid_dimensions[igrid, :dim] = block_nx
-            if self._nonuniform:
+                # edges and dimensions are filled in a dimensionality-agnostic way
+                # self.grid_left_edge[igrid, :dim] = left_edge
+                # self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
+                # self.grid_dimensions[igrid, :dim] = block_nx
                 self.grids[igrid] = self.grid(
                     id=igrid,
                     index=self,
@@ -291,7 +303,18 @@ class AMRVACHierarchy(GridIndex):
                     cell_widths=_cell_widths,
                     dims=self.grid_dimensions[igrid],
                 )
-            else:
+
+        else:
+            for igrid, (ytlevel, morton_index) in enumerate(
+                zip(ytlevels, morton_indices, strict=True)
+            ):
+                dx = dx0 / self.dataset.refine_by**ytlevel
+                left_edge = xmin + (morton_index - 1) * block_nx * dx
+
+                # edges and dimensions are filled in a dimensionality-agnostic way
+                self.grid_left_edge[igrid, :dim] = left_edge
+                self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
+                self.grid_dimensions[igrid, :dim] = block_nx
                 self.grids[igrid] = self.grid(igrid, self, ytlevel)
 
     def _populate_grid_objects(self):
