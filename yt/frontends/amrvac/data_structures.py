@@ -97,21 +97,20 @@ class AMRVACHierarchy(GridIndex):
     def __init__(self, ds, dataset_type="amrvac"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
-        self._verify_uniformity()
         # the index file *is* the datfile
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
 
-        super().__init__(ds, dataset_type)
+        self.stretch_dim = [self.dataset.dimensionality * "none"]
+        if self.dataset.namelist is not None:
+            meshlist = self.dataset.namelist["meshlist"]
+            if (stretch_dim := meshlist.get("stretch_dim")) is not None:
+                assert isinstance(stretch_dim, list)
+                assert len(stretch_dim) >= self.dataset.dimensionality
+                self.stretch_dim = stretch_dim
 
-    def _verify_uniformity(self):
-        """Check whether the dataset is nonuniform (i.e. has stretched grids)."""
-        meshlist = self.dataset.namelist["meshlist"]
-        if (stretch_dim := meshlist.get("stretch_dim")) is not None:
-            assert isinstance(stretch_dim, list)
-            assert len(stretch_dim) >= self.ds.dimensionality
-            self.stretch_dim = stretch_dim
+        super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         """Parse field names from the header, as stored in self.dataset.parameters"""
@@ -150,44 +149,44 @@ class AMRVACHierarchy(GridIndex):
         dx0 = (
             domain_width / self.dataset.parameters["domain_nx"]
         )  # dx at coarsest grid level (YT level 0)
-        dim = self.dataset.dimensionality
+        ndim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype="object")
-        meshlist = self.dataset.namelist["meshlist"]
-        stretch_baselevel = meshlist.get("qstretch_baselevel")
-        if "qstretch_baselevel" not in meshlist:
-            # compute default values dynamically, just as done in AMRVAC
-            stretched_dims = [bool(k) for k in self.stretch_dim]
-            assert sum(stretched_dims) == 1  # exactly one stretched direction
-            stretched_dim = stretched_dims.index(True)
-            _sbl = [
-                1.0,
-            ] * self.ds.dimensionality
-            _sbl[stretched_dim] = (
-                meshlist[f"xprobmax{stretched_dim + 1}"]
-                / meshlist[f"xprobmin{stretched_dim + 1}"]
-            ) ** (1.0 / meshlist[f"domain_nx{stretched_dim + 1}"])
-            stretch_baselevel = tuple(_sbl)
-        elif isinstance(stretch_baselevel := meshlist["qstretch_baselevel"], list):
-            assert len(stretch_baselevel) >= self.ds.dimensionality
-            stretch_baselevel = (
-                float(b) for b in stretch_baselevel[: self.ds.dimensionality]
-            )
-        else:
-            assert isinstance(stretch_baselevel, float | int)
-            stretched_dims = [bool(k) for k in self.stretch_dim]
-            assert sum(stretched_dims) == 1  # exactly one stretched direction
-            stretched_dim = stretched_dims.index(True)
-            _sbl = [
-                1.0,
-            ] * self.ds.dimensionality
-            _sbl[stretched_dim] = stretch_baselevel
-            stretch_baselevel = tuple(_sbl)
+        if np.any([x != "none" for x in self.stretch_dim]):
+            meshlist = self.dataset.namelist["meshlist"]
+            stretch_baselevel = meshlist.get("qstretch_baselevel")
+            if "qstretch_baselevel" not in meshlist:
+                # compute default values dynamically, just as done in AMRVAC
+                stretched_dims = [bool(k) for k in self.stretch_dim]
+                assert sum(stretched_dims) == 1  # exactly one stretched direction
+                stretched_dim = stretched_dims.index(True)
+                _sbl = [
+                    1.0,
+                ] * ndim
+                _sbl[stretched_dim] = (
+                    meshlist[f"xprobmax{stretched_dim + 1}"]
+                    / meshlist[f"xprobmin{stretched_dim + 1}"]
+                ) ** (1.0 / meshlist[f"domain_nx{stretched_dim + 1}"])
+                stretch_baselevel = tuple(_sbl)
+            elif isinstance(stretch_baselevel := meshlist["qstretch_baselevel"], list):
+                assert len(stretch_baselevel) >= ndim
+                stretch_baselevel = (
+                    float(b) for b in stretch_baselevel[: ndim]
+                )
+            else:
+                assert isinstance(stretch_baselevel, float | int)
+                stretched_dims = [bool(k) for k in self.stretch_dim]
+                assert sum(stretched_dims) == 1  # exactly one stretched direction
+                stretched_dim = stretched_dims.index(True)
+                _sbl = [
+                    1.0,
+                ] * ndim
+                _sbl[stretched_dim] = stretch_baselevel
+                stretch_baselevel = tuple(_sbl)
 
-        nlevelshi = self.meshlist["refine_max_level"]
-        qstretch = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
-        dxfirst = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
-        for dim in range(self.ds.dimensionality):
+        qstretch = np.zeros((self.max_level + 1, ndim), dtype="float64")
+        dxfirst = np.zeros((self.max_level + 1, ndim), dtype="float64")
+        for dim in range(ndim):
             if self.stretch_dim[dim] == "none":
                 continue
             elif self.stretch_dim[dim] in ["uni", "uniform"]:
@@ -216,11 +215,11 @@ class AMRVACHierarchy(GridIndex):
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
         ):
-            left_edge = np.zeros(self.ds.dimensionality, dtype="float64")
-            right_edge = np.zeros(self.ds.dimensionality, dtype="float64")
-            cell_widths = np.zeros((self.ds.dimensionality, np.prod(block_nx)), dtype="float64")
+            left_edge = np.zeros(ndim, dtype="float64")
+            right_edge = np.zeros(ndim, dtype="float64")
+            cell_widths = np.zeros((ndim, np.prod(block_nx)), dtype="float64")
 
-            for dim in range(self.ds.dimensionality):
+            for dim in range(ndim):
                 if self.stretch_dim[dim] == "none":
                     dx = dx0 / self.dataset.refine_by**ytlevel
                     left_edge[dim] = xmin[dim] + (morton_index - 1) * block_nx[dim] * dx[dim]
@@ -239,7 +238,7 @@ class AMRVACHierarchy(GridIndex):
                     for i in range(block_nx[dim]):
                         center = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index - 1) * block_nx[dim] + i)
                         dcenter = 2.0 * center * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
-                        cell_widths[dim, self.ds.dimensionality * i + dim] = dcenter
+                        cell_widths[dim, ndim * i + dim] = dcenter
             
             # edges and dimensions are filled in a dimensionality-agnostic way
             self.grid_left_edge[igrid, :dim] = left_edge
