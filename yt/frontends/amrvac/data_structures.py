@@ -53,44 +53,7 @@ def _parse_geometry(geometry_tag: str) -> Geometry:
     return Geometry(geometry_str.lower())
 
 
-class AMRVACGrid(AMRGridPatch):
-    """A class to populate AMRVACHierarchy.grids, setting parent/children relations."""
-
-    _id_offset = 0
-
-    def __init__(self, id, index, level):
-        # <level> should use yt's convention (start from 0)
-        super().__init__(id, filename=index.index_filename, index=index)
-        self.Parent = None
-        self.Children = []
-        self.Level = level
-
-    def get_global_startindex(self):
-        """Refresh and retrieve the starting index for each dimension at current level.
-
-        Returns
-        -------
-        self.start_index : int
-        """
-        start_index = (self.LeftEdge - self.ds.domain_left_edge) / self.dds
-        self.start_index = np.rint(start_index).astype("int64").ravel()
-        return self.start_index
-
-    def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):
-        if smoothed:
-            warnings.warn(
-                "ghost-zones interpolation/smoothing is not "
-                "currently supported for AMRVAC data.",
-                category=RuntimeWarning,
-                stacklevel=2,
-            )
-            smoothed = False
-        return super().retrieve_ghost_zones(
-            n_zones, fields, all_levels=all_levels, smoothed=smoothed
-        )
-
-
-class AMRVACStretchedGrid(StretchedGrid):
+class AMRVACGrid(StretchedGrid):
     """A class to populate AMRVACHierarchy.grids, setting parent/children relations."""
 
     _id_offset = 0
@@ -129,11 +92,12 @@ class AMRVACStretchedGrid(StretchedGrid):
 
 
 class AMRVACHierarchy(GridIndex):
+    grid = AMRVACGrid
+    
     def __init__(self, ds, dataset_type="amrvac"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         self._verify_uniformity()
-        self.grid = AMRVACStretchedGrid if self._nonuniform else AMRVACGrid
         # the index file *is* the datfile
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
@@ -275,7 +239,7 @@ class AMRVACHierarchy(GridIndex):
                     for i in range(block_nx[dim]):
                         center = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index - 1) * block_nx[dim] + i)
                         dcenter = 2.0 * center * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
-                        cell_widths[dim, i] = dcenter
+                        cell_widths[dim, self.ds.dimensionality * i + dim] = dcenter
             
             # edges and dimensions are filled in a dimensionality-agnostic way
             self.grid_left_edge[igrid, :dim] = left_edge
