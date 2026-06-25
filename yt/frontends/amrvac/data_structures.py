@@ -143,12 +143,10 @@ class AMRVACHierarchy(GridIndex):
 
     def _verify_uniformity(self):
         """Check whether the dataset is nonuniform (i.e. has stretched grids)."""
-        self._nonuniform = False
         meshlist = self.dataset.namelist["meshlist"]
         if (stretch_dim := meshlist.get("stretch_dim")) is not None:
             assert isinstance(stretch_dim, list)
             assert len(stretch_dim) >= self.ds.dimensionality
-            self._nonuniform = True
             self.stretch_dim = stretch_dim
 
     def _detect_output_fields(self):
@@ -191,131 +189,106 @@ class AMRVACHierarchy(GridIndex):
         dim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype="object")
-        if self._nonuniform:
-            meshlist = self.dataset.namelist["meshlist"]
-            stretch_baselevel = meshlist.get("qstretch_baselevel")
-            nlevelshi = 20 # hardcoded in AMRVAC
-            qstretch = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
-            dxfirst = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
-            nstretchedblocks = np.zeros((nlevelshi, self.ds.dimensionality), dtype="int32")
-            dxmid = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
-            if "qstretch_baselevel" not in meshlist:
-                # compute default values dynamically, just as done in AMRVAC
-                stretched_dims = [bool(k) for k in self.stretch_dim]
-                assert sum(stretched_dims) == 1  # exactly one stretched direction
-                stretched_dim = stretched_dims.index(True)
-                _sbl = [
-                    1.0,
-                ] * self.ds.dimensionality
-                _sbl[stretched_dim] = (
-                    meshlist[f"xprobmax{stretched_dim + 1}"]
-                    / meshlist[f"xprobmin{stretched_dim + 1}"]
-                ) ** (1.0 / meshlist[f"domain_nx{stretched_dim + 1}"])
-                stretch_baselevel = tuple(_sbl)
-            elif isinstance(stretch_baselevel := meshlist["qstretch_baselevel"], list):
-                assert len(stretch_baselevel) >= self.ds.dimensionality
-                stretch_baselevel = (
-                    float(b) for b in stretch_baselevel[: self.ds.dimensionality]
+        meshlist = self.dataset.namelist["meshlist"]
+        stretch_baselevel = meshlist.get("qstretch_baselevel")
+        if "qstretch_baselevel" not in meshlist:
+            # compute default values dynamically, just as done in AMRVAC
+            stretched_dims = [bool(k) for k in self.stretch_dim]
+            assert sum(stretched_dims) == 1  # exactly one stretched direction
+            stretched_dim = stretched_dims.index(True)
+            _sbl = [
+                1.0,
+            ] * self.ds.dimensionality
+            _sbl[stretched_dim] = (
+                meshlist[f"xprobmax{stretched_dim + 1}"]
+                / meshlist[f"xprobmin{stretched_dim + 1}"]
+            ) ** (1.0 / meshlist[f"domain_nx{stretched_dim + 1}"])
+            stretch_baselevel = tuple(_sbl)
+        elif isinstance(stretch_baselevel := meshlist["qstretch_baselevel"], list):
+            assert len(stretch_baselevel) >= self.ds.dimensionality
+            stretch_baselevel = (
+                float(b) for b in stretch_baselevel[: self.ds.dimensionality]
+            )
+        else:
+            assert isinstance(stretch_baselevel, float | int)
+            stretched_dims = [bool(k) for k in self.stretch_dim]
+            assert sum(stretched_dims) == 1  # exactly one stretched direction
+            stretched_dim = stretched_dims.index(True)
+            _sbl = [
+                1.0,
+            ] * self.ds.dimensionality
+            _sbl[stretched_dim] = stretch_baselevel
+            stretch_baselevel = tuple(_sbl)
+
+        nlevelshi = self.meshlist["refine_max_level"]
+        qstretch = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
+        dxfirst = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
+        for dim in range(self.ds.dimensionality):
+            if self.stretch_dim[dim] == "none":
+                continue
+            elif self.stretch_dim[dim] in ["uni", "uniform"]:
+                qstretch[1, dim] = stretch_baselevel[dim]
+                dxfirst[1, dim] = (
+                    domain_width[dim] * (1.0 - qstretch[1, dim])
+                    / (1.0 - qstretch[1, dim] ** meshlist[f"domain_nx{dim + 1}"])
+                )
+                qstretch[0, dim] = qstretch[1, dim] ** 2
+                dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
+                if self.meshlist["refine_max_level"] > 1:
+                    for ilev in range(2, self.meshlist["refine_max_level"] + 1):
+                        qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
+                        dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
+                            1.0 + np.sqrt(qstretch[ilev - 1, dim])
+                        )
+            elif self.stretch_dim[dim] in ["symm", "symmetric"]:
+                raise ValueError(
+                    f"Symmetric stretching is not currently supported for AMRVAC data."
                 )
             else:
-                assert isinstance(stretch_baselevel, float | int)
-                stretched_dims = [bool(k) for k in self.stretch_dim]
-                assert sum(stretched_dims) == 1  # exactly one stretched direction
-                stretched_dim = stretched_dims.index(True)
-                _sbl = [
-                    1.0,
-                ] * self.ds.dimensionality
-                _sbl[stretched_dim] = stretch_baselevel
-                stretch_baselevel = tuple(_sbl)
-
-            for dim in range(self.ds.dimensionality):
-                if self.stretch_dim[dim] in ["uni", "uniform"]:
-                    qstretch[1, dim] = stretch_baselevel[dim]
-                    dxfirst[1, dim] = (
-                        domain_width[dim] * (1.0 - qstretch[1, dim])
-                        / (1.0 - qstretch[1, dim] ** meshlist[f"domain_nx{dim + 1}"])
-                    )
-                    qstretch[0, dim] = qstretch[1, dim] ** 2
-                    dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
-                    if self.meshlist["refine_max_level"] > 1:
-                        for ilev in range(2, self.meshlist["refine_max_level"] + 1):
-                            qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
-                            dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
-                                1.0 + np.sqrt(qstretch[ilev - 1, dim])
-                            )
-                elif self.stretch_dim[dim] in ["symm", "symmetric"]:
-                    warnings.warn(
-                        "symmetric stretching is not currently supported for AMRVAC data.",
-                        category=RuntimeWarning,
-                        stacklevel=2,
-                    )
-                    # ipower = (meshlist[f"nstretchedblocks_baselevel{dim + 1}"] / 2) * block_nx[dim]
-                    # if meshlist[f"nstretchedblocks_baselevel{dim + 1}"] == meshlist[f"domain_nx{dim + 1}"] / block_nx[dim]:
-                    #     xstretch = 0.5 * domain_width[dim]
-                    # else:
-                    #     xstretch = domain_width[dim] / (
-                    #         2.0
-                    #         + (meshlist[f"domain_nx{dim + 1}"] - meshlist[f"nstretchedblocks_baselevel{dim + 1}"] * block_nx[dim])
-                    #         * (1.0 - stretch_baselevel[dim])
-                    #         / (1.0 - stretch_baselevel[dim] ** ipower)
-                    #     )
-                    # dxfirst[1, dim] = (xstretch * (1.0 - stretch_baselevel[dim])
-                    #     / (1.0 - stretch_baselevel[dim] ** ipower))
-                    # nstretchedblocks[1, dim] = meshlist[f"nstretchedblocks_baselevel{dim + 1}"]
-                    # qstretch[1, dim] = stretch_baselevel[dim]
-                    # qstretch[0, dim] = qstretch[1, dim] ** 2
-                    # dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
-                    # dxmid[1, dim] = dxfirst[1, dim]
-                    # dxmid[0, dim] = dxfirst[1, dim] * 2
-                    # if meshlist["refine_max_level"] > 1:
-                    #     for ilev in range(2, meshlist["refine_max_level"] + 1):
-                    #         nstretchedblocks[ilev, dim] = 2 * nstretchedblocks[ilev - 1, dim]
-                    #         qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
-                    #         dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
-                    #             1.0 + np.sqrt(qstretch[ilev - 1, dim])
-                    #         )
-                    #         dxmid[ilev, dim] = dxmid[ilev - 1, dim] / 2.0
-                elif self.stretch_dim[dim] == "none":
-                    continue
-                else:
-                    raise ValueError(
-                        f"Unknown stretch_dim '{self.stretch_dim[dim]}' for dimension {dim}."
-                    )
-            dxfirst_1mq = dxfirst / (1.0 - qstretch)
-
-            for igrid, (ytlevel, morton_index) in enumerate(
-                zip(ytlevels, morton_indices, strict=True)
-            ):
-                # dx = dx0 / self.dataset.refine_by**ytlevel
-                # left_edge = xmin + (morton_index - 1) * block_nx * dx
-                imin = (morton_index - 1) * block_nx
-                imax = morton_index * block_nx
-
-                # edges and dimensions are filled in a dimensionality-agnostic way
-                # self.grid_left_edge[igrid, :dim] = left_edge
-                # self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
-                # self.grid_dimensions[igrid, :dim] = block_nx
-                self.grids[igrid] = self.grid(
-                    id=igrid,
-                    index=self,
-                    level=ytlevel,
-                    filename=self.index_filename,
-                    cell_widths=_cell_widths,
-                    dims=self.grid_dimensions[igrid],
+                raise ValueError(
+                    f"Unknown stretch_dim '{self.stretch_dim[dim]}' for dimension {dim}."
                 )
 
-        else:
-            for igrid, (ytlevel, morton_index) in enumerate(
-                zip(ytlevels, morton_indices, strict=True)
-            ):
-                dx = dx0 / self.dataset.refine_by**ytlevel
-                left_edge = xmin + (morton_index - 1) * block_nx * dx
+        for igrid, (ytlevel, morton_index) in enumerate(
+            zip(ytlevels, morton_indices, strict=True)
+        ):
+            left_edge = np.zeros(self.ds.dimensionality, dtype="float64")
+            right_edge = np.zeros(self.ds.dimensionality, dtype="float64")
+            cell_widths = np.zeros((self.ds.dimensionality, np.prod(block_nx)), dtype="float64")
 
-                # edges and dimensions are filled in a dimensionality-agnostic way
-                self.grid_left_edge[igrid, :dim] = left_edge
-                self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
-                self.grid_dimensions[igrid, :dim] = block_nx
-                self.grids[igrid] = self.grid(igrid, self, ytlevel)
+            for dim in range(self.ds.dimensionality):
+                if self.stretch_dim[dim] == "none":
+                    dx = dx0 / self.dataset.refine_by**ytlevel
+                    left_edge[dim] = xmin[dim] + (morton_index - 1) * block_nx[dim] * dx[dim]
+                    right_edge[dim] = left_edge[dim] + block_nx[dim] * dx[dim]
+                    cell_widths[dim, :] = dx[dim]
+                elif self.stretch_dim[dim] in ["uni", "uniform"]:
+                    # left edge
+                    center1 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index - 1) * block_nx[dim])
+                    dcenter1 = 2.0 * center1 * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
+                    left_edge[dim] = center1 - 0.5 * dcenter1
+                    # right edge
+                    center2 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** (morton_index * block_nx[dim] - 1)
+                    dcenter2 = 2.0 * center2 * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
+                    right_edge[dim] = center2 + 0.5 * dcenter2
+                    # cell widths
+                    for i in range(block_nx[dim]):
+                        center = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index - 1) * block_nx[dim] + i)
+                        dcenter = 2.0 * center * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
+                        cell_widths[dim, i] = dcenter
+            
+            # edges and dimensions are filled in a dimensionality-agnostic way
+            self.grid_left_edge[igrid, :dim] = left_edge
+            self.grid_right_edge[igrid, :dim] = right_edge
+            self.grid_dimensions[igrid, :dim] = block_nx
+            self.grids[igrid] = self.grid(
+                id=igrid,
+                index=self,
+                level=ytlevel,
+                filename=self.index_filename,
+                cell_widths=cell_widths,
+                dims=self.grid_dimensions[igrid],
+            )
 
     def _populate_grid_objects(self):
         # required method
