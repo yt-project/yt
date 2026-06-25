@@ -194,11 +194,11 @@ class AMRVACHierarchy(GridIndex):
         if self._nonuniform:
             meshlist = self.dataset.namelist["meshlist"]
             stretch_baselevel = meshlist.get("qstretch_baselevel")
-            # nlevelshi = 20 hardcoded in AMRVAC
-            qstretch = np.zeros((21, self.ds.dimensionality), dtype="float64")
-            dxfirst = np.zeros((21, self.ds.dimensionality), dtype="float64")
-            nstretchedblocks = np.zeros((20, self.ds.dimensionality), dtype="int32")
-            dxmid = np.zeros((21, self.ds.dimensionality), dtype="float64")
+            nlevelshi = 20 # hardcoded in AMRVAC
+            qstretch = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
+            dxfirst = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
+            nstretchedblocks = np.zeros((nlevelshi, self.ds.dimensionality), dtype="int32")
+            dxmid = np.zeros((nlevelshi + 1, self.ds.dimensionality), dtype="float64")
             if "qstretch_baselevel" not in meshlist:
                 # compute default values dynamically, just as done in AMRVAC
                 stretched_dims = [bool(k) for k in self.stretch_dim]
