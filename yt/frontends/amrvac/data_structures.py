@@ -102,7 +102,7 @@ class AMRVACHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
 
-        self.stretch_dim = [self.dataset.dimensionality * "none"]
+        self.stretch_dim = ["none"] * self.dataset.dimensionality
         if self.dataset.namelist is not None:
             meshlist = self.dataset.namelist["meshlist"]
             if (stretch_dim := meshlist.get("stretch_dim")) is not None:
