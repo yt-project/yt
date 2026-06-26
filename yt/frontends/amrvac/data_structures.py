@@ -152,7 +152,7 @@ class AMRVACHierarchy(GridIndex):
         ndim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype="object")
-        if np.any([x != "none" for x in self.stretch_dim]):
+        if np.any([not (x == "none" or x == "") for x in self.stretch_dim]):
             meshlist = self.dataset.namelist["meshlist"]
             stretch_baselevel = meshlist.get("qstretch_baselevel")
             if "qstretch_baselevel" not in meshlist:
@@ -187,9 +187,9 @@ class AMRVACHierarchy(GridIndex):
         qstretch = np.zeros((self.max_level + 2, ndim), dtype="float64")
         dxfirst = np.zeros((self.max_level + 2, ndim), dtype="float64")
         for dim in range(ndim):
-            if self.stretch_dim[dim] == "none":
+            if self.stretch_dim[dim] == "none" or self.stretch_dim[dim] == "":
                 continue
-            elif self.stretch_dim[dim] in ["uni", "uniform"] or self.stretch_dim[dim] == "":
+            elif self.stretch_dim[dim] in ["uni", "uniform"]:
                 qstretch[1, dim] = stretch_baselevel[dim]
                 dxfirst[1, dim] = (
                     domain_width[dim] * (1.0 - qstretch[1, dim])
