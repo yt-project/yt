@@ -182,12 +182,6 @@ class AMRVACHierarchy(GridIndex):
                 ] * ndim
                 _sbl[stretched_dim] = stretch_baselevel
                 stretch_baselevel = tuple(_sbl)
-            
-            warnings.warn(
-                str(stretch_baselevel),
-                category=RuntimeWarning,
-                stacklevel=2,
-            )
 
         qstretch = np.zeros((self.max_level + 2, ndim), dtype="float64")
         dxfirst = np.zeros((self.max_level + 2, ndim), dtype="float64")
