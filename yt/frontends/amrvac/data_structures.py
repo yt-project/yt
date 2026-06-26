@@ -220,7 +220,7 @@ class AMRVACHierarchy(GridIndex):
             cw_aux = []
 
             for dim in range(ndim):
-                if self.stretch_dim[dim] == "none":
+                if self.stretch_dim[dim] == "none" or self.stretch_dim[dim] == "":
                     dx = dx0 / self.dataset.refine_by**ytlevel
                     left_edge[dim] = xmin[dim] + (morton_index[dim] - 1) * block_nx[dim] * dx[dim]
                     right_edge[dim] = left_edge[dim] + block_nx[dim] * dx[dim]
