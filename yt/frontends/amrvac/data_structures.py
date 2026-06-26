@@ -222,21 +222,21 @@ class AMRVACHierarchy(GridIndex):
             for dim in range(ndim):
                 if self.stretch_dim[dim] == "none":
                     dx = dx0 / self.dataset.refine_by**ytlevel
-                    left_edge[dim] = xmin[dim] + (morton_index - 1) * block_nx[dim] * dx[dim]
+                    left_edge[dim] = xmin[dim] + (morton_index[dim] - 1) * block_nx[dim] * dx[dim]
                     right_edge[dim] = left_edge[dim] + block_nx[dim] * dx[dim]
                     cell_widths[dim, :] = dx[dim]
                 elif self.stretch_dim[dim] in ["uni", "uniform"]:
                     # left edge
-                    center1 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index - 1) * block_nx[dim])
+                    center1 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
                     dcenter1 = 2.0 * center1 * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
                     left_edge[dim] = center1 - 0.5 * dcenter1
                     # right edge
-                    center2 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** (morton_index * block_nx[dim] - 1)
+                    center2 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** (morton_index[dim] * block_nx[dim] - 1)
                     dcenter2 = 2.0 * center2 * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
                     right_edge[dim] = center2 + 0.5 * dcenter2
                     # cell widths
                     for i in range(block_nx[dim]):
-                        center = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index - 1) * block_nx[dim] + i)
+                        center = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
                         dcenter = 2.0 * center * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
                         cell_widths[dim, ndim * i + dim] = dcenter
             
@@ -247,7 +247,7 @@ class AMRVACHierarchy(GridIndex):
             self.grids[igrid] = self.grid(
                 id=igrid,
                 index=self,
-                level=ytlevel,
+                level=ytlevels[igrid],
                 filename=self.index_filename,
                 cell_widths=cell_widths,
                 dims=self.grid_dimensions[igrid],
