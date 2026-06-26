@@ -223,7 +223,8 @@ class AMRVACHierarchy(GridIndex):
                     dx = dx0 / self.dataset.refine_by**ytlevel
                     left_edge[dim] = xmin[dim] + (morton_index[dim] - 1) * block_nx[dim] * dx[dim]
                     right_edge[dim] = left_edge[dim] + block_nx[dim] * dx[dim]
-                    cell_widths[dim, :] = dx[dim]
+                    for i in range(block_nx[dim]):
+                        cell_widths[dim, ndim * i + dim] = dx[dim]
                 elif self.stretch_dim[dim] in ["uni", "uniform"]:
                     # left edge
                     center1 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
@@ -240,9 +241,9 @@ class AMRVACHierarchy(GridIndex):
                         cell_widths[dim, ndim * i + dim] = dcenter
             
             # edges and dimensions are filled in a dimensionality-agnostic way
-            self.grid_left_edge[igrid, :dim] = left_edge
-            self.grid_right_edge[igrid, :dim] = right_edge
-            self.grid_dimensions[igrid, :dim] = block_nx
+            self.grid_left_edge[igrid, :ndim] = left_edge
+            self.grid_right_edge[igrid, :ndim] = right_edge
+            self.grid_dimensions[igrid, :ndim] = block_nx
             self.grids[igrid] = self.grid(
                 id=igrid,
                 index=self,
