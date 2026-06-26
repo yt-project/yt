@@ -184,12 +184,12 @@ class AMRVACHierarchy(GridIndex):
                 _sbl[stretched_dim] = stretch_baselevel
                 stretch_baselevel = tuple(_sbl)
 
-        qstretch = np.zeros((self.max_level + 1, ndim), dtype="float64")
-        dxfirst = np.zeros((self.max_level + 1, ndim), dtype="float64")
+        qstretch = np.zeros((self.max_level + 2, ndim), dtype="float64")
+        dxfirst = np.zeros((self.max_level + 2, ndim), dtype="float64")
         for dim in range(ndim):
             if self.stretch_dim[dim] == "none":
                 continue
-            elif self.stretch_dim[dim] in ["uni", "uniform"]:
+            elif self.stretch_dim[dim] in ["uni", "uniform"] or self.stretch_dim[dim] == "":
                 qstretch[1, dim] = stretch_baselevel[dim]
                 dxfirst[1, dim] = (
                     domain_width[dim] * (1.0 - qstretch[1, dim])
@@ -197,8 +197,8 @@ class AMRVACHierarchy(GridIndex):
                 )
                 qstretch[0, dim] = qstretch[1, dim] ** 2
                 dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
-                if self.meshlist["refine_max_level"] > 1:
-                    for ilev in range(2, self.meshlist["refine_max_level"] + 1):
+                if self.max_level > 0:
+                    for ilev in range(2, self.max_level + 2):
                         qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
                         dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
                             1.0 + np.sqrt(qstretch[ilev - 1, dim])
