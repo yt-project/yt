@@ -152,12 +152,12 @@ class AMRVACHierarchy(GridIndex):
         ndim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype="object")
-        if np.any([not (x == "none" or x == "") for x in self.stretch_dim]):
+        stretched_dims = [not (x == "none" or x == "") for x in self.stretch_dim]
+        if np.any(stretched_dims):
             meshlist = self.dataset.namelist["meshlist"]
             stretch_baselevel = meshlist.get("qstretch_baselevel")
             if "qstretch_baselevel" not in meshlist:
                 # compute default values dynamically, just as done in AMRVAC
-                stretched_dims = [bool(k) for k in self.stretch_dim]
                 assert sum(stretched_dims) == 1  # exactly one stretched direction
                 stretched_dim = stretched_dims.index(True)
                 _sbl = [
@@ -175,7 +175,6 @@ class AMRVACHierarchy(GridIndex):
                 )
             else:
                 assert isinstance(stretch_baselevel, float | int)
-                stretched_dims = [bool(k) for k in self.stretch_dim]
                 assert sum(stretched_dims) == 1  # exactly one stretched direction
                 stretched_dim = stretched_dims.index(True)
                 _sbl = [
@@ -183,6 +182,12 @@ class AMRVACHierarchy(GridIndex):
                 ] * ndim
                 _sbl[stretched_dim] = stretch_baselevel
                 stretch_baselevel = tuple(_sbl)
+            
+            warnings.warn(
+                str(stretch_baselevel),
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
 
         qstretch = np.zeros((self.max_level + 2, ndim), dtype="float64")
         dxfirst = np.zeros((self.max_level + 2, ndim), dtype="float64")
