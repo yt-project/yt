@@ -15,7 +15,6 @@ import numpy as np
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
-from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.stretched_grid import StretchedGrid
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
@@ -93,7 +92,7 @@ class AMRVACGrid(StretchedGrid):
 
 class AMRVACHierarchy(GridIndex):
     grid = AMRVACGrid
-    
+
     def __init__(self, ds, dataset_type="amrvac"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
