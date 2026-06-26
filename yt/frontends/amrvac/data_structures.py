@@ -228,17 +228,17 @@ class AMRVACHierarchy(GridIndex):
                 elif self.stretch_dim[dim] in ["uni", "uniform"]:
                     # left edge
                     center1 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
-                    dcenter1 = 2.0 * center1 * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
+                    dcenter1 = 2.0 * center1 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
                     left_edge[dim] = center1 - 0.5 * dcenter1
                     # right edge
                     center2 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** (morton_index[dim] * block_nx[dim] - 1)
-                    dcenter2 = 2.0 * center2 * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
+                    dcenter2 = 2.0 * center2 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
                     right_edge[dim] = center2 + 0.5 * dcenter2
                     # cell widths
                     aux2 = []
                     for i in range(block_nx[dim]):
                         center = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
-                        dcenter = 2.0 * center * (1.0 - qstretch[ytlevel+1, dim]) / (1.0 + qstretch[ytlevel+1, dim])
+                        dcenter = 2.0 * center * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
                         aux2.append(dcenter)
                     cw_aux.append(aux2)
             prod = np.array([x for x in product(*cw_aux[::-1])])
