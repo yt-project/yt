@@ -36,6 +36,7 @@
 --ignore-file=test_set_zlim\.py
 --ignore-file=test_stream_particles\.py
 --ignore-file=test_stream_stretched\.py
+--ignore-file=test_stream_octree\.py
 --ignore-file=test_version\.py
 --ignore-file=test_gadget_pytest\.py
 --ignore-file=test_vr_orientation\.py

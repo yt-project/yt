@@ -1078,8 +1078,7 @@ def load_octree(
         the root oct is not refined, there will be only one entry
         for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
     data : dict
-        A dictionary of 1D arrays.  Note that these must of the size of the
-        number of "False" values in the ``octree_mask``.
+        A dictionary of 1D arrays. See note below for the format.
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units of length
     sim_time : float, optional
@@ -1115,17 +1114,50 @@ def load_octree(
         Optional string used to assign a name to the dataset. Stream datasets will use
         this value in place of a filename (in image prefixing, etc.)
 
+    Note
+    ----
+    Data is a dictionary with keys (type, field_name). ``type`` is typically
+    ``gas`` for gas fields and ``io`` for particle fields, but these are not
+    strictly enforced.
+
+    - Field values are 2D arrays of shape (Ncell, 1), with Ncell the number of
+      ``False`` values in ``octree_mask``.
+    - Particle values are 1D arrays of shape (Npart,), with Npart the number of
+      particles
+
+    Each entry can be:
+    1. A raw numpy array. If it is a known field (e.g., density), it is assumed
+       to be in code units. If it is not a known field, it is assumed to be
+       dimensionless.
+    2. A tuple (numpy array, unit string). As above, but the type is now
+       explicit.
+    3. Instead of a numpy array, a parameter-less function that returns a
+       numpy array can be provided. This is useful for cases where the data
+       is generated on-the-fly, or to implement a basic form of lazy loading.
+       **Note that this is only supported for fields, not particles.**
+
     Example
     -------
 
     >>> import numpy as np
-    >>> oct_mask = np.zeros(33) # 5 refined values gives 7 * 4 + 5 octs to mask
+    >>> oct_mask = np.zeros(33)  # 5 refined values gives 7 * 4 + 5 octs to mask
     ... oct_mask[[0,  5,  7, 16]] = 8
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities["gas", "density"] = np.random.random((29, 1)) # num of false's
-    >>> # Quantities can also contain parameter-less callbacks
-    >>> quantities["gas", "temperature"] = lambda: np.random.random((29, 1)) * 1e4
+    ... # Note: there are 29 leaf cells
+    ... quantities["gas", "density"]                 = np.random.random((29, 1))
+    ... quantities["gas", "dinosaurs"]               = np.random.random((29, 1))
+    ... quantities["gas", "turtle_number_density"]   = (np.random.random((29, 1)), "1/cm**3")
+    ... quantities["gas", "costly_field"]            = lambda: np.random.random((29, 1))
+    ... quantities["gas", "costly_field_with_units"] = (lambda: np.random.random((29, 1)), "K")
+    >>> # Load in 123 particles
+    ... quantities["io", "particle_position_x"] = np.random.random(123)
+    ... quantities["io", "particle_position_y"] = np.random.random(123)
+    ... quantities["io", "particle_position_z"] = np.random.random(123)
+    ... # This also works
+    ... quantities["io", "particle_position"] = np.random.random((123, 3))
+    ... quantities["io", "particle_mass"] = (np.random.random(123), "g")
+
     >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
     >>> ds = load_octree(
