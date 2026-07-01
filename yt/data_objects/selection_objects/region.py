@@ -57,12 +57,16 @@ class YTRegion(YTSelectionContainer3D):
             self.left_edge = self.ds.arr(left_edge, "code_length", dtype="float64")
         else:
             # need to assign this dataset's unit registry to the YTArray
-            self.left_edge = self.ds.arr(left_edge.copy(), dtype="float64")
+            # and convert to code_length to ensure consistent units for selection
+            left_edge_arr = self.ds.arr(left_edge.copy(), dtype="float64")
+            self.left_edge = left_edge_arr.to("code_length")
         if not isinstance(right_edge, YTArray):
             self.right_edge = self.ds.arr(right_edge, "code_length", dtype="float64")
         else:
             # need to assign this dataset's unit registry to the YTArray
-            self.right_edge = self.ds.arr(right_edge.copy(), dtype="float64")
+            # and convert to code_length to ensure consistent units for selection
+            right_edge_arr = self.ds.arr(right_edge.copy(), dtype="float64")
+            self.right_edge = right_edge_arr.to("code_length")
 
     def _get_bbox(self):
         """
