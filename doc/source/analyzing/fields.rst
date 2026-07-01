@@ -118,7 +118,6 @@ field, like its default units or the source code for it.
 .. code-block:: python
 
    ds = yt.load("my_data")
-   ds.index
    print(ds.field_info["gas", "pressure"].get_units())
    print(ds.field_info["gas", "pressure"].get_source())
 
