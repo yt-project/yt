@@ -159,34 +159,30 @@ class AMRVACHierarchy(GridIndex):
             if "qstretch_baselevel" not in meshlist:
                 # compute default values dynamically, just as done in AMRVAC
                 assert sum(stretched_dims) == 1  # exactly one stretched direction
-                stretched_dim = stretched_dims.index(True)
-                _sbl = [
-                    1.0,
-                ] * ndim
-                _sbl[stretched_dim] = (
-                    meshlist[f"xprobmax{stretched_dim + 1}"]
-                    / meshlist[f"xprobmin{stretched_dim + 1}"]
-                ) ** (1.0 / meshlist[f"domain_nx{stretched_dim + 1}"])
+                stretched_dim = stretched_dims.index(True) + 1 # AMRVAC index (1 offset, Fortran convention)
+                _sbl = [1.0] * ndim
+                _sbl[stretched_dim-1] = (
+                    meshlist[f"xprobmax{stretched_dim}"]
+                    / meshlist[f"xprobmin{stretched_dim}"]
+                ) ** (1.0 / meshlist[f"domain_nx{stretched_dim}"])
                 stretch_baselevel = tuple(_sbl)
             elif isinstance(stretch_baselevel := meshlist["qstretch_baselevel"], list):
                 assert len(stretch_baselevel) >= ndim
                 stretch_baselevel = (
-                    float(b) for b in stretch_baselevel[: ndim]
+                    float(b) for b in stretch_baselevel[:ndim]
                 )
             else:
                 assert isinstance(stretch_baselevel, float | int)
                 assert sum(stretched_dims) == 1  # exactly one stretched direction
                 stretched_dim = stretched_dims.index(True)
-                _sbl = [
-                    1.0,
-                ] * ndim
+                _sbl = [1.0] * ndim
                 _sbl[stretched_dim] = stretch_baselevel
                 stretch_baselevel = tuple(_sbl)
 
         qstretch = np.zeros((self.max_level + 2, ndim), dtype="float64")
         dxfirst = np.zeros((self.max_level + 2, ndim), dtype="float64")
         for dim in range(ndim):
-            if self.stretch_dim[dim] == "none" or self.stretch_dim[dim] == "":
+            if self.stretch_dim[dim] in ["none", ""]:
                 continue
             elif self.stretch_dim[dim] in ["uni", "uniform"]:
                 qstretch[1, dim] = stretch_baselevel[dim]
@@ -246,7 +242,7 @@ class AMRVACHierarchy(GridIndex):
             while dim_count < 3:
                 cw_aux.append([1.0])
                 dim_count += 1
-            prod = np.array([x for x in product(*cw_aux[::-1])])
+            prod = np.array(list(product(*cw_aux[::-1])))
             cell_widths = (prod.T)[::-1]
             
             # edges and dimensions are filled in a dimensionality-agnostic way
