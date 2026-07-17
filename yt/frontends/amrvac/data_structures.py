@@ -232,12 +232,13 @@ class AMRVACHierarchy(GridIndex):
                     dcenter2 = 2.0 * center2 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
                     right_edge[dim] = center2 + 0.5 * dcenter2
                     # cell widths
-                    aux2 = []
-                    for i in range(block_nx[dim]):
-                        center = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
-                        dcenter = 2.0 * center * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
-                        aux2.append(dcenter)
-                    cw_aux.append(aux2)
+                    dcenter = [
+                        (
+                            (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
+                            * 2.0 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
+                        ) for i in range(block_nx[dim])
+                    ]
+                    cw_aux.append(dcenter)
                 dim_count += 1
             while dim_count < 3:
                 cw_aux.append([1.0])
