@@ -153,31 +153,32 @@ class AMRVACHierarchy(GridIndex):
 
         self.grids = np.empty(self.num_grids, dtype="object")
         stretched_dims = [not (x == "none" or x == "") for x in self.stretch_dim]
+        base_stretch = np.ones(3, dtype="float64")
         if np.any(stretched_dims):
             meshlist = self.dataset.namelist["meshlist"]
             stretch_baselevel = meshlist.get("qstretch_baselevel")
-            if "qstretch_baselevel" not in meshlist:
-                # compute default values dynamically, just as done in AMRVAC
-                assert sum(stretched_dims) == 1  # exactly one stretched direction
-                stretched_dim = stretched_dims.index(True) + 1 # AMRVAC index (1 offset, Fortran convention)
-                _sbl = [1.0] * ndim
-                _sbl[stretched_dim-1] = (
-                    meshlist[f"xprobmax{stretched_dim}"]
-                    / meshlist[f"xprobmin{stretched_dim}"]
-                ) ** (1.0 / meshlist[f"domain_nx{stretched_dim}"])
-                stretch_baselevel = tuple(_sbl)
-            elif isinstance(stretch_baselevel := meshlist["qstretch_baselevel"], list):
-                assert len(stretch_baselevel) >= ndim
-                stretch_baselevel = (
-                    float(b) for b in stretch_baselevel[:ndim]
-                )
-            else:
-                assert isinstance(stretch_baselevel, float | int)
-                assert sum(stretched_dims) == 1  # exactly one stretched direction
-                stretched_dim = stretched_dims.index(True)
-                _sbl = [1.0] * ndim
-                _sbl[stretched_dim] = stretch_baselevel
-                stretch_baselevel = tuple(_sbl)
+            match stretch_baselevel:
+                case None:
+                    # compute default values dynamically, just as done in AMRVAC
+                    assert sum(stretched_dims) == 1  # exactly one stretched direction
+                    stretched_dim = stretched_dims.index(True) + 1 # AMRVAC index (1 offset, Fortran convention)
+                    base_stretch[stretched_dim-1] = (
+                        meshlist[f"xprobmax{stretched_dim}"]
+                        / meshlist[f"xprobmin{stretched_dim}"]
+                    ) ** (1.0 / meshlist[f"domain_nx{stretched_dim}"])
+                case list() | tuple():
+                    assert len(stretch_baselevel) >= ndim
+                    base_stretch[:ndim] = (
+                        float(b) for b in stretch_baselevel[:ndim]
+                    )
+                case float() | int():
+                    assert sum(stretched_dims) == 1  # exactly one stretched direction
+                    stretched_dim = stretched_dims.index(True)
+                    base_stretch[stretched_dim] = stretch_baselevel
+                case _:
+                    raise ValueError(
+                        f"Unknown type for qstretch_baselevel: {type(stretch_baselevel)}"
+                    )
 
         qstretch = np.zeros((self.max_level + 2, ndim), dtype="float64")
         dxfirst = np.zeros((self.max_level + 2, ndim), dtype="float64")
@@ -185,7 +186,7 @@ class AMRVACHierarchy(GridIndex):
             if self.stretch_dim[dim] in ["none", ""]:
                 continue
             elif self.stretch_dim[dim] in ["uni", "uniform"]:
-                qstretch[1, dim] = stretch_baselevel[dim]
+                qstretch[1, dim] = base_stretch[dim]
                 dxfirst[1, dim] = (
                     domain_width[dim] * (1.0 - qstretch[1, dim])
                     / (1.0 - qstretch[1, dim] ** meshlist[f"domain_nx{dim + 1}"])
