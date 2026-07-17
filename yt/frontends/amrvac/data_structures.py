@@ -213,7 +213,6 @@ class AMRVACHierarchy(GridIndex):
         ):
             left_edge = np.zeros(ndim, dtype="float64")
             right_edge = np.zeros(ndim, dtype="float64")
-            cell_widths = np.zeros((ndim, np.prod(block_nx)), dtype="float64")
             cw_aux = []
 
             dim_count = 0
