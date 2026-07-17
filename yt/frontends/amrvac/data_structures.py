@@ -183,30 +183,31 @@ class AMRVACHierarchy(GridIndex):
         qstretch = np.zeros((self.max_level + 2, ndim), dtype="float64")
         dxfirst = np.zeros((self.max_level + 2, ndim), dtype="float64")
         for dim in range(ndim):
-            if self.stretch_dim[dim] in ["none", ""]:
-                continue
-            elif self.stretch_dim[dim] in ["uni", "uniform"]:
-                qstretch[1, dim] = base_stretch[dim]
-                dxfirst[1, dim] = (
-                    domain_width[dim] * (1.0 - qstretch[1, dim])
-                    / (1.0 - qstretch[1, dim] ** meshlist[f"domain_nx{dim + 1}"])
-                )
-                qstretch[0, dim] = qstretch[1, dim] ** 2
-                dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
-                if self.max_level > 0:
-                    for ilev in range(2, self.max_level + 2):
-                        qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
-                        dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
-                            1.0 + np.sqrt(qstretch[ilev - 1, dim])
-                        )
-            elif self.stretch_dim[dim] in ["symm", "symmetric"]:
-                raise ValueError(
-                    f"Symmetric stretching is not currently supported for AMRVAC data."
-                )
-            else:
-                raise ValueError(
-                    f"Unknown stretch_dim '{self.stretch_dim[dim]}' for dimension {dim}."
-                )
+            match self.stretch_dim[dim]:
+                case "none" | "":
+                    continue
+                case "uni" | "uniform":
+                    qstretch[1, dim] = base_stretch[dim]
+                    dxfirst[1, dim] = (
+                        domain_width[dim] * (1.0 - qstretch[1, dim])
+                        / (1.0 - qstretch[1, dim] ** meshlist[f"domain_nx{dim + 1}"])
+                    )
+                    qstretch[0, dim] = qstretch[1, dim] ** 2
+                    dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
+                    if self.max_level > 0:
+                        for ilev in range(2, self.max_level + 2):
+                            qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
+                            dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
+                                1.0 + np.sqrt(qstretch[ilev - 1, dim])
+                            )
+                case "symm" | "symmetric":
+                    raise ValueError(
+                        f"Symmetric stretching is not currently supported for AMRVAC data."
+                    )
+                case _:
+                    raise ValueError(
+                        f"Unknown stretch_dim '{self.stretch_dim[dim]}' for dimension {dim}."
+                    )
 
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
@@ -217,28 +218,29 @@ class AMRVACHierarchy(GridIndex):
 
             dim_count = 0
             for dim in range(ndim):
-                if self.stretch_dim[dim] == "none" or self.stretch_dim[dim] == "":
-                    dx = dx0 / self.dataset.refine_by**ytlevel
-                    left_edge[dim] = xmin[dim] + (morton_index[dim] - 1) * block_nx[dim] * dx[dim]
-                    right_edge[dim] = left_edge[dim] + block_nx[dim] * dx[dim]
-                    cw_aux.append([dx[dim]] * block_nx[dim])
-                elif self.stretch_dim[dim] in ["uni", "uniform"]:
-                    # left edge
-                    center1 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
-                    dcenter1 = 2.0 * center1 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
-                    left_edge[dim] = center1 - 0.5 * dcenter1
-                    # right edge
-                    center2 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** (morton_index[dim] * block_nx[dim] - 1)
-                    dcenter2 = 2.0 * center2 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
-                    right_edge[dim] = center2 + 0.5 * dcenter2
-                    # cell widths
-                    dcenter = [
-                        (
-                            (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
-                            * 2.0 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
-                        ) for i in range(block_nx[dim])
-                    ]
-                    cw_aux.append(dcenter)
+                match self.stretch_dim[dim]:
+                    case "none" | "":
+                        dx = dx0 / self.dataset.refine_by**ytlevel
+                        left_edge[dim] = xmin[dim] + (morton_index[dim] - 1) * block_nx[dim] * dx[dim]
+                        right_edge[dim] = left_edge[dim] + block_nx[dim] * dx[dim]
+                        cw_aux.append([dx[dim]] * block_nx[dim])
+                    case "uni" | "uniform":
+                        # left edge
+                        center1 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
+                        dcenter1 = 2.0 * center1 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
+                        left_edge[dim] = center1 - 0.5 * dcenter1
+                        # right edge
+                        center2 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** (morton_index[dim] * block_nx[dim] - 1)
+                        dcenter2 = 2.0 * center2 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
+                        right_edge[dim] = center2 + 0.5 * dcenter2
+                        # cell widths
+                        dcenter = [
+                            (
+                                (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
+                                * 2.0 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
+                            ) for i in range(block_nx[dim])
+                        ]
+                        cw_aux.append(dcenter)
                 dim_count += 1
             while dim_count < 3:
                 cw_aux.append([1.0])
