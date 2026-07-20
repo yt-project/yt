@@ -227,13 +227,15 @@ class AMRVACHierarchy(GridIndex):
                         cw_aux.append([dx[dim]] * block_nx[dim])
                     case "uni" | "uniform":
                         # left edge
-                        center1 = (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
-                        dcenter1 = 2.0 * center1 * (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0)
-                        left_edge[dim] = center1 - 0.5 * dcenter1
+                        left_edge[dim] = (
+                            (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
+                            * (1.0 - (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0))
+                        )
                         # right edge
-                        center2 = (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** (morton_index[dim] * block_nx[dim] - 1)
-                        dcenter2 = 2.0 * center2 * (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0)
-                        right_edge[dim] = center2 + 0.5 * dcenter2
+                        right_edge[dim] = (
+                            (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** (morton_index[dim] * block_nx[dim] - 1)
+                            * (1.0 + (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0))
+                        )
                         # cell widths
                         cw_aux.append([
                             (
