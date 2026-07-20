@@ -38,7 +38,7 @@ def read_amrvac_namelist(parfiles):
 
     # first merge the namelists
     parser = f90nml.Parser()
-    parser.default_start_index = 1
+    parser.global_start_index = 1
 
     namelists = [parser.read(parfile) for parfile in parfiles]
     unified_namelist = f90nml.Namelist()

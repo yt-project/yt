@@ -107,9 +107,10 @@ class AMRVACHierarchy(GridIndex):
             meshlist = self.dataset.namelist["meshlist"]
             if (stretch_dim := meshlist.get("stretch_dim")) is not None:
                 assert isinstance(stretch_dim, list)
+                assert len(stretch_dim) <= self.dataset.dimensionality
+                stretch_dim = ['none' if v is None else v for v in stretch_dim]
                 assert all(isinstance(x, str) for x in stretch_dim)
-                assert len(stretch_dim) >= self.dataset.dimensionality
-                self.stretch_dim = stretch_dim
+                self.stretch_dim[:len(stretch_dim)] = stretch_dim
 
         super().__init__(ds, dataset_type)
 
