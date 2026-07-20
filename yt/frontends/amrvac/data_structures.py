@@ -158,6 +158,15 @@ class AMRVACHierarchy(GridIndex):
             meshlist = self.dataset.namelist["meshlist"]
             stretch_baselevel = meshlist.get("qstretch_baselevel")
             match stretch_baselevel:
+                case ():
+                    assert len(stretch_baselevel) >= ndim
+                    base_stretch[:ndim] = (
+                        float(b) for b in stretch_baselevel[:ndim]
+                    )
+                case float() | int():
+                    assert sum(stretched_dims) == 1  # exactly one stretched direction
+                    stretched_dim = stretched_dims.index(True)
+                    base_stretch[stretched_dim] = float(stretch_baselevel)
                 case None:
                     # compute default values dynamically, just as done in AMRVAC
                     assert sum(stretched_dims) == 1  # exactly one stretched direction
@@ -166,15 +175,6 @@ class AMRVACHierarchy(GridIndex):
                         meshlist[f"xprobmax{stretched_dim}"]
                         / meshlist[f"xprobmin{stretched_dim}"]
                     ) ** (1.0 / meshlist[f"domain_nx{stretched_dim}"])
-                case list() | tuple():
-                    assert len(stretch_baselevel) >= ndim
-                    base_stretch[:ndim] = (
-                        float(b) for b in stretch_baselevel[:ndim]
-                    )
-                case float() | int():
-                    assert sum(stretched_dims) == 1  # exactly one stretched direction
-                    stretched_dim = stretched_dims.index(True)
-                    base_stretch[stretched_dim] = stretch_baselevel
                 case _:
                     raise ValueError(
                         f"Unknown type for qstretch_baselevel: {type(stretch_baselevel)}"
@@ -206,12 +206,13 @@ class AMRVACHierarchy(GridIndex):
                     )
                 case _:
                     raise ValueError(
-                        f"Unknown stretch_dim '{self.stretch_dim[dim]}' for dimension {dim}."
+                        f"Unknown stretch_dim {self.stretch_dim[dim]!r} for dimension {dim}."
                     )
 
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
         ):
+            amrvac_level = ytlevel + 1  # AMRVAC uses 1-based indexing for levels
             left_edge = np.zeros(ndim, dtype="float64")
             right_edge = np.zeros(ndim, dtype="float64")
             cw_aux = []
@@ -226,21 +227,20 @@ class AMRVACHierarchy(GridIndex):
                         cw_aux.append([dx[dim]] * block_nx[dim])
                     case "uni" | "uniform":
                         # left edge
-                        center1 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
-                        dcenter1 = 2.0 * center1 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
+                        center1 = (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
+                        dcenter1 = 2.0 * center1 * (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0)
                         left_edge[dim] = center1 - 0.5 * dcenter1
                         # right edge
-                        center2 = (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** (morton_index[dim] * block_nx[dim] - 1)
-                        dcenter2 = 2.0 * center2 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
+                        center2 = (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** (morton_index[dim] * block_nx[dim] - 1)
+                        dcenter2 = 2.0 * center2 * (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0)
                         right_edge[dim] = center2 + 0.5 * dcenter2
                         # cell widths
-                        dcenter = [
+                        cw_aux.append([
                             (
-                                (xmin[dim] + 0.5 * dxfirst[ytlevel+1, dim]) * qstretch[ytlevel+1, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
-                                * 2.0 * (qstretch[ytlevel+1, dim] - 1.0) / (qstretch[ytlevel+1, dim] + 1.0)
+                                (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
+                                * 2.0 * (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0)
                             ) for i in range(block_nx[dim])
-                        ]
-                        cw_aux.append(dcenter)
+                        ])
                 dim_count += 1
             while dim_count < 3:
                 cw_aux.append([1.0])
