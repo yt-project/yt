@@ -9,10 +9,10 @@ import os
 import struct
 import warnings
 import weakref
+from itertools import product
 from pathlib import Path
 
 import numpy as np
-from itertools import product
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
@@ -204,7 +204,7 @@ class AMRVACHierarchy(GridIndex):
                             )
                 case "symm" | "symmetric":
                     raise ValueError(
-                        f"Symmetric stretching is not currently supported for AMRVAC data."
+                        "Symmetric stretching is not currently supported for AMRVAC data."
                     )
                 case _:
                     raise ValueError(
@@ -251,7 +251,7 @@ class AMRVACHierarchy(GridIndex):
                 dim_count += 1
             prod = np.array(list(product(*cw_aux[::-1])))
             cell_widths = (prod.T)[::-1]
-            
+
             # edges and dimensions are filled in a dimensionality-agnostic way
             self.grid_left_edge[igrid, :ndim] = left_edge
             self.grid_right_edge[igrid, :ndim] = right_edge
