@@ -32,6 +32,11 @@ repos:
   hooks:
     - id: zizmor
 
+- repo: https://github.com/astral-sh/uv-pre-commit
+  rev: 0.11.29
+  hooks:
+  - id: uv-lock
+
 # TODO: replace this with ruff when it supports embedded python blocks
 # see https://github.com/astral-sh/ruff/issues/8237
 -   repo: https://github.com/adamchainz/blacken-docs
