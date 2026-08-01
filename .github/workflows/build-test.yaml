@@ -33,7 +33,6 @@ jobs:
         version: ">=0.9.11,<0.10.0" # pin uv to avoid the lock file format going out-of-sync
         python-version: 3.14
         cache-suffix: lockcheck
-        prune-cache: false
     - run: uv lock --check
 
   build:
@@ -107,7 +106,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache-suffix: ${{ matrix.cache-suffix }}
-        prune-cache: false
     - name: Install dependencies and yt
       shell: bash
       env:
