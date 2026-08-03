@@ -158,7 +158,7 @@ full = [
     "pykdtree>=1.3.4",
     "pyx>=0.15",
     "scipy>=1.7.2",
-    "ratarmount~=0.8.1;platform_system!='Windows' and platform_system!='Darwin'",
+    "ratarmount>=0.8.1,<1.4.0;platform_system!='Windows' and platform_system!='Darwin'",
     "yt[adaptahop]",
     "yt[ahf]",
     "yt[amrex]",
