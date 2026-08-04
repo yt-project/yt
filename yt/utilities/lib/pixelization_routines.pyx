@@ -551,6 +551,63 @@ def pixelize_off_axis_cartesian(
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def pixel_is_completely_contained_within_cylindrical_box(
+    np.float64_t box_rmin,
+    np.float64_t box_rmax,
+    np.float64_t box_thetamin,
+    np.float64_t box_thetamax,
+    np.float64_t img_x0,
+    np.float64_t img_y0,
+    np.float64_t img_dx,
+    np.float64_t img_dy,
+    int pixel_i,
+    int pixel_j,
+) -> bool:
+    cdef np.float64_t xp, yp
+    cdef np.float64_t prbounds[2]
+    cdef np.float64_t ptbounds[2]
+    cdef np.float64_t corners[4]
+
+    # now check that this pixel is entirely confined within
+    # the data domain
+    xp = img_x0 + pixel_i*img_dx
+    yp = img_y0 + pixel_j*img_dy
+    corners[0] = xp*xp + yp*yp
+    corners[1] = xp*xp + (yp+img_dy)**2
+    corners[2] = (xp+img_dx)**2 + yp*yp
+    corners[3] = (xp+img_dx)**2 + (yp+img_dy)**2
+    prbounds[0] = prbounds[1] = corners[3]
+    for i1 in range(3):
+        prbounds[0] = fmin(prbounds[0], corners[i1])
+        prbounds[1] = fmax(prbounds[1], corners[i1])
+    prbounds[0] = math.sqrt(prbounds[0])
+    if prbounds[0] < box_rmin:
+        return False
+
+    prbounds[1] = math.sqrt(prbounds[1])
+    if prbounds[1] > box_rmax:
+        return False
+
+    corners[0] = math.atan2(xp, yp)
+    corners[1] = math.atan2(xp, yp+img_dy)
+    corners[2] = math.atan2(xp+img_dx, yp)
+    corners[3] = math.atan2(xp+img_dx, yp+img_dy)
+    ptbounds[0] = ptbounds[1] = corners[3]
+    for i1 in range(3):
+        ptbounds[0] = fmin(ptbounds[0], corners[i1])
+        ptbounds[1] = fmax(ptbounds[1], corners[i1])
+
+    # shift to a [0, PI] interval
+    ptbounds[0] = ptbounds[0] % (2*np.pi)
+    if ptbounds[0] < box_thetamin:
+        return False
+
+    ptbounds[1] = ptbounds[1] % (2*np.pi)
+    return ptbounds[1] <= box_thetamax
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def pixelize_cylinder(np.float64_t[:,:] buff,
                       np.float64_t[:] radius,
                       np.float64_t[:] dradius,
@@ -563,7 +620,7 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
 ):
 
     cdef np.float64_t x, y, dx, dy, r0, theta0
-    cdef np.float64_t rmin, rmax, tmin, tmax, x0, y0, x1, y1, xp, yp
+    cdef np.float64_t rmin, rmax, tmin, tmax, x0, y0, x1, y1
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i
     cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
@@ -587,8 +644,6 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     dx = (x1 - x0) / buff.shape[0]
     dy = (y1 - y0) / buff.shape[1]
     cdef np.float64_t rbounds[2]
-    cdef np.float64_t prbounds[2]
-    cdef np.float64_t ptbounds[2]
     cdef np.float64_t corners[8]
     # Find our min and max r
     corners[0] = x0*x0+y0*y0
@@ -640,42 +695,76 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                     if pi >= 0 and pi < buff.shape[0] and \
                        pj >= 0 and pj < buff.shape[1]:
                         # we got a pixel that intersects the grid cell
-                        # now check that this pixel doesn't go beyond the data domain
-                        xp = x0 + pi*dx
-                        yp = y0 + pj*dy
-                        corners[0] = xp*xp + yp*yp
-                        corners[1] = xp*xp + (yp+dy)**2
-                        corners[2] = (xp+dx)**2 + yp*yp
-                        corners[3] = (xp+dx)**2 + (yp+dy)**2
-                        prbounds[0] = prbounds[1] = corners[3]
-                        for i1 in range(3):
-                            prbounds[0] = fmin(prbounds[0], corners[i1])
-                            prbounds[1] = fmax(prbounds[1], corners[i1])
-                        prbounds[0] = math.sqrt(prbounds[0])
-                        prbounds[1] = math.sqrt(prbounds[1])
-
-                        corners[0] = math.atan2(xp, yp)
-                        corners[1] = math.atan2(xp, yp+dy)
-                        corners[2] = math.atan2(xp+dx, yp)
-                        corners[3] = math.atan2(xp+dx, yp+dy)
-                        ptbounds[0] = ptbounds[1] = corners[3]
-                        for i1 in range(3):
-                            ptbounds[0] = fmin(ptbounds[0], corners[i1])
-                            ptbounds[1] = fmax(ptbounds[1], corners[i1])
-
-                        # shift to a [0, 2*PI] interval
-                        # note: with fmod, the sign of the returned value
-                        # matches the sign of the first argument, so need
-                        # to offset by 2pi to ensure a positive result in [0, 2pi]
-                        ptbounds[0] = math.fmod(ptbounds[0]+twoPI, twoPI)
-                        ptbounds[1] = math.fmod(ptbounds[1]+twoPI, twoPI)
-
-                        if prbounds[0] >= rmin and prbounds[1] <= rmax and \
-                           ptbounds[0] >= tmin and ptbounds[1] <= tmax:
-                            buff[pi, pj] = field[i]
-                            mask[pi, pj] = 1
+                        buff[pi, pj] = field[i]
+                        mask[pi, pj] = 1
                     r_i += r_inc
                 theta_i += theta_inc
+
+    # now let's refine bounding box detection accuracy
+    # and clear pixels that intesect only partially with the bounding box
+    # We'll perform 4 loops, one for each axis/direction pair
+    cdef np.float64_t fillvalue = np.nan  # TODO: make sure this value makes sense
+    for pi in range(mask.shape[0]):
+        pj = 0
+        while pj < (mask.shape[1] - 1) and mask[pi, pj] == 0:
+            pj += 1
+        if mask[pi, pj] == 1 and not (
+            pixel_is_completely_contained_within_cylindrical_box(
+                box_rmin=rmin, box_rmax=rmax,
+                box_thetamin=tmin, box_thetamax=tmax,
+                img_x0=x0, img_y0=y0,
+                img_dx=dx, img_dy=dy,
+                pixel_i=pi, pixel_j=pj,
+            )
+        ):
+            buff[pi, pj] = fillvalue
+            mask[pi, pj] = 0
+
+        pj = mask.shape[1] - 1
+        while pj > 0 and mask[pi, pj] == 0:
+            pj -= 1
+        if mask[pi, pj] == 1 and not (
+            pixel_is_completely_contained_within_cylindrical_box(
+                box_rmin=rmin, box_rmax=rmax,
+                box_thetamin=tmin, box_thetamax=tmax,
+                img_x0=x0, img_y0=y0,
+                img_dx=dx, img_dy=dy,
+                pixel_i=pi, pixel_j=pj,
+            )
+        ):
+            buff[pi, pj] = fillvalue
+            mask[pi, pj] = 0
+
+    for pj in range(mask.shape[1]):
+        pi = 0
+        while pi < (mask.shape[0] - 1) and mask[pi, pj] == 0:
+            pi += 1
+        if mask[pi, pj] == 1 and not (
+            pixel_is_completely_contained_within_cylindrical_box(
+                box_rmin=rmin, box_rmax=rmax,
+                box_thetamin=tmin, box_thetamax=tmax,
+                img_x0=x0, img_y0=y0,
+                img_dx=dx, img_dy=dy,
+                pixel_i=pi, pixel_j=pj,
+            )
+        ):
+            buff[pi, pj] = fillvalue
+            mask[pi, pj] = 0
+
+        pi = mask.shape[0] - 1
+        while pi > 0 and mask[pi, pj] == 0:
+            pi -= 1
+        if mask[pi, pj] == 1 and not (
+            pixel_is_completely_contained_within_cylindrical_box(
+                box_rmin=rmin, box_rmax=rmax,
+                box_thetamin=tmin, box_thetamax=tmax,
+                img_x0=x0, img_y0=y0,
+                img_dx=dx, img_dy=dy,
+                pixel_i=pi, pixel_j=pj,
+            )
+        ):
+            buff[pi, pj] = fillvalue
+            mask[pi, pj] = 0
 
     if return_mask:
         return mask_arr.astype("bool")
