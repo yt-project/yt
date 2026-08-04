@@ -183,7 +183,6 @@ def print_all_fields(fl):
             print()
 
 
-ds.index
 print_all_fields(ds.field_info)
 
 
