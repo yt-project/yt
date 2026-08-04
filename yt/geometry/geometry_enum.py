@@ -16,6 +16,7 @@ class Geometry(StrEnum):
     GEOGRAPHIC = auto()
     INTERNAL_GEOGRAPHIC = auto()
     SPECTRAL_CUBE = auto()
+    CARTESIAN_SUBJECT = auto()
 
     def __str__(self):
         # Implemented for backward compatibility.

@@ -236,6 +236,7 @@ class FieldInfoContainer(UserDict):
                 | Geometry.GEOGRAPHIC
                 | Geometry.INTERNAL_GEOGRAPHIC
                 | Geometry.SPECTRAL_CUBE
+                | Geometry.CARTESIAN_SUBJECT
             ):
                 # nothing to do
                 pass
@@ -292,6 +293,7 @@ class FieldInfoContainer(UserDict):
                         | Geometry.GEOGRAPHIC
                         | Geometry.INTERNAL_GEOGRAPHIC
                         | Geometry.SPECTRAL_CUBE
+                        | Geometry.CARTESIAN_SUBJECT
                     ):
                         # nothing to do
                         pass
