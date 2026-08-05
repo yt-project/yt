@@ -438,6 +438,12 @@ class f90nml_imports(OnDemand):
         from f90nml import Namelist
 
         return Namelist
+    
+    @safe_import
+    def Parser(self):
+        from f90nml import Parser
+
+        return Parser
 
 
 _f90nml = f90nml_imports()
