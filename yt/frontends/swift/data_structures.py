@@ -58,17 +58,25 @@ class SwiftDataset(SPHDataset):
             msg = "Assuming length units are in comoving centimetres"
             only_on_root(mylog.info, msg)
             self.length_unit = self.quan(
-                float(units["Unit length in cgs (U_L)"]), "cmcm"
+                float(np.asarray(units["Unit length in cgs (U_L)"]).item()),
+                "cmcm",  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
             )
         else:
             msg = "Assuming length units are in physical centimetres"
             only_on_root(mylog.info, msg)
-            self.length_unit = self.quan(float(units["Unit length in cgs (U_L)"]), "cm")
+            self.length_unit = self.quan(
+                float(np.asarray(units["Unit length in cgs (U_L)"]).item()), "cm"
+            )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
 
-        self.mass_unit = self.quan(float(units["Unit mass in cgs (U_M)"]), "g")
-        self.time_unit = self.quan(float(units["Unit time in cgs (U_t)"]), "s")
+        self.mass_unit = self.quan(
+            float(np.asarray(units["Unit mass in cgs (U_M)"]).item()), "g"
+        )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
+        self.time_unit = self.quan(
+            float(np.asarray(units["Unit time in cgs (U_t)"]).item()), "s"
+        )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
         self.temperature_unit = self.quan(
-            float(units["Unit temperature in cgs (U_T)"]), "K"
+            float(np.asarray(units["Unit temperature in cgs (U_T)"]).item()),
+            "K",  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
         )
 
         return
@@ -120,13 +128,19 @@ class SwiftDataset(SPHDataset):
         self.domain_right_edge = header["BoxSize"]
         self.domain_left_edge = np.zeros_like(self.domain_right_edge)
 
-        self.dimensionality = int(header["Dimension"])
+        self.dimensionality = int(
+            np.asarray(header["Dimension"]).item()
+        )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
 
         # SWIFT is either all periodic, or not periodic at all
         if has_runtime_pars:
-            periodic = int(runtime_parameters["PeriodicBoundariesOn"])
+            periodic = int(
+                np.asarray(runtime_parameters["PeriodicBoundariesOn"]).item()
+            )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
         else:
-            periodic = int(parameters["InitialConditions:periodic"])
+            periodic = int(
+                np.asarray(parameters["InitialConditions:periodic"]).item()
+            )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
 
         if periodic:
             self._periodicity = [True] * self.dimensionality
@@ -134,26 +148,40 @@ class SwiftDataset(SPHDataset):
             self._periodicity = [False] * self.dimensionality
 
         # Units get attached to this
-        self.current_time = float(header["Time"])
+        self.current_time = float(
+            np.asarray(header["Time"]).item()
+        )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
 
         # Now cosmology enters the fray, as a runtime parameter.
-        self.cosmological_simulation = int(policy["cosmological integration"])
+        self.cosmological_simulation = int(
+            np.asarray(policy["cosmological integration"]).item()
+        )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
 
         if self.cosmological_simulation:
             try:
-                self.current_redshift = float(header["Redshift"])
+                self.current_redshift = float(
+                    np.asarray(header["Redshift"]).item()
+                )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
                 # These won't be present if self.cosmological_simulation is false
-                self.omega_lambda = float(parameters["Cosmology:Omega_lambda"])
+                self.omega_lambda = float(
+                    np.asarray(parameters["Cosmology:Omega_lambda"]).item()
+                )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
                 # Cosmology:Omega_m parameter deprecated at SWIFT commit d2783c2
                 # Between SWIFT versions 0.9.0 and 1.0.0
                 if "Cosmology:Omega_cdm" in parameters:
-                    self.omega_matter = float(parameters["Cosmology:Omega_b"]) + float(
-                        parameters["Cosmology:Omega_cdm"]
-                    )
+                    self.omega_matter = float(
+                        np.asarray(parameters["Cosmology:Omega_b"]).item()
+                    ) + float(
+                        np.asarray(parameters["Cosmology:Omega_cdm"]).item()
+                    )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
                 else:
-                    self.omega_matter = float(parameters["Cosmology:Omega_m"])
+                    self.omega_matter = float(
+                        np.asarray(parameters["Cosmology:Omega_m"]).item()
+                    )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
                 # This is "little h"
-                self.hubble_constant = float(parameters["Cosmology:h"])
+                self.hubble_constant = float(
+                    np.asarray(parameters["Cosmology:h"]).item()
+                )  ## Bug fixed for conversion of an array with ndim > 0 to a scalar
             except KeyError:
                 mylog.warning(
                     "Could not find cosmology information in Parameters, "
