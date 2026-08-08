@@ -122,6 +122,28 @@ field, like its default units or the source code for it.
    print(ds.field_info["gas", "pressure"].get_units())
    print(ds.field_info["gas", "pressure"].get_source())
 
+Defining properties for on-disk fields
+--------------------------------------
+
+Occasionally a dataset will have extra fields that are not defined in its
+associated frontend. When this is the case, those fields will not be
+assigned units, aliases, or a properly formatted display name. These properties
+can be defined manually by calling
+:meth:`~yt.data_objects.static_output.Dataset.register_field`.
+
+.. code-block:: python
+
+   ds = yt.load("DD1234/DD1234")
+   ds.register_field(("enzo", "DinosaurDensity"), units="code_mass/code_length**3")
+
+This can also be used to override properties defined by the frontend. Note, this
+must be done immediately after loading the dataset (i.e., before the ``field_list``
+has been populated).
+
+To do this within a configuration file, see :ref:`per-field-config`. However, note
+that the configuration file method will only operate when the field is not defined
+by the frontend; it will not override.
+
 Using fields to access data
 ---------------------------
 
