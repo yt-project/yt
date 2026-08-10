@@ -125,6 +125,17 @@ def test_set_units():
     p2.set_unit(("gas", "temperature"), "R")
 
 
+def test_profileplot_save_to_directory(tmp_path):
+    ds = fake_random_ds(16)
+    plot = yt.ProfilePlot(
+        ds.all_data(), ("index", "radius"), ("gas", "density"), weight_field=None
+    )
+
+    expected = tmp_path / f"{ds}_1d-Profile_radius_density.png"
+    assert plot.save(f"{tmp_path}{os.sep}") == [str(expected)]
+    assert expected.is_file()
+
+
 def test_set_labels():
     ds = fake_random_ds(16)
     ad = ds.all_data()
