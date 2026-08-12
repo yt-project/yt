@@ -126,6 +126,7 @@ cdef class OctreeContainer:
                     o = &cur.my_objs[cur.n_assigned]
                     o.domain_ind = o.file_ind = 0
                     o.domain = 1
+                    o.parent = NULL
                     obj.root_mesh[i][j][k] = o
                     cur.n_assigned += 1
                     visitor.pos[0] = i
@@ -263,6 +264,79 @@ cdef class OctreeContainer:
             oinfo.dds[i] = dds[i] * 2.0 / self.nz[i] # Cell width
             oinfo.ipos[i] = ipos[i]
             oinfo.left_edge[i] = oinfo.ipos[i] * (oinfo.dds[i] * self.nz[i]) + self.DLE[i]
+        oinfo.level = level
+        return cur
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef Oct *get_near(self, Oct *start_oct, OctInfo *start_oi,
+                        np.float64_t ppos[3], OctInfo *oinfo = NULL,
+                        int max_level = 99) noexcept nogil:
+        cdef int i
+        cdef Oct *cur
+        cdef Oct *next
+        cdef np.float64_t dds[3]
+        cdef np.float64_t left_edge[3]
+        cdef np.float64_t cand_dds[3]
+        cdef np.float64_t cand_left_edge[3]
+        cdef np.float64_t mid
+        cdef np.int64_t ind[3]
+        cdef np.int64_t level
+        cdef bint contains
+        #instead of starting at root, we start at given oct
+        cur = start_oct
+        for i in range(3):
+            dds[i] = start_oi.dds[i] * self.nz[i]
+            left_edge[i] = start_oi.left_edge[i]
+        level = start_oi.level
+
+        #walk up towards root, doubling each step until box contains ppos
+        while level > 0:
+            contains = True
+            for i in range(3):
+                if ppos[i] < left_edge[i] or ppos[i] >= left_edge[i] + dds[i]:
+                    contains = False
+                    break
+            if contains:
+                break
+            cur = cur.parent
+            for i in range(3):
+                dds[i] = dds[i] * 2.0
+                left_edge[i] = floor((left_edge[i] - self.DLE[i]) / dds[i]) * dds[i] + self.DLE[i]
+            level -= 1
+        #if still not in same root cell as before, start over
+        contains = True
+        for i in range(3):
+            if ppos[i] < left_edge[i] or ppos[i] >= left_edge[i] + dds[i]:
+                contains = False
+                break
+        if not contains:
+            return self.get(ppos, oinfo, max_level)
+        #walk back down toward ppos from wherever we ended up
+        while cur.children != NULL and level < max_level:
+            for i in range(3):
+                cand_dds[i] = dds[i] / 2.0
+                mid = left_edge[i] + cand_dds[i]
+                if mid > ppos[i]:
+                    ind[i] = 0
+                    cand_left_edge[i] = left_edge[i]
+                else:
+                    ind[i] = 1
+                    cand_left_edge[i] = mid
+            next = cur.children[cind(ind[0], ind[1], ind[2])]
+            if next == NULL:
+                break
+            cur = next
+            level += 1
+            for i in range(3):
+                dds[i] = cand_dds[i]
+                left_edge[i] = cand_left_edge[i]
+        if oinfo == NULL: return cur
+        for i in range(3):
+            oinfo.dds[i] = dds[i] / self.nz[i]
+            oinfo.left_edge[i] = left_edge[i]
+            oinfo.ipos[i] = 0 #not used by particle_deposit loop
         oinfo.level = level
         return cur
 
@@ -665,6 +739,7 @@ cdef class OctreeContainer:
         next = &cont.my_objs[cont.n_assigned]
         cont.n_assigned += 1
         self.root_mesh[ind[0]][ind[1]][ind[2]] = next
+        next.parent = NULL
         self.nocts += 1
         return next
 
@@ -684,6 +759,7 @@ cdef class OctreeContainer:
         next = &cont.my_objs[cont.n_assigned]
         cont.n_assigned += 1
         parent.children[cind(ind[0],ind[1],ind[2])] = next
+        next.parent = parent
         self.nocts += 1
         return next
 
@@ -1097,6 +1173,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         tsearch(<void*>ikey, &self.tree_root, root_node_compare)
         self.num_root += 1
         self.nocts += 1
+        next.parent = NULL
         return next
 
     def allocate_domains(self, domain_counts, int root_nodes):
@@ -1217,6 +1294,7 @@ cdef class OctObjectPool(ObjectPool):
             octs[n].file_ind = octs[n].domain = - 1
             octs[n].domain_ind = n + offset
             octs[n].children = NULL
+            octs[n].parent = NULL
 
     cdef void teardown_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
                            np.int64_t con_id):

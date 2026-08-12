@@ -17,6 +17,7 @@ cdef struct Oct:
     np.int64_t domain_ind   # index within the global set of domains
     np.int64_t domain       # (opt) addl int index
     Oct **children          # Up to 8 long
+    Oct *parent             # NULL for root octs
 
 cdef struct OctInfo:
     np.float64_t left_edge[3]
