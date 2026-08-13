@@ -47,6 +47,7 @@
 --ignore-file=test_field_parsing\.py
 --ignore-file=test_disks\.py
 --ignore-file=test_offaxisprojection_pytestonly\.py
+--ignore-file=test_process_octree_locality\.py
 --ignore-file=test_sph_pixelization_pytestonly\.py
 --ignore-file=test_time_series\.py
 --ignore-file=test_cf_radial_pytest\.py
