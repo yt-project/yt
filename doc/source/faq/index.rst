@@ -251,12 +251,10 @@ logged, you could type:
 .. code-block:: python
 
     ds = load("my_data")
-    ds.index
     ds.field_info["gas", "density"].take_log = False
 
 From that point forward, data products such as slices, projections, etc., would
-be presented in linear space. Note that you have to instantiate ds.index before
-you can access ds.field info.  For more information see the documentation on
+be presented in linear space. For more information see the documentation on
 :ref:`fields` and :ref:`creating-derived-fields`.
 
 .. _faq-new-field:
