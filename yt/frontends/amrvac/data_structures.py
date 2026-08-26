@@ -227,21 +227,27 @@ class AMRVACHierarchy(GridIndex):
                         cell_widths.append([dx] * block_nx[dim])
                     case "uni" | "uniform":
                         amrvac_level = ytlevel + 1  # AMRVAC uses 1-based indexing for levels
+                        q = qstretch[amrvac_level, dim]
+                        dx = dxfirst[amrvac_level, dim]
+
+                        base = xmin[dim] + 0.5 * dx
+                        correction = (q - 1.0) / (q + 1.0)
+
                         # left edge
                         left_edge[dim] = (
-                            (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
-                            * (1.0 - (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0))
+                            base * q ** ((morton_index[dim] - 1) * block_nx[dim])
+                            * (1.0 - correction)
                         )
                         # right edge
                         right_edge[dim] = (
-                            (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** (morton_index[dim] * block_nx[dim] - 1)
-                            * (1.0 + (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0))
+                            base * q ** (morton_index[dim] * block_nx[dim] - 1)
+                            * (1.0 + correction)
                         )
                         # cell widths
                         cell_widths.append([
                             (
-                                (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
-                                * 2.0 * (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0)
+                                base * q ** ((morton_index[dim] - 1) * block_nx[dim] + i)
+                                * 2.0 * correction
                             ) for i in range(block_nx[dim])
                         ])
             cell_widths.extend([[1.0]] * (3 - ndim))
