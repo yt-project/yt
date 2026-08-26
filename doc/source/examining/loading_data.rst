@@ -220,6 +220,31 @@ overriding a maximum of three units. Allowed unit combinations at the moment are
 Appropriate errors are thrown for other combinations.
 
 
+.. rubric:: Stretched grids
+
+To inform yt that the data is represented on a stretched grid,
+define ``stretch_dim`` in a parfile in ``meshlist``
+
+.. code-block:: fortran
+   &meshlist
+      stretch_dim(1) = 'uni'
+   /
+
+and pass the parfile to yt when loading the data:
+
+.. code-block:: python
+
+  ds = yt.load("output0010.dat", parfiles="amrvac.par")
+
+Both indexed statements (``stretch_dim(1)='uni'``) and array definitions
+(``stretch_dim='uni','',''``) are accepted in the parfile.
+
+* Only uniform stretching is supported at the moment, to be defined
+  as ``'uni'`` or ``'uniform'``.
+* At present, stretched grids are only supported on a
+  single level of refinement.
+
+
 .. rubric:: Partially supported and unsupported features
 
 * a maximum of 100 dust species can be read by yt at the moment.
