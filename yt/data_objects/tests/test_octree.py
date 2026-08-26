@@ -177,6 +177,8 @@ def test_octcellindex_neighbours_num_zones():
         num_octs = selector.count_octs(octree, -1)
         _, cell_inds = octree.fill_octcellindex_neighbours(selector)
 
+        # old code hard-coded 4**3=64 cells/oct; for nz=(2,3,4) it's really
+        # 4*5*6=120 - this assertion is what catches that
         assert_equal(cell_inds.size, num_octs * n_per_oct)
         assert cell_inds.min() >= 0
         assert cell_inds.max() <= nzones

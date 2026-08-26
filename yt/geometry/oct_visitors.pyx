@@ -388,7 +388,7 @@ cdef class BaseNeighbourVisitor(OctVisitor):
                 fcoords[i] += 1
             elif fcoords[i] > 1:
                 fcoords[i] -= 1
-            local_oct &= (0 <= ishift[i] <= 1)
+            local_oct &= (0 <= ishift[i] < self.nz[i])
         other_oct = not local_oct
 
         # Use octree to find neighbour
@@ -412,7 +412,7 @@ cdef class BaseNeighbourVisitor(OctVisitor):
 
         # Index of neighbouring cell within its oct
         for i in range(3):
-            self.neigh_ind[i] = <np.uint32_t>(ishift[i]) % 2
+            self.neigh_ind[i] = <np.uint32_t>(ishift[i]) % self.nz[i]
 
         self.other_oct = other_oct
         if other_oct:
@@ -460,15 +460,14 @@ cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
 
         self.last = o.domain_ind
 
-        cdef int i0, i1
+        cdef int i0
         i0 = -self.n_ghost_zones
-        i1 = 2 + self.n_ghost_zones
         # Loop over cells in and directly around oct
-        for i in range(i0, i1):
+        for i in range(i0, self.nz[0] + self.n_ghost_zones):
             ishift[0] = i
-            for j in range(i0, i1):
+            for j in range(i0, self.nz[1] + self.n_ghost_zones):
                 ishift[1] = j
-                for k in range(i0, i1):
+                for k in range(i0, self.nz[2] + self.n_ghost_zones):
                     ishift[2] = k
                     self.set_neighbour_info(o, ishift)
 
@@ -480,7 +479,8 @@ cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
                         neigh_cell_ind   = self.neighbour_rind()
                     else:
                         neigh_domain_ind = -1
-                        neigh_cell_ind   = 8
+                        # sentinel: one past the last valid cell index, i.e. "no such cell"
+                        neigh_cell_ind   = self.nz[0] * self.nz[1] * self.nz[2]
 
                     self.cell_inds[self.index]   = neigh_cell_ind
                     self.domain_inds[self.index] = neigh_domain_ind
@@ -506,15 +506,14 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
 
         self.last = o.domain_ind
 
-        cdef int i0, i1
+        cdef int i0
         i0 = -self.n_ghost_zones
-        i1 = 2 + self.n_ghost_zones
         # Loop over cells in and directly around oct
-        for i in range(i0, i1):
+        for i in range(i0, self.nz[0] + self.n_ghost_zones):
             ishift[0] = i
-            for j in range(i0, i1):
+            for j in range(i0, self.nz[1] + self.n_ghost_zones):
                 ishift[1] = j
-                for k in range(i0, i1):
+                for k in range(i0, self.nz[2] + self.n_ghost_zones):
                     ishift[2] = k
                     self.set_neighbour_info(o, ishift)
 
@@ -532,7 +531,8 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
                         neigh_level    = 255
                         neigh_domain   = -1
                         neigh_file_ind = -1
-                        neigh_cell_ind = 8
+                        # sentinel: one past the last valid cell index, i.e. "no such cell"
+                        neigh_cell_ind = self.nz[0] * self.nz[1] * self.nz[2]
 
                     self.levels[self.index]    = neigh_level
                     self.file_inds[self.index] = neigh_file_ind

@@ -818,12 +818,17 @@ cdef class OctreeContainer:
             num_octs = selector.count_octs(self, domain_id)
 
         cdef NeighbourCellIndexVisitor visitor
+        cdef int n_per_oct
 
         cdef np.uint32_t[::1] cell_inds
         cdef np.int64_t[::1] oct_inds
 
-        cell_inds = np.full(num_octs*4**3, self.nz[0] * self.nz[1] * self.nz[2], dtype=np.uint32)
-        oct_inds = np.full(num_octs*4**3, -1, dtype=np.int64)
+        # must match the per-oct cell count that NeighbourCellIndexVisitor.visit() writes
+        n_per_oct = ((self.nz[0] + 2*n_ghost_zones)
+                     * (self.nz[1] + 2*n_ghost_zones)
+                     * (self.nz[2] + 2*n_ghost_zones))
+        cell_inds = np.full(num_octs*n_per_oct, self.nz[0] * self.nz[1] * self.nz[2], dtype=np.uint32)
+        oct_inds = np.full(num_octs*n_per_oct, -1, dtype=np.int64)
 
         visitor = NeighbourCellIndexVisitor(self, -1, n_ghost_zones)
         visitor.cell_inds = cell_inds
@@ -929,7 +934,10 @@ cdef class OctreeContainer:
         cdef int num_octs
         if num_cells < 0:
             num_octs = selector.count_octs(self, domain_id)
-            num_cells = num_octs * 4**3
+            # must match the per-oct cell count that NeighbourCellVisitor.visit() writes
+            num_cells = num_octs * ((self.nz[0] + 2*n_ghost_zones)
+                                     * (self.nz[1] + 2*n_ghost_zones)
+                                     * (self.nz[2] + 2*n_ghost_zones))
         cdef NeighbourCellVisitor visitor
 
         cdef np.ndarray[np.uint8_t, ndim=1] levels
