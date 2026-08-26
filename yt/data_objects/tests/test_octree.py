@@ -1,8 +1,11 @@
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 
-from yt.geometry.oct_container import OctreeContainer
+from yt.geometry.oct_container import _ORDER_MAX, OctreeContainer
+from yt.geometry.particle_oct_container import ParticleOctreeContainer
+from yt.geometry.selection_routines import AlwaysSelector
 from yt.testing import fake_sph_grid_ds
+from yt.utilities.lib.geometry_utils import get_morton_indices
 
 n_ref = 4
 
@@ -142,3 +145,38 @@ def test_num_zones_tuple():
     assert oct_scalar is not None
     assert oct_tuple is not None
     assert oct_nonuniform is not None
+
+
+def test_octcellindex_neighbours_num_zones():
+    """
+    Regression test for #5402: fill_octcellindex_neighbours hard-coded the
+    assumption that every oct holds 2x2x2 zones, so both the loop bounds and
+    the output buffer size were wrong whenever num_zones wasn't (2, 2, 2).
+    """
+    DLE = np.array([0.0, 0.0, 0.0])
+    DRE = np.array([8.0, 8.0, 8.0])
+    dx = (DRE - DLE) / (2**_ORDER_MAX)
+
+    # One particle per octant of the root oct: refines exactly one level deep.
+    centers = np.array(
+        [[x, y, z] for x in (2, 6) for y in (2, 6) for z in (2, 6)], dtype="float64"
+    )
+    morton = get_morton_indices(np.floor((centers - DLE) / dx).astype("uint64"))
+    morton.sort()
+
+    for nz in ((2, 2, 2), (2, 3, 4)):
+        octree = ParticleOctreeContainer((1, 1, 1), DLE, DRE, num_zones=nz)
+        octree.n_ref = 1
+        octree.add(morton)
+        octree.finalize()
+
+        nzones = nz[0] * nz[1] * nz[2]
+        n_per_oct = (nz[0] + 2) * (nz[1] + 2) * (nz[2] + 2)  # +1 ghost zone each side
+
+        selector = AlwaysSelector(None)
+        num_octs = selector.count_octs(octree, -1)
+        _, cell_inds = octree.fill_octcellindex_neighbours(selector)
+
+        assert_equal(cell_inds.size, num_octs * n_per_oct)
+        assert cell_inds.min() >= 0
+        assert cell_inds.max() <= nzones
