@@ -9,7 +9,6 @@ import os
 import struct
 import warnings
 import weakref
-from itertools import product
 from pathlib import Path
 
 import numpy as np
