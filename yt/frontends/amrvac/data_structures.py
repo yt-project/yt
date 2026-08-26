@@ -228,9 +228,8 @@ class AMRVACHierarchy(GridIndex):
                     case "uni" | "uniform":
                         amrvac_level = ytlevel + 1  # AMRVAC uses 1-based indexing for levels
                         q = qstretch[amrvac_level, dim]
-                        dx = dxfirst[amrvac_level, dim]
 
-                        base = xmin[dim] + 0.5 * dx
+                        base = xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]
                         correction = (q - 1.0) / (q + 1.0)
 
                         # left edge
@@ -251,7 +250,9 @@ class AMRVACHierarchy(GridIndex):
                             ) for i in range(block_nx[dim])
                         ])
             cell_widths.extend([[1.0]] * (3 - ndim))
-            cell_widths = np.array(list(product(*cell_widths[::-1]))).T[::-1]
+            cell_widths = np.stack(
+                np.meshgrid(*cell_widths[::-1], indexing="ij")
+            )[::-1].reshape(3, -1)
 
             # edges and dimensions are filled in a dimensionality-agnostic way
             self.grid_left_edge[igrid, :ndim] = left_edge
