@@ -219,7 +219,6 @@ class AMRVACHierarchy(GridIndex):
             right_edge = np.zeros(ndim, dtype="float64")
             cw_aux = []
 
-            dim_count = 0
             for dim in range(ndim):
                 match self.stretch_dim[dim]:
                     case "none" | "":
@@ -245,10 +244,7 @@ class AMRVACHierarchy(GridIndex):
                                 * 2.0 * (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0)
                             ) for i in range(block_nx[dim])
                         ])
-                dim_count += 1
-            while dim_count < 3:
-                cw_aux.append([1.0])
-                dim_count += 1
+            cw_aux.extend([[1.0]] * (3 - ndim))
             prod = np.array(list(product(*cw_aux[::-1])))
             cell_widths = (prod.T)[::-1]
 
