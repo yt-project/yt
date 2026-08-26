@@ -214,19 +214,19 @@ class AMRVACHierarchy(GridIndex):
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
         ):
-            amrvac_level = ytlevel + 1  # AMRVAC uses 1-based indexing for levels
             left_edge = np.zeros(ndim, dtype="float64")
             right_edge = np.zeros(ndim, dtype="float64")
-            cw_aux = []
+            cell_widths = []
 
             for dim in range(ndim):
                 match self.stretch_dim[dim]:
                     case "none" | "":
-                        dx = dx0 / self.dataset.refine_by**ytlevel
-                        left_edge[dim] = xmin[dim] + (morton_index[dim] - 1) * block_nx[dim] * dx[dim]
-                        right_edge[dim] = left_edge[dim] + block_nx[dim] * dx[dim]
-                        cw_aux.append([dx[dim]] * block_nx[dim])
+                        dx = dx0[dim] / self.dataset.refine_by**ytlevel
+                        left_edge[dim] = xmin[dim] + (morton_index[dim] - 1) * block_nx[dim] * dx
+                        right_edge[dim] = left_edge[dim] + block_nx[dim] * dx
+                        cell_widths.append([dx] * block_nx[dim])
                     case "uni" | "uniform":
+                        amrvac_level = ytlevel + 1  # AMRVAC uses 1-based indexing for levels
                         # left edge
                         left_edge[dim] = (
                             (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** ((morton_index[dim] - 1) * block_nx[dim])
@@ -238,15 +238,14 @@ class AMRVACHierarchy(GridIndex):
                             * (1.0 + (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0))
                         )
                         # cell widths
-                        cw_aux.append([
+                        cell_widths.append([
                             (
                                 (xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]) * qstretch[amrvac_level, dim] ** ((morton_index[dim] - 1) * block_nx[dim] + i)
                                 * 2.0 * (qstretch[amrvac_level, dim] - 1.0) / (qstretch[amrvac_level, dim] + 1.0)
                             ) for i in range(block_nx[dim])
                         ])
-            cw_aux.extend([[1.0]] * (3 - ndim))
-            prod = np.array(list(product(*cw_aux[::-1])))
-            cell_widths = (prod.T)[::-1]
+            cell_widths.extend([[1.0]] * (3 - ndim))
+            cell_widths = np.array(list(product(*cell_widths[::-1]))).T[::-1]
 
             # edges and dimensions are filled in a dimensionality-agnostic way
             self.grid_left_edge[igrid, :ndim] = left_edge
