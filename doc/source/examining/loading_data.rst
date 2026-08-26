@@ -253,11 +253,6 @@ Both indexed statements (``stretch_dim(1)='uni'``) and array definitions
 * particle data: currently not supported (but might come later)
 * staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
   staggered datasets, but the flag is currently ignored.
-* "stretched grids" are being implemented in yt, but are not yet
-  fully-supported.  (Previous versions of this file suggested they would
-  "never" be supported, which we hope to prove incorrect once we finish
-  implementing stretched grids in AMR.  At present, stretched grids are
-  only supported on a single level of refinement.)
 
 .. note::
 
