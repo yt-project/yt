@@ -479,7 +479,7 @@ cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
                         neigh_cell_ind   = self.neighbour_rind()
                     else:
                         neigh_domain_ind = -1
-                        # sentinel: one past the last valid cell index, i.e. "no such cell"
+                        #one past the last valid cell index, i.e. "no such cell"
                         neigh_cell_ind   = self.nz[0] * self.nz[1] * self.nz[2]
 
                     self.cell_inds[self.index]   = neigh_cell_ind
@@ -531,7 +531,7 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
                         neigh_level    = 255
                         neigh_domain   = -1
                         neigh_file_ind = -1
-                        # sentinel: one past the last valid cell index, i.e. "no such cell"
+                        #one past the last valid cell index, i.e. "no such cell"
                         neigh_cell_ind = self.nz[0] * self.nz[1] * self.nz[2]
 
                     self.levels[self.index]    = neigh_level

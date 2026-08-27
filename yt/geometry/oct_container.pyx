@@ -823,7 +823,7 @@ cdef class OctreeContainer:
         cdef np.uint32_t[::1] cell_inds
         cdef np.int64_t[::1] oct_inds
 
-        # must match the per-oct cell count that NeighbourCellIndexVisitor.visit() writes
+        #match per-oct cell count in NeighbourCellIndexVisitor.visit()
         n_per_oct = ((self.nz[0] + 2*n_ghost_zones)
                      * (self.nz[1] + 2*n_ghost_zones)
                      * (self.nz[2] + 2*n_ghost_zones))
@@ -934,7 +934,7 @@ cdef class OctreeContainer:
         cdef int num_octs
         if num_cells < 0:
             num_octs = selector.count_octs(self, domain_id)
-            # must match the per-oct cell count that NeighbourCellVisitor.visit() writes
+            #match per-oct cell count in NeighbourCellVisitor.visit()
             num_cells = num_octs * ((self.nz[0] + 2*n_ghost_zones)
                                      * (self.nz[1] + 2*n_ghost_zones)
                                      * (self.nz[2] + 2*n_ghost_zones))
