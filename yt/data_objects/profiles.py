@@ -1240,6 +1240,11 @@ def _sanitize_dictarg_required_bin_fields(
     return out
 
 
+def _careful_get_units(data_source, field):
+    u = data_source.ds.field_info[field].output_units
+    return "dimensionless" if u is None else u
+
+
 def create_profile(
     data_source,
     bin_fields,
@@ -1436,7 +1441,7 @@ def create_profile(
     else:
         o_bins = []
         for bin_field in bin_fields:
-            bf_units = data_source.ds.field_info[bin_field].output_units
+            bf_units = _careful_get_units(data_source, bin_field)
             field_obin = override_bins[bin_field]
 
             if field_obin is None:
@@ -1467,7 +1472,7 @@ def create_profile(
             ex.append([1, 2])  # we use a positive minimum in case ``log == True``
             continue
         else:
-            bf_units = data_source.ds.field_info[bin_field].output_units
+            bf_units = _careful_get_units(data_source, bin_field)
 
             # get (& sanitize) the extrema specified for field_ex
             field_ex = list(extrema[bin_field])
