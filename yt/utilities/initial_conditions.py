@@ -38,7 +38,7 @@ class CoredSphere(FluidOperator):
         cr2 = self.core_radius**2
         for i, ax in enumerate("xyz"):
             np.add(r, (grid[ax] - self.center[i]) ** 2.0, r)
-        np.maximum(r, cr2, r)
+        np.maximum(r, cr2, out=r)
         ind = r <= r2
         if sub_select is not None:
             ind &= sub_select

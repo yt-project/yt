@@ -464,7 +464,7 @@ class ColorbarHandler:
             self._cmap = newval
         elif isinstance(newval, str):
             self._cmap = mpl.colormaps[newval]
-        elif is_sequence(newval):  # type: ignore[unreachable]
+        elif is_sequence(newval):
             # tuple colormaps are from palettable (or brewer2mpl)
             self._cmap = get_brewer_cmap(newval)
         else:

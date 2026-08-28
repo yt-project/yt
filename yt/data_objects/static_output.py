@@ -32,10 +32,18 @@ from yt._typing import (
     ParticleType,
 )
 from yt.config import ytcfg
-from yt.data_objects.particle_filters import ParticleFilter, filter_registry
+from yt.data_objects.particle_filters import (
+    ParticleFilter,
+    add_particle_filter,
+    filter_registry,
+)
 from yt.data_objects.region_expression import RegionExpression
 from yt.data_objects.unions import ParticleUnion
-from yt.fields.derived_field import DerivedField, ValidateSpatial
+from yt.fields.derived_field import (
+    DerivedField,
+    DerivedFieldCombination,
+    ValidateSpatial,
+)
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.funcs import iter_fields, mylog, set_intersection, setdefaultattr
@@ -171,6 +179,7 @@ class Dataset(abc.ABC):
     field_units: dict[AnyFieldKey, Unit] | None = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
+    _field_info = None
     conversion_factors: dict[str, float] | None = None
     # _instantiated represents an instantiation time (since Epoch)
     # the default is a place holder sentinel, falsy value
@@ -349,7 +358,7 @@ class Dataset(abc.ABC):
     @cached_property
     def unique_identifier(self) -> str:
         retv = int(os.stat(self.parameter_filename)[ST_CTIME])
-        name_as_bytes = bytearray(map(ord, self.parameter_filename))
+        name_as_bytes = bytearray(self.parameter_filename.encode("utf-8"))
         retv += fnv_hash(name_as_bytes)
         return str(retv)
 
@@ -654,7 +663,24 @@ class Dataset(abc.ABC):
     def field_list(self):
         return self.index.field_list
 
+    @property
+    def field_info(self):
+        if self._field_info is None:
+            self.index
+        return self._field_info
+
+    @field_info.setter
+    def field_info(self, value):
+        self._field_info = value
+
     def create_field_info(self):
+        # create_field_info will be called at the end of instantiating
+        # the index object. This will trigger index creation, which will
+        # call this function again.
+        if self._instantiated_index is None:
+            self.index
+            return
+
         self.field_dependencies = {}
         self.derived_field_list = []
         self.filtered_particle_types = []
@@ -737,8 +763,8 @@ class Dataset(abc.ABC):
         # turning off type-checker on a per-line basis
         cls: type[CoordinateHandler]
 
-        if isinstance(self.geometry, tuple):  # type: ignore [unreachable]
-            issue_deprecation_warning(  # type: ignore [unreachable]
+        if isinstance(self.geometry, tuple):
+            issue_deprecation_warning(
                 f"Dataset object {self} has a tuple for its geometry attribute. "
                 "This is interpreted as meaning the first element is the actual geometry string, "
                 "and the second represents an arbitrary axis order. "
@@ -875,6 +901,9 @@ class Dataset(abc.ABC):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
+        if isinstance(filter, DerivedFieldCombination):
+            add_particle_filter(filter.name, filter)
+            filter = filter.name
         if isinstance(filter, str):
             used = False
             f = filter_registry.get(filter, None)
@@ -1394,7 +1423,7 @@ class Dataset(abc.ABC):
                         new_unit,
                         my_u.base_value / (1 + self.current_redshift),
                         dimensions.length,
-                        f"\\rm{{{my_unit}}}/(1+z)",
+                        f"\\rm{{c{my_unit}}}",
                         prefixable=True,
                     )
                 self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
@@ -1717,7 +1746,7 @@ class Dataset(abc.ABC):
         return self._quan
 
     def add_field(
-        self, name, function, sampling_type, *, force_override=False, **kwargs
+        self, name, function, *, sampling_type=None, force_override=False, **kwargs
     ):
         """
         Dataset-specific call to add_field
@@ -1734,7 +1763,7 @@ class Dataset(abc.ABC):
            is the name of the field.
         function : callable
            A function handle that defines the field.  Should accept
-           arguments (field, data)
+           arguments (data)
         sampling_type: str
            "cell" or "particle" or "local"
         force_override: bool
@@ -1757,7 +1786,13 @@ class Dataset(abc.ABC):
         """
         from yt.fields.field_functions import validate_field_function
 
-        validate_field_function(function)
+        if not isinstance(function, DerivedFieldCombination):
+            if sampling_type is None:
+                raise ValueError("You must specify a sampling_type for the field.")
+            validate_field_function(function)
+        else:
+            sampling_type = function.sampling_type
+
         self.index
         if force_override and name in self.index.field_list:
             raise RuntimeError(
@@ -1885,7 +1920,7 @@ class Dataset(abc.ABC):
                 units = "dimensionless"
                 take_log = False
 
-        def _deposit_field(field, data):
+        def _deposit_field(data):
             """
             Create a grid field for particle quantities using given method.
             """

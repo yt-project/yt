@@ -177,7 +177,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                 # ---------------------------------------------------
                 add_species_field_by_density(self, ptype, yt_ion)
 
-            def _h_p1_density(field, data):
+            def _h_p1_density(data):
                 return data[ptype, "H_density"] - data[ptype, "H_p0_density"]
 
             self.add_field(
@@ -192,7 +192,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                 fname = "H_p1_" + sfx
                 self.alias(("gas", fname), (ptype, fname))
 
-            def _el_number_density(field, data):
+            def _el_number_density(data):
                 n_e = data[ptype, "H_p1_number_density"]
                 n_e += data[ptype, "He_p1_number_density"]
                 n_e += 2.0 * data[ptype, "He_p2_number_density"]
@@ -276,7 +276,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         """returns a function that calculates the ion density of a particle."""
 
         def get_owls_ion_density_field(ion, ftype, itab):
-            def _func(field, data):
+            def _func(data):
                 m_frac, i_frac = _get_ion_mass_frac(ion, ftype, itab, data)
                 return data[ftype, "Density"] * m_frac * i_frac
 
@@ -291,7 +291,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         """returns a function that calculates the ion mass of a particle"""
 
         def get_owls_ion_mass_field(ion, ftype, itab):
-            def _func(field, data):
+            def _func(data):
                 m_frac, i_frac = _get_ion_mass_frac(ion, ftype, itab, data)
                 return data[ftype, "particle_mass"] * m_frac * i_frac
 

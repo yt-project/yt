@@ -392,7 +392,7 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
             dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
             dp[i] *= vc.idds[i]
             ds[i] = v_dir[i] * vc.idds[i] * dt
-        for i in range(vri.n_samples):
+        for _ in range(vri.n_samples):
             for j in range(vc.n_fields):
                 dvs[j] = offset_interpolate(vc.dims, dp,
                         vc.data[j] + offset)
@@ -477,7 +477,7 @@ cdef class VolumeRenderSampler(ImageSampler):
             dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
             dp[i] *= vc.idds[i]
             ds[i] = v_dir[i] * vc.idds[i] * dt
-        for i in range(vri.n_samples):
+        for _ in range(vri.n_samples):
             for j in range(vc.n_fields):
                 dvs[j] = offset_interpolate(vc.dims, dp,
                         vc.data[j] + offset)
@@ -576,7 +576,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
             dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
             dp[i] *= vc.idds[i]
             ds[i] = v_dir[i] * vc.idds[i] * dt
-        for i in range(vri.n_samples):
+        for _ in range(vri.n_samples):
             for j in range(vc.n_fields):
                 dvs[j] = offset_interpolate(vc.dims, dp,
                         vc.data[j] + offset)

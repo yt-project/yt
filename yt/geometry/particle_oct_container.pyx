@@ -1212,11 +1212,10 @@ cdef class ParticleBitmap:
         cdef BoolArrayCollection fmask
         cdef np.int32_t fid
         cdef np.ndarray[object, ndim=1] file_masks
-        cdef int i
         # Get bitmasks for parts of files touching the selector
-        file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx))],
+        file_masks = np.array([BoolArrayCollection() for _ in range(len(file_idx))],
                               dtype="object")
-        for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
+        for fid, fmask in zip(file_idx,file_masks, strict=True):
             self.bitmasks._logicaland(<np.uint32_t> fid, cmask, fmask)
         return file_masks
 
@@ -1246,7 +1245,7 @@ cdef class ParticleBitmap:
         morton_selector.fill_masks(cmask)
         # Get bitmasks for parts of files touching the selector
         file_idx = self.mask_to_files(cmask)
-        file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx))],
+        file_masks = np.array([BoolArrayCollection() for _ in range(len(file_idx))],
                               dtype="object")
         addfile_idx = len(file_idx)*[None]
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
@@ -1988,7 +1987,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef oct_visitors.AssignDomainInd visitor
         visitor = oct_visitors.AssignDomainInd(self)
         self.visit_all_octs(selector, visitor)
-        assert ((visitor.global_index+1)*visitor.nz == visitor.index)
+        assert ((visitor.global_index+1)*visitor.nzones == visitor.index)
         # Copy indexes
         self._ptr_index_base_octs = <np.uint8_t*> malloc(sizeof(np.uint8_t)*self.nocts)
         self._index_base_octs = <np.uint8_t[:self.nocts]> self._ptr_index_base_octs

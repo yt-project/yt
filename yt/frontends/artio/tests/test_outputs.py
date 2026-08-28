@@ -59,7 +59,7 @@ def test_units_override():
 
 @requires_file(sizmbhloz)
 def test_particle_derived_field():
-    def star_age_alias(field, data):
+    def star_age_alias(data):
         # test to make sure we get back data in the correct units
         # during field detection
         return data["STAR", "age"].in_units("Myr")

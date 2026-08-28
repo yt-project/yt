@@ -2,7 +2,7 @@ import abc
 
 from yt._typing import FieldKey
 
-domain_context_registry = {}
+domain_context_registry: dict[str, "type[DomainContext]"] = {}
 
 
 class DomainContext(abc.ABC):

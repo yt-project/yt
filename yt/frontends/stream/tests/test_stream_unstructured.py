@@ -72,3 +72,25 @@ def test_multi_field():
 
     sl = SlicePlot(ds, "z", ("connect1", "testAgain"))
     sl.annotate_mesh_lines()
+
+
+def test_units():
+    coords = np.array(
+        [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]], dtype=np.float64
+    )
+
+    connect = np.array([[0, 1, 3], [1, 2, 3]], dtype=np.int64)
+
+    data = {}
+    data["connect1", "density"] = (
+        np.array([[0.0, 1.0, 3.0], [1.0, 2.0, 3.0]], dtype=np.float64),
+        "mp/cm**3",
+    )
+    data["connect1", "testAgain"] = np.array(
+        [[0.0, 1.0, 3.0], [1.0, 2.0, 3.0]], dtype=np.float64
+    )
+
+    ds = load_unstructured_mesh(connect, coords, data)
+    ad = ds.all_data()
+    ad["connect1", "density"].to("kg/m**3")  # should work
+    ad["connect1", "testAgain"].to("1")  # should work

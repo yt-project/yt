@@ -7,6 +7,7 @@ from yt.frontends.amrex.api import (
     MaestroDataset,
     NyxDataset,
     OrionDataset,
+    QuokkaDataset,
     WarpXDataset,
 )
 from yt.loaders import load
@@ -443,6 +444,96 @@ def test_maestro_parameters():
     # Check an int parameter
     assert ds.parameters["s0_interp_type"] == 3
     assert type(ds.parameters["s0_interp_type"]) is int  # noqa: E721
+
+
+quokka = "quokka/RadiatingParticles/plt026"
+
+
+@requires_file(quokka)
+def test_quokka():
+    # Test QuokkaDataset instance type
+    ds = data_dir_load(quokka)
+    assert isinstance(ds, QuokkaDataset)
+
+    # Test basic parameters
+    assert ds.parameters["HydroMethod"] == "Quokka"
+    assert ds.parameters["quokka_version"] == 25.03
+    assert ds.parameters["dimensionality"] == 2
+    assert_equal(
+        ds.parameters["fields"],
+        [
+            "gasDensity",
+            "x-GasMomentum",
+            "y-GasMomentum",
+            "z-GasMomentum",
+            "gasEnergy",
+            "gasInternalEnergy",
+            "radEnergy-Group0",
+            "x-RadFlux-Group0",
+            "y-RadFlux-Group0",
+            "z-RadFlux-Group0",
+        ],
+    )
+
+    # Check domain dimensions and boundaries
+    assert_equal(ds.domain_dimensions, [64, 64, 1])
+    assert_equal(ds.domain_left_edge, [0.0, 0.0, 0.0])
+    assert_equal(ds.domain_right_edge, [1.0, 1.0, 1.0])
+
+    # Test derived fields and unit conversions
+    ad = ds.all_data()
+    assert ("gas", "density") in ds.derived_field_list
+    density = ad["gas", "density"]
+    assert str(density.units) == "g/cm**3"
+
+    # Check momentum/velocity relationship which confirms velocity is correctly derived
+    momentum_x = ad["boxlib", "x-GasMomentum"]
+    gas_density = ad["boxlib", "gasDensity"]
+    velocity_x = ad["gas", "velocity_x"]
+    assert_allclose(momentum_x / gas_density, velocity_x)
+
+    # Test radiation fields specifically
+    assert ds.parameters["radiation_field_groups"] == 1
+    assert "rad" in ds.fluid_types
+    assert ("rad", "energy_density_0") in ds.derived_field_list
+
+    # Test particle IO with specific expectations
+    assert ds.parameters["particle_types"] == ("Rad_particles",)
+
+    # Verify particle fields and units
+    particle_info = ds.parameters["particle_info"]["Rad_particles"]
+    assert particle_info["num_particles"] == 2
+    assert particle_info["num_fields"] == 3
+    assert set(particle_info["fields"]) == {"luminosity", "birth_time", "end_time"}
+    assert particle_info["units"]["luminosity"] == "M^1 L^2 T^-3"
+    assert particle_info["units"]["birth_time"] == "T^1"
+    assert particle_info["units"]["end_time"] == "T^1"
+
+
+quokka_face_centered = "quokka/HydroWave/plt00004"
+
+
+@requires_file(quokka_face_centered)
+def test_quokka_face_centered():
+    ds = data_dir_load(quokka_face_centered)
+
+    # Check if face-centered datasets were loaded
+    assert hasattr(ds, "ds_fc_x")
+    assert hasattr(ds, "ds_fc_y")
+    assert hasattr(ds, "ds_fc_z")
+
+    # Check that the face-centered datasets have the correct attributes
+    assert ds.ds_fc_x.fc_direction == "x"
+    assert ds.ds_fc_y.fc_direction == "y"
+    assert ds.ds_fc_z.fc_direction == "z"
+
+    # Check that the face-centered datasets have a reference to the parent dataset
+    assert ds.ds_fc_x.parent_ds is ds
+    assert ds.ds_fc_y.parent_ds is ds
+    assert ds.ds_fc_z.parent_ds is ds
+
+    assert isinstance(ds, QuokkaDataset)
+    assert isinstance(ds.ds_fc_x, QuokkaDataset)
 
 
 # test loading non-Cartesian coordinate systems in different dimensionalities

@@ -244,7 +244,7 @@ For example, if one created a plugin file containing:
 
 .. code-block:: python
 
-   def _myfunc(field, data):
+   def _myfunc(data):
        return np.random.random(data["density"].shape)
 
 

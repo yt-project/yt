@@ -19,7 +19,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     else:
         sl_left, sl_right, div_fac = slice_info
 
-    def _matter_density(field, data):
+    def _matter_density(data):
         return data[ftype, "density"] + data[ftype, "dark_matter_density"]
 
     registry.add_field(
@@ -29,7 +29,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["density"],
     )
 
-    def _matter_mass(field, data):
+    def _matter_mass(data):
         return data[ftype, "matter_density"] * data["index", "cell_volume"]
 
     registry.add_field(
@@ -40,7 +40,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     )
 
     # rho_total / rho_cr(z).
-    def _overdensity(field, data):
+    def _overdensity(data):
         if (
             not hasattr(data.ds, "cosmological_simulation")
             or not data.ds.cosmological_simulation
@@ -56,7 +56,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     )
 
     # rho_baryon / <rho_baryon>
-    def _baryon_overdensity(field, data):
+    def _baryon_overdensity(data):
         if (
             not hasattr(data.ds, "cosmological_simulation")
             or not data.ds.cosmological_simulation
@@ -84,7 +84,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     )
 
     # rho_matter / <rho_matter>
-    def _matter_overdensity(field, data):
+    def _matter_overdensity(data):
         if (
             not hasattr(data.ds, "cosmological_simulation")
             or not data.ds.cosmological_simulation
@@ -108,7 +108,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     )
 
     # r / r_vir
-    def _virial_radius_fraction(field, data):
+    def _virial_radius_fraction(data):
         virial_radius = data.get_field_parameter("virial_radius")
         if virial_radius == 0.0:
             ret = 0.0
@@ -127,7 +127,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     # Weak lensing convergence.
     # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
     # This needs to be checked for accuracy.
-    def _weak_lensing_convergence(field, data):
+    def _weak_lensing_convergence(data):
         if (
             not hasattr(data.ds, "cosmological_simulation")
             or not data.ds.cosmological_simulation

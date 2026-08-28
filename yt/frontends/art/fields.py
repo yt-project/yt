@@ -45,7 +45,7 @@ class ARTFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         unit_system = self.ds.unit_system
 
-        def _temperature(field, data):
+        def _temperature(data):
             r0 = data.ds.parameters["boxh"] / data.ds.parameters["ng"]
             tr = data.ds.quan(3.03e5 * r0**2, "K/code_velocity**2")
             tr *= data.ds.parameters["wmu"] * data.ds.parameters["Om0"]
@@ -61,7 +61,7 @@ class ARTFieldInfo(FieldInfoContainer):
         )
 
         def _get_vel(axis):
-            def velocity(field, data):
+            def velocity(data):
                 return data["gas", f"momentum_density_{axis}"] / data["gas", "density"]
 
             return velocity
@@ -74,7 +74,7 @@ class ARTFieldInfo(FieldInfoContainer):
                 units=unit_system["velocity"],
             )
 
-        def _momentum_magnitude(field, data):
+        def _momentum_magnitude(data):
             tr = (
                 data["gas", "momentum_density_x"] ** 2
                 + data["gas", "momentum_density_y"] ** 2
@@ -90,7 +90,7 @@ class ARTFieldInfo(FieldInfoContainer):
             units=unit_system["momentum"],
         )
 
-        def _velocity_magnitude(field, data):
+        def _velocity_magnitude(data):
             tr = data["gas", "momentum_magnitude"]
             tr /= data["gas", "cell_mass"]
             return tr
@@ -102,7 +102,7 @@ class ARTFieldInfo(FieldInfoContainer):
             units=unit_system["velocity"],
         )
 
-        def _metal_density(field, data):
+        def _metal_density(data):
             tr = data["gas", "metal_ia_density"]
             tr += data["gas", "metal_ii_density"]
             return tr
@@ -114,7 +114,7 @@ class ARTFieldInfo(FieldInfoContainer):
             units=unit_system["density"],
         )
 
-        def _metal_mass_fraction(field, data):
+        def _metal_mass_fraction(data):
             tr = data["gas", "metal_density"]
             tr /= data["gas", "density"]
             return tr
@@ -126,7 +126,7 @@ class ARTFieldInfo(FieldInfoContainer):
             units="",
         )
 
-        def _H_mass_fraction(field, data):
+        def _H_mass_fraction(data):
             tr = 1.0 - data.ds.parameters["Y_p"] - data["gas", "metal_mass_fraction"]
             return tr
 
@@ -137,7 +137,7 @@ class ARTFieldInfo(FieldInfoContainer):
             units="",
         )
 
-        def _metallicity(field, data):
+        def _metallicity(data):
             tr = data["gas", "metal_mass_fraction"]
             tr /= data["gas", "H_mass_fraction"]
             return tr
@@ -178,7 +178,7 @@ class ARTFieldInfo(FieldInfoContainer):
         ]
 
         def _specific_metal_density_function(atom):
-            def _specific_metal_density(field, data):
+            def _specific_metal_density(data):
                 nucleus_densityIa = (
                     data["gas", "metal_ia_density"] * SNIa_abundance[atom]
                 )

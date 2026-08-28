@@ -16,7 +16,7 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
     # _particle_specific_angular_momentum in particle_fields.py
     unit_system = registry.ds.unit_system
 
-    def _specific_angular_momentum_x(field, data):
+    def _specific_angular_momentum_x(data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
         units = rv.units
@@ -24,7 +24,7 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         rv = data.ds.arr(rv, units=units)
         return rv[..., 1] * zv - rv[..., 2] * yv
 
-    def _specific_angular_momentum_y(field, data):
+    def _specific_angular_momentum_y(data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
         units = rv.units
@@ -32,7 +32,7 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         rv = data.ds.arr(rv, units=units)
         return rv[..., 2] * xv - rv[..., 0] * zv
 
-    def _specific_angular_momentum_z(field, data):
+    def _specific_angular_momentum_z(data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
         units = rv.units
@@ -71,7 +71,7 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         ftype=ftype,
     )
 
-    def _angular_momentum_x(field, data):
+    def _angular_momentum_x(data):
         return data[ftype, "mass"] * data[ftype, "specific_angular_momentum_x"]
 
     registry.add_field(
@@ -82,7 +82,7 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         validators=[ValidateParameter("center"), ValidateParameter("bulk_velocity")],
     )
 
-    def _angular_momentum_y(field, data):
+    def _angular_momentum_y(data):
         return data[ftype, "mass"] * data[ftype, "specific_angular_momentum_y"]
 
     registry.add_field(
@@ -93,7 +93,7 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         validators=[ValidateParameter("center"), ValidateParameter("bulk_velocity")],
     )
 
-    def _angular_momentum_z(field, data):
+    def _angular_momentum_z(data):
         return data[ftype, "mass"] * data[ftype, "specific_angular_momentum_z"]
 
     registry.add_field(

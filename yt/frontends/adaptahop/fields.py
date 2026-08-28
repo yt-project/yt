@@ -63,7 +63,7 @@ class AdaptaHOPFieldInfo(FieldInfoContainer):
         def generate_pos_field(d):
             shift = self.ds.domain_width[0] / 2
 
-            def closure(field, data):
+            def closure(data):
                 return data["halos", f"raw_position_{d}"] + shift
 
             return closure

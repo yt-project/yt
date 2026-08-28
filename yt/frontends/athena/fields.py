@@ -9,7 +9,7 @@ rho_units = "code_mass / code_length**3"
 
 
 def velocity_field(comp):
-    def _velocity(field, data):
+    def _velocity(data):
         return data["athena", f"momentum_{comp}"] / data["athena", "density"]
 
     return _velocity
@@ -94,7 +94,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                 units=unit_system["pressure"],
             )
 
-            def _specific_thermal_energy(field, data):
+            def _specific_thermal_energy(data):
                 return (
                     data["athena", "pressure"]
                     / (data.ds.gamma - 1.0)
@@ -108,7 +108,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                 units=unit_system["specific_energy"],
             )
 
-            def _specific_total_energy(field, data):
+            def _specific_total_energy(data):
                 return etot_from_pres(data) / data["athena", "density"]
 
             self.add_field(
@@ -122,7 +122,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                 ("athena", "total_energy"), sampling_type="cell", units=pres_units
             )
 
-            def _specific_thermal_energy(field, data):
+            def _specific_thermal_energy(data):
                 return eint_from_etot(data) / data["athena", "density"]
 
             self.add_field(
@@ -132,7 +132,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                 units=unit_system["specific_energy"],
             )
 
-            def _specific_total_energy(field, data):
+            def _specific_total_energy(data):
                 return data["athena", "total_energy"] / data["athena", "density"]
 
             self.add_field(
@@ -143,7 +143,7 @@ class AthenaFieldInfo(FieldInfoContainer):
             )
 
         # Add temperature field
-        def _temperature(field, data):
+        def _temperature(data):
             return (
                 data.ds.mu
                 * data["gas", "pressure"]

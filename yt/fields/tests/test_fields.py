@@ -171,7 +171,7 @@ def test_all_fields():
                 assert_equal(v1, dd1[tc.field_name])
                 if not needs_spatial:
                     with field.unit_registry(dd2):
-                        res = field._function(field, dd2)
+                        res = field._eval(dd2)
                         res = dd2.apply_units(res, field.units)
                     assert_array_almost_equal_nulp(v1, res, 4)
                 if not skip_grids:
@@ -180,7 +180,7 @@ def test_all_fields():
                         v1 = g[tc.field_name]
                         g.clear_data()
                         g.field_parameters.update(sp)
-                        r1 = field._function(field, g)
+                        r1 = field._eval(g)
                         if field.sampling_type == "particle":
                             assert_equal(v1.shape[0], g.NumberOfParticles)
                         else:
@@ -188,7 +188,7 @@ def test_all_fields():
                             for ax in "xyz":
                                 assert_array_equal(g["index", ax].shape, v1.shape)
                         with field.unit_registry(g):
-                            res = field._function(field, g)
+                            res = field._eval(g)
                             assert_array_equal(v1.shape, res.shape)
                             res = g.apply_units(res, field.units)
                         assert_array_almost_equal_nulp(v1, res, 4)
@@ -311,10 +311,10 @@ def test_add_field_unit_semantics():
     ds = fake_random_ds(16)
     ad = ds.all_data()
 
-    def density_alias(field, data):
+    def density_alias(data):
         return data["gas", "density"].in_cgs()
 
-    def unitless_data(field, data):
+    def unitless_data(data):
         return np.ones(data["gas", "density"].shape)
 
     ds.add_field(
@@ -384,7 +384,7 @@ def test_add_field_unit_semantics():
 def test_add_field_from_lambda():
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
 
-    def _function_density(field, data):
+    def _function_density(data):
         return data["gas", "density"]
 
     ds.add_field(
@@ -437,7 +437,7 @@ def test_add_field_string():
     ds = fake_random_ds(16)
     ad = ds.all_data()
 
-    def density_alias(field, data):
+    def density_alias(data):
         return data["gas", "density"]
 
     ds.add_field(
@@ -455,7 +455,7 @@ def test_add_field_string():
 def test_add_field_string_aliasing():
     ds = fake_random_ds(16)
 
-    def density_alias(field, data):
+    def density_alias(data):
         return data["gas", "density"]
 
     ds.add_field(
@@ -470,7 +470,7 @@ def test_add_field_string_aliasing():
 
     ds = fake_particle_ds()
 
-    def pmass_alias(field, data):
+    def pmass_alias(data):
         return data["all", "particle_mass"]
 
     ds.add_field(

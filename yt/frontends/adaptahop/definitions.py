@@ -5,6 +5,8 @@ Data structures for AdaptaHOP
 
 """
 
+from abc import ABC, abstractmethod
+
 from yt.funcs import mylog
 
 ATTR_T = tuple[tuple[tuple[str, ...] | str, int, str], ...]
@@ -23,10 +25,14 @@ def HEADER_ATTRIBUTES(*, double: bool, longint: bool) -> ATTR_T:
     )
 
 
-ADAPTAHOP_TEMPLATES = {}
+ADAPTAHOP_TEMPLATES: dict[str, "type[AdaptaHOPDefTemplate]"] = {}
 
 
-class AdaptaHOPDefTemplate:
+class AdaptaHOPDefTemplate(ABC):
+    @property
+    @abstractmethod
+    def HALO_ATTRIBUTES(self) -> ATTR_T: ...
+
     # this is a mixin class
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)

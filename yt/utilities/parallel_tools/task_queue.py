@@ -173,8 +173,8 @@ def dynamic_parallel_objects(tasks, njobs=0, storage=None, broadcast=True):
             for task in my_q:
                 yield task
         else:
-            for task in my_q:
-                rstore = ResultsStorage()
+            for result_id, task in enumerate(my_q):
+                rstore = ResultsStorage(result_id=result_id)
                 yield rstore, task
                 my_q.send_result(rstore)
 

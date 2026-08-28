@@ -46,7 +46,7 @@ deprecated. In that case, you call
 
 .. code-block:: python
 
-    def _cylindrical_radial_absolute(field, data):
+    def _cylindrical_radial_absolute(data):
         """This field is deprecated and will be removed in a future version"""
         return np.abs(data[ftype, f"{basename}_cylindrical_radius"])
 

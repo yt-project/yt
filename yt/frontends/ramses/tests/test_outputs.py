@@ -488,7 +488,7 @@ def test_ramses_mixed_files():
     # files (here hydro and rt files)
     ds = yt.load(ramses_rt)
 
-    def _mixed_field(field, data):
+    def _mixed_field(data):
         return data["rt", "photon_density_1"] / data["gas", "H_nuclei_density"]
 
     ds.add_field(("gas", "mixed_files"), function=_mixed_field, sampling_type="cell")
@@ -579,7 +579,7 @@ def test_ghost_zones():
     ds = yt.load(output_00080)
 
     def gen_dummy(ngz):
-        def dummy(field, data):
+        def dummy(data):
             if not isinstance(data, FieldDetector):
                 shape = data["gas", "mach_number"].shape[:3]
                 np.testing.assert_equal(shape, (2 + 2 * ngz, 2 + 2 * ngz, 2 + 2 * ngz))
@@ -658,7 +658,7 @@ def test_reading_order():
     # This checks that the result of field accession doesn't
     # depend on the order
 
-    def _dummy_field(field, data):
+    def _dummy_field(data):
         # Note: this is a dummy field
         # that doesn't really have any physical meaning
         # but may trigger some bug in the field

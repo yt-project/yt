@@ -50,8 +50,8 @@ cdef class PyNode:
         self.start_idx = node.left_idx
         self.stop_idx = (node.left_idx + node.children)
         self._domain_width = domain_width
-        self.left_neighbors = [None for i in range(self.ndim)]
-        self.right_neighbors = [None for i in range(self.ndim)]
+        self.left_neighbors = [None] * self.ndim
+        self.right_neighbors = [None] * self.ndim
         for i in range(self.ndim):
             self.left_neighbors[i] = [node.left_neighbors[i][j] for j in
                                       range(node.left_neighbors[i].size())]

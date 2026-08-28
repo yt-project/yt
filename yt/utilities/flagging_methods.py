@@ -1,8 +1,10 @@
+from typing import ClassVar
+
 import numpy as np  # For modern purposes
 
 from yt.utilities.lib.misc_utilities import grow_flagging_field
 
-flagging_method_registry = {}
+flagging_method_registry: dict[str, "type[FlaggingMethod]"] = {}
 
 
 class RegisteredFlaggingMethod(type):
@@ -12,6 +14,7 @@ class RegisteredFlaggingMethod(type):
 
 class FlaggingMethod:
     _skip_add = False
+    _type_name: ClassVar[str]
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)

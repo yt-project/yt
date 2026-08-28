@@ -51,12 +51,12 @@ cdef class FortranFile:
         value : int
             Returns 0 on success.
         """
-        cdef INT32_t s1, s2, i
+        cdef INT32_t s1, s2
 
         if self._closed:
             raise ValueError("Read of closed file.")
 
-        for i in range(n):
+        for _ in range(n):
             fread(&s1, INT32_SIZE, 1, self.cfile)
             fseek(self.cfile, s1, SEEK_CUR)
             fread(&s2, INT32_SIZE, 1, self.cfile)

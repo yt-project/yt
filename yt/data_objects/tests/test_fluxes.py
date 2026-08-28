@@ -103,7 +103,7 @@ class ExporterTests(TestCase):
             assert os.path.exists(f"{basename}.obj")
             assert os.path.exists(f"{basename}.mtl")
 
-        def _Emissivity(field, data):
+        def _Emissivity(data):
             return (
                 data["gas", "density"]
                 * data["gas", "density"]

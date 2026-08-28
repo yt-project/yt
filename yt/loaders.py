@@ -1124,6 +1124,8 @@ def load_octree(
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
     >>> quantities["gas", "density"] = np.random.random((29, 1)) # num of false's
+    >>> # Quantities can also contain parameter-less callbacks
+    >>> quantities["gas", "temperature"] = lambda: np.random.random((29, 1)) * 1e4
     >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
     >>> ds = load_octree(
@@ -1417,7 +1419,7 @@ def load_unstructured_mesh(
         _f_unit, _data, _ = process_data(d)
         field_units.update(_f_unit)
         sfh[i] = _data
-        particle_types.update(set_particle_types(d))
+        particle_types.update(set_particle_types(_data))
 
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge

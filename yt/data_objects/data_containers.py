@@ -5,10 +5,10 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
+from unyt import unyt_array
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import AnyFieldKey, FieldKey, FieldName
-from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
@@ -204,11 +204,24 @@ class YTDataContainer(abc.ABC):
         """
         return name in self.field_parameters
 
-    def clear_data(self):
+    def clear_data(self, fields: list[AnyFieldKey] | AnyFieldKey | None = None):
         """
-        Clears out all data from the YTDataContainer instance, freeing memory.
+        Clears out data from the YTDataContainer instance, freeing memory.
+
+        Parameters
+        ----------
+        fields : list[str] | str | None
+            The fields to clear. If None, all fields are cleared.
         """
-        self.field_data.clear()
+        if fields is None:
+            self.field_data.clear()
+            return
+
+        if isinstance(fields, (str, tuple)):
+            fields = [fields]
+
+        for field in fields:
+            self.field_data.pop(field, None)
 
     def has_key(self, key):
         """
@@ -260,6 +273,13 @@ class YTDataContainer(abc.ABC):
         if key not in self.field_data:
             key = self._determine_fields(key)[0]
         del self.field_data[key]
+
+    @abc.abstractmethod
+    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
+        """
+        Return the bounding box for this data container.
+        """
+        pass
 
     def _generate_field(self, field):
         ftype, fname = field
@@ -636,39 +656,6 @@ class YTDataContainer(abc.ABC):
         )
 
         return filename
-
-    def to_glue(self, fields, label="yt", data_collection=None):
-        """
-        Takes specific *fields* in the container and exports them to
-        Glue (http://glueviz.org) for interactive
-        analysis. Optionally add a *label*. If you are already within
-        the Glue environment, you can pass a *data_collection* object,
-        otherwise Glue will be started.
-        """
-        from glue.core import Data, DataCollection
-
-        if ytcfg.get("yt", "internals", "within_testing"):
-            from glue.core.application_base import Application as GlueApplication
-        else:
-            try:
-                from glue.app.qt.application import GlueApplication
-            except ImportError:
-                from glue.qt.glue_application import GlueApplication
-        gdata = Data(label=label)
-        for component_name in fields:
-            gdata.add_component(self[component_name], component_name)
-
-        if data_collection is None:
-            dc = DataCollection([gdata])
-            app = GlueApplication(dc)
-            try:
-                app.start()
-            except AttributeError:
-                # In testing we're using a dummy glue application object
-                # that doesn't have a start method
-                pass
-        else:
-            data_collection.append(gdata)
 
     def create_firefly_object(
         self,
@@ -1465,6 +1452,14 @@ class YTDataContainer(abc.ABC):
         explicit_fields = []
         for field in iter_fields(fields):
             if field in self._container_fields:
+                if not isinstance(field, (str, tuple)):
+                    # NOTE: Container fields must be strings or tuples
+                    # otherwise, we end up filling _determined_fields
+                    # with DerivedFields (typing error, and causes
+                    # bugs down the line).
+                    raise RuntimeError(
+                        f"Container fields must be tuples, got {field!r}"
+                    )
                 explicit_fields.append(field)
                 continue
 

@@ -37,7 +37,7 @@ class IOHandlerHTTPStream(BaseParticleIOHandler):
             for ptype in ptf:
                 s = self._open_stream(data_file, (ptype, "Coordinates"))
                 c = np.frombuffer(s, dtype="float64")
-                c.shape = (c.shape[0] / 3.0, 3)
+                c = c.reshape(c.size // 3, 3)
                 yield ptype, (c[:, 0], c[:, 1], c[:, 2]), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -46,7 +46,7 @@ class IOHandlerHTTPStream(BaseParticleIOHandler):
             for ptype, field_list in sorted(ptf.items()):
                 s = self._open_stream(data_file, (ptype, "Coordinates"))
                 c = np.frombuffer(s, dtype="float64")
-                c.shape = (c.shape[0] / 3.0, 3)
+                c = c.reshape(c.size // 3, 3)
                 mask = selector.select_points(c[:, 0], c[:, 1], c[:, 2], 0.0)
                 del c
                 if mask is None:
@@ -55,7 +55,7 @@ class IOHandlerHTTPStream(BaseParticleIOHandler):
                     s = self._open_stream(data_file, (ptype, field))
                     c = np.frombuffer(s, dtype="float64")
                     if field in self._vector_fields:
-                        c.shape = (c.shape[0] / 3.0, 3)
+                        c = c.reshape(c.size // 3, 3)
                     data = c[mask, ...]
                     yield (ptype, field), data
 

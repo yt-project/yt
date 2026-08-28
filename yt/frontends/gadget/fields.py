@@ -81,14 +81,14 @@ class GadgetFieldInfo(SPHFieldInfo):
                     / data[ptype, "particle_mass"]
                 )
 
-            def _metallicity(field, data):
+            def _metallicity(data):
                 ret = (
                     data[ptype, "ElevenMetalMasses"][:, 1].sum(axis=1)
                     / data[ptype, "particle_mass"]
                 )
                 return ret
 
-            def _h_fraction(field, data):
+            def _h_fraction(data):
                 ret = (
                     data[ptype, "ElevenMetalMasses"].sum(axis=1)
                     / data[ptype, "particle_mass"]
@@ -113,7 +113,7 @@ class GadgetFieldInfo(SPHFieldInfo):
                     data[ptype, f"MetalMasses_{i:02d}"] / data[ptype, "particle_mass"]
                 )
 
-            def _metallicity(field, data):
+            def _metallicity(data):
                 mass = 0.0
                 start_idx = int(not no_He)
                 for i in range(start_idx, n_elem):
@@ -126,7 +126,7 @@ class GadgetFieldInfo(SPHFieldInfo):
 
             else:
 
-                def _h_fraction(field, data):
+                def _h_fraction(data):
                     mass = 0.0
                     for i in range(n_elem):
                         mass += data[ptype, f"MetalMasses_{i:02d}"]
@@ -197,7 +197,7 @@ class GadgetFieldInfo(SPHFieldInfo):
                 units="",
             )
 
-            def _h_density(field, data):
+            def _h_density(data):
                 return data[ptype, "H_fraction"] * data[ptype, "density"]
 
             self.add_field(
@@ -211,7 +211,7 @@ class GadgetFieldInfo(SPHFieldInfo):
 
         if "Ej" in elem_names:
 
-            def _ej_mass(field, data):
+            def _ej_mass(data):
                 return data[ptype, "Ej_fraction"] * data[ptype, "particle_mass"]
 
             self.add_field(
@@ -241,7 +241,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         if (ptype, "Temperature") not in self.ds.field_list:
             if (ptype, "ElectronAbundance") in self.ds.field_list:
 
-                def _temperature(field, data):
+                def _temperature(data):
                     # Assume cosmic abundances
                     x_H = _primordial_mass_fraction["H"]
                     gamma = 5.0 / 3.0
@@ -252,7 +252,7 @@ class GadgetFieldInfo(SPHFieldInfo):
 
             else:
 
-                def _temperature(field, data):
+                def _temperature(data):
                     gamma = 5.0 / 3.0
                     ret = (
                         data[ptype, "InternalEnergy"]

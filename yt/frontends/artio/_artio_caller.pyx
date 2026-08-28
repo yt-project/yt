@@ -449,12 +449,12 @@ cdef class artio_fileset :
         if not self.has_particles: return
 
         data = {}
-        accessed_species = np.zeros( self.num_species, dtype="int64")
-        selected_mass = [ None for i in range(self.num_species)]
-        selected_pid = [ None for i in range(self.num_species)]
-        selected_species = [ None for i in range(self.num_species)]
-        selected_primary = [ [] for i in range(self.num_species)]
-        selected_secondary = [ [] for i in range(self.num_species)]
+        accessed_species = np.zeros(self.num_species, dtype="int64")
+        selected_mass = [None] * self.num_species
+        selected_pid = [None] * self.num_species
+        selected_species = [None] * self.num_species
+        selected_primary = [[] for _ in range(self.num_species)]
+        selected_secondary = [[] for _ in range(self.num_species)]
 
         for species,field in fields :
             if species < 0 or species > self.num_species :
@@ -495,7 +495,7 @@ cdef class artio_fileset :
                     status = artio_particle_read_species_begin(self.handle, ispec)
                     check_artio_status(status)
 
-                    for particle in range( self.num_particles_per_species[ispec] ) :
+                    for _particle in range(self.num_particles_per_species[ispec]) :
                         status = artio_particle_read_particle(self.handle,
                                 &pid, &subspecies, self.primary_variables,
                                 self.secondary_variables)
@@ -578,8 +578,7 @@ cdef class artio_fileset :
         fcoords = np.empty((0, 3), dtype="float64")
         ires = np.empty(0, dtype="int64")
 
-        #data = [ np.empty(max_cells, dtype="float32") for i in range(num_fields) ]
-        data = [ np.empty(0,dtype="float64") for i in range(num_fields)]
+        data = [np.empty(0,dtype="float64") for _ in range(num_fields)]
 
         count = 0
         for sfc in range( sfc_start, sfc_end+1 ) :
@@ -605,7 +604,7 @@ cdef class artio_fileset :
                 for i in range(3) :
                     dds[i] = 2.**-level
 
-                for oct in range(self.num_octs_per_level[level-1]) :
+                for _oct in range(self.num_octs_per_level[level-1]) :
                     status = artio_grid_read_oct( self.handle, dpos, self.grid_variables, refined )
                     check_artio_status(status)
 
@@ -1082,7 +1081,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
                         np.int64_t *doct_count,
                         np.int64_t **pcount):
     cdef int status, ispec, subspecies
-    cdef np.int64_t sfc, particle, pid, ind, vind
+    cdef np.int64_t sfc, _particle, pid, ind, vind
     cdef int num_species = artio_handle.num_species
     cdef artio_fileset_handle *handle = artio_handle.handle
     cdef int *num_particles_per_species =  <int *>malloc(
@@ -1207,7 +1206,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             check_artio_status(status)
             vp = &vpoints[ispec]
 
-            for particle in range(num_particles_per_species[ispec]) :
+            for _particle in range(num_particles_per_species[ispec]) :
                 status = artio_particle_read_particle(handle,
                         &pid, &subspecies, primary_variables,
                         secondary_variables)
@@ -1493,9 +1492,7 @@ cdef class ARTIORootMeshContainer:
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector, -1)
         num_cells = self._last_mask_sum
-        tr = []
-        for i in range(nf):
-            tr.append(np.zeros(num_cells, dtype="float64"))
+        tr = [np.zeros(num_cells, dtype="float64") for _ in range(nf)]
         cdef int* field_ind = <int*> malloc(
             nf * sizeof(int))
         cdef np.float64_t **field_vals = <np.float64_t**> malloc(

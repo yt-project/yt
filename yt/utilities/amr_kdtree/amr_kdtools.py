@@ -27,7 +27,7 @@ def receive_and_reduce(comm, incoming_rank, image, add_to_front, *, use_opacity=
         return image
 
     ta = 1.0 - front[:, :, 3]
-    np.maximum(ta, 0.0, ta)
+    np.maximum(ta, 0.0, out=ta)
     # This now does the following calculation, but in a memory
     # conservative fashion
     # image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]

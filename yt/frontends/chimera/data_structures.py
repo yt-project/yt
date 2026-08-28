@@ -103,7 +103,7 @@ class ChimeraUNSIndex(UnstructuredIndex):
                     mylog.warning(
                         "Yin-Yang File Detected; This data is not currently supported."
                     )
-                coords.shape = (nxd * nyd * nzd, 3)
+                coords = coords.reshape(nxd * nyd * nzd, 3)
                 # Connectivity is an array of rows, each of which corresponds to a grid cell.
                 # The 8 elements of each row are integers representing the cell vertices.
                 # These integers reference the numerical index of the element of the

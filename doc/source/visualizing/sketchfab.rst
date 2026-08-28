@@ -248,7 +248,7 @@ to output one more type of variable on your surfaces.  For example:
     filename = "./surfaces"
 
 
-    def emissivity(field, data):
+    def emissivity(data):
         return data["gas", "density"] ** 2 * np.sqrt(data["gas", "temperature"])
 
 

@@ -361,7 +361,7 @@ class ExodusIIDataset(Dataset):
                         raise NotImplementedError("only equal-size polyhedra supported")
                     q, r = np.divmod(len(conn), npe)
                     assert r == 0
-                    conn.shape = (q, npe)
+                    conn = conn.reshape(q, npe)
                 connectivity.append(conn)
             return connectivity
 

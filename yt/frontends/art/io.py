@@ -1,4 +1,3 @@
-import os
 import os.path
 from collections import defaultdict
 from functools import partial

@@ -4,6 +4,7 @@ import sys
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import Literal
 
 import numpy as np
 from more_itertools import always_iterable
@@ -17,7 +18,7 @@ from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
 from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
 from yt.geometry.api import Geometry
-from yt.geometry.selection_routines import compose_selector
+from yt.geometry.selection_routines import SelectorObject, compose_selector
 from yt.units import YTArray
 from yt.utilities.exceptions import (
     GenerationInProgress,
@@ -32,6 +33,7 @@ from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_f
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
+    parallel_objects,
 )
 
 if sys.version_info >= (3, 11):
@@ -41,15 +43,14 @@ else:
 
 
 class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
-    _locked = False
-    _sort_by = None
-    _selector = None
-    _current_chunk = None
-    _data_source = None
+    _locked: bool = False
+    _selector: SelectorObject | None = None
+    _current_chunk: YTDataContainer | None = None
+    _data_source: YTDataContainer | None = None
     _dimensionality: int
-    _max_level = None
-    _min_level = None
-    _derived_quantity_chunking = "io"
+    _max_level: int | None = None
+    _min_level: int | None = None
+    _derived_quantity_chunking: Literal["io", "all"] = "io"
 
     def __init__(self, ds, field_parameters, data_source=None):
         ParallelAnalysisInterface.__init__(self)
@@ -221,6 +222,39 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         for field in list(self.field_data.keys()):
             if field not in ofields:
                 self.field_data.pop(field)
+
+    def _get_bbox(self):
+        """
+        Return the bounding box for this data container.
+        This generic version will return the bounds of the entire domain.
+        """
+        return self.ds.domain_left_edge, self.ds.domain_right_edge
+
+    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
+        """
+        Return the bounding box for this data container.
+        """
+        match self.ds.geometry:
+            case Geometry.CARTESIAN if self._data_source is None:
+                le, re = self._get_bbox()
+                return (le.to("code_length"), re.to("code_length"))
+            case Geometry.CARTESIAN:
+                # mypy does not understand that here, _data_source cannot be None
+                return self._data_source.get_bbox()  # type: ignore [union-attr]
+            case (
+                Geometry.CYLINDRICAL
+                | Geometry.POLAR
+                | Geometry.SPHERICAL
+                | Geometry.GEOGRAPHIC
+                | Geometry.INTERNAL_GEOGRAPHIC
+                | Geometry.SPECTRAL_CUBE
+            ):
+                geometry = self.ds.geometry
+                raise NotImplementedError(
+                    f"get_bbox is currently not implemented for {geometry=}!"
+                )
+            case _:
+                assert_never(self.ds.geometry)
 
     def _generate_fields(self, fields_to_generate):
         index = 0
@@ -501,6 +535,108 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         self.shape = None
         self._current_chunk = None
         self._min_level = value
+
+    def piter(
+        self,
+        njobs: int = 0,
+        storage: dict | None = None,
+        barrier: bool = True,
+        dynamic: bool = False,
+        reduction: Literal[None, "sum", "max", "min", "cat", "cat_on_root"] = None,
+    ):
+        """Iterate in parallel over data in the container.
+
+        Parameters
+        ----------
+        njobs : int
+            How many jobs to spawn.  By default, one job will be dispatched for
+            each available processor.
+        storage : dict
+            This is a dictionary, which will be filled with results during the
+            course of the iteration.  The keys will be the dataset
+            indices and the values will be whatever is assigned to the *result*
+            attribute on the storage during iteration.
+        barrier : bool
+            Should a barrier be placed at the end of iteration?
+        dynamic : bool
+            This governs whether or not dynamic load balancing will be enabled.
+            This requires one dedicated processor; if this is enabled with a set of
+            128 processors available, only 127 will be available to iterate over
+            objects as one will be load balancing the rest.
+        reduction : Literal[None, "sum", "max", "min", "cat", "cat_on_root"]
+            This specifies the reduction operation to be applied to the results
+            from each processor.
+            - None: no reduction will be applied and the storage object will
+                contain one result per chunk in the container.
+            - cat: the storage object will contain a flattened list of
+                each result.
+            - cat_on_root: same as cat, but only the root processor will
+                contain anything.
+            - sum, min, max: the storage object will contain the result
+                of applying the operation until getting a single value.
+
+        Important limitation
+        --------------------
+        When using `storage`, the result *must* be a dictionary. See the
+        examples below.
+
+        Example
+        -------
+
+        Here is an example of how to gather all data on root, reading in
+        parallel. Other MPI tasks will have nothing in `my_storage`.
+
+        >>> import yt
+        >>> ds = yt.load("output_00080")
+        ... ad = ds.all_data()
+        >>> my_storage = {}
+        ... for sto, chunk in ad.piter(storage=my_storage, reduction="cat_on_root"):
+        ...     sto.result = {
+        ...         ("gas", "density"): chunk["gas", "density"],
+        ...         ("gas", "temperature"): chunk["gas", "temperature"],
+        ...     }
+        ... if yt.is_root():
+        ...     # Contains *all* the gas densities
+        ...     my_storage["gas", "density"]
+        ...     # Contains *all* the gas temperatures
+        ...     my_storage["gas", "temperature"]
+
+        Here is an example of how to sum the total mass of all gas cells in
+        the dataset, storing the result in `my_storage` on all processors.
+
+        >>> my_storage = {}
+        ... for sto, chunk in ad.piter(storage=my_storage, reduction="sum"):
+        ...     sto.result = {
+        ...         "total_mass": chunk["gas", "cell_mass"].sum(),
+        ...     }
+        ... print("Total mass: ", my_storage["total_mass"])
+
+        Here is an example of how to read all data in parallel and
+        have the results available on all processors.
+
+        >>> my_storage = {}
+        ... for sto, chunk in ad.piter(storage=my_storage, reduction="cat"):
+        ...     sto.result = {("gas", "density"): chunk["gas", "density"]}
+        ... print(my_storage["gas", "density"])
+
+        This is equivalent (but faster, since reading is parallelized) to the
+        following
+
+        >>> my_storage = {("gas", "density"): ad["gas", "density"]}
+        """
+        if reduction is not None and storage is None:
+            raise ValueError(
+                "If reduction is specified, you must pass in a storage dictionary."
+            )
+
+        yield from parallel_objects(
+            self.chunks([], "io"),
+            njobs=njobs,
+            storage=storage,
+            barrier=barrier,
+            dynamic=dynamic,
+            reduction=reduction,
+        )
 
 
 class YTSelectionContainer0D(YTSelectionContainer):
@@ -1388,38 +1524,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
                     {f"contour_slices_{contour_key}": cids},
                 )
         return cons, contours
-
-    def _get_bbox(self):
-        """
-        Return the bounding box for this data container.
-        This generic version will return the bounds of the entire domain.
-        """
-        return self.ds.domain_left_edge, self.ds.domain_right_edge
-
-    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
-        """
-        Return the bounding box for this data container.
-        """
-        match self.ds.geometry:
-            case Geometry.CARTESIAN:
-                le, re = self._get_bbox()
-                le.convert_to_units("code_length")
-                re.convert_to_units("code_length")
-                return le, re
-            case (
-                Geometry.CYLINDRICAL
-                | Geometry.POLAR
-                | Geometry.SPHERICAL
-                | Geometry.GEOGRAPHIC
-                | Geometry.INTERNAL_GEOGRAPHIC
-                | Geometry.SPECTRAL_CUBE
-            ):
-                geometry = self.ds.geometry
-                raise NotImplementedError(
-                    f"get_bbox is currently not implemented for {geometry=}!"
-                )
-            case _:
-                assert_never(self.ds.geometry)
 
     def volume(self):
         """

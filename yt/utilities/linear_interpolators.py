@@ -62,8 +62,7 @@ class UnilinearFieldInterpolator:
 
         my_vals = np.zeros(x_vals.shape, dtype="float64")
         lib.UnilinearlyInterpolate(self.table, x_vals, self.x_bins, x_i, my_vals)
-        my_vals.shape = orig_shape
-        return my_vals
+        return my_vals.reshape(orig_shape)
 
 
 class BilinearFieldInterpolator:
@@ -141,8 +140,7 @@ class BilinearFieldInterpolator:
         lib.BilinearlyInterpolate(
             self.table, x_vals, y_vals, self.x_bins, self.y_bins, x_i, y_i, my_vals
         )
-        my_vals.shape = orig_shape
-        return my_vals
+        return my_vals.reshape(orig_shape)
 
 
 class TrilinearFieldInterpolator:
@@ -242,8 +240,7 @@ class TrilinearFieldInterpolator:
             z_i,
             my_vals,
         )
-        my_vals.shape = orig_shape
-        return my_vals
+        return my_vals.reshape(orig_shape)
 
 
 class QuadrilinearFieldInterpolator:
@@ -354,8 +351,7 @@ class QuadrilinearFieldInterpolator:
             w_i,
             my_vals,
         )
-        my_vals.shape = orig_shape
-        return my_vals
+        return my_vals.reshape(orig_shape)
 
 
 def get_centers(ds, filename, center_cols, radius_col, unit="1"):

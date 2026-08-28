@@ -21,7 +21,7 @@ this approach.
    import yt
 
 
-   def _pressure(field, data):
+   def _pressure(data):
        return (
            (data.ds.gamma - 1.0)
            * data["gas", "density"]
@@ -118,7 +118,7 @@ the dimensionality of the returned array and the field are the same:
     from yt.units import dimensions
 
 
-    def _pressure(field, data):
+    def _pressure(data):
         return (
             (data.ds.gamma - 1.0)
             * data["gas", "density"]
@@ -148,7 +148,7 @@ the previous example:
 
 
    @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
-   def _pressure(field, data):
+   def _pressure(data):
        return (
            (data.ds.gamma - 1.0)
            * data["gas", "density"]
@@ -205,6 +205,40 @@ using basic arithmetic if necessary:
 If you find yourself using the same custom-defined fields over and over, you should put them in your plugins file as
 described in :ref:`plugin-file`.
 
+Short-hand syntax for simple cases
+----------------------------------
+The workflow described above (define a function, pass it to ``ds.add_field`` specifying
+``name``, ``sampling_type``, and ``units``) gives you maximal freedom. However, it can
+be somewhat verbose, especially for simple cases. Take the first example, where we
+derive the pressure from the gas density and specific thermal energy. We can employ
+the following short-hand syntax:
+
+.. code-block:: python
+
+    ds.add_field(
+        ("gas", "pressure"),
+        ds.fields.gas.density / ds.fields.gas.specific_thermal_energy * (ds.gamma - 1.0),
+        units="dyne/cm**2",
+    )
+
+This saves you from writing a separate function. Another allowed -- an even more compact -- syntax
+is:
+
+.. code-block:: python
+
+    ds.fields.gas.pressure = (
+        ds.fields.gas.density / ds.fields.gas.specific_thermal_energy * (ds.gamma - 1.0)
+    )
+
+Note that, here, you lose the ability to specify the ``sampling_type`` and the ``units``.
+Internally, yt will inherit the sampling type from the terms of the equation and infer the units
+automatically.
+
+These two syntaxes only support simple algebraic expressions (``+``, ``-``, ``*``, ``/``, ``<``, ``>``, ``<=`` and ``==``)
+with operands that are either (combination of) fields or constants.
+It is sufficient for many simple cases, but if you need to do something more complex, you
+will need to write a separate function. See for example the following section.
+
 A More Complicated Example
 --------------------------
 
@@ -222,7 +256,7 @@ transparent and simple example).
    from yt.fields.api import ValidateParameter
 
 
-   def _my_radial_velocity(field, data):
+   def _my_radial_velocity(data):
        if data.has_field_parameter("bulk_velocity"):
            bv = data.get_field_parameter("bulk_velocity").in_units("cm/s")
        else:
@@ -288,7 +322,7 @@ For example, let's write a field that depends on a field parameter named ``'axis
 
 .. code-block:: python
 
-   def my_axis_field(field, data):
+   def my_axis_field(fdata):
        axis = data.get_field_parameter("axis")
        if axis == 0:
            return data["gas", "velocity_x"]
@@ -320,6 +354,37 @@ Other examples for creating derived fields can be found in the cookbook recipe
 
 .. _derived-field-options:
 
+Accessing field metadata
+------------------------
+
+In some cases, it is useful to introspect the field under construction, for instance
+if specialized behavior is needed for different particle types, or to customize return
+units. These use cases are supported through the optional ``field`` keyword argument.
+Let's look at a couple short examples.
+
+.. code-block:: python
+
+    def get_position_fields(data, field):
+        axis_names = [data.ds.coordinates.axis_name[num] for num in [0, 1, 2]]
+        ftype, _fname = data._determine_fields(field)
+        finfo = data.ds.field_info[ftype]
+        if finfo.sampling_type == "particle":
+            ftype, _fname = finfo.alias_name if finfo.is_alias else finfo.name
+            position_fields = [(ftype, f"particle_position_{d}") for d in axis_names]
+        else:
+            position_fields = [("index", ax_name) for ax_name in axis_names]
+
+        return position_fields
+
+
+.. code-block:: python
+
+    def entropy(data, field):
+        ftype, _fname = data._determine_fields(field)
+        mgammam1 = -2.0 / 3.0
+        tr = data[ftype, "kT"] * data[ftype, "El_number_density"] ** mgammam1
+        return data.apply_units(tr, field.units)
+
 Field Options
 -------------
 
@@ -340,7 +405,9 @@ There are a number of options available, but the only mandatory ones are ``name`
      correct dimensions of the field.
 ``display_name``
      This is a name used in the plots, for instance ``"Divergence of
-     Velocity"``.  If not supplied, the ``name`` value is used.
+     Velocity"``.  If not supplied, the ``name`` value is used.  Note:
+     for math expressions, do not wrap in ``$``, i.e., use ``r"\epsilon"``
+     and not ``r"$\epsilon$"``.
 ``take_log``
      This is *True* or *False* and describes whether the field should be logged
      when plotted.
@@ -381,7 +448,7 @@ For instance, if you had defined this derived field:
 .. code-block:: python
 
    @yt.derived_field(name=("gas", "funthings"))
-   def funthings(field, data):
+   def funthings(data):
        return data["sillythings"] + data["humorousthings"] ** 2.0
 
 And you wanted to debug it, you could do:
@@ -389,7 +456,7 @@ And you wanted to debug it, you could do:
 .. code-block:: python
 
    @yt.derived_field(name=("gas", "funthings"))
-   def funthings(field, data):
+   def funthings(data):
        data._debug()
        return data["sillythings"] + data["humorousthings"] ** 2.0
 

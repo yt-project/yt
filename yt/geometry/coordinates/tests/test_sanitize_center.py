@@ -23,7 +23,7 @@ DEFAUT_ERROR_MESSAGE = (
     "Expected any of the following\n"
     "- 'c', 'center', 'l', 'left', 'r', 'right', 'm', 'max', or 'min'\n"
     "- a 2 element tuple with 'min' or 'max' as the first element, followed by a field identifier\n"
-    "- a 3 element array-like: for a unyt_array, expects length dimensions, otherwise code_lenght is assumed"
+    "- a 3 element array-like: for a unyt_array, expects length dimensions, otherwise code_length is assumed"
 )
 
 

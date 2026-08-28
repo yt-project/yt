@@ -14,13 +14,13 @@ eng_units = "code_mass / code_length / code_time**2"
 
 
 def velocity_field(mom_field):
-    def _velocity(field, data):
+    def _velocity(data):
         return data[mom_field] / data["gas", "density"]
 
     return _velocity
 
 
-def _cooling_time_field(field, data):
+def _cooling_time_field(data):
     cooling_time = (
         data["gas", "density"]
         * data["gas", "specific_thermal_energy"]
@@ -104,7 +104,7 @@ class ParthenonFieldInfo(FieldInfoContainer):
                     f"adiabatic index of {self.ds.gamma}"
                 )
 
-            def _specific_thermal_energy(field, data):
+            def _specific_thermal_energy(data):
                 return (
                     data["gas", "pressure"]
                     / (data.ds.gamma - 1.0)
@@ -122,7 +122,7 @@ class ParthenonFieldInfo(FieldInfoContainer):
             "cons_total_energy_density",
         ) in self.field_list:
 
-            def _specific_thermal_energy(field, data):
+            def _specific_thermal_energy(data):
                 eint = (
                     data["gas", "total_energy_density"]
                     - data["gas", "kinetic_energy_density"]
@@ -144,7 +144,7 @@ class ParthenonFieldInfo(FieldInfoContainer):
             )
 
         # Add temperature field
-        def _temperature(field, data):
+        def _temperature(data):
             return (
                 (data["gas", "pressure"] / data["gas", "density"])
                 * data.ds.mu

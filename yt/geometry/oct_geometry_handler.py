@@ -29,7 +29,7 @@ class OctreeIndex(Index):
         take_log = self.ds.field_info[ftype, deposit_field].take_log
         field_name = f"cell_{ftype}_{deposit_field}"
 
-        def _cell_index(field, data):
+        def _cell_index(data):
             # Get the position of the particles
             pos = data[ptype, "particle_position"]
             Npart = pos.shape[0]
@@ -71,7 +71,7 @@ class OctreeIndex(Index):
 
             return data.ds.arr(ret, units="1")
 
-        def _mesh_sampling_particle_field(field, data):
+        def _mesh_sampling_particle_field(data):
             """
             Create a grid field for particle quantities using given method.
             """

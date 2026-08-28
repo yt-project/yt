@@ -187,7 +187,7 @@ class NotCartopy(NotAModule):
                 f"This functionality requires the {pkg_name} "
                 "package to be installed.\n"
                 "For further instruction please refer to Cartopy's documentation\n"
-                "https://scitools.org.uk/cartopy/docs/latest/installing.html"
+                "https://cartopy.readthedocs.io/stable/installing.html"
             )
 
 
@@ -386,6 +386,18 @@ class yaml_imports(OnDemand):
         from yaml import FullLoader
 
         return FullLoader
+
+    @safe_import
+    def safe_load(self):
+        from yaml import safe_load
+
+        return safe_load
+
+    @safe_import
+    def YAMLError(self):
+        from yaml import YAMLError
+
+        return YAMLError
 
 
 _yaml = yaml_imports()

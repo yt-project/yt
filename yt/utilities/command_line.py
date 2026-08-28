@@ -687,6 +687,7 @@ class YTLoadCmd(YTCommand):
             print("Could not load file.")
             sys.exit()
         import IPython
+        from traitlets.config.loader import Config
 
         import yt
 
@@ -694,11 +695,6 @@ class YTLoadCmd(YTCommand):
         local_ns["ds"] = args.ds
         local_ns["pf"] = args.ds
         local_ns["yt"] = yt
-
-        try:
-            from traitlets.config.loader import Config
-        except ImportError:
-            from IPython.config.loader import Config
 
         cfg = Config()
         # prepend sys.path with current working directory

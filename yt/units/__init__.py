@@ -117,6 +117,6 @@ def display_ytarray(arr):
 
 
 def _wrap_display_ytarray(arr):
-    from IPython.core.display import display
+    from IPython.display import display
 
     display(display_ytarray(arr))

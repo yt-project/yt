@@ -3,6 +3,7 @@ from collections import defaultdict
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
+from typing import ClassVar
 
 import numpy as np
 
@@ -10,7 +11,7 @@ from yt._typing import FieldKey, ParticleCoordinateTuple
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-io_registry = {}
+io_registry: dict[str, "type[BaseIOHandler]"] = {}
 
 use_caching = 0
 
@@ -23,7 +24,7 @@ def _make_io_key(args, *_args, **kwargs):
 
 class BaseIOHandler:
     _vector_fields: dict[str, int] = {}
-    _dataset_type: str
+    _dataset_type: ClassVar[str]
     _particle_reader = False
     _cache_on = False
     _misses = 0

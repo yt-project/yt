@@ -18,6 +18,7 @@ from setupext import (
     check_for_pyembree,
     create_build_ext,
     get_python_include_dirs,
+    get_setup_options,
     install_ccompiler,
 )
 
@@ -126,4 +127,5 @@ if __name__ == "__main__":
         distclass=BinaryDistribution,
         libraries=[fixed_interp_lib],
         ext_modules=[],  # !!! We override this inside build_ext above
+        options=get_setup_options(),
     )

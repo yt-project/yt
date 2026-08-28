@@ -6,12 +6,12 @@ Geographic Projections and Transforms
 Geographic data that is on a sphere can be visualized by projecting that data
 onto a representation of that sphere flattened into 2d space. There exist a
 number of projection types, which can be found in the `the cartopy
-documentation <https://scitools.org.uk/cartopy/docs/latest/crs/projections.html>`_.
-With support from `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_,
+documentation <https://cartopy.readthedocs.io/stable/reference/projections.html>`_.
+With support from `cartopy <https://cartopy.readthedocs.io/stable/>`_,
 ``yt`` now supports these projection
 types for geographically loaded data.
 Underlying data is assumed to have a transform of `PlateCarree
-<https://scitools.org.uk/cartopy/docs/latest/reference/projections.html#platecarree>`__,
+<https://cartopy.readthedocs.io/stable/reference/projections.html#platecarree>`__,
 which is data on a flattened, rectangular, latitude/longitude grid. This is a
 a typical format for geographic data.
 
@@ -19,7 +19,7 @@ The distinction between the data transform and projection is worth noting. The d
 transform is what system your data is defined with and the data projection is
 what the resulting plot will display. For more information on this difference,
 refer to `the cartopy documentation on these differences
-<https://scitools.org.uk/cartopy/docs/latest/tutorials/understanding_transform.html>`_.
+<https://cartopy.readthedocs.io/stable/tutorials/understanding_transform.html>`_.
 If your data is not of this form, feel free to open an issue or file a pull
 request on the ``yt`` github page for this feature.
 
@@ -34,13 +34,13 @@ Installing Cartopy
 
 In order to access the geographic projection functionality, you will need to have an
 installation of ``cartopy`` available on your machine. Please refer to `Cartopy's
-documentation for detailed instructions <https://scitools.org.uk/cartopy/docs/latest/installing.html>`_
+documentation for detailed instructions <https://cartopy.readthedocs.io/stable/installing.html>`_
 
 Using Basic Transforms
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 As mentioned above, the default data transform is assumed to be of `PlateCarree
-<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`__,
+<https://cartopy.readthedocs.io/stable/reference/projections.html#platecarree>`__,
 which is data on a flattened, rectangular, latitude/longitude grid. To set
 something other than ``PlateCarree``, the user can access the dictionary in the coordinate
 handler that defines the coordinate transform to change the default transform

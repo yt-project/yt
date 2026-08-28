@@ -128,7 +128,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
-        nvals = (nz, nz, nz, self.ires.size)
+        nvals = (int(nz[0]), int(nz[1]), int(nz[2]), self.ires.size)
         # We allocate number of zones, not number of octs
         op = cls(nvals, kernel_name)
         op.initialize()
@@ -241,6 +241,7 @@ class ARTIOIndex(Index):
             sfc_start = getattr(dobj, "sfc_start", None)
             sfc_end = getattr(dobj, "sfc_end", None)
             nz = getattr(dobj, "_num_zones", 0)
+            nz_scalar = int(np.asarray(nz).flat[0]) if hasattr(nz, "__len__") else nz
             if all_data:
                 mylog.debug("Selecting entire artio domain")
                 list_sfc_ranges = self.ds._handle.root_sfc_ranges_all(
@@ -271,7 +272,7 @@ class ARTIOIndex(Index):
                     )
                     range_handler.construct_mesh()
                     self.range_handlers[start, end] = range_handler
-                if nz != 2:
+                if nz_scalar != 2:
                     ci.append(
                         ARTIORootMeshSubset(
                             base_region,
@@ -281,7 +282,7 @@ class ARTIOIndex(Index):
                             self.ds,
                         )
                     )
-                if nz != 1 and range_handler.total_octs > 0:
+                if nz_scalar != 1 and range_handler.total_octs > 0:
                     ci.append(
                         ARTIOOctreeSubset(
                             base_region,

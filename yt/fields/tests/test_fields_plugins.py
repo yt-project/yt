@@ -22,7 +22,7 @@ chunk_size = 3
 TEST_PLUGIN_FILE = """
 import numpy as np
 
-def _myfunc(field, data):
+def _myfunc(data):
     return np.random.random(data['gas', 'density'].shape)
 add_field(('gas', 'random'), dimensions='dimensionless',
           function=_myfunc, units='auto', sampling_type='local')

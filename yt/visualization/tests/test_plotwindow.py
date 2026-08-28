@@ -707,13 +707,13 @@ def test_plot_2d():
 def test_symlog_colorbar():
     ds = fake_random_ds(16)
 
-    def _thresh_density(field, data):
+    def _thresh_density(data):
         wh = data["gas", "density"] < 0.5
         ret = data["gas", "density"]
         ret[wh] = 0
         return ret
 
-    def _neg_density(field, data):
+    def _neg_density(data):
         return -data["gas", "threshold_density"]
 
     ds.add_field(

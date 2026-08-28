@@ -19,21 +19,21 @@ from .field_plugin_registry import register_field_plugin
 
 
 def _create_fraction_func(ftype, species):
-    def _frac(field, data):
+    def _frac(data):
         return data[ftype, f"{species}_density"] / data[ftype, "density"]
 
     return _frac
 
 
 def _mass_from_cell_volume_and_density(ftype, species):
-    def _mass(field, data):
+    def _mass(data):
         return data[ftype, f"{species}_density"] * data["index", "cell_volume"]
 
     return _mass
 
 
 def _mass_from_particle_mass_and_fraction(ftype, species):
-    def _mass(field, data):
+    def _mass(data):
         return data[ftype, f"{species}_fraction"] * data[ftype, "particle_mass"]
 
     return _mass
@@ -42,7 +42,7 @@ def _mass_from_particle_mass_and_fraction(ftype, species):
 def _create_number_density_func(ftype, species):
     formula = ChemicalFormula(species)
 
-    def _number_density(field, data):
+    def _number_density(data):
         weight = formula.weight  # This is in AMU
         weight *= data.ds.quan(1.0, "amu").in_cgs()
         return data[ftype, f"{species}_density"] / weight
@@ -51,7 +51,7 @@ def _create_number_density_func(ftype, species):
 
 
 def _create_density_func(ftype, species):
-    def _density(field, data):
+    def _density(data):
         return data[ftype, f"{species}_fraction"] * data[ftype, "density"]
 
     return _density
@@ -175,7 +175,7 @@ def add_deprecated_species_alias(registry, ftype, alias_species, species, suffix
     else:
         my_units = unit_system[suffix]
 
-    def _dep_field(field, data):
+    def _dep_field(data):
         return data[ftype, f"{species}_{suffix}"]
 
     registry.add_field(

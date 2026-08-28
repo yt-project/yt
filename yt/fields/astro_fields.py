@@ -22,7 +22,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
     else:
         sl_left, sl_right, div_fac = slice_info
 
-    def _dynamical_time(field, data):
+    def _dynamical_time(data):
         """
         sqrt(3 pi / (16 G rho))
         """
@@ -35,7 +35,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["time"],
     )
 
-    def _jeans_mass(field, data):
+    def _jeans_mass(data):
         MJ_constant = (((5.0 * pc.kboltz) / (pc.G * pc.mh)) ** 1.5) * (
             3.0 / (4.0 * np.pi)
         ) ** 0.5
@@ -56,7 +56,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["mass"],
     )
 
-    def _emission_measure(field, data):
+    def _emission_measure(data):
         dV = data[ftype, "mass"] / data[ftype, "density"]
         nenhdV = data[ftype, "H_nuclei_density"] * dV
         nenhdV *= data[ftype, "El_number_density"]
@@ -69,7 +69,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["number_density"],
     )
 
-    def _mazzotta_weighting(field, data):
+    def _mazzotta_weighting(data):
         # Spectroscopic-like weighting field for galaxy clusters
         # Only useful as a weight_field for temperature, metallicity, velocity
         ret = data[ftype, "El_number_density"].d ** 2
@@ -83,7 +83,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _optical_depth(field, data):
+    def _optical_depth(data):
         return data[ftype, "El_number_density"] * pc.sigma_thompson
 
     registry.add_field(
@@ -93,7 +93,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"] ** -1,
     )
 
-    def _sz_kinetic(field, data):
+    def _sz_kinetic(data):
         # minus sign is because radial velocity is WRT viewer
         # See issue #1225
         return -data[ftype, "velocity_los"] * data[ftype, "optical_depth"] / pc.clight
@@ -106,7 +106,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         validators=[ValidateParameter("axis", {"axis": [0, 1, 2]})],
     )
 
-    def _szy(field, data):
+    def _szy(data):
         kT = data[ftype, "kT"] / (pc.me * pc.clight * pc.clight)
         return data[ftype, "optical_depth"] * kT
 
@@ -126,7 +126,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         (ftype, "entropy"), sampling_type="local", units="keV*cm**2", function=_entropy
     )
 
-    def _lorentz_factor(field, data):
+    def _lorentz_factor(data):
         b2 = data[ftype, "velocity_magnitude"].to_value("c")
         b2 *= b2
         return 1.0 / np.sqrt(1.0 - b2)
@@ -140,7 +140,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
 
     # 4-velocity spatial components
     def four_velocity_xyz(u):
-        def _four_velocity(field, data):
+        def _four_velocity(data):
             return data["gas", f"velocity_{u}"] * data["gas", "lorentz_factor"]
 
         return _four_velocity
@@ -154,7 +154,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         )
 
     # 4-velocity t-component
-    def _four_velocity_t(field, data):
+    def _four_velocity_t(data):
         return data["gas", "lorentz_factor"] * pc.clight
 
     registry.add_field(
