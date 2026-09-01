@@ -160,6 +160,13 @@ def pytest_configure(config):
                 ":DeprecationWarning",
             )
 
+    if NUMPY_VERSION >= Version("2.5.0"):
+        config.addinivalue_line(
+            "filterwarnings",
+            r"ignore:Setting the shape on a NumPy array "
+            r"has been deprecated in NumPy 2\.5\.:DeprecationWarning",
+        )
+
     if PILLOW_VERSION >= Version("11.3.0") and MPL_VERSION <= Version("3.10.3"):
         # patched upstream: https://github.com/matplotlib/matplotlib/pull/30221
         config.addinivalue_line(
