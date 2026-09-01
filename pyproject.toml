@@ -488,7 +488,10 @@ exclude = "(test_*|lodgeit)"
 
 [tool.cibuildwheel]
 build-verbosity = 1
-skip = ["cp314t-*"]
+skip = [
+    "cp315-*", # temp: remove this when matplotlib has cp315 wheels on pypi
+    "cp3{14,15}t-*",
+]
 build-frontend = "build[uv]"
 test-extras = "test"
 test-command = [
