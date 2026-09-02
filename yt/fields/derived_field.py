@@ -4,10 +4,9 @@ import enum
 import inspect
 import operator
 import re
-import sys
 from collections.abc import Callable, Iterable
 from functools import cached_property, reduce
-from typing import Optional
+from typing import Optional, assert_never
 
 from more_itertools import always_iterable
 
@@ -29,11 +28,6 @@ from .field_exceptions import (
     NeedsParameter,
     NeedsProperty,
 )
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from typing_extensions import assert_never
 
 
 class _FieldFuncSignature(enum.Enum):

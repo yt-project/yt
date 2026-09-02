@@ -1,5 +1,5 @@
-import sys
 from collections import defaultdict
+from typing import assert_never
 
 import numpy as np
 
@@ -7,11 +7,6 @@ from yt.units.yt_array import YTArray
 from yt.utilities.io_handler import io_registry
 
 from .field_exceptions import NeedsGridType
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from typing_extensions import assert_never
 
 fp_units = {
     "bulk_velocity": "cm/s",

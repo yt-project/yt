@@ -1,5 +1,5 @@
 import os
-import sys
+import tomllib
 import warnings
 from collections.abc import Callable
 from pathlib import Path
@@ -83,10 +83,7 @@ class YTConfig:
             if not os.path.exists(fname):
                 continue
             metadata = {"source": f"file: {fname}"}
-            if sys.version_info >= (3, 11):
-                import tomllib
-            else:
-                import tomli as tomllib
+
             try:
                 with open(fname, "rb") as fh:
                     data = tomllib.load(fh)
