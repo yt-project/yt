@@ -781,7 +781,9 @@ cdef class OctreeContainer:
 
         cdef np.int64_t[:, :, :, :] cell_inds
 
-        cell_inds = np.full((self.nocts, 2, 2, 2), -1, dtype=np.int64)
+        cell_inds = np.full(
+            (self.nocts, self.nz[2], self.nz[1], self.nz[0]), -1, dtype=np.int64
+        )
 
         visitor = StoreIndex(self, -1)
         visitor.cell_inds = cell_inds
