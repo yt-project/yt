@@ -1,6 +1,8 @@
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 
+from yt.geometry.oct_container import OctreeContainer
+from yt.geometry.selection_routines import AlwaysSelector
 from yt.testing import fake_sph_grid_ds
 
 n_ref = 4
@@ -118,3 +120,58 @@ def test_octree_properties():
     refined = octree["index", "refined"]
     refined_ans = np.array([True] + [False] * 7 + [True] + [False] * 8, dtype=np.bool_)
     assert_equal(refined, refined_ans)
+
+
+def test_num_zones_tuple():
+    """
+    Test that OctreeContainer accepts num_zones as a scalar or a tuple (N, M, L).
+    Both should correctly set per-dimension zone counts.
+    """
+    # Scalar: all dimensions equal
+    oct_scalar = OctreeContainer(
+        [1, 1, 1], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], num_zones=2
+    )
+    # Tuple: potentially different per-dimension
+    oct_tuple = OctreeContainer(
+        [1, 1, 1], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], num_zones=(2, 2, 2)
+    )
+    # Non-uniform tuple
+    oct_nonuniform = OctreeContainer(
+        [1, 1, 1], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], num_zones=(2, 3, 4)
+    )
+    # Verify that creating these containers doesn't raise exceptions
+    assert oct_scalar is not None
+    assert oct_tuple is not None
+    assert oct_nonuniform is not None
+
+
+def test_fill_index_nonuniform_num_zones():
+    for shape in ((1, 1, 1), (3, 1, 2), (2, 3, 4), (2, 2, 2)):
+        octree = OctreeContainer(
+            [1, 1, 1],
+            np.array([0.0, 0.0, 0.0]),
+            np.array([1.0, 1.0, 1.0]),
+            num_zones=shape,
+        )
+        octree.allocate_domains([1])
+        octree.add(1, 0, np.array([[0.5, 0.5, 0.5]], dtype=np.float64))
+        octree.finalize()
+
+        result = octree.fill_index(AlwaysSelector(None))
+
+        assert result.shape == (octree.nocts, shape[2], shape[1], shape[0])
+
+        # yt visits octants first, then cells in each octant.
+        splits = tuple((0, size // 2, size) for size in shape)
+        expected_inds = np.empty(shape[::-1], dtype=np.int64)
+        ind = 0
+        for ii in range(2):
+            for jj in range(2):
+                for kk in range(2):
+                    for i in range(splits[0][ii], splits[0][ii + 1]):
+                        for j in range(splits[1][jj], splits[1][jj + 1]):
+                            for k in range(splits[2][kk], splits[2][kk + 1]):
+                                expected_inds[k, j, i] = ind
+                                ind += 1
+
+        assert_equal(result[0], expected_inds)
