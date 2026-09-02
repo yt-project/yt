@@ -156,5 +156,5 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 @requires_file(g30)
 def test_vector_component_conversions_real():
     ds = data_dir_load(g30)
-    sp = ds.sphere(ds.domain_center, (10, "kpc"))
+    sp = ds.sphere(ds.domain_center, (10.0, "kpc"))
     compare_vector_conversions(sp)
