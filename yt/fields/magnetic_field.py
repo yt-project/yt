@@ -1,4 +1,4 @@
-import sys
+from typing import assert_never
 
 import numpy as np
 
@@ -9,11 +9,6 @@ from yt.geometry.api import Geometry
 from yt.units import dimensions
 
 from .field_plugin_registry import register_field_plugin
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from typing_extensions import assert_never
 
 cgs_normalizations = {"gaussian": 4.0 * np.pi, "lorentz_heaviside": 1.0}
 

@@ -1,5 +1,4 @@
-import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, assert_never
 
 import numpy as np
 from unyt import Unit
@@ -18,11 +17,6 @@ from yt.utilities.math_utils import (
 )
 
 from .derived_field import NeedsParameter, ValidateParameter, ValidateSpatial
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from typing_extensions import assert_never
 
 if TYPE_CHECKING:
     # avoid circular imports

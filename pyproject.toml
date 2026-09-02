@@ -33,7 +33,6 @@ classifiers = [
     "Programming Language :: Cython",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -49,24 +48,22 @@ keywords = [
     "astrophysics",
     "visualization",
 ]
-requires-python = ">=3.10.4"
+requires-python = ">=3.11.0"
 
-# keep in sync with minimal_requirements.txt
 dependencies = [
     "cmyt>=1.1.2",
     "ewah-bool-utils>=1.2.0",
     "matplotlib>=3.7.0",
     "more-itertools>=8.4",
-    "numpy>=1.21.3, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
+    "numpy>=1.23.2, <3", # keep minimal requirement in sync with NPY_TARGET_VERSION
     # https://github.com/numpy/numpy/issues/27037
     "numpy!=2.0.1 ; platform_machine=='arm64' and platform_system=='Darwin'",
     "packaging>=21.0",
-    "pillow>=8.3.2",
+    "pillow>=9.2.0",
     "rlic>=0.3.2",
     "tomli-w>=0.4.0",
     "tqdm>=3.4.0",
     "unyt>=2.9.2",
-    "tomli>=1.2.3;python_version < '3.11'",
     "typing-extensions>=4.6.0 ; python_version < '3.12'",
 ]
 
@@ -221,7 +218,6 @@ docs = [
     "jinja2<3.2.0",
     "jupyter-client>=8.3.1",
     "nbsphinx>=0.9.3",
-    "nose~=1.3.7 ; python_full_version < '3.10'",
     "pytest>=6.1",
     "pyx>=0.15",
     "sphinx>=7.2.5",
@@ -478,7 +474,7 @@ ignore = [
 
 
 [tool.mypy]
-python_version = '3.10'
+python_version = '3.11'
 show_error_codes = true
 ignore_missing_imports = true
 warn_unused_configs = true

@@ -4,7 +4,6 @@ import hashlib
 import itertools
 import os
 import pickle
-import sys
 import time
 import warnings
 import weakref
@@ -13,7 +12,7 @@ from collections.abc import MutableMapping
 from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional, assert_never
 
 import numpy as np
 import unyt as un
@@ -84,12 +83,6 @@ from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileS
 
 if TYPE_CHECKING:
     from sympy import Symbol
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from typing_extensions import assert_never
-
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up

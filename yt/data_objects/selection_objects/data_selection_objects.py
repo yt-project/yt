@@ -1,10 +1,9 @@
 import abc
 import itertools
-import sys
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Literal
+from typing import Literal, assert_never
 
 import numpy as np
 from more_itertools import always_iterable
@@ -35,11 +34,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
     parallel_objects,
 )
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from typing_extensions import assert_never
 
 
 class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):

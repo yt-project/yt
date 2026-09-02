@@ -1,11 +1,10 @@
 import inspect
 import re
-import sys
 import warnings
 from abc import ABC, abstractmethod
 from functools import update_wrapper
 from numbers import Integral, Number
-from typing import Any, TypeGuard
+from typing import Any, TypeGuard, assert_never
 
 import matplotlib
 import numpy as np
@@ -45,11 +44,6 @@ from yt.visualization._commons import (
 from yt.visualization.base_plot_types import CallbackWrapper
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.plot_window import PWViewerMPL
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from typing_extensions import assert_never
 
 callback_registry: dict[str, type["PlotCallback"]] = {}
 

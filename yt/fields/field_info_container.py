@@ -1,6 +1,6 @@
-import sys
 from collections import UserDict
 from collections.abc import Callable
+from typing import assert_never
 
 from unyt.exceptions import UnitConversionError
 
@@ -28,11 +28,6 @@ from .particle_fields import (
     sph_whitelist_fields,
     standard_particle_fields,
 )
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from typing_extensions import assert_never
 
 
 class FieldInfoContainer(UserDict):

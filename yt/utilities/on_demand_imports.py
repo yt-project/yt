@@ -22,15 +22,9 @@ class NotAModule:
         self.error: BaseException
         if exc is None:
             self.error = ImportError(error_note)
-        elif sys.version_info >= (3, 11):
+        else:
             exc.add_note(error_note)
             self.error = exc
-        else:
-            # mimic Python 3.11 behaviour:
-            # preserve error message and traceback
-            self.error = type(exc)(f"{exc!s}\n{error_note}").with_traceback(
-                exc.__traceback__
-            )
 
     def __getattr__(self, item):
         raise self.error

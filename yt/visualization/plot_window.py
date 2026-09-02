@@ -1,8 +1,7 @@
 import abc
-import sys
 from collections import defaultdict
 from numbers import Number
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, assert_never
 
 import matplotlib
 import numpy as np
@@ -61,11 +60,6 @@ from .plot_container import (
 
 if TYPE_CHECKING:
     from yt.visualization.plot_modifications import PlotCallback
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from typing_extensions import assert_never
 
 
 def get_window_parameters(axis, center, width, ds):

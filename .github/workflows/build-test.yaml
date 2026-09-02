@@ -58,7 +58,7 @@ jobs:
             test-runner: pytest
             cache-suffix: alldeps
           - os: ubuntu-22.04
-            python-version: '3.10.4'
+            python-version: '3.11.0'
             sync_args: --resolution=lowest
             tests-type: unit
             test-runner: pytest
@@ -66,7 +66,7 @@ jobs:
           - os: ubuntu-latest
             # this job is necessary for non-answer, 'yield' based tests
             # because pytest doesn't support such tests
-            python-version: '3.10'
+            python-version: '3.11'
             sync_args: "--extra=full --group=nosetest"
             tests-type: unit
             test-runner: nose
@@ -75,7 +75,7 @@ jobs:
             # answer tests use 'yield', so they require nose
             # they are also attached to a specific, occasionally updated, Python version
             # but it does *not* have to match the current minimal supported version
-            python-version: '3.10'
+            python-version: '3.11'
             sync_args: "--extra=full --group=nosetest"
             tests-type: answer
             test-runner: nose
@@ -102,9 +102,13 @@ jobs:
         persist-credentials: false
         submodules: ${{ matrix.tests-type == 'answer' }}
     - name: Set up Python
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      # setup-uv doesn't offer Python 3.11.0
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Set up uv
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
         cache-suffix: ${{ matrix.cache-suffix }}
     - name: Install dependencies and yt
       shell: bash

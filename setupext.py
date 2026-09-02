@@ -24,7 +24,6 @@ log = logging.getLogger("setupext")
 
 USE_PY_LIMITED_API = (
     os.getenv('YT_LIMITED_API', '0') == '1'
-    and sys.version_info >= (3, 11)
     and not sysconfig.get_config_var("Py_GIL_DISABLED")
 )
 ABI3_TARGET_VERSION = "".join(str(_) for _ in sys.version_info[:2])
@@ -406,7 +405,7 @@ def get_python_include_dirs():
 NUMPY_MACROS = [
     ("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION"),
     # keep in sync with runtime requirements (pyproject.toml)
-    ("NPY_TARGET_VERSION", "NPY_1_21_API_VERSION"),
+    ("NPY_TARGET_VERSION", "NPY_1_23_API_VERSION"),
 ]
 
 
