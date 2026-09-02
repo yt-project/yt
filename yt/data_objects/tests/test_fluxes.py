@@ -137,7 +137,7 @@ def test_correct_output_unit_fake_ds():
     # see issue #1368
     ds = fake_random_ds(64, nprocs=4, particles=16**3)
     x = y = z = 0.5
-    sp1 = ds.sphere((x, y, z), (300, "kpc"))
+    sp1 = ds.sphere((x, y, z), (300.0, "kpc"))
     Nmax = sp1.max(("gas", "density"))
     sur = ds.surface(sp1, ("gas", "density"), 0.5 * Nmax)
     sur["index", "x"][0]
