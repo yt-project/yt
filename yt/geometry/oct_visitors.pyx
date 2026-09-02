@@ -461,6 +461,7 @@ cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
         self.last = o.domain_ind
 
         cdef int i0
+        cdef int out_of_bound_cell_ind = self.nz[0] * self.nz[1] * self.nz[2]
         i0 = -self.n_ghost_zones
         # Loop over cells in and directly around oct
         for i in range(i0, self.nz[0] + self.n_ghost_zones):
@@ -479,8 +480,7 @@ cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
                         neigh_cell_ind   = self.neighbour_rind()
                     else:
                         neigh_domain_ind = -1
-                        #one past the last valid cell index, i.e. "no such cell"
-                        neigh_cell_ind   = self.nz[0] * self.nz[1] * self.nz[2]
+                        neigh_cell_ind   = out_of_bound_cell_ind
 
                     self.cell_inds[self.index]   = neigh_cell_ind
                     self.domain_inds[self.index] = neigh_domain_ind
@@ -507,6 +507,7 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
         self.last = o.domain_ind
 
         cdef int i0
+        cdef int out_of_bound_cell_ind = self.nz[0] * self.nz[1] * self.nz[2]
         i0 = -self.n_ghost_zones
         # Loop over cells in and directly around oct
         for i in range(i0, self.nz[0] + self.n_ghost_zones):
@@ -531,8 +532,7 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
                         neigh_level    = 255
                         neigh_domain   = -1
                         neigh_file_ind = -1
-                        #one past the last valid cell index, i.e. "no such cell"
-                        neigh_cell_ind = self.nz[0] * self.nz[1] * self.nz[2]
+                        neigh_cell_ind = out_of_bound_cell_ind
 
                     self.levels[self.index]    = neigh_level
                     self.file_inds[self.index] = neigh_file_ind
