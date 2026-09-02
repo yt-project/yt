@@ -152,7 +152,7 @@ def test_lineplot_set_axis_properties():
 def test_profileplot_set_axis_properties():
     ds = fake_random_ds(16)
 
-    disk = ds.disk(ds.domain_center, [0.0, 0.0, 1.0], (10, "m"), (1, "m"))
+    disk = ds.disk(ds.domain_center, [0.0, 0.0, 1.0], (10.0, "m"), (1.0, "m"))
     p = ProfilePlot(disk, ("gas", "density"), [("gas", "velocity_x")])
     p.set_unit(("gas", "density"), "kg/cm**3")
     p.set_log(("gas", "density"), False)
