@@ -36,13 +36,13 @@ def create_fake_octree(SparseOctreeContainer oct_handler,
     for i in range(3):
         ind[i] = 0
         dd[i] = ndd[i]
-    oct_handler.allocate_domains([max_noct])
+    oct_handler.allocate_domains([max_noct], 1)
     parent = oct_handler.next_root(1, ind)
     parent.domain = 1
     cur_leaf = 8 #we've added one parent...
     mask = np.ones((max_noct,8),dtype='uint8')
-    while oct_handler.domains[0].n_assigned < max_noct:
-        print("root: nocts ", oct_handler.domains[0].n_assigned)
+    while oct_handler.nocts < max_noct:
+        print("root: nocts ", oct_handler.nocts)
         cur_leaf = subdivide(oct_handler, parent, ind, dd, cur_leaf, 0,
                              max_noct, max_level, fsubdivide, mask)
     return cur_leaf
@@ -61,7 +61,7 @@ cdef long subdivide(SparseOctreeContainer oct_handler,
     cdef float rf #random float from 0-1
     if cur_level >= max_level:
         return cur_leaf
-    if oct_handler.domains[0].n_assigned >= max_noct:
+    if oct_handler.nocts >= max_noct:
         return cur_leaf
     for i in range(3):
         ind[i] = <int> ((rand() * 1.0 / RAND_MAX) * dd[i])
@@ -69,7 +69,7 @@ cdef long subdivide(SparseOctreeContainer oct_handler,
     rf = rand() * 1.0 / RAND_MAX
     if rf > fsubdivide:
         ii = cind(ind[0], ind[1], ind[2])
-        if parent.children[ii] == NULL:
+        if parent.children == NULL or parent.children[ii] == NULL:
             cur_leaf += 7
         oct = oct_handler.next_child(1, ind, parent)
         oct.domain = 1
