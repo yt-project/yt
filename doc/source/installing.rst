@@ -29,29 +29,39 @@ or pip, and we will *assume* that you do so in an isolated environment.
 Also note that each yt release supports a limited range of Python versions.
 Here's a summary for most recent releases
 
-+------------+------------+----------------+-----------------+
-| yt release | Python 2.7 | Python3 min    | Python3 max     |
-+============+============+================+=================+
-| 4.4.x      | no         | 3.10.3         | 3.13 (expected) |
-+------------+------------+----------------|-----------------|
-| 4.3.x      | no         | 3.9.2          | 3.12            |
-+------------+------------+----------------+-----------------+
-| 4.2.x      | no         | 3.8            | 3.11            |
-+------------+------------+----------------+-----------------+
-| 4.1.x      | no         | 3.7            | 3.11            |
-+------------+------------+----------------+-----------------+
-| 4.0.x      | no         | 3.6            | 3.10            |
-+------------+------------+----------------+-----------------+
-| 3.6.x      | no         | 3.5            | 3.8             |
-+------------+------------+----------------+-----------------+
-| 3.5.x      | yes        | 3.4            | 3.5             |
-+------------+------------+----------------+-----------------+
++------------+------------+------------+
+| yt release | min Python | max Python |
++============+============+============+
+| 4.5.x      | 3.10.3 (?) | 3.15 (?)   |
++------------+------------|------------|
+| 4.4.x      | 3.10.3     | 3.14 (?)   |
++------------+------------|------------|
+| 4.3.x      | 3.9.2      | 3.12       |
++------------+------------+------------+
+| 4.2.x      | 3.8        | 3.11       |
++------------+------------+------------+
+| 4.1.x      | 3.7        | 3.11       |
++------------+------------+------------+
+| 4.0.x      | 3.6        | 3.10       |
++------------+------------+------------+
+| 3.6.x      | 3.5        | 3.8        |
++------------+------------+------------+
 
 Minimum Python versions are strict requirements, while maximum
 indicates the newest version for which the yt development team
-provides pre-compiled binaries via PyPI and conda-forge.
+provides pre-compiled binaries via conda-forge. Wheels published
+to PyPI are future-compatible with any version of Python beyond
+the minimum since yt 4.4.2, and match conda-forge's maximum
+Python for earlier versions.
+``(?)`` indicates bounds subject to change for still supported
+release branches.
+
 It may be possible to compile existing yt versions under more
 recent Python versions, though this is never guaranteed.
+
+Additional notes
+- yt 3.5.1 was the last version to support Python 2.7.
+- free-threaded builds are not supported as of yt 4.5.x (dev)
 
 yt also adheres to `SPEC 0 <https://scientific-python.org/specs/spec-0000/>`_ as a soft
 guideline for our support policy of core dependencies (Python, numpy, matplotlib ...).
