@@ -150,7 +150,13 @@ class FieldInfoContainer(UserDict):
                 raise RuntimeError
             if field[0] not in self.ds.particle_types:
                 continue
+
             units = self.ds.field_units.get(field, None)
+            rfields = self.ds._registered_fields
+            if rfields is not None:
+                if entry := rfields.get(field):
+                    units = entry.get("units", units)
+
             if units is None:
                 try:
                     units = ytcfg.get("fields", *field, "units")
@@ -256,6 +262,7 @@ class FieldInfoContainer(UserDict):
                 raise RuntimeError
             if field[0] in self.ds.particle_types:
                 continue
+
             args = known_other_fields.get(field[1], None)
             if args is not None:
                 units, aliases, display_name = args
@@ -273,6 +280,15 @@ class FieldInfoContainer(UserDict):
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
+
+            # allow user to override with call to ds.register_fields
+            rfields = self.ds._registered_fields
+            if rfields is not None:
+                if entry := rfields.get(field):
+                    units = entry.get("units", units)
+                    aliases = entry.get("aliases", aliases)
+                    display_name = entry.get("display_name", display_name)
+
             self.add_output_field(
                 field, sampling_type="cell", units=units, display_name=display_name
             )
