@@ -44,7 +44,6 @@ class PointsVRTest(TestCase):
         dd = ds.sphere(ds.domain_center, 0.45 * ds.domain_width[0])
 
         # Trigger creation of index
-        ds.index
         ds.field_info[ds.field_list[0]].take_log = False
 
         sc = Scene()
