@@ -1365,7 +1365,7 @@ class YTDataContainer(abc.ABC):
         try:
             import hashlib
 
-            return hashlib.md5(s.encode("utf-8")).hexdigest()
+            return hashlib.md5(s.encode("utf-8"), usedforsecurity=False).hexdigest()
         except ImportError:
             return s
 
