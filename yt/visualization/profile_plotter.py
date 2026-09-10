@@ -303,11 +303,17 @@ class ProfilePlot(BaseLinePlot):
         else:
             iters = self.plots.items()
 
+        if len(self.profiles) == 1:  # type: ignore
+            default_name = str(self.profiles[0].ds)  # type: ignore
+        else:
+            default_name = "Multi-data"
+
         if name is None:
-            if len(self.profiles) == 1:  # type: ignore
-                name = str(self.profiles[0].ds)  # type: ignore
-            else:
-                name = "Multi-data"
+            name = default_name
+
+        name = os.path.expanduser(name)
+        if os.path.isdir(name) and name != default_name:
+            name = os.path.join(name, default_name)
 
         name = validate_image_name(name, suffix)
         prefix, suffix = os.path.splitext(name)
