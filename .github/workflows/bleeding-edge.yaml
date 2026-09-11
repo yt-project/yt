@@ -56,7 +56,7 @@ jobs:
       run: |
         uv add --no-install-project git+https://github.com/yt-project/unyt.git
         uv add --no-install-project --optional test git+https://github.com/pytest-dev/pytest.git
-        uv pip install --upgrade setuptools numpy matplotlib Cython ewah-bool-utils
+        uv pip install --upgrade setuptools numpy matplotlib Cython "ewah-bool-utils<2.0.0"
 
     - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
