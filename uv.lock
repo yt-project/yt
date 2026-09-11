@@ -5955,7 +5955,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'fits'", specifier = ">=5.0.1" },
     { name = "cartopy", marker = "extra == 'full'", specifier = ">=0.22.0" },
     { name = "cmyt", specifier = ">=1.1.2" },
-    { name = "ewah-bool-utils", specifier = ">=1.2.0" },
+    { name = "ewah-bool-utils", specifier = ">=1.2.0,<2" },
     { name = "f90nml", marker = "extra == 'fortran'", specifier = ">=1.1" },
     { name = "firefly", marker = "extra == 'full'", specifier = ">=3.2.0" },
     { name = "h5py", marker = "sys_platform == 'darwin' and extra == 'hdf5'", specifier = "!=3.15.0" },
