@@ -270,3 +270,52 @@ def test_phaseplot_showhide_colorbar_axes():
     plot.show_axes()
     with tempfile.NamedTemporaryFile(suffix="png") as f4:
         plot.save(f4.name)
+
+
+def test_phaseplot_save_multiple_z_fields(tmp_path):
+    # see issue https://github.com/yt-project/yt/issues/5152
+    # a PhasePlot with several z fields used to write every image to the
+    # same file (each one overwriting the last) and return that single
+    # name once per plot plus an extra time.
+    ds = fake_random_ds(
+        16,
+        fields=("density", "temperature", "velocity_x"),
+        units=("g/cm**3", "K", "cm/s"),
+    )
+    plot = yt.PhasePlot(
+        ds.all_data(),
+        ("gas", "density"),
+        ("gas", "temperature"),
+        [("gas", "mass"), ("gas", "velocity_x")],
+    )
+    names = plot.save(tmp_path / "test")
+
+    assert len(names) == 2
+    assert len(set(names)) == 2
+    assert [os.path.basename(name) for name in sorted(names)] == [
+        "test_2d-Profile_density_temperature_mass.png",
+        "test_2d-Profile_density_temperature_velocity_x.png",
+    ]
+    assert sorted(p.name for p in tmp_path.glob("*.png")) == [
+        "test_2d-Profile_density_temperature_mass.png",
+        "test_2d-Profile_density_temperature_velocity_x.png",
+    ]
+
+
+def test_phaseplot_save_multiple_z_fields_to_directory(tmp_path):
+    # same as above, but letting the dataset name provide the file prefix
+    ds = fake_random_ds(
+        16,
+        fields=("density", "temperature", "velocity_x"),
+        units=("g/cm**3", "K", "cm/s"),
+    )
+    plot = yt.PhasePlot(
+        ds.all_data(),
+        ("gas", "density"),
+        ("gas", "temperature"),
+        [("gas", "mass"), ("gas", "velocity_x")],
+    )
+    names = plot.save(str(tmp_path) + os.sep)
+
+    assert len(set(names)) == 2
+    assert len(list(tmp_path.glob("*.png"))) == 2
