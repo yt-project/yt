@@ -52,7 +52,9 @@ def grid_values(ds, field):
     result = None
     for g in ds.index.grids:
         if result is None:
-            result = hashlib.md5(bytes(g.id) + g[field].tobytes())
+            result = hashlib.md5(
+                bytes(g.id) + g[field].tobytes(), usedforsecurity=False
+            )
         else:
             result.update(bytes(g.id) + g[field].tobytes())
         g.clear_data()
@@ -78,7 +80,7 @@ def projection_values(ds, axis, field, weight_field, dobj_type):
     for k, v in proj.field_data.items():
         k = k.__repr__().encode("utf8")
         if result is None:
-            result = hashlib.md5(k + v.tobytes())
+            result = hashlib.md5(k + v.tobytes(), usedforsecurity=False)
         else:
             result.update(k + v.tobytes())
     return result.hexdigest()
@@ -128,7 +130,7 @@ def pixelized_projection_values(ds, axis, field, weight_field=None, dobj_type=No
     for k, v in d.items():
         k = k.__repr__().encode("utf8")
         if result is None:
-            result = hashlib.md5(k + v.tobytes())
+            result = hashlib.md5(k + v.tobytes(), usedforsecurity=False)
         else:
             result.update(k + v.tobytes())
     return result.hexdigest()
