@@ -147,7 +147,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
             setup_magnetic_field_aliases(self, ptype, magnetic_field)
 
     def setup_star_particle_fields(self, ptype):
-        def _creation_time(field, data):
+        def _creation_time(data):
             t_form = data[ptype, "StellarFormationTime"]
 
             if t_form.size == 0:
