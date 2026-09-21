@@ -247,7 +247,15 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
         color_bounds = mi, ma
     else:
         color_bounds = [YTQuantity(func(c), image.units) for c in color_bounds]
-    image = (image - color_bounds[0]) / (color_bounds[1] - color_bounds[0])
+    span = color_bounds[1] - color_bounds[0]
+    if span == 0:
+        # A degenerate range carries no contrast to normalize against, so
+        # dividing by it would emit "invalid value encountered in divide" and
+        # produce nans. Map everything to the bottom of the colormap instead,
+        # which is what matplotlib.colors.Normalize does when vmin == vmax.
+        image = np.zeros(image.shape, dtype="float64")
+    else:
+        image = (image - color_bounds[0]) / span
     to_plot = map_to_colors(image, cmap_name)
     to_plot = np.clip(to_plot, 0, 255)
     return to_plot
