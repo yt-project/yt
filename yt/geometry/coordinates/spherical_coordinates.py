@@ -373,8 +373,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
             yc = (yymin + yymax) / 2
             display_center = (xc, 0 * xc, yc)
         elif name == "phi":
+            xc = center[self.axis_id["r"]]
             Rmin, Rmax, zmin, zmax = self._poloidal_bounds
-            xc = (Rmin + Rmax) / 2
             yc = (zmin + zmax) / 2
             display_center = (xc, yc)
         return center, display_center
