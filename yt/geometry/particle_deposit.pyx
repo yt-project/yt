@@ -67,6 +67,10 @@ cdef class ParticleDepositOperation:
         cdef np.int64_t offset, moff
         cdef Oct *oct
         cdef np.int8_t use_lvlmax
+        cdef int this_max_level
+        cdef Oct *cached_oct = NULL
+        cdef OctInfo cached_oi
+        cdef bint in_cached_oct
         moff = octree.get_domain_offset(domain_id + domain_offset)
         if lvlmax is None:
             use_lvlmax = False
@@ -87,10 +91,33 @@ cdef class ParticleDepositOperation:
             # previously generated.  This way we can support not knowing the
             # full octree structure.  All we *really* care about is some
             # arbitrary offset into a field value for deposition.
-            if not use_lvlmax:
-                oct = octree.get(pos, &oi)
+
+            #only cache particles if max level is equal or looser with no children
+            #comparing the limit avoids wrong answers where refinement may be deeper.
+            this_max_level = lvlmaxval[i] if use_lvlmax else 99
+            in_cached_oct = False
+            if cached_oct != NULL and this_max_level >= cached_oi.level and \
+                not (this_max_level > cached_oi.level and cached_oct.children != NULL):
+                
+                in_cached_oct = True
+                for j in range(3):
+                    if pos[j] < cached_oi.left_edge[j] or \
+                        pos[j] >= cached_oi.left_edge[j] + cached_oi.dds[j] * dims[j]:
+                        in_cached_oct = False
+                        break
+            if in_cached_oct:
+                oct = cached_oct
+                oi = cached_oi
+            elif cached_oct != NULL:
+                #different oct, find it but reuse last traversal as starting point
+                oct = octree.get_near(cached_oct, &cached_oi, pos, &oi, this_max_level)
+                cached_oct = oct
+                cached_oi = oi
             else:
-                oct = octree.get(pos, &oi, max_level=lvlmaxval[i])
+                #should be first particle
+                oct = octree.get(pos, &oi, max_level=this_max_level)
+                cached_oct = oct
+                cached_oi = oi
             # This next line is unfortunate.  Basically it says, sometimes we
             # might have particles that belong to octs outside our domain.
             # For the distributed-memory octrees, this will manifest as a NULL

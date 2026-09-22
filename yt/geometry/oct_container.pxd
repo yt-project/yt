@@ -64,6 +64,9 @@ cdef class OctreeContainer:
     cdef public int num_domains
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?,
                   int max_level = ?) noexcept nogil
+    cdef Oct *get_near(self, Oct *start_oct, OctInfo *start_oi, 
+                      np.float64_t ppos[3], OctInfo *oinfo = ?,
+                      int max_level = ?) noexcept nogil
     cdef int get_root(self, int ind[3], Oct **o) noexcept nogil
     cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors,
                          Oct *o, bint periodicity[3])
