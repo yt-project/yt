@@ -124,6 +124,8 @@ of coordinates, new ways of accessing data, and even new APIs to make life easie
 
 yt is an ambitious project.  Let's be ambitious together!
 
+.. _code-of-conduct:
+
 yt Community Code of Conduct
 ----------------------------
 
@@ -456,6 +458,89 @@ When submitting, you will be asked to make sure that your changes meet all of
 these requirements.  They are pretty easy to meet, and we're also happy to help
 out with them. See :ref:`code-style-guide` for how to easily conform to our
 style guide.
+
+Finally, it is worth noting that code reviews take time, and smaller changes
+are easier to understand and review. When possible, please aim to limit
+contributions to fewer than several hundred lines of code. More expansive
+changes should be discussed prior to code submissions: open an issue (or
+comment on an existing issue) and we can strategize on the best way to split
+up large pull requests into manageable chunks.
+
+.. _ai-policy:
+
+Generative AI Policy
+--------------------
+
+We strongly encourage new contributors to not rely on generative AI for writing
+code: learning the codebase is an important part of contributing to a community
+open source project. Additionally, reviewers may at their discretion choose to
+prioritize contributions that do not utilize AI, so contributions utilizing AI
+may have a smaller pool of reviewers (and thus reviewing may take more time).
+
+If you choose to use generative AI in your development, you must comply with a
+number of additional requirements as outlined below (the standard
+:ref:`code-of-conduct` and general :ref:`requirements-for-code-submission` still
+apply):
+
+1. **Human ownership and accountability:**
+
+   1. Contributors are responsible for all submitted content, regardless of
+      whether generative AI tools were used.
+   2. Contributors must be able to explain all changes during review.
+   3. **Licensing:** Contributors are responsible for ensuring all submitted
+      code complies with yt's licensing, regardless of whether generative
+      AI tools were used.
+
+2. **Disclosure:** If generative AI tools were used for portions of the
+   contribution, contributors must describe their use by filling out the AI
+   disclosure in the issue and pull request templates. This also helps
+   downstream citations comply with academic policies that may require
+   disclosure of AI usage.
+
+3. **Authentic engagement:** The pull request process is collaborative and
+   iterative. Contributors are expected to actively engage with reviewer
+   feedback themselves. Copying and pasting replies to / from a generative AI
+   tool does not count as engaging with the reviewer; contributors are expected
+   to understand the changes they are proposing, not act as message courier for
+   a third party. Use of generative AI as a translation aid is permitted but
+   does not change expectations for communication between community members.
+
+   .. important::
+
+      Autonomous workflows ("agents") are not human contributors. yt reviewers
+      expect to interact with the human controlling the account, or we will
+      close the PR.
+
+4. **Consistency with yt conventions, contribution guidelines and existing
+   style:** In the context of generative AI, this particularly means conveying
+   information (comments, documentation, etc.) in a style the yt community uses,
+   and that is appropriate and to the point. Contributions are expected to
+   follow the :ref:`Contribution Guidelines <getting-involved>` whether or not
+   generative AI was used.
+
+5. **Moderation:**
+
+   1. **Low-level infractions:** If the AI disclosure checkbox in the issue or
+      pull request was not completed but reviewers suspect AI use, the
+      contributor will be asked to confirm that the disclosure is correct before
+      review proceeds. If there is no response in 7 days, the pull request or
+      issue may be closed without review.
+   2. **High-level infractions:** Spam-like behavior (such as high-volume or
+      repetitive PRs and comments, mass-pinging project members, or unsolicited
+      AI-generated analyses and non-fixes) will result in immediate closure of
+      issues and/or PRs and on confirmation from two yt Project members, the
+      offending account will receive an organization-level ban and will be
+      reported to GitHub.
+
+.. note::
+
+   This policy is modified from the Astropy `"Usage of Generative AI"
+   <https://github.com/astropy/astropy-project/blob/main/policies/ai-policy.md>`_
+   policy, which was inspired by the scikit-learn `"Automated Contributions
+   Policy"
+   <https://scikit-learn.org/stable/developers/contributing.html#automated-contributions-policy>`_.
+   Both policies have additional details that may be useful in interpreting
+   this policy.
 
 
 .. _git-with-yt:
