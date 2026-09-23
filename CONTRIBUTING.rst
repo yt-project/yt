@@ -475,7 +475,7 @@ We strongly encourage new contributors to not rely on generative AI for writing
 code: learning the codebase is an important part of contributing to a community
 open source project. Additionally, reviewers may at their discretion choose to
 prioritize contributions that do not utilize AI, so contributions utilizing AI
-may have a smaller pool of reviewers (and thus may take more time).
+may have a smaller pool of reviewers (and thus reviewing may take more time).
 
 If you choose to use generative AI in your development, you must comply with a
 number of additional requirements as outlined below (the standard
