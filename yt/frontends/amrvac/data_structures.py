@@ -15,7 +15,7 @@ import numpy as np
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
-from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.stretched_grid import StretchedGrid
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.api import Geometry
@@ -52,17 +52,18 @@ def _parse_geometry(geometry_tag: str) -> Geometry:
     return Geometry(geometry_str.lower())
 
 
-class AMRVACGrid(AMRGridPatch):
+class AMRVACGrid(StretchedGrid):
     """A class to populate AMRVACHierarchy.grids, setting parent/children relations."""
 
     _id_offset = 0
 
-    def __init__(self, id, index, level):
+    def __init__(self, id, cell_widths, filename, index, level, dims):
         # <level> should use yt's convention (start from 0)
-        super().__init__(id, filename=index.index_filename, index=index)
+        super().__init__(id=id, filename=filename, index=index, cell_widths=cell_widths)
         self.Parent = None
         self.Children = []
         self.Level = level
+        self.ActiveDimensions = dims
 
     def get_global_startindex(self):
         """Refresh and retrieve the starting index for each dimension at current level.
@@ -99,6 +100,16 @@ class AMRVACHierarchy(GridIndex):
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
+
+        self.stretch_dim = ["none"] * self.dataset.dimensionality
+        if self.dataset.namelist is not None:
+            meshlist = self.dataset.namelist["meshlist"]
+            if (stretch_dim := meshlist.get("stretch_dim")) is not None:
+                assert isinstance(stretch_dim, list)
+                assert len(stretch_dim) <= self.dataset.dimensionality
+                stretch_dim = ['none' if v is None else v for v in stretch_dim]
+                assert all(isinstance(x, str) for x in stretch_dim)
+                self.stretch_dim[:len(stretch_dim)] = stretch_dim
 
         super().__init__(ds, dataset_type)
 
@@ -139,20 +150,121 @@ class AMRVACHierarchy(GridIndex):
         dx0 = (
             domain_width / self.dataset.parameters["domain_nx"]
         )  # dx at coarsest grid level (YT level 0)
-        dim = self.dataset.dimensionality
+        ndim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype="object")
+        stretched_dims = [not (x == "none" or x == "") for x in self.stretch_dim]
+        base_stretch = np.ones(3, dtype="float64")
+        if np.any(stretched_dims):
+            meshlist = self.dataset.namelist["meshlist"]
+            stretch_baselevel = meshlist.get("qstretch_baselevel")
+            match stretch_baselevel:
+                case ():
+                    assert len(stretch_baselevel) >= ndim
+                    base_stretch[:ndim] = (
+                        float(b) for b in stretch_baselevel[:ndim]
+                    )
+                case float() | int():
+                    assert sum(stretched_dims) == 1  # exactly one stretched direction
+                    stretched_dim = stretched_dims.index(True)
+                    base_stretch[stretched_dim] = float(stretch_baselevel)
+                case None:
+                    # compute default values dynamically, just as done in AMRVAC
+                    assert sum(stretched_dims) == 1  # exactly one stretched direction
+                    stretched_dim = stretched_dims.index(True) + 1 # AMRVAC index (1 offset, Fortran convention)
+                    base_stretch[stretched_dim-1] = (
+                        meshlist[f"xprobmax{stretched_dim}"]
+                        / meshlist[f"xprobmin{stretched_dim}"]
+                    ) ** (1.0 / meshlist[f"domain_nx{stretched_dim}"])
+                case _:
+                    raise ValueError(
+                        f"Unknown type for qstretch_baselevel: {type(stretch_baselevel)}"
+                    )
+
+        qstretch = np.zeros((self.max_level + 2, ndim), dtype="float64")
+        dxfirst = np.zeros((self.max_level + 2, ndim), dtype="float64")
+        for dim in range(ndim):
+            match self.stretch_dim[dim]:
+                case "none" | "":
+                    continue
+                case "uni" | "uniform":
+                    qstretch[1, dim] = base_stretch[dim]
+                    dxfirst[1, dim] = (
+                        domain_width[dim] * (1.0 - qstretch[1, dim])
+                        / (1.0 - qstretch[1, dim] ** meshlist[f"domain_nx{dim + 1}"])
+                    )
+                    qstretch[0, dim] = qstretch[1, dim] ** 2
+                    dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
+                    if self.max_level > 0:
+                        for ilev in range(2, self.max_level + 2):
+                            qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
+                            dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
+                                1.0 + np.sqrt(qstretch[ilev - 1, dim])
+                            )
+                case "symm" | "symmetric":
+                    raise ValueError(
+                        "Symmetric stretching is not currently supported for AMRVAC data."
+                    )
+                case _:
+                    raise ValueError(
+                        f"Unknown stretch_dim {self.stretch_dim[dim]!r} for dimension {dim}."
+                    )
+
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
         ):
-            dx = dx0 / self.dataset.refine_by**ytlevel
-            left_edge = xmin + (morton_index - 1) * block_nx * dx
+            left_edge = np.zeros(ndim, dtype="float64")
+            right_edge = np.zeros(ndim, dtype="float64")
+            cell_widths = []
+
+            for dim in range(ndim):
+                match self.stretch_dim[dim]:
+                    case "none" | "":
+                        dx = dx0[dim] / self.dataset.refine_by**ytlevel
+                        left_edge[dim] = xmin[dim] + (morton_index[dim] - 1) * block_nx[dim] * dx
+                        right_edge[dim] = left_edge[dim] + block_nx[dim] * dx
+                        cell_widths.append([dx] * block_nx[dim])
+                    case "uni" | "uniform":
+                        amrvac_level = ytlevel + 1  # AMRVAC uses 1-based indexing for levels
+                        q = qstretch[amrvac_level, dim]
+
+                        base = xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]
+                        correction = (q - 1.0) / (q + 1.0)
+
+                        # left edge
+                        left_edge[dim] = (
+                            base * q ** ((morton_index[dim] - 1) * block_nx[dim])
+                            * (1.0 - correction)
+                        )
+                        # right edge
+                        right_edge[dim] = (
+                            base * q ** (morton_index[dim] * block_nx[dim] - 1)
+                            * (1.0 + correction)
+                        )
+                        # cell widths
+                        cell_widths.append([
+                            (
+                                base * q ** ((morton_index[dim] - 1) * block_nx[dim] + i)
+                                * 2.0 * correction
+                            ) for i in range(block_nx[dim])
+                        ])
+            cell_widths.extend([[1.0]] * (3 - ndim))
+            cell_widths = np.stack(
+                np.meshgrid(*cell_widths[::-1], indexing="ij")
+            )[::-1].reshape(3, -1)
 
             # edges and dimensions are filled in a dimensionality-agnostic way
-            self.grid_left_edge[igrid, :dim] = left_edge
-            self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
-            self.grid_dimensions[igrid, :dim] = block_nx
-            self.grids[igrid] = self.grid(igrid, self, ytlevels[igrid])
+            self.grid_left_edge[igrid, :ndim] = left_edge
+            self.grid_right_edge[igrid, :ndim] = right_edge
+            self.grid_dimensions[igrid, :ndim] = block_nx
+            self.grids[igrid] = self.grid(
+                id=igrid,
+                index=self,
+                level=ytlevels[igrid],
+                filename=self.index_filename,
+                cell_widths=cell_widths,
+                dims=self.grid_dimensions[igrid],
+            )
 
     def _populate_grid_objects(self):
         # required method
