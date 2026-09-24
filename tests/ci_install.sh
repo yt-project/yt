@@ -20,8 +20,4 @@ fi
 # but the primary intention is to embed this script in CI jobs
 uv sync --extra=test ${sync_args}
 
-# Disable excessive output
-uv run --no-sync yt config set --local yt log_level 50
-cat yt.toml
-
 set +x
