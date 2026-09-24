@@ -9,16 +9,17 @@ from yt.funcs import setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import _h5py
 
 from .fields import ChollaFieldInfo
+from .misc import _determine_data_layout
 
 
 class ChollaGrid(AMRGridPatch):
     _id_offset = 0
 
-    def __init__(self, id, index, level, dims):
-        super().__init__(id, filename=index.index_filename, index=index)
+    def __init__(self, id, index, level, dims, filename):
+        super().__init__(id, filename=filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -27,6 +28,7 @@ class ChollaGrid(AMRGridPatch):
 
 class ChollaHierarchy(GridIndex):
     grid = ChollaGrid
+    _grid_chunksize = 1
 
     def __init__(self, ds, dataset_type="cholla"):
         self.dataset_type = dataset_type
@@ -39,27 +41,53 @@ class ChollaHierarchy(GridIndex):
         super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
-        with h5py.File(self.index_filename, mode="r") as h5f:
-            self.field_list = [("cholla", k) for k in h5f.keys()]
+        with _h5py.File(self.index_filename, mode="r") as h5f:
+            grp = h5f.get("field", h5f)
+            self.field_list = [("cholla", k) for k in grp.keys()]
 
     def _count_grids(self):
-        self.num_grids = 1
+        with _h5py.File(self.index_filename, "r") as f:
+            self._blockid_location_arr, self._block_mapping = _determine_data_layout(f)
+        self.num_grids = self._blockid_location_arr.size
 
     def _parse_index(self):
-        self.grid_left_edge[0][:] = self.ds.domain_left_edge[:]
-        self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
-        self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
-        self.grid_particle_count[0][0] = 0
-        self.grid_levels[0][0] = 0
+        self.grids = np.empty(self.num_grids, dtype="object")
+
+        shape_arr = np.array(self._blockid_location_arr.shape)
+        dims_local = (self.ds.domain_dimensions[:] / shape_arr).astype("=i8")
+
+        for idx3D, blockid in np.ndenumerate(self._blockid_location_arr):
+            idx3D_arr = np.array(idx3D)
+            left_frac = idx3D_arr / shape_arr
+            right_frac = (1 + idx3D_arr) / shape_arr
+
+            level = 0
+
+            self.grids[blockid] = self.grid(
+                blockid,
+                index=self,
+                level=level,
+                dims=dims_local,
+                filename=self._block_mapping.fname_template.format(blockid=blockid),
+            )
+
+            self.grid_left_edge[blockid, :] = left_frac
+            self.grid_right_edge[blockid, :] = right_frac
+            self.grid_dimensions[blockid, :] = dims_local
+            self.grid_levels[blockid, 0] = level
+            self.grid_particle_count[blockid, 0] = 0
+
+        slope = self.ds.domain_width / self.ds.arr(np.ones(3), "code_length")
+        self.grid_left_edge = self.grid_left_edge * slope + self.ds.domain_left_edge
+        self.grid_right_edge = self.grid_right_edge * slope + self.ds.domain_left_edge
+
         self.max_level = 0
 
     def _populate_grid_objects(self):
-        self.grids = np.empty(self.num_grids, dtype="object")
         for i in range(self.num_grids):
-            g = self.grid(i, self, self.grid_levels.flat[i], self.grid_dimensions[i])
+            g = self.grids[i]
             g._prepare_grid()
             g._setup_dx()
-            self.grids[i] = g
 
 
 class ChollaDataset(Dataset):
@@ -100,7 +128,7 @@ class ChollaDataset(Dataset):
             setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
-        with h5py.File(self.parameter_filename, mode="r") as h5f:
+        with _h5py.File(self.parameter_filename, mode="r") as h5f:
             attrs = h5f.attrs
             self.parameters = dict(attrs.items())
             self.domain_left_edge = attrs["bounds"][:].astype("=f8")
@@ -108,7 +136,7 @@ class ChollaDataset(Dataset):
                 "=f8"
             )
             self.dimensionality = len(attrs["dims"][:])
-            self.domain_dimensions = attrs["dims"][:].astype("=f8")
+            self.domain_dimensions = attrs["dims"][:].astype("=i8")
             self.current_time = attrs["t"][:]
             self._periodicity = tuple(attrs.get("periodicity", (False, False, False)))
             self.gamma = attrs.get("gamma", 5.0 / 3.0)
@@ -167,7 +195,7 @@ class ChollaDataset(Dataset):
             return False
 
         try:
-            fileh = h5py.File(filename, mode="r")
+            fileh = _h5py.File(filename, mode="r")
         except OSError:
             return False
 

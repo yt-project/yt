@@ -1,3 +1,7 @@
+"""
+Tests the Cholla frontend by using a real dataset
+"""
+
 from numpy.testing import assert_equal
 
 import yt
