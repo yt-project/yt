@@ -152,7 +152,7 @@ jobs:
     - name: Set up Python
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       with:
-        python-version: '3.13'
+        python-version: '3.14'
         enable-cache: false
     - name: run check-manifest
       run: uvx check-manifest -vvv
