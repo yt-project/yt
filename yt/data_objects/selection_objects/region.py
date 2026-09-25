@@ -56,13 +56,18 @@ class YTRegion(YTSelectionContainer3D):
         if not isinstance(left_edge, YTArray):
             self.left_edge = self.ds.arr(left_edge, "code_length", dtype="float64")
         else:
-            # need to assign this dataset's unit registry to the YTArray
-            self.left_edge = self.ds.arr(left_edge.copy(), dtype="float64")
+            # RegionSelector memory-views raw floats against domain edges
+            # in code_length. Attach this dataset's registry, then convert.
+            # See https://github.com/yt-project/yt/issues/5496
+            self.left_edge = self.ds.arr(left_edge.copy(), dtype="float64").in_units(
+                "code_length"
+            )
         if not isinstance(right_edge, YTArray):
             self.right_edge = self.ds.arr(right_edge, "code_length", dtype="float64")
         else:
-            # need to assign this dataset's unit registry to the YTArray
-            self.right_edge = self.ds.arr(right_edge.copy(), dtype="float64")
+            self.right_edge = self.ds.arr(right_edge.copy(), dtype="float64").in_units(
+                "code_length"
+            )
 
     def _get_bbox(self):
         """
