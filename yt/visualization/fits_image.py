@@ -1242,7 +1242,7 @@ class FITSParticleProjection(FITSImageData):
         image_res=512,
         center="center",
         width=None,
-        depth=(1, "1"),
+        depth=(1.0, "1"),
         weight_field=None,
         length_unit=None,
         deposition="ngp",

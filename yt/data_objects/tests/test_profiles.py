@@ -243,10 +243,10 @@ def test_profiles():
         assert_equal(p2d.x_bins[-1], rma + np.spacing(rma))
 
 
-extrema_s = {("all", "particle_position_x"): (0, 1)}
+extrema_s = {("all", "particle_position_x"): (0.0, 1.0)}
 logs_s = {("all", "particle_position_x"): False}
 
-extrema_t = {("all", "particle_position_x"): (0, 1)}
+extrema_t = {("all", "particle_position_x"): (0.0, 1.0)}
 logs_t = {("all", "particle_position_x"): False}
 
 
@@ -513,7 +513,7 @@ def test_profile_zero_weight():
         sampling_type="cell",
     )
 
-    sp = ds.sphere(ds.domain_center, (10, "kpc"))
+    sp = ds.sphere(ds.domain_center, (10.0, "kpc"))
 
     profile = yt.create_profile(
         sp,
@@ -545,7 +545,7 @@ def test_profile_sph_data():
 def test_profile_override_limits():
     ds = fake_random_ds(64, nprocs=8, fields=_fields, units=_units)
 
-    sp = ds.sphere(ds.domain_center, (10, "kpc"))
+    sp = ds.sphere(ds.domain_center, (10.0, "kpc"))
     obins = np.linspace(-5, 5, 10)
     profile = yt.create_profile(
         sp,

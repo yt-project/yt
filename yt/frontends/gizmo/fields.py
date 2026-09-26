@@ -148,12 +148,15 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
     def setup_star_particle_fields(self, ptype):
         def _creation_time(data):
+            t_form = data[ptype, "StellarFormationTime"]
+
+            if t_form.size == 0:
+                return data.ds.arr([], data.ds.unit_system["time"])
+
             if data.ds.cosmological_simulation:
-                a_form = data[ptype, "StellarFormationTime"]
-                z_form = 1 / a_form - 1
+                z_form = 1 / t_form - 1
                 creation_time = data.ds.cosmology.t_from_z(z_form)
             else:
-                t_form = data[ptype, "StellarFormationTime"]
                 creation_time = data.ds.arr(t_form, "code_time")
             return creation_time
 

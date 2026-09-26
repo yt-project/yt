@@ -131,3 +131,31 @@ def test_star_particle_fields():
     derived_fields = ["creation_time", "age"]
     for field in derived_fields:
         assert (ptype, field) in ds.derived_field_list
+
+
+@requires_module("h5py")
+@requires_file("FIRE_M12i_ref11/snapshot_600.hdf5")
+def test_gizmo_creation_time_handles_empty_particle_chunks():
+    ds = yt.load("FIRE_M12i_ref11/snapshot_600.hdf5")
+
+    def young_stars(pfilter, data):
+        age = data[pfilter.filtered_type, "age"]
+        return age.in_units("Myr") <= 10
+
+    yt.add_particle_filter(
+        "young_stars",
+        function=young_stars,
+        filtered_type="PartType4",
+        requires=["age"],
+    )
+
+    ds.add_particle_filter("young_stars")
+
+    ad = ds.all_data()
+    com = ad.quantities.center_of_mass(
+        use_gas=False,
+        use_particles=True,
+        particle_type="young_stars",
+    )
+
+    assert com.shape == (3,)
