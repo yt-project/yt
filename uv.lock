@@ -1424,7 +1424,7 @@ wheels = [
 
 [[package]]
 name = "firefly"
-version = "3.4.1"
+version = "3.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "abg-python" },
@@ -1438,9 +1438,9 @@ dependencies = [
     { name = "pandas", version = "3.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/32/c5/84abd91d8b7b1f7c1310264a87f99f924ffa55e9daa11a06be688d9b0ac2/firefly-3.4.1.tar.gz", hash = "sha256:19cab2791e1e23bf9e06ff0bddebbf15bb7a92c0d18617817e5d1ddd035ffca1", size = 6819299, upload-time = "2025-09-18T17:52:13.745Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/9d/8b5230f02d94ccf8dfd3a27077c8dc09e40d22bb4039e4b1dc883c043aa8/firefly-3.6.0.tar.gz", hash = "sha256:7baa0c8967f40e25403d8eca4fc5c7ec153c07b942f1282c58000183a04280e7", size = 6866616, upload-time = "2026-09-01T18:32:32.629Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/58/e8/efb7f88f077e30af324275df4e0da628fcdc1ae4ef3423cc1263d4a6e84f/firefly-3.4.1-py3-none-any.whl", hash = "sha256:2453a8ecf39c616bc0ddfb1ebf385f9ddf6ffea81644005df466f40d28f08e81", size = 5049187, upload-time = "2025-09-18T17:52:11.792Z" },
+    { url = "https://files.pythonhosted.org/packages/79/bd/48c6e37c9ed22c0959f1bfa21a4352d6de077b0aff0b7aeb05f0f542e203/firefly-3.6.0-py3-none-any.whl", hash = "sha256:ed2b11338901e69c6527ef739b47b7d7b97a1c3e5b6313a08806ac0244236365", size = 5098286, upload-time = "2026-09-01T18:32:30.695Z" },
 ]
 
 [[package]]
