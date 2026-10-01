@@ -725,6 +725,10 @@ cdef np.int64_t _walk(Node current, np.float64_t[:] vp, np.int64_t[::1]
     return n
 
 def viewpoint_node_ids(Node trunk, viewpoint, np.int64_t[::1] node_ids, np.int64_t[::1] node_inds):
+    '''
+    Receive a viewpoint, and fill a set of (already-allocated) arrays with the
+    IDs and INDs of the nodes, in order.
+    '''
     cdef np.float64_t[3] vp
     for i in range(3):
         vp[i] = viewpoint[i]
