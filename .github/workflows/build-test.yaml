@@ -36,7 +36,9 @@ jobs:
     - run: uv lock --check
 
   build:
-    name: "${{ matrix.tests-type }} tests: py${{ matrix.python-version }} on ${{ matrix.os }} (${{ matrix.test-runner }})"
+    name: |
+      ${{ matrix.tests-type }} tests: py${{ matrix.python-version }} on ${{ matrix.os }}
+      ${{ case( matrix.cache-suffix != null , matrix.cache-suffix , '') }} (${{ matrix.test-runner }})
     needs: [check-lock-file]
     strategy:
       # run all tests even if e.g. image tests fail early
@@ -45,14 +47,14 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
-        python-version: ['3.13']
+        python-version: ['3.14']
         sync_args: [--extra=full]
         tests-type: [unit]
         test-runner: [pytest]
         cache-suffix: [null]
         include:
           - os: windows-latest
-            python-version: '3.13'
+            python-version: '3.14'
             sync_args: --extra=full
             tests-type: unit
             test-runner: pytest
@@ -92,7 +94,10 @@ jobs:
 
     concurrency:
       # auto-cancel any in-progress job *on the same branch*
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.tests-type }}-py${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.test-runner }}
+      group: |
+        ${{ github.workflow }}-${{ github.ref }}
+        -${{ matrix.tests-type }}-py${{ matrix.python-version }}-${{ matrix.os }}
+        -${{ matrix.test-runner }}-${{ matrix.cache-suffix }}
       cancel-in-progress: true
 
     steps:
