@@ -1,5 +1,7 @@
-from numpy.testing import assert_array_equal, assert_raises
+import numpy as np
+from numpy.testing import assert_array_equal, assert_equal, assert_raises
 
+import yt
 from yt.testing import fake_amr_ds, fake_random_ds
 from yt.units import cm
 
@@ -15,6 +17,41 @@ def test_box_creation():
     dens_no_units = reg["gas", "density"]
 
     assert_array_equal(dens_units, dens_no_units)
+
+
+def test_box_physical_unit_edges_match_code_length():
+    # https://github.com/yt-project/yt/issues/5496
+    # A subset box in physical units must select the same particles as the
+    # equivalent code_length box. The existing test_box_creation uses the
+    # full domain, which hides the mismatch.
+    positions = np.array([0.10, 0.45, 0.50, 0.55, 0.90])
+    data = {
+        "particle_position_x": positions,
+        "particle_position_y": positions,
+        "particle_position_z": positions,
+        "particle_mass": np.ones(positions.size),
+    }
+    ds = yt.load_particles(data, length_unit=(10.0, "Mpc"))
+    center_code = ds.arr([0.5, 0.5, 0.5], "code_length")
+    center_mpc = center_code.to("Mpc")
+    half_width_code = ds.quan(0.1, "code_length")
+    half_width_mpc = half_width_code.to("Mpc")
+
+    box_code = ds.box(center_code - half_width_code, center_code + half_width_code)
+    box_mpc = ds.box(center_mpc - half_width_mpc, center_mpc + half_width_mpc)
+    n_code = box_code["all", "particle_mass"].size
+    n_mpc = box_mpc["all", "particle_mass"].size
+    assert_equal(n_code, 3)
+    assert_equal(n_mpc, n_code)
+
+    reg_code = ds.region(center_code, center_code - half_width_code, center_code + half_width_code)
+    reg_mpc = ds.region(center_mpc, center_mpc - half_width_mpc, center_mpc + half_width_mpc)
+    assert_equal(reg_mpc["all", "particle_mass"].size, reg_code["all", "particle_mass"].size)
+
+    sph_code = ds.sphere(center_code, half_width_code)
+    sph_mpc = ds.sphere(center_mpc, half_width_mpc)
+    assert_equal(sph_code["all", "particle_mass"].size, 3)
+    assert_equal(sph_mpc["all", "particle_mass"].size, 3)
 
 
 def test_max_level_min_level_semantics():
