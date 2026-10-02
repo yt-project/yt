@@ -705,6 +705,36 @@ def step_depth(Node current, Node previous):
 
     return current, previous
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef np.int64_t _walk(Node current, np.float64_t[:] vp, np.int64_t[::1]
+                      node_ids, np.int64_t[::1] node_inds, np.int64_t n = 0):
+    if current._kd_is_leaf():
+        if current.grid != -1:
+            node_ids[n] = current.node_id
+            node_inds[n] = current.node_ind
+            n += 1
+        return n
+    if vp[current.split.dim] <= current.split.pos:
+        n = _walk(current.right, vp, node_ids, node_inds, n)
+        n = _walk(current.left, vp, node_ids, node_inds, n)
+    else:
+        n = _walk(current.left, vp, node_ids, node_inds, n)
+        n = _walk(current.right, vp, node_ids, node_inds, n)
+    return n
+
+def viewpoint_node_ids(Node trunk, viewpoint, np.int64_t[::1] node_ids, np.int64_t[::1] node_inds):
+    '''
+    Receive a viewpoint, and fill a set of (already-allocated) arrays with the
+    IDs and INDs of the nodes, in order.
+    '''
+    cdef np.float64_t[3] vp
+    for i in range(3):
+        vp[i] = viewpoint[i]
+    n = _walk(trunk, vp, node_ids, node_inds)
+    return n
+
 def step_viewpoint(Node current,
                    Node previous,
                    viewpoint):
