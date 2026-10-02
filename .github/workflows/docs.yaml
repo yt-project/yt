@@ -1,0 +1,58 @@
+name: Build Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "doc/**"
+      - ".github/workflows/docs.yaml"
+      - "pyproject.toml"
+  pull_request:
+    paths:
+      - "doc/**"
+      - ".github/workflows/docs.yaml"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build-docs:
+    name: Build Sphinx docs
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    env:
+      READTHEDOCS: "True"
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+      with:
+        python-version: "3.12"
+        enable-cache: false
+
+    - name: Install pandoc
+      run: sudo apt-get update && sudo apt-get install -y pandoc
+
+    - name: Install dependencies
+      run: uv sync --group=docs
+
+    - name: Build HTML docs
+      run: |
+        cd doc
+        uv run make html
+
+    - name: Upload built docs
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      with:
+        name: yt-docs-html
+        path: doc/build/html/
