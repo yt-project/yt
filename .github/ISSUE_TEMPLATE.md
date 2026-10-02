@@ -54,3 +54,20 @@ using:-->
 <!--Please tell us how you installed yt and python e.g., from source,
 pip, conda. If you installed from conda, please specify which channel you used
 if not the default-->
+
+
+### AI Disclosure
+
+<!--Please complete this section if you used AI-based tools to diagnose this issue.
+Delete or keep it unfilled if you did not use any AI. Please read the AI
+policy if you use AI-based tools: https://yt-project.org/docs/dev/developing/developing.html#ai-policy-->
+By submitting this issue, I agree to adhere to [yt's AI policy](https://yt-project.org/docs/dev/developing/developing.html#ai-policy).
+
+I used AI assistance for (leaving all boxes unchecked certifies that no AI was used):
+
+- [ ] **Low-level assistance:** Formatting text, fixing grammar, looking up error codes, or explaining existing codebase features.
+- [ ] **Substantive analysis or generation:** Generating a minimally reproducible example, drafting feature specifications, determining origins of bugs, or in some other way (please specify). I have manually verified the accuracy of all AI-generated content.
+
+**AI tools used:**
+
+I used the following AI tools: <!-- write what you used -->
