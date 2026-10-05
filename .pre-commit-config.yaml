@@ -28,12 +28,12 @@ repos:
     - id: check-yaml
 
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: v1.30.0
+  rev: v1.30.1
   hooks:
     - id: zizmor
 
 - repo: https://github.com/astral-sh/uv-pre-commit
-  rev: 0.12.10
+  rev: 0.12.23
   hooks:
   - id: uv-lock
 
@@ -46,7 +46,7 @@ repos:
         additional_dependencies: [black==24.3.0]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.16.6
+  rev: v0.16.10
   hooks:
   - id: ruff-format
   - id: ruff-check
