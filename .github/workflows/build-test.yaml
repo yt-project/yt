@@ -25,14 +25,14 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
-        python-version: ['3.13']
+        python-version: ['3.14']
         dependencies: [full]
         tests-type: [unit]
         test-runner: [pytest]
         venv-loc: [bin]
         include:
           - os: windows-latest
-            python-version: '3.13'
+            python-version: '3.14'
             dependencies: full
             tests-type: unit
             test-runner: pytest
@@ -72,7 +72,7 @@ jobs:
 
     concurrency:
       # auto-cancel any in-progress job *on the same branch*
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.tests-type }}-py${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.test-runner }}
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.tests-type }}-py${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.test-runner }}-${{ matrix.dependencies }}
       cancel-in-progress: true
 
     steps:
