@@ -1404,10 +1404,14 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     single, specified resolution. (Identical to covering_grid,
     except that it interpolates.)
 
-    Smoothed covering grids start at level 0, interpolating to
-    fill the region to level 1, replacing any cells actually
-    covered by level 1 data, and then recursively repeating this
-    process until it reaches the specified `level`.
+    Smoothed covering grids start at the coarsest level that fully
+    covers the region, interpolating to fill the region to the next
+    level, replacing any cells actually covered by that level's data,
+    and then recursively repeating this process until it reaches the
+    specified `level`. In cases of properly-nested AMR, this *should*
+    only require going to level L-1.  But for other cases (including
+    periodicity and domains) it may require going all the way to the
+    root level.
 
     Parameters
     ----------
