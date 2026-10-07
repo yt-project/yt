@@ -1,6 +1,7 @@
+import numpy as np
 from numpy.testing import assert_array_equal, assert_raises
 
-from yt.testing import fake_amr_ds, fake_random_ds
+from yt.testing import fake_amr_ds, fake_octree_ds, fake_random_ds
 from yt.units import cm
 
 
@@ -50,6 +51,32 @@ def test_ellipsis_selection():
     assert_array_equal(reg.fwidth, ereg.fwidth)
 
     assert_raises(IndexError, ds.r.__getitem__, (..., (0.5, "cm"), ...))
+
+
+def test_region_edge_units():
+    seed = np.random.RandomState(seed=1234)
+
+    ds = fake_octree_ds(seed)
+    ad = ds.all_data()
+
+    total_cells = len(ad["x"])
+    expected_count = int(
+        np.all([(ad[k] > 0.25) & (ad[k] < 0.75) for k in "xyz"], axis=0).sum()
+    )
+
+    L, R = (
+        ds.domain_center.to("m") + sign * ds.arr([0.25], "code_length")
+        for sign in (-1, 1)
+    )
+    reg = ds.box(L, R)
+    actual_with_units = len(reg["x"])
+    assert expected_count == actual_with_units
+    assert actual_with_units < total_cells
+
+    L, R = (ds.domain_center + sign * ds.arr([0.25], "code_length") for sign in (-1, 1))
+    reg = ds.box(L, R)
+    actual_without_units = len(reg["x"])
+    assert expected_count == actual_without_units
 
 
 # this test will fail until "arbitrary_grid" selector is implemented for 2D datasets
