@@ -1495,8 +1495,10 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0:
             return
-        ls = self._initialize_level_state(fields)
+        # Start at the min level rather than root (see note in
+        # initialize_level_state)
         min_level = self._compute_minimum_level()
+        ls = self._initialize_level_state(fields, min_level)
         # NOTE: This usage of "refine_by" is actually *okay*, because it's
         # being used with respect to iref, which is *already* scaled!
         refine_by = self.ds.refine_by
@@ -1505,11 +1507,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         refine_by = np.array(refine_by, dtype="i8")
 
         runtime_errors_count = 0
-        for level in range(self.level + 1):
-            if level < min_level:
-                self._update_level_state(ls)
-                continue
-
+        for level in range(min_level, self.level + 1):
             mylog.debug("Filling level %d", level)
 
             nd = self.ds.dimensionality
@@ -1568,7 +1566,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(v, fi.units)
 
-    def _initialize_level_state(self, fields):
+    def _initialize_level_state(self, fields, level=0):
         ls = LevelState()
         ls.domain_width = self.ds.domain_width
         ls.domain_left_edge = self.ds.domain_left_edge
@@ -1587,8 +1585,17 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             "dds",
         ):
             setattr(ls, att, getattr(ls, att).in_units("code_length").d)
-        ls.current_dx = ls.base_dx
-        ls.current_level = 0
+        # We don't actually need to go to the root.  For a long time, we were
+        # doing this, because it was safest.  In general, we only have to
+        # necessarily start at any level more than 1 different in cases we
+        # can't predict of non-properly nested boxes.  But, we do have to
+        # address that, so we can't change too much.
+        nd = self.ds.dimensionality
+        refinement = np.zeros_like(ls.base_dx)
+        refinement += self.ds.relative_refinement(0, level)
+        refinement[nd:] = 1
+        ls.current_dx = ls.base_dx / refinement
+        ls.current_level = level
         ls.global_startindex, end_index, idims = self._minimal_box(ls.current_dx)
         ls.current_dims = idims.astype("int32")
         ls.left_edge = ls.global_startindex * ls.current_dx + self.ds.domain_left_edge.d
