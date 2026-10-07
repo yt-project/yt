@@ -45,7 +45,11 @@ from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.utilities.lib.cyoctree import CyOctree
 from yt.utilities.lib.interpolators import ghost_zone_interpolate
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
-from yt.utilities.lib.misc_utilities import fill_region, fill_region_float
+from yt.utilities.lib.misc_utilities import (
+    fill_region,
+    fill_region_float,
+    get_box_grids_level,
+)
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
     interpolate_sph_positions_gather,
@@ -1451,38 +1455,88 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         level_state.data_source.max_level = level_state.current_level
 
     def _compute_minimum_level(self):
-        # This attempts to determine the minimum level that we should be
-        # starting on for this box.  It does this by identifying the minimum
-        # level that could contribute to the minimum bounding box at that
-        # level; that means that all cells from coarser levels will be replaced.
+        # Start at the finest level whose padded region (the level box plus
+        # one cell on each side) is entirely covered by that level's grids;
+        # every cell we fill will then be replaced by data at that level or
+        # finer, so nothing coarser can contribute.
         if self._min_level is not None:
             return self._min_level
-        ils = LevelState()
         min_level = 0
         for l in range(self.level, 0, -1):
             dx = self._base_dx / self.ds.relative_refinement(0, l)
             start_index, end_index, dims = self._minimal_box(dx)
-            ils.left_edge = start_index * dx + self.ds.domain_left_edge
-            ils.right_edge = ils.left_edge + dx * dims
-            ils.current_dx = dx
-            ils.current_level = l
-            self._setup_data_source(ils)
-            # Reset the max_level
-            ils.data_source.min_level = 0
-            ils.data_source.max_level = l
-            ils.data_source.loose_selection = False
-            min_level = self.level
-            for chunk in ils.data_source.piter():
-                # With our odd selection methods, we can sometimes get no-sized ires.
-                ir = chunk.ires
-                if ir.size == 0:
-                    continue
-                min_level = min(ir.min(), min_level)
-            min_level = self.comm.mpi_allreduce(min_level, op="min")
-            if min_level >= l:
+            covered = self._level_covers_region(l, start_index, dims)
+            if covered is None:
+                covered = self._selection_finds_only_level(l, dx, start_index, dims)
+            if covered:
+                min_level = l
                 break
         self._min_level = min_level
         return min_level
+
+    def _level_covers_region(self, level, start_index, dims):
+        # Whether the padded region at this level is entirely covered by
+        # grids at this level, using only the grid index.  Returns None if we
+        # cannot tell this way (the region reaches past the domain edge, or
+        # we cannot work in integer index space).
+        ds = self.ds
+        index = ds.index
+        if (
+            ds.dimensionality != 3
+            or is_sequence(ds.refine_by)
+            or int(ds.refine_by) != ds.refine_by
+            or not hasattr(index, "grids")
+        ):
+            return None
+        lo = start_index - 1
+        hi = start_index + dims + 1
+        level_dims = ds.domain_dimensions * int(ds.relative_refinement(0, level))
+        if np.any(lo < 0) or np.any(hi > level_dims):
+            return None
+        dx = ds.domain_width.d / level_dims
+        DLE = ds.domain_left_edge.d
+        mask = np.zeros(len(index.grids), dtype="int32")
+        get_box_grids_level(
+            DLE + lo * dx,
+            DLE + hi * dx,
+            level,
+            index.grid_left_edge.d,
+            index.grid_right_edge.d,
+            index.grid_levels,
+            mask,
+        )
+        covered = np.zeros(hi - lo, dtype="bool")
+        for grid in index.grids[mask.astype("bool")]:
+            gl = grid.get_global_startindex()
+            gr = gl + grid.ActiveDimensions
+            gl = np.maximum(gl, lo) - lo
+            gr = np.minimum(gr, hi) - lo
+            if np.all(gr > gl):
+                covered[gl[0] : gr[0], gl[1] : gr[1], gl[2] : gr[2]] = True
+        return bool(covered.all())
+
+    def _selection_finds_only_level(self, l, dx, start_index, dims):
+        # Select cells in the padded region from every level up to l; the
+        # region is covered if they are all at level l.  Selecting nothing
+        # means it is not covered.
+        ils = LevelState()
+        ils.left_edge = start_index * dx + self.ds.domain_left_edge
+        ils.right_edge = ils.left_edge + dx * dims
+        ils.current_dx = dx
+        ils.current_level = l
+        self._setup_data_source(ils)
+        ils.data_source.min_level = 0
+        ils.data_source.max_level = l
+        ils.data_source.loose_selection = False
+        found = l + 1
+        for chunk in ils.data_source.piter():
+            # With our odd selection methods, we can sometimes get no-sized ires.
+            ir = chunk.ires
+            if ir.size == 0:
+                continue
+            found = min(ir.min(), found)
+        found = self.comm.mpi_allreduce(found, op="min")
+        return found == l
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]

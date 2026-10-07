@@ -4,6 +4,7 @@ from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 from yt.fields.derived_field import ValidateParameter
 from yt.loaders import load, load_particles
 from yt.testing import (
+    fake_amr_ds,
     fake_octree_ds,
     fake_random_ds,
     requires_file,
@@ -205,6 +206,36 @@ def test_smoothed_covering_grid():
                         dn * di[2] + i : dn * (di[2] + dd[2]) + i : dn,
                     ]
                     assert_equal(f, g["gas", "density"])
+
+
+def test_smoothed_covering_grid_min_level():
+    # Starting the interpolation at the minimum level that can contribute
+    # should give exactly the same result as starting at the root grid.
+    ds = fake_amr_ds(fields=[("gas", "density")], units=["g/cm**3"])
+    for g in ds.index.grids:
+        for n_zones in [1, 2]:
+            left_edge = (g.get_global_startindex() - n_zones) * g.dds
+            left_edge += ds.domain_left_edge
+            dims = g.ActiveDimensions + 2 * n_zones
+            cg = ds.smoothed_covering_grid(
+                g.Level, left_edge, dims, num_ghost_zones=n_zones
+            )
+            cg_root = ds.smoothed_covering_grid(
+                g.Level, left_edge, dims, num_ghost_zones=n_zones
+            )
+            cg_root._min_level = 0
+            assert_array_equal(cg["gas", "density"], cg_root["gas", "density"])
+
+
+def test_smoothed_covering_grid_coarse_region():
+    # A small region at a fine level, where only the root grid has data and no
+    # root cell centers fall inside the region, used to be filled with zeros.
+    ds = fake_amr_ds(fields=[("gas", "density")], units=["g/cm**3"])
+    level = 4
+    dx = ds.domain_width / ds.domain_dimensions / ds.relative_refinement(0, level)
+    left_edge = ds.domain_left_edge + np.array([113, 61, 62]) * dx
+    cg = ds.smoothed_covering_grid(level, left_edge, [8, 22, 8])
+    assert_equal((cg["gas", "density"] == 0.0).sum(), 0)
 
 
 def test_arbitrary_grid():
