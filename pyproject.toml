@@ -502,7 +502,7 @@ environment = {"YT_LIMITED_API" = "1"}
 [tool.uv]
 # never build the following packages from sources (always prefer wheels)
 no-build-package = [
-    # "arm-pyart", # temporarily disabled because there are no cp313 wheels yet
+    "arm-pyart",
     "astropy",
     "appnope",
     "bottleneck",
