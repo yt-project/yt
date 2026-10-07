@@ -1449,13 +1449,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         )
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
-        self._pdata_source = self.ds.region(
-            self.center,
-            level_state.left_edge - level_state.current_dx,
-            level_state.right_edge + level_state.current_dx,
-        )
-        self._pdata_source.min_level = level_state.current_level
-        self._pdata_source.max_level = level_state.current_level
 
     def _compute_minimum_level(self):
         # This attempts to determine the minimum level that we should be
