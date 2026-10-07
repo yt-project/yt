@@ -54,7 +54,6 @@ def test_ellipsis_selection():
 
 
 def test_region_edge_units():
-
     seed = np.random.RandomState(seed=1234)
 
     ds = fake_octree_ds(seed)
