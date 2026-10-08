@@ -14,7 +14,6 @@ import time
 import traceback
 from collections import UserDict
 from collections.abc import Callable
-from copy import deepcopy
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any
@@ -1241,8 +1240,9 @@ def parse_center_array(center, ds, axis: int | None = None):
         "- a 2 element tuple with 'min' or 'max' as the first element, followed by a field identifier\n"
         "- a 3 element array-like: for a unyt_array, expects length dimensions, otherwise code_length is assumed"
     )
-    # store an unmodified copy of user input to be inserted in error messages
-    center_input = deepcopy(center)
+    # store a *reference* to be used later.
+    # Any subsequent mutation should modify copies rather than the original object
+    center_input = center
 
     if isinstance(center, str):
         centerl = center.lower()
