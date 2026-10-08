@@ -19,7 +19,6 @@ from collections import defaultdict
 import numpy as np
 from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
-from nose.plugins import Plugin
 from numpy.testing import assert_almost_equal, assert_equal
 
 from yt.config import ytcfg
@@ -45,6 +44,13 @@ from yt.visualization import (
     plot_window as pw,
     profile_plotter as profile_plotter,
 )
+
+try:
+    from nose.plugins import Plugin
+except ImportError:
+    # nose is only needed to run the AnswerTesting plugin, not to import
+    # the helpers defined in this module (e.g. from pytest)
+    Plugin = object
 
 mylog = logging.getLogger("nose.plugins.answer-testing")
 run_big_data = False
