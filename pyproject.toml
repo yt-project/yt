@@ -524,7 +524,7 @@ no-build-package = [
     "py",
     "pykdtree",
     "pyproj",
-    "pyyaml",
+    # "pyyaml", # temporarily allowed while the following issue is open: https://github.com/yaml/pyyaml/issues/951
     "rlic",
     "scipy",
     "shapely",
@@ -564,6 +564,7 @@ constraint-dependencies = [
     "s3fs>=2021.11.0",
 ]
 index-strategy = "unsafe-best-match"
+exclude-newer-package = { "markupsafe" = "P4D" } # drop this line on 2026/10/15 or later
 
 [[tool.uv.index]]
 # explicitly configure PyPI as the first index to look up instead of the default

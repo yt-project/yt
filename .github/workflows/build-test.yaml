@@ -82,7 +82,7 @@ jobs:
             cache-suffix: alldeps-nose
           - os: ubuntu-latest
             # minimal tests with latest Python and no optional dependencies
-            python-version: '3.14'
+            python-version: '3.15'
             sync_args: null
             tests-type: unit
             test-runner: pytest
