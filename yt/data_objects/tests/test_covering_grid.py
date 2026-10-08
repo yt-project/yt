@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
 from yt.fields.derived_field import ValidateParameter
-from yt.loaders import load, load_particles
+from yt.loaders import load, load_amr_grids, load_particles, load_uniform_grid
 from yt.testing import (
     fake_amr_ds,
     fake_octree_ds,
@@ -236,6 +236,59 @@ def test_smoothed_covering_grid_coarse_region():
     left_edge = ds.domain_left_edge + np.array([113, 61, 62]) * dx
     cg = ds.smoothed_covering_grid(level, left_edge, [8, 22, 8])
     assert_equal((cg["gas", "density"] == 0.0).sum(), 0)
+
+
+def test_smoothed_covering_grid_nonperiodic_edge():
+    # The buffer around a smoothed covering grid that touches a non-periodic
+    # domain edge used to reach past the edge, which raised.
+    density = 1.0 + np.arange(8**3, dtype="float64").reshape(8, 8, 8)
+    ds = load_uniform_grid(
+        {"density": density},
+        [8, 8, 8],
+        bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+        periodicity=(False, False, False),
+    )
+    cg = ds.smoothed_covering_grid(0, ds.domain_left_edge, ds.domain_dimensions)
+    assert_equal(cg["stream", "density"], density)
+
+
+def test_smoothed_covering_grid_nonperiodic_refine_by_4():
+    # Ghost zones for a grid near a non-periodic edge, where the grids one
+    # level coarser cover the region we need but not the buffer around it,
+    # and the root level's buffer would reach past the edge.
+    root = 8
+    refine_by = 4
+    boxes = [
+        (0, [0, 0, 0], [8, 8, 8]),
+        (1, [0, 0, 0], [4, 12, 16]),
+        (2, [4, 0, 8], [12, 16, 24]),
+        (3, [32, 52, 32], [44, 64, 36]),
+    ]
+    grid_data = []
+    for level, start, end in boxes:
+        n = root * refine_by**level
+        dims = np.array(end) - np.array(start)
+        grid_data.append(
+            {
+                "left_edge": np.array(start) / n,
+                "right_edge": np.array(end) / n,
+                "level": level,
+                "dimensions": dims,
+                "density": 1.0 + np.arange(dims.prod(), dtype="float64").reshape(dims),
+            }
+        )
+    ds = load_amr_grids(
+        grid_data,
+        [root, root, root],
+        bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+        periodicity=(False, False, False),
+        refine_by=refine_by,
+    )
+    g = ds.index.grids[-1]
+    cube = g.retrieve_ghost_zones(1, [("stream", "density")], smoothed=True)
+    density = cube["stream", "density"]
+    assert_equal(density[1:-1, 1:-1, 1:-1], g["stream", "density"])
+    assert_equal((density == 0.0).sum(), 0)
 
 
 def test_arbitrary_grid():

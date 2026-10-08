@@ -1449,20 +1449,39 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             super()._setup_data_source()
             return
         # We need a buffer region to allow for zones that contribute to the
-        # interpolation but are not directly inside our bounds
-        level_state.data_source = self.ds.region(
-            self.center,
-            level_state.left_edge - level_state.current_dx,
-            level_state.right_edge + level_state.current_dx,
+        # interpolation but are not directly inside our bounds.  There are no
+        # zones beyond a non-periodic edge, so there we clip the buffer (but
+        # not the box, whose edges lie on cell edges) to the domain.  If the
+        # box itself crosses such an edge, selecting it raises; supporting that
+        # would need values extrapolated into the box cells outside the domain
+        # after each level is filled, before interpolating to the next.
+        ds = self.ds
+        box_left = np.asarray(level_state.left_edge, dtype="float64")
+        box_right = np.asarray(level_state.right_edge, dtype="float64")
+        dx = np.asarray(level_state.current_dx, dtype="float64")
+        DLE = ds.domain_left_edge.d
+        DRE = ds.domain_right_edge.d
+        clip = ~np.array(ds.periodicity)
+        left = np.where(
+            clip & (box_left > DLE - dx / 2),
+            np.maximum(box_left - dx, DLE),
+            box_left - dx,
+        )
+        right = np.where(
+            clip & (box_right < DRE + dx / 2),
+            np.minimum(box_right + dx, DRE),
+            box_right + dx,
+        )
+        level_state.data_source = ds.region(
+            self.center, ds.arr(left, "code_length"), ds.arr(right, "code_length")
         )
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
 
     def _compute_minimum_level(self):
-        # Start at the finest level whose padded region (the level box plus
-        # one cell on each side) is entirely covered by that level's grids;
-        # every cell we fill will then be replaced by data at that level or
-        # finer, so nothing coarser can contribute.
+        # Start at the finest level whose box is entirely covered by that
+        # level's grids; every cell we fill will then be replaced by data at
+        # that level or finer, so nothing coarser can contribute.
         if self._min_level is not None:
             return self._min_level
         min_level = 0
@@ -1479,10 +1498,10 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         return min_level
 
     def _level_covers_region(self, level, start_index, dims):
-        # Whether the padded region at this level is entirely covered by
-        # grids at this level, using only the grid index.  Returns None if we
-        # cannot tell this way (the region reaches past the domain edge, or
-        # we cannot work in integer index space).
+        # Whether the box at this level is entirely covered by grids at this
+        # level, using only the grid index.  Returns None if we cannot tell
+        # this way (the box reaches past the domain edge, or we cannot work in
+        # integer index space).
         ds = self.ds
         index = ds.index
         if (
@@ -1492,8 +1511,8 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             or not hasattr(index, "grids")
         ):
             return None
-        lo = start_index - 1
-        hi = start_index + dims + 1
+        lo = start_index
+        hi = start_index + dims
         level_dims = ds.domain_dimensions * int(ds.relative_refinement(0, level))
         if np.any(lo < 0) or np.any(hi > level_dims):
             return None
