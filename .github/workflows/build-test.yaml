@@ -62,7 +62,7 @@ jobs:
             venv-loc: bin
           - os: ubuntu-latest
             # minimal tests with latest Python and no optional dependencies
-            python-version: '3.x'
+            python-version: '3.15'
             dependencies: ''
             tests-type: unit
             test-runner: pytest
@@ -80,6 +80,7 @@ jobs:
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
         python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
     - name: Checkout repo (bare)
       if: matrix.tests-type != 'answer'
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
