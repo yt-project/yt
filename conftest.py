@@ -2,9 +2,11 @@ import os
 import shutil
 import sys
 import tempfile
+from collections import defaultdict
 from importlib.metadata import version
 from importlib.util import find_spec
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -64,6 +66,11 @@ def pytest_addoption(parser):
     parser.addoption(
         "--no-hash",
         action="store_true",
+    )
+    parser.addoption(
+        "--answer-big-data",
+        action="store_true",
+        help="Also run answer tests that require big data files.",
     )
     parser.addoption("--local-dir", default=None, help="Where answers are saved.")
     # Tell pytest about the local-dir option in the ini files. This
@@ -186,11 +193,191 @@ def pytest_configure(config):
             "ignore:" r"Engine.*loading failed.*" ":RuntimeWarning",
         )
 
+    if config.getoption("--with-answer-testing"):
+        _configure_nose_style_answer_testing(config)
+
+
+# >>> nose-style answer tests (yt.utilities.answer_testing.framework)
+# This mirrors the nose AnswerTesting plugin as tests/nose_runner.py used it:
+# nose ran one process per tests/tests.yaml group, with
+# --local --local-dir=<dir> --answer-name=py{XY}_{group}, so each group had its
+# own result storage and answer file <dir>/py{XY}_{group}/py{XY}_{group}.
+# A single pytest session spans many groups, so the class-level storages of
+# AnswerTestingTest are switched before each test to those of its group.
+
+
+def _local_dir(config):
+    local_dir = config.getoption("--local-dir")
+    if local_dir is None:
+        local_dir = config.getini("local-dir")
+    return os.path.realpath(os.path.expanduser(local_dir))
+
+
+def _read_answer_groups(config):
+    """Map (path relative to rootdir, test name) to the tests.yaml group."""
+    with open(config.rootpath / "tests" / "tests.yaml") as fh:
+        tests = yaml.safe_load(fh)
+    groups = {}
+    for group, entries in tests["answer_tests"].items():
+        for entry in entries or ():
+            path, _, name = entry.partition(":")
+            groups[path, name] = group
+    return groups
+
+
+def _relpath(config, path):
+    try:
+        return path.relative_to(config.rootpath).as_posix()
+    except ValueError:
+        return None
+
+
+def _answer_group(item):
+    groups = item.config._answer_groups
+    path = _relpath(item.config, item.path)
+    name = getattr(item, "originalname", item.name)
+    if getattr(item, "cls", None) is not None:
+        name = f"{item.cls.__name__}.{name}"
+    return groups.get((path, name))
+
+
+class _AnswerGroup:
+    # what AnswerTesting.configure sets up for one nose process
+    def __init__(self, config, group):
+        from yt.utilities.answer_testing.framework import AnswerTestLocalStorage
+
+        store = config.getoption("--answer-store")
+        self.name = f"py{sys.version_info.major}{sys.version_info.minor}_{group}"
+        self.path = os.path.join(_local_dir(config), self.name, self.name)
+        self.options = SimpleNamespace(
+            answer_name=self.name,
+            store_results=store,
+            local_results=True,
+            big_data=config.getoption("--answer-big-data"),
+            output_dir=_local_dir(config),
+        )
+        self.result_storage = defaultdict(dict)
+        if store:
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+            self.reference_storage = AnswerTestLocalStorage(None, self.path)
+        else:
+            self.reference_storage = AnswerTestLocalStorage(self.path, None)
+
+
+def _configure_nose_style_answer_testing(config):
+    from yt.utilities.answer_testing import framework
+    from yt.utilities.logger import disable_stream_logging
+
+    disable_stream_logging()
+    ytcfg["yt", "internals", "within_testing"] = True
+    # requires_ds reads these when test modules are imported
+    framework.run_big_data = config.getoption("--answer-big-data")
+    framework.AnswerTestingTest.result_storage = defaultdict(dict)
+    # tests that are not in tests.yaml get no answer name, as under
+    # nose without --answer-name
+    config._answer_default = SimpleNamespace(
+        result_storage=framework.AnswerTestingTest.result_storage,
+        reference_storage=framework.AnswerTestLocalStorage(None, None),
+        options=SimpleNamespace(
+            answer_name=None,
+            store_results=config.getoption("--answer-store"),
+            local_results=True,
+            big_data=config.getoption("--answer-big-data"),
+            output_dir=_local_dir(config),
+        ),
+    )
+    _use_answer_storage(config._answer_default)
+    config._answer_groups = _read_answer_groups(config)
+    config._answer_storages = {}
+    config._answer_tainted = set()
+
+
+def _use_answer_storage(storage):
+    from yt.utilities.answer_testing.framework import AnswerTestingTest
+
+    AnswerTestingTest.result_storage = storage.result_storage
+    AnswerTestingTest.reference_storage = storage.reference_storage
+    AnswerTestingTest.options = storage.options
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_make_collect_report(collector):
+    # can_run_ds marks the storage as tainted (missing data with
+    # strict_requires) when a module is imported; under nose that tainted the
+    # storage of every group that imported the module.
+    config = collector.config
+    if not config.getoption("--with-answer-testing") or not isinstance(
+        collector, pytest.Module
+    ):
+        return (yield)
+    import_storage = defaultdict(dict)
+    _use_answer_storage(
+        SimpleNamespace(
+            result_storage=import_storage,
+            reference_storage=config._answer_default.reference_storage,
+            options=config._answer_default.options,
+        )
+    )
+    try:
+        return (yield)
+    finally:
+        _use_answer_storage(config._answer_default)
+        if import_storage.get("tainted", False):
+            path = _relpath(config, collector.path)
+            config._answer_tainted.update(
+                group for (p, _), group in config._answer_groups.items() if p == path
+            )
+
+
+def pytest_collection_finish(session):
+    config = session.config
+    if not config.getoption("--with-answer-testing"):
+        return
+    for item in session.items:
+        group = _answer_group(item)
+        if group is not None and group not in config._answer_storages:
+            storage = _AnswerGroup(config, group)
+            if group in config._answer_tainted:
+                storage.result_storage["tainted"] = True
+            config._answer_storages[group] = storage
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_runtest_setup(item):
+    config = item.config
+    if not config.getoption("--with-answer-testing"):
+        return
+    group = _answer_group(item)
+    if group is None:
+        _use_answer_storage(config._answer_default)
+    else:
+        _use_answer_storage(config._answer_storages[group])
+
+
+def pytest_sessionfinish(session):
+    # AnswerTesting.finalize, once per group
+    config = session.config
+    if not config.getoption("--with-answer-testing") or not config.getoption(
+        "--answer-store"
+    ):
+        return
+    for storage in getattr(config, "_answer_storages", {}).values():
+        storage.reference_storage.dump(storage.result_storage)
+
+
+# <<< nose-style answer tests
+
 
 def pytest_collection_modifyitems(config, items):
     r"""
     Decide which tests to skip based on command-line options.
     """
+    if config.getoption("--with-answer-testing"):
+        # tests listed in tests/tests.yaml are answer tests (as on Jenkins,
+        # where nose_runner.py ran them in their own answer-testing processes)
+        for item in items:
+            if _answer_group(item) is not None:
+                item.add_marker(pytest.mark.answer_test)
     # Set up the skip marks
     skip_answer = pytest.mark.skip(reason="--with-answer-testing not set.")
     skip_unit = pytest.mark.skip(reason="Running answer tests, so skipping unit tests.")
