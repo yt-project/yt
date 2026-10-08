@@ -9,4 +9,4 @@ def test_axial_pixelization():
             # adding yield-based tests during the nose->pytest migration
             continue
         ds = fake_amr_ds(geometry=geom)
-        yield AxialPixelizationTest(ds)
+        AxialPixelizationTest(ds)()
