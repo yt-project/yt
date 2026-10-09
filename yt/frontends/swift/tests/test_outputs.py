@@ -8,6 +8,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
 EAGLE_6 = "EAGLE_6/eagle_0005.hdf5"
+stromgen_sphere = "Stromgren/output_7bin_HHeZdust_real_0060.hdf5"
 
 
 # Combined the tests for loading a file and ensuring the units have been
@@ -111,3 +112,49 @@ def test_cosmo_dataset_selection():
     ds = load(EAGLE_6)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
+
+
+@requires_module("h5py")
+@requires_file(stromgen_sphere)
+def test_species_fractions():
+    """
+    Chemistry-network SWIFT snapshots expose a packed "SpeciesFractions"
+    field; SwiftFieldInfo unpack it into individual per-ion and
+    per-molecule "<species>_fraction" (normalized) and
+    "<species>_fraction_raw" (on-disk, unnormalized) fields.
+    """
+    ds = load(stromgen_sphere)
+    if ("PartType0", "SpeciesFractions") not in ds.field_list:
+        return  # this sample dataset has no chemistry network fields
+
+    ad = ds.all_data()
+
+    # normalized ion fraction always lies in [0, 1]
+    for name in ("HI", "HII"):
+        frac = ad["PartType0", f"{name}_fraction"]
+        assert frac.min() >= 0.0
+        assert frac.max() <= 1.0
+
+    # the raw column value need not be bounded the same way, and for
+    # H (single-ion-state indices aside) should be present and finite
+    raw = ad["PartType0", "HII_fraction_raw"]
+    assert np.isfinite(raw).all()
+
+    # HI + HII + Hm should renormalize to 1 (mask out zero-total particles)
+    hi = ad["PartType0", "HI_fraction"]
+    hii = ad["PartType0", "HII_fraction"]
+    hm = ad["PartType0", "Hm_fraction"]
+    total_raw = (
+        ad["PartType0", "HI_fraction_raw"]
+        + ad["PartType0", "HII_fraction_raw"]
+        + ad["PartType0", "Hm_fraction_raw"]
+    )
+    nonzero = total_raw > 0
+    assert_almost_equal(
+        (hi + hii + hm)[nonzero], np.ones(nonzero.sum(), dtype="float64")
+    )
+
+    # a molecule's normalized fraction is just an alias for its raw value
+    assert_almost_equal(
+        ad["PartType0", "H2_fraction"].d, ad["PartType0", "H2_fraction_raw"].d
+    )
