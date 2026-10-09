@@ -37,7 +37,10 @@ def read_amrvac_namelist(parfiles):
     parfiles = (os.path.expanduser(pf) for pf in always_iterable(parfiles))
 
     # first merge the namelists
-    namelists = [f90nml.read(parfile) for parfile in parfiles]
+    parser = f90nml.Parser()
+    parser.global_start_index = 1
+
+    namelists = [parser.read(parfile) for parfile in parfiles]
     unified_namelist = f90nml.Namelist()
     for nml in namelists:
         unified_namelist.patch(nml)
