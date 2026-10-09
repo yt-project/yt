@@ -542,6 +542,12 @@ apply):
    Both policies have additional details that may be useful in interpreting
    this policy.
 
+Generative AI Configuration
+---------------------------
+
+The root ``AGENTS.md`` provides basic rules for AI tools to follow. Please
+ensure that your tool of choice parses and follows those guidelines. No
+tool-specific configuration should be committed to the repository.
 
 .. _git-with-yt:
 

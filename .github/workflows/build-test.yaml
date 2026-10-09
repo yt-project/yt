@@ -30,7 +30,7 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
-        version: ">=0.9.11,<0.10.0" # pin uv to avoid the lock file format going out-of-sync
+        version: ">=0.12.24,<0.13.0" # pin uv to avoid the lock file format going out-of-sync
         python-version: 3.14
         cache-suffix: lockcheck
     - run: uv lock --check
