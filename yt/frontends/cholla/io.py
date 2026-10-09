@@ -1,7 +1,6 @@
-import numpy as np
-
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.on_demand_imports import _h5py as h5py
+
+from .misc import _CachedH5Openner
 
 
 class ChollaIOHandler(BaseIOHandler):
@@ -14,22 +13,28 @@ class ChollaIOHandler(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         raise NotImplementedError
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        data = {}
-        for field in fields:
-            data[field] = np.empty(size, dtype="float64")
-
-        with h5py.File(self.ds.parameter_filename, "r") as fh:
-            ind = 0
+    def io_iter(self, chunks, fields):
+        # this is loosely inspired by the implementation used for Enzo/Enzo-E
+        # - those other implementations use the lower-level hdf5 interface. Unclear
+        #   whether that affords any advantages...
+        mapper = self.ds.index._block_mapping
+        with _CachedH5Openner(mode="r") as h5_context_manager:
             for chunk in chunks:
-                for grid in chunk.objs:
-                    nd = 0
+                for obj in chunk.objs:
+                    if obj.filename is None:  # unclear when this case arises...
+                        continue
+
+                    # ensure the file containing data for obj is open
+                    fh = h5_context_manager.open_fh(obj.filename)
+
+                    # access the HDF5 group containing the datasets of field values
+                    grp = fh[mapper.h5_group]
+                    # get the indices in a generic dataset that correspond to obj.id
+                    idx = mapper.idx_map[obj.id]
+
                     for field in fields:
                         ftype, fname = field
-                        values = fh[fname][:].astype("=f8")
-                        nd = grid.select(selector, values, data[field], ind)
-                    ind += nd
-        return data
+                        yield field, obj, grp[fname][idx].astype("=f8")
 
     def _read_chunk_data(self, chunk, fields):
         raise NotImplementedError
