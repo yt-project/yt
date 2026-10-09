@@ -1,7 +1,7 @@
 import numpy as np
 
-from yt.loaders import load_uniform_grid
-from yt.testing import requires_module_pytest
+from yt.loaders import load, load_uniform_grid
+from yt.testing import fake_amr_ds, requires_module_pytest
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
@@ -24,3 +24,34 @@ def test_save_as_data_unit_system(tmp_path):
 
     with h5py.File(fi, mode="r") as f:
         assert f.attrs["unit_system_name"] == "code"
+
+
+@requires_module_pytest("h5py")
+def test_save_as_data_chunk(tmp_path):
+    """
+    Tests whether a saved (sphere) dataset matches what was saved, and whether
+    accessing the saved data via different paths produces the same result.
+    """
+    sphere_path = tmp_path / "test_sphere.h5"
+    ds = fake_amr_ds()
+    sp = ds.sphere(ds.domain_center, (1.0, "kpc"))
+    original_data = sp["stream", "Density"]
+    sp.save_as_dataset(sphere_path, fields=[("stream", "Density")])
+
+    sp_ds = load(sphere_path)  # should produce a 7-chunk dataset
+    assert len(sp_ds.index.data_files) > 1, "Test data not chunked."
+
+    reloaded_data = sp_ds.data["grid", "Density"]  # previously crashed with chunking
+    all_reloaded_data = sp_ds.all_data()["grid", "Density"]
+
+    np.testing.assert_array_equal(
+        original_data,
+        reloaded_data,
+        err_msg="Reloaded sphere produces different data to what was saved.",
+    )
+
+    np.testing.assert_array_equal(
+        all_reloaded_data,
+        reloaded_data,
+        err_msg="Reloaded sphere produces different results from .data vs .all_data().",
+    )
