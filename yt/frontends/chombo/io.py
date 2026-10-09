@@ -194,6 +194,20 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             data[field_index::items_per_particle], dtype=np.float64, order="F"
         )
 
+class IOHandlerAMReXHDF5(IOHandlerChomboHDF5):
+    _dataset_type = "amrex_hdf5"
+    _offset_string = "data:offsets=0"
+    _data_string = "data:datatype=0"
+    _offsets = None
+
+    def __init__(self, ds, *args, **kwargs):
+        IOHandlerChomboHDF5.__init__(self, ds, *args, **kwargs)
+        self.ds = ds
+        self._handle = ds._handle
+        self.dim = int(self._handle["Chombo_global/"].attrs["SpaceDim"])
+        self._read_ghost_info()
+        if self._offset_string not in self._handle["level_0"]:
+            self._calculate_offsets()
 
 def parse_orion_sinks(fn):
     r"""
