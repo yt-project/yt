@@ -446,14 +446,15 @@ class RAMSESDomainSubset(OctreeSubset):
         )
 
         cpu_list = [self.domain_id - 1]
+
         fill_hydro(
             fd,
-            file_handler.offset,
-            file_handler.level_count,
+            file_handler.offset.astype(np.int64),
+            file_handler.level_count.astype(np.int64),
             cpu_list,
-            level_inds,
-            cell_inds,
-            file_inds,
+            level_inds.astype(np.uint8),
+            cell_inds.astype(np.uint32),
+            file_inds.astype(np.int64),
             ndim,
             all_fields,
             fields,
