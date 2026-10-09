@@ -796,6 +796,18 @@
     "load_name": "g1536.00256",
     "url": "https://yt-project.org/data/medium_tipsy.tar.gz"
   },
+  "no_fields.tar.gz": {
+    "hash": "2047508c0cc3e52cdab1be6d61391159a265a7054cf399e9c791f3ea7cee9ea9",
+    "load_kwargs": {},
+    "load_name": "data00000400.h5",
+    "url": "https://yt-project.org/data/no_fields.tar.gz"
+  },
+  "no_particles.tar.gz": {
+    "hash": "6f771ac67c1fdc9cfec252025ccec8290a81d2a9ab1157725503b3c73e65ecba",
+    "load_kwargs": {},
+    "load_name": "data00000400.h5",
+    "url": "https://yt-project.org/data/no_particles.tar.gz"
+  },
   "nyx_sedov_plt00086.tgz": {
     "hash": "308f6b2a81363c5aada35941c199f149d8688f8ce65803f33d6dedce43a57a1c",
     "load_kwargs": {},
@@ -903,6 +915,12 @@
     "load_kwargs": {},
     "load_name": "sedov/sedov_tst_0004.h5",
     "url": "https://yt-project.org/data/sedov_tst_0004.tar.gz"
+  },
+  "singleParticle.tar.gz": {
+    "hash": "44972b9dfd4297a5c02c8f0309ed0a123e6d93ad5c5b5ca49d2a465ae7fa6a84",
+    "load_kwargs": {},
+    "load_name": "simData.h5",
+    "url": "https://yt-project.org/data/singleParticle.tar.gz"
   },
   "sizmbhloz-clref04SNth-rs9_a0.9011.tar.gz": {
     "hash": "3fc14b8e48e9b80c4ea4b324c5815eccb4ca04fe90903ce77f1496838ad764d4",
