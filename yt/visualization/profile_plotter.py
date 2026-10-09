@@ -1257,31 +1257,33 @@ class PhasePlot(ImagePlotContainer):
             xfn = xfn[1]
         if isinstance(yfn, tuple):
             yfn = yfn[1]
+
+        splitname = os.path.split(name)
+        if splitname[0] != "" and not os.path.isdir(splitname[0]):
+            os.makedirs(splitname[0])
+        if os.path.isdir(name) and name != str(self.profile.ds):
+            name = name + (os.sep if name[-1] != os.sep else "")
+            name += str(self.profile.ds)
+
+        new_name = validate_image_name(name, suffix)
+        if new_name == name:
+            for v in self.plots.values():
+                out_name = v.save(name, mpl_kwargs)
+                names.append(out_name)
+            return names
+
+        name = new_name
+        prefix, suffix = os.path.splitext(name)
+
         for f in self.profile.field_data:
             _f = f
             if isinstance(f, tuple):
                 _f = _f[1]
             middle = f"2d-Profile_{xfn}_{yfn}_{_f}"
-            splitname = os.path.split(name)
-            if splitname[0] != "" and not os.path.isdir(splitname[0]):
-                os.makedirs(splitname[0])
-            if os.path.isdir(name) and name != str(self.profile.ds):
-                name = name + (os.sep if name[-1] != os.sep else "")
-                name += str(self.profile.ds)
+            fname = f"{prefix}_{middle}{suffix}"
 
-            new_name = validate_image_name(name, suffix)
-            if new_name == name:
-                for v in self.plots.values():
-                    out_name = v.save(name, mpl_kwargs)
-                    names.append(out_name)
-                return names
-
-            name = new_name
-            prefix, suffix = os.path.splitext(name)
-            name = f"{prefix}_{middle}{suffix}"
-
-            names.append(name)
-            self.plots[f].save(name, mpl_kwargs)
+            names.append(fname)
+            self.plots[f].save(fname, mpl_kwargs)
         return names
 
     @invalidate_plot
