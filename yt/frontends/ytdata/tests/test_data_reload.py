@@ -33,8 +33,8 @@ def test_save_as_data_chunk(tmp_path):
     accessing the saved data via different paths produces the same result.
     """
     sphere_path = tmp_path / "test_sphere.h5"
-    ds = fake_amr_ds()
-    sp = ds.sphere(ds.domain_center, (1.0, "kpc"))
+    ds = fake_amr_ds(length_unit="kpc")
+    sp = ds.sphere(ds.domain_center, (0.25, "kpc"))
     original_data = sp["stream", "Density"]
     sp.save_as_dataset(sphere_path, fields=[("stream", "Density")])
 
