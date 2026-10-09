@@ -29,7 +29,7 @@ Where this file and `CONTRIBUTING.rst` differ, `CONTRIBUTING.rst` wins.
 
 ## Commit messages
 
-- Do not add AI attribution of any kind: no `Co-authored-by` lines for AI tools, no "Generated with", no tool names, no model names.
+- Do not add AI attribution of any kind: no `Co-authored-by` lines for AI tools, no "Generated with", no tool names, no model names, and no links to session URLs.
 - Write a short, descriptive subject line in the style of the existing history (`git log --oneline`).
 - AI use is disclosed in the pull request, not in the commit log.
 
