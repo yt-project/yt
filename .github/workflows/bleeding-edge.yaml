@@ -47,15 +47,12 @@ jobs:
         activate-environment: true # allows using uv pip directly
 
     - name: Configure uv
-      run: |
-        echo "UV_PRERELEASE=allow" >> "$GITHUB_ENV"
-        echo "UV_INDEX=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" >> "$GITHUB_ENV"
-        echo "UV_INDEX_STRATEGY=unsafe-best-match" >> "$GITHUB_ENV"
+      run: echo "UV_PRERELEASE=allow" >> "$GITHUB_ENV"
 
     - name: Install dependencies
       run: |
-        uv add --no-install-project git+https://github.com/yt-project/unyt.git
-        uv add --no-install-project --optional test git+https://github.com/pytest-dev/pytest.git
+        uv pip install git+https://github.com/yt-project/unyt.git
+        uv pip install git+https://github.com/pytest-dev/pytest.git
         uv pip install --upgrade setuptools numpy matplotlib Cython "ewah-bool-utils<2.0.0"
 
     - name: Build
