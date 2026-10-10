@@ -1,0 +1,58 @@
+diff --git a/yt/data_objects/static_output.py b/yt/data_objects/static_output.py
+index 89b4113f6..6595eabac 100644
+--- a/yt/data_objects/static_output.py
++++ b/yt/data_objects/static_output.py
+@@ -27,6 +27,7 @@ from yt.fields.fluid_fields import setup_gradient_fields
+ from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
+ from yt.geometry.coordinates.api import (
+     CartesianCoordinateHandler,
++    CartesianSubjectCoordinateHandler,
+     CoordinateHandler,
+     CylindricalCoordinateHandler,
+     GeographicCoordinateHandler,
+@@ -732,6 +733,8 @@ class Dataset(abc.ABC):
+             self.no_cgs_equiv_length = True
+         elif self.geometry == "spectral_cube":
+             cls = SpectralCubeCoordinateHandler
++        elif self.geometry == "cartesian-subject":
++            cls = CartesianSubjectCoordinateHandler
+         else:
+             raise YTGeometryNotSupported(self.geometry)
+         self.coordinates = cls(self, **kwargs)
+diff --git a/yt/frontends/nifti/data_structures.py b/yt/frontends/nifti/data_structures.py
+index 627226248..0fbf0757a 100644
+--- a/yt/frontends/nifti/data_structures.py
++++ b/yt/frontends/nifti/data_structures.py
+@@ -158,6 +158,7 @@ class NiftiDataset(Dataset):
+         self.omega_matter = 0
+         self.hubble_constant = 0
+ 
++        self.geometry = "cartesian_subject"
+     @classmethod
+     def _is_valid(cls, filename, *args, **kwargs):
+         if isinstance(nib.load, NotAModule):
+diff --git a/yt/geometry/coordinates/api.py b/yt/geometry/coordinates/api.py
+index 153c397dc..947fdad0e 100644
+--- a/yt/geometry/coordinates/api.py
++++ b/yt/geometry/coordinates/api.py
+@@ -8,3 +8,4 @@ from .geographic_coordinates import (
+ from .polar_coordinates import PolarCoordinateHandler
+ from .spec_cube_coordinates import SpectralCubeCoordinateHandler
+ from .spherical_coordinates import SphericalCoordinateHandler
++from .subject_cartesian_coordinates import CartesianSubjectCoordinateHandler
+\ No newline at end of file
+diff --git a/yt/utilities/on_demand_imports.py b/yt/utilities/on_demand_imports.py
+index 5d3ff6f10..1c2ef849c 100644
+--- a/yt/utilities/on_demand_imports.py
++++ b/yt/utilities/on_demand_imports.py
+@@ -494,6 +494,10 @@ class nibabel_imports(OnDemand):
+         from nibabel import filebasedimages
+ 
+         return filebasedimages.ImageFileError
++    
++    def apply_affine(self):
++        from nibabel import affines
+ 
++        return affines
+ 
+ _nibabel = nibabel_imports()

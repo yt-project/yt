@@ -230,7 +230,7 @@ def create_vector_fields(
     axis_names = registry.ds.coordinates.axis_order
 
     geometry: Geometry = registry.ds.geometry
-    if geometry is Geometry.CARTESIAN:
+    if geometry is Geometry.CARTESIAN or geometry is Geometry.CARTESIAN_SUBJECT:
         # The following fields are invalid for curvilinear geometries
         def _spherical_radius_component(data):
             """The spherical radius component of the vector field
