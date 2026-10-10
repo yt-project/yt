@@ -1,6 +1,7 @@
 import abc
 import weakref
 from collections import defaultdict
+from functools import cached_property
 
 import numpy as np
 
@@ -387,7 +388,10 @@ class GridIndex(Index, abc.ABC):
             # individual grids.
             yield YTDataChunk(dobj, "spatial", [g], size, cache=False)
 
-    _grid_chunksize = 1000
+    @cached_property
+    def _max_grid_cell_count(self):
+        """Returns the max number of cells in a grid"""
+        return self.grid_dimensions.prod(axis=1).max()
 
     def _chunk_io(
         self,
@@ -413,11 +417,32 @@ class GridIndex(Index, abc.ABC):
         if chunk_sizing == "auto":
             chunk_ngrids = len(gobjs)
             if chunk_ngrids > 0:
+                # historically, we hardcoded `_grid_chunksize` to 1000. For context,
+                # `_grid_chunksize` is the number of grids for this object to load
+                # (assuming no parallelism). While this heuristic works well with
+                # small AMR grids (e.g. 16^3 or 32^3 cells), this was problematic with
+                # uniform resolution snapshots (e.g. Cholla snapshots commonly have
+                # 256^3 cells per grid)
+                #
+                # Our current heuristic picks a `_grid_chunksize` of 1 or a value such
+                # that holding arrays for `_field_count` fields in memory at once will
+                # never take up more than `_max_num_bytes`
+                _field_count = 10  # an arbitrary value
+                _max_num_bytes = int(1e9)  # another arbitrary value
+
+                # if we assume double-precision field values, then a field array for
+                # single grid requires up to the following number of bytes
+                _bytes_per_field_per_grid = 8 * int(self._max_grid_cell_count)
+
+                _grid_chunksize = max(
+                    _max_num_bytes // (_bytes_per_field_per_grid * _field_count), 1
+                )
+
                 nproc = int(ytcfg.get("yt", "internals", "global_parallel_size"))
                 chunking_factor = np.int64(
-                    np.ceil(self._grid_chunksize * nproc / chunk_ngrids)
+                    np.ceil(_grid_chunksize * nproc / chunk_ngrids)
                 )
-                size = max(self._grid_chunksize // chunking_factor, 1)
+                size = max(_grid_chunksize // chunking_factor, 1)
             else:
                 size = self._grid_chunksize
         elif chunk_sizing == "config_file":
