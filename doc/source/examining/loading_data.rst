@@ -763,7 +763,6 @@ to the z direction.
 
 .. code-block:: python
 
-    ds.index
     ad = ds.all_data()
     print(ds.field_info["raw", "Ex"].nodal_flag)
     print(ad["raw", "Ex"].shape)
@@ -880,7 +879,6 @@ direction.
 
 .. code-block:: python
 
-    ds.index
     ad = ds.all_data()
     print(ds.field_info["enzo", "Ex"].nodal_flag)
     print(ad["enzo", "Ex"].shape)
@@ -928,7 +926,6 @@ types will be known as soon as the dataset index is created.
 .. code-block:: python
 
    ds = yt.load("ENZOP_DD0140/ENZOP_DD0140.block_list")
-   ds.index
    print(ds.particle_types)
    print(ds.particle_type_counts)
    print(ds.r["dark", "particle_position"])
