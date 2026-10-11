@@ -283,10 +283,9 @@ class Cosmology:
 
         """
 
-        return (
-            self.comoving_transverse_distance(0, z_f) / (1 + z_f)
-            - self.comoving_transverse_distance(0, z_i) / (1 + z_i)
-        ).in_base(self.unit_system)
+        return (self.comoving_transverse_distance(z_i, z_f) / (1 + z_f)).in_base(
+            self.unit_system
+        )
 
     def angular_scale(self, z_i, z_f):
         r"""
@@ -334,8 +333,7 @@ class Cosmology:
         """
 
         return (
-            self.comoving_transverse_distance(0, z_f) * (1 + z_f)
-            - self.comoving_transverse_distance(0, z_i) * (1 + z_i)
+            self.comoving_transverse_distance(z_i, z_f) * (1 + z_f) / (1 + z_i) ** 2
         ).in_base(self.unit_system)
 
     def lookback_time(self, z_i, z_f):
