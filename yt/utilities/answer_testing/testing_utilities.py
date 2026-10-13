@@ -152,7 +152,7 @@ def _hash_dict(data):
         if isinstance(hashed_data, str):
             hashed_data = hashed_data.encode("utf8")
         if hd is None:
-            hd = hashlib.md5(hashed_data)
+            hd = hashlib.md5(hashed_data, usedforsecurity=False)
         else:
             hd.update(hashed_data)
     return hd.hexdigest()
@@ -181,7 +181,7 @@ def generate_hash(data):
     # Try to hash. Some tests return hashable types (like ndarrays) and
     # others don't (such as dictionaries)
     try:
-        hd = hashlib.md5(data).hexdigest()
+        hd = hashlib.md5(data, usedforsecurity=False).hexdigest()
         # Handle those tests that return non-hashable types. This is done
         # here instead of in the tests themselves to try and reduce boilerplate
         # and provide a central location where all of this is done in case it needs
@@ -190,7 +190,9 @@ def generate_hash(data):
         if isinstance(data, dict):
             hd = _hash_dict(data)
         elif data is None:
-            hd = hashlib.md5(bytes(str(-1).encode("utf-8"))).hexdigest()
+            hd = hashlib.md5(
+                bytes(str(-1).encode("utf-8")), usedforsecurity=False
+            ).hexdigest()
         else:
             raise
     return hd
