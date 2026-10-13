@@ -212,10 +212,11 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         data_return = {}
 
         with h5py.File(data_file.filename, mode="r") as f:
+            # NOTE: f represents the full-length file
             index_mask = slice(data_file.start, data_file.end)
             for ptype, field_list in sorted(ptf.items()):
                 if selector is None or getattr(selector, "is_all_data", False):
-                    mask = index_mask
+                    mask = None
                 else:
                     units = _get_position_array_units(ptype, f, "x")
                     x, y, z = (
@@ -231,8 +232,10 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                         continue
 
                 for field in field_list:
-                    data = f[ptype][field][mask].astype("float64", copy=False)
-                    data_return[ptype, field] = data
+                    data = f[ptype][field][index_mask]  # aligns field to chunk size
+                    if mask is not None:
+                        data = data[mask]  # boolean mask is chunk-length
+                    data_return[ptype, field] = data.astype("float64", copy=False)
 
         return data_return
 

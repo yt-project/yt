@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 import yt
 from yt.frontends.cf_radial.api import CFRadialDataset
@@ -33,6 +34,11 @@ def create_cf_radial_mock_gridded_ds(savedir: Path) -> Path:
     return file_to_save
 
 
+@pytest.mark.filterwarnings(
+    # patched upstream, but unreleased as of v1.7.4
+    # https://github.com/Unidata/netcdf4-python/pull/1469
+    r"ignore:Setting the shape on a NumPy array has been deprecated in NumPy 2\.5\.:DeprecationWarning"
+)
 @requires_module("xarray", "netCDF4", "pyart")
 def test_load_mock_gridded_cf_radial(tmp_path):
     import xarray as xr

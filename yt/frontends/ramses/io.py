@@ -101,11 +101,15 @@ def _ramses_particle_binary_file_handler(
     foffsets = particle_handler.field_offsets
     fname = particle_handler.fname
     data_types = particle_handler.field_types
+    fields = sorted(fields, key=lambda a: foffsets[a])
+
+    mylog.debug("Reading Nparticles=%9d, file=%s, fields=%s", count, fname, fields)
+
     with FortranFile(fname) as fd:
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
         # positions into the same domain as the octs themselves.
-        for field in sorted(fields, key=lambda a: foffsets[a]):
+        for field in fields:
             if count == 0:
                 tr[field] = np.empty(0, dtype=data_types[field])
                 continue
