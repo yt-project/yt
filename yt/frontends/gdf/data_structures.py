@@ -257,7 +257,7 @@ class GDFDataset(Dataset):
         refine_by = sp["refine_by"]
         if refine_by is None:
             refine_by = 2
-        self.refine_by = refine_by
+        self.refine_by = just_one(refine_by)
         self.dimensionality = sp["dimensionality"]
         self.current_time = sp["current_time"]
         self.cosmological_simulation = sp["cosmological_simulation"]
