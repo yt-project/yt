@@ -1,4 +1,5 @@
 import operator
+from collections import Counter
 
 import numpy as np
 
@@ -178,8 +179,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         ParallelAnalysisInterface.__init__(self)
 
         self.ds = ds
-        self.current_vcds = []
-        self.current_saved_grids = []
+        self._clear_grid_cache()
         self.bricks = []
         self.brick_dimensions = []
         self.sdx = ds.index.get_smallest_dx()
@@ -225,6 +225,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         self.log_fields = new_log_fields
 
         self.no_ghost = no_ghost
+        self._clear_grid_cache()
         del self.bricks, self.brick_dimensions
         self.brick_dimensions = []
         bricks = []
@@ -244,6 +245,43 @@ class AMRKDTree(ParallelAnalysisInterface):
         ):
             return
         self.set_fields(fields, log_fields, no_ghost)
+
+    def _clear_grid_cache(self):
+        # Vertex-centered data and selector masks of grids whose bricks are
+        # still being built, keyed by node.grid, and how many of each grid's
+        # bricks are left to build.
+        self._grid_cache = {}
+        self._bricks_left = None
+
+    def _get_grid_data(self, node, grid):
+        if node.grid in self._grid_cache:
+            return self._grid_cache[node.grid]
+        dds = []
+        vcd = grid.get_vertex_centered_data(
+            self.fields, smoothed=True, no_ghost=self.no_ghost
+        )
+        for i, field in enumerate(self.fields):
+            if self.log_fields[i]:
+                v = vcd[field].astype("float64")
+                v[v <= 0] = np.nan
+                dds.append(np.log10(v))
+            else:
+                dds.append(vcd[field].astype("float64"))
+        if self.data_source.selector is None:
+            mask = None
+        else:
+            mask, _ = self.data_source.selector.fill_mask_regular_grid(grid)
+        self._grid_cache[node.grid] = dds, mask
+        return dds, mask
+
+    def _release_grid_data(self, node):
+        # A grid is usually split into several bricks; keep its data until
+        # the last of them has been built.
+        if self._bricks_left is None:
+            self._bricks_left = Counter(n.grid for n in self.tree.trunk.kd_traverse())
+        self._bricks_left[node.grid] -= 1
+        if self._bricks_left[node.grid] <= 0:
+            self._grid_cache.pop(node.grid, None)
 
     def traverse(self, viewpoint=None):
         for node in self.tree.trunk.kd_traverse(viewpoint=viewpoint):
@@ -336,28 +374,13 @@ class AMRKDTree(ParallelAnalysisInterface):
         assert np.all(grid.LeftEdge <= nle)
         assert np.all(grid.RightEdge >= nre)
 
-        if grid in self.current_saved_grids and not node.dirty:
-            dds = self.current_vcds[self.current_saved_grids.index(grid)]
-        else:
-            dds = []
-            vcd = grid.get_vertex_centered_data(
-                self.fields, smoothed=True, no_ghost=self.no_ghost
-            )
-            for i, field in enumerate(self.fields):
-                if self.log_fields[i]:
-                    v = vcd[field].astype("float64")
-                    v[v <= 0] = np.nan
-                    dds.append(np.log10(v))
-                else:
-                    dds.append(vcd[field].astype("float64"))
-                self.current_saved_grids.append(grid)
-                self.current_vcds.append(dds)
-
-        if self.data_source.selector is None:
+        dds, grid_mask = self._get_grid_data(node, grid)
+        if grid_mask is None:
             mask = np.ones(dims, dtype="uint8")
         else:
-            mask, _ = self.data_source.selector.fill_mask_regular_grid(grid)
-            mask = mask[li[0] : ri[0], li[1] : ri[1], li[2] : ri[2]].astype("uint8")
+            mask = grid_mask[li[0] : ri[0], li[1] : ri[1], li[2] : ri[2]].astype(
+                "uint8"
+            )
 
         data = [
             d[li[0] : ri[0] + 1, li[1] : ri[1] + 1, li[2] : ri[2] + 1].copy()
@@ -369,6 +392,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         )
         node.data = brick
         node.dirty = False
+        self._release_grid_data(node)
         if not self._initialized:
             self.brick_dimensions.append(dims)
         return brick
