@@ -30,8 +30,8 @@ functions:
     args: [1, 2]
     units: Mpc
   comoving_volume:
-    answers: {EdS: 5.749320615429804, LCDM: 27.64956077763837, omega_radiation: 27.632162011458195,
-      open: 82.84024895030079}
+    answers: {EdS: 132.5717021689531, LCDM: 430.98981169482624, omega_radiation: 430.8254500837936,
+      open: 270.1152886587536}
     args: [1, 2]
     units: Gpc**3
   critical_density:

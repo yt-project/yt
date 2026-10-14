@@ -268,3 +268,33 @@ def test_dataset_cosmology_calculator():
     v1 = ds.cosmology.comoving_radial_distance(1, 5).to("Mpccm").v
     v2 = co.comoving_radial_distance(1, 5).to("Mpccm").v
     assert_equal(v1, v2)
+
+
+def test_comoving_volume_curved_and_shells():
+    """
+    Test comoving volume for flat, open, and closed universes following Hogg (1999)
+    eq. (28) and assert volume additivity for shells between redshifts.
+    """
+    cases = [
+        (0.3, 0.7, 0.0),  # Flat
+        (0.3, 0.5, 0.2),  # Open (Omega_k > 0)
+        (0.3, 1.1, -0.4),  # Closed (Omega_k < 0)
+    ]
+    for om, ol, ok in cases:
+        co = Cosmology(omega_matter=om, omega_lambda=ol, omega_curvature=ok)
+        v0 = co.comoving_volume(0.0, 0.0)
+        assert_almost_equal(v0.to("Mpc**3").v, 0.0)
+
+        v1 = co.comoving_volume(0.0, 1.0)
+        assert v1.v > 0
+
+        # Shell volume between z=0.5 and z=2.0
+        v_shell = co.comoving_volume(0.5, 2.0)
+        assert v_shell.v > 0
+
+        # Volume must be strictly additive: V(0, 2) = V(0, 0.5) + V(0.5, 2)
+        v_tot = co.comoving_volume(0.0, 2.0)
+        v_sub = co.comoving_volume(0.0, 0.5)
+        assert_almost_equal(
+            v_tot.to("Mpc**3").v, (v_sub + v_shell).to("Mpc**3").v, decimal=6
+        )
