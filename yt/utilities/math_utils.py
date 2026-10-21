@@ -925,25 +925,14 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
 
     tan_half_fovy = np.tan(np.radians(fovy) / 2)
 
-    result = np.zeros((4, 4), dtype="float32", order="C")
-    # result[0][0] = 1 / (aspect * tan_half_fovy)
-    # result[1][1] = 1 / tan_half_fovy
-    # result[2][2] = - (z_far + z_near) / (z_far - z_near)
-    # result[3][2] = -1
-    # result[2][3] = -(2 * z_far * z_near) / (z_far - z_near)
-
     f = z_far
     n = z_near
 
-    t = tan_half_fovy * n
-    b = -t * aspect
-    r = t * aspect
-    l = -t * aspect
-
-    result[0][0] = (2 * n) / (r - l)
-    result[2][0] = (r + l) / (r - l)
-    result[1][1] = (2 * n) / (t - b)
-    result[1][2] = (t + b) / (t - b)
+    # The frustum is symmetric, so there are no off-axis terms: the view spans
+    # +/- tan_half_fovy vertically and aspect times that horizontally.
+    result = np.zeros((4, 4), dtype="float32", order="C")
+    result[0][0] = 1 / (aspect * tan_half_fovy)
+    result[1][1] = 1 / tan_half_fovy
     result[2][2] = -(f + n) / (f - n)
     result[2][3] = -2 * f * n / (f - n)
     result[3][2] = -1
