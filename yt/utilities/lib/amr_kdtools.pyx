@@ -735,6 +735,52 @@ def viewpoint_node_ids(Node trunk, viewpoint, np.int64_t[::1] node_ids, np.int64
     n = _walk(trunk, vp, node_ids, node_inds)
     return n
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def viewpoint_order_arrays(np.int64_t[::1] left, np.int64_t[::1] right,
+                           np.int64_t[::1] split_dim, np.float64_t[::1] split_pos,
+                           np.int64_t[::1] block, viewpoint, np.int64_t[::1] order,
+                           bint nearest_first=False):
+    '''
+    Order the leaves of a kd-tree stored as arrays from furthest to nearest
+    *viewpoint* (nearest to furthest if *nearest_first*), as
+    ``viewpoint_node_ids`` orders a tree of Nodes, without needing the Nodes:
+    a tree saved to disk can be walked as it is loaded.
+
+    Node 0 is the root. *left* and *right* hold each node's children (-1 at
+    leaves), *split_dim* and *split_pos* its split, and *block* each leaf's
+    value (-1 for a leaf to skip). Fills *order* (int64, which needs to be
+    reduced to int32 to act as an index buffer) with the leaves' *block* values
+    and returns how many it wrote.  This is very useful when we want to store a
+    tree without the reference to the dataset, then reload it later and *still*
+    be able to walk it.
+    '''
+    cdef np.float64_t[3] vp
+    cdef np.int64_t[::1] stack = np.empty(left.shape[0] + 1, dtype="int64")
+    cdef np.uint64_t top = 1, n = 0
+    cdef np.int64_t i, first, second
+    for i in range(3):
+        vp[i] = viewpoint[i]
+    stack[0] = 0
+    while top > 0:
+        top -= 1
+        i = stack[top]
+        if left[i] == -1:
+            if block[i] != -1:
+                order[n] = block[i]
+                n += 1
+            continue
+        # pushed last is walked first: the far child, or the near one if nearest_first
+        if (vp[split_dim[i]] <= split_pos[i]) != nearest_first:
+            first, second = left[i], right[i]
+        else:
+            first, second = right[i], left[i]
+        stack[top] = first
+        stack[top + 1] = second
+        top += 2
+    return n
+
 def step_viewpoint(Node current,
                    Node previous,
                    viewpoint):
