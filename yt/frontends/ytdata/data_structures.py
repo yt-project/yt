@@ -53,8 +53,9 @@ class SavedDataset(Dataset):
                 if key == "con_args":
                     try:
                         v = eval(v)
-                    except ValueError:
-                        # support older ytdata outputs
+                    except (ValueError, SyntaxError):
+                        # support older ytdata outputs (eval raises ValueError on
+                        # null bytes before Python 3.12, SyntaxError after)
                         v = v.astype("str")
                     except NameError:
                         # This is the most common error we expect, and it
