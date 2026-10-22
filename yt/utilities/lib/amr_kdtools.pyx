@@ -709,7 +709,7 @@ def step_depth(Node current, Node previous):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef np.int64_t _walk(Node current, np.float64_t[:] vp, np.int64_t[::1]
-                      node_ids, np.int64_t[::1] node_inds, np.int64_t n = 0):
+                      node_ids, np.int64_t[::1] node_inds, np.int64_t n = 0) noexcept:
     if current._kd_is_leaf():
         if current.grid != -1:
             node_ids[n] = current.node_id
