@@ -207,60 +207,26 @@ class Cosmology:
         >>> print(co.comoving_volume(0.0, 1.0).in_units("Gpccm**3"))
 
         """
-        if self.omega_curvature > 1e-10:
-            return (
-                2
-                * np.pi
-                * np.power(self.hubble_distance(), 3)
-                / self.omega_curvature
-                * (
-                    self.comoving_transverse_distance(z_i, z_f)
-                    / self.hubble_distance()
-                    * np.sqrt(
-                        1
-                        + self.omega_curvature
-                        * np.sqrt(
-                            self.comoving_transverse_distance(z_i, z_f)
-                            / self.hubble_distance()
-                        )
-                    )
-                    - np.sinh(
-                        np.fabs(self.omega_curvature)
-                        * self.comoving_transverse_distance(z_i, z_f)
-                        / self.hubble_distance()
-                    )
-                    / np.sqrt(self.omega_curvature)
-                )
-            ).in_base(self.unit_system)
-        elif self.omega_curvature < -1e-10:
-            return (
-                2
-                * np.pi
-                * np.power(self.hubble_distance(), 3)
-                / np.fabs(self.omega_curvature)
-                * (
-                    self.comoving_transverse_distance(z_i, z_f)
-                    / self.hubble_distance()
-                    * np.sqrt(
-                        1
-                        + self.omega_curvature
-                        * np.sqrt(
-                            self.comoving_transverse_distance(z_i, z_f)
-                            / self.hubble_distance()
-                        )
-                    )
-                    - np.arcsin(
-                        np.fabs(self.omega_curvature)
-                        * self.comoving_transverse_distance(z_i, z_f)
-                        / self.hubble_distance()
-                    )
-                    / np.sqrt(np.fabs(self.omega_curvature))
-                )
-            ).in_base(self.unit_system)
-        else:
-            return (
-                4 * np.pi * np.power(self.comoving_transverse_distance(z_i, z_f), 3) / 3
-            ).in_base(self.unit_system)
+
+        def _single_comoving_volume(z):
+            dm = self.comoving_transverse_distance(0, z)
+            dh = self.hubble_distance()
+            ok = self.omega_curvature
+            if abs(ok) < 1e-10:
+                return (4.0 / 3.0) * np.pi * np.power(dm, 3)
+
+            term1 = 4.0 * np.pi * np.power(dh, 3) / (2.0 * ok)
+            x = (dm / dh).to_ndarray()
+            term2 = x * np.sqrt(1.0 + ok * np.power(x, 2))
+            term3 = np.sqrt(abs(ok)) * x
+            if ok > 0:
+                val = term1 * (term2 - np.arcsinh(term3) / np.sqrt(ok))
+            else:
+                val = term1 * (term2 - np.arcsin(term3) / np.sqrt(abs(ok)))
+            return val
+
+        vol = _single_comoving_volume(z_f) - _single_comoving_volume(z_i)
+        return vol.in_base(self.unit_system)
 
     def angular_diameter_distance(self, z_i, z_f):
         r"""
