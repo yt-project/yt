@@ -3,7 +3,7 @@ import shutil
 import tempfile
 
 import numpy as np
-from nose.tools import assert_raises
+import pytest
 from numpy.testing import assert_equal
 
 from yt.data_objects.particle_filters import add_particle_filter, particle_filter
@@ -39,12 +39,12 @@ def test_add_particle_filter():
     assert ("deposit", "stars2_cic") in ds.derived_field_list
 
     # Test adding filter with fields not defined on the ds
-    with assert_raises(YTIllDefinedParticleFilter) as ex:
+    with pytest.raises(YTIllDefinedParticleFilter) as ex:
         add_particle_filter(
             "bad_stars", function=stars, filtered_type="all", requires=["wrong_field"]
         )
         ds.add_particle_filter("bad_stars")
-    actual = str(ex.exception)
+    actual = str(ex.value)
     desired = (
         "\nThe fields\n\t('all', 'wrong_field'),\nrequired by the"
         ' "bad_stars" particle filter, are not defined for this dataset.'
@@ -131,7 +131,7 @@ def test_particle_filter_exceptions():
     ds.add_particle_filter("filter1")
 
     ad = ds.all_data()
-    with assert_raises(YTIllDefinedFilter):
+    with pytest.raises(YTIllDefinedFilter):
         ad["filter1", "particle_mass"].shape[0]
 
     @particle_filter(filtered_type="all", requires=["particle_mass"])
