@@ -202,7 +202,7 @@ def test_viewpoint_node_ids_rejects_wrong_dtype(walker):
 
 
 @pytest.mark.parametrize("viewpoint", VIEWPOINTS)
-@pytest.mark.parametrize("nearest_first", (True, False), ids=('nearest', 'farthest'))
+@pytest.mark.parametrize("nearest_first", (True, False), ids=("nearest", "farthest"))
 def test_viewpoint_order_arrays_nearest_first(trunk, viewpoint, nearest_first):
     expected = [
         node.node_ind for node in trunk.kd_traverse(viewpoint=np.array(viewpoint))
@@ -214,5 +214,5 @@ def test_viewpoint_order_arrays_nearest_first(trunk, viewpoint, nearest_first):
     assert n == len(expected)
     if nearest_first:
         assert_array_equal(order, expected[::-1])
-    else: 
+    else:
         assert_array_equal(order, expected)
