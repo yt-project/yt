@@ -570,6 +570,13 @@ constraint-dependencies = [
 index-strategy = "unsafe-best-match"
 exclude-newer-package.certifi = false
 
+# temporary exceptions (allowed for security upgrades)
+exclude-newer-package.distlib = "P5D" # can be removed on 2026-10-24 at the earliest
+exclude-newer-package.fillock = "P1D" # can be removed on 2026-10-29 at the earliest
+exclude-newer-package.platformdirs = false # can be removed on 2026-11-03 at the earliest
+exclude-newer-package.python-discovery = false # can be removed on 2026-11-03 at the earliest
+exclude-newer-package.virtualenv = false # can be removed on 2026-11-03 at the earliest
+
 [[tool.uv.index]]
 # explicitly configure PyPI as the first index to look up instead of the default
 # fallback. This ensures that, if:
