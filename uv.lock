@@ -3504,6 +3504,10 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0e/76/7bc801796dee752c1ce9cd6935564a6ee79d5c9d9ef9192f57b156495a35/netcdf4-1.7.3.tar.gz", hash = "sha256:83f122fc3415e92b1d4904fd6a0898468b5404c09432c34beb6b16c533884673", size = 836095, upload-time = "2025-10-13T18:38:00.76Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/06/57/c233d8dcf6efe0add48bb1d8d6fe32d7ad547d5c0d84bf0cbe7e5d82147b/netcdf4-1.7.3-cp310-cp310-win_amd64.whl", hash = "sha256:6ab71f5d70e55e8584d168d5158efdb2fd8d350a033d0c27d942c3d399587f54", size = 7214638, upload-time = "2025-10-13T18:37:51.627Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/f8/a5509bc46faedae2b71df29c57e6525b7eb47aee44000fd43e2927a9a3a9/netcdf4-1.7.3-cp311-abi3-win_amd64.whl", hash = "sha256:1b6c646fa179fb1e5e8d6e8231bc78cc0311eceaa1241256b5a853f1d04055b9", size = 7149328, upload-time = "2025-10-13T18:37:59.242Z" },
+]
 
 [[package]]
 name = "netcdf4"
