@@ -233,5 +233,6 @@ other_tests:
      - "--ignore-file=test_cf_radial_pytest\\.py"
      - "--ignore-file=test_fields_pytest\\.py"
      - "--ignore-file=test_perspective_matrix\\.py"
+     - "--ignore-file=test_ramses2\\.py"
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
