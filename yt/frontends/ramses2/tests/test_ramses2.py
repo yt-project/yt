@@ -10,9 +10,13 @@ from yt.testing import assert_allclose_units
 
 LEVELMIN = 2
 LEVELMAX = 3
-NVAR = 5
+HYDRO_FIELDS = ["density", "velocity_x", "velocity_y", "velocity_z", "thermal_pressure"]
+NVAR = len(HYDRO_FIELDS)
 DM_FIELDS = "pos vel mass level birth_id"
 STAR_FIELDS = "pos vel mass metallicity birth_date level birth_id"
+SINK_FIELDS = (
+    "pos vel mass angmom birth_date internal_energy level accretion_step birth_id"
+)
 
 # Octs stored in each file, as {level: [(ckey, refinement bitmask), ...]}.
 # The root oct (0, 0, 0) is stored in the first file and has its first cell
@@ -78,8 +82,13 @@ def _write_particles(
             f.write(fields + " ")
         else:
             for name in names:
-                dtype = {"level": "i4", "birth_id": id_dtype[1:]}.get(name, "f4")
-                ncomp = 3 if name in ("pos", "vel") else 1
+                dtype = {
+                    "level": "i4",
+                    "accretion_step": "i4",
+                    "birth_id": id_dtype[1:],
+                    "id": id_dtype[1:],
+                }.get(name, "f4")
+                ncomp = 3 if name in ("pos", "vel", "angmom") else 1
                 f.write(f" {name} {dtype} {ncomp}\n")
 
     first_id = 1
@@ -91,15 +100,15 @@ def _write_particles(
             for name in names:
                 if name == "pos":
                     data = [pos[:, i] for i in range(3)]
-                elif name == "vel":
+                elif name in ("vel", "angmom"):
                     data = [np.full(npart, 0.1 * (i + 1)) for i in range(3)]
                 elif name == "mass":
                     data = [np.full(npart, 0.5)]
-                elif name in ("metallicity", "birth_date"):
+                elif name in ("metallicity", "birth_date", "internal_energy"):
                     data = [np.full(npart, 0.25)]
-                if name == "level":
+                if name in ("level", "accretion_step"):
                     data = [np.full(npart, LEVELMIN, dtype="<i4")]
-                elif name == "birth_id":
+                elif name in ("birth_id", "id"):
                     data = [np.arange(first_id, first_id + npart).astype(id_dtype)]
                 else:
                     data = [d.astype("<f4") for d in data]
@@ -119,18 +128,18 @@ def _make_output(
     logical_refinement=False,
     id_dtype="<i4",
     legacy_header=False,
+    hydro_fields=HYDRO_FIELDS,
     **info_kwa,
 ):
     folder = tmp_path / "output_00001"
+    nvar = len(hydro_fields)
     folder.mkdir()
     nlevels = LEVELMAX - LEVELMIN + 1
     _write_info(folder, len(FILES), **info_kwa)
 
     with open(folder / "hydro_header.txt", "w") as f:
-        f.write(f"nvar        ={NVAR:11d}\n")
-        for i, name in enumerate(
-            ["density", "velocity_x", "velocity_y", "velocity_z", "thermal_pressure"]
-        ):
+        f.write(f"nvar        ={nvar:11d}\n")
+        for i, name in enumerate(hydro_fields):
             f.write(f"variable #{i + 1:2d}: {name}\n")
 
     leaves = []
@@ -142,7 +151,7 @@ def _make_output(
         ):
             famr.write(np.array([3, LEVELMIN, LEVELMAX], dtype="<i4").tobytes())
             famr.write(noct.astype("<i4").tobytes())
-            fhydro.write(np.array([3, NVAR, LEVELMIN, LEVELMAX], dtype="<i4").tobytes())
+            fhydro.write(np.array([3, nvar, LEVELMIN, LEVELMAX], dtype="<i4").tobytes())
             fhydro.write(noct.astype("<i4").tobytes())
             for level in range(LEVELMIN, LEVELMAX + 1):
                 dx = 1.0 / 2**level
@@ -159,7 +168,7 @@ def _make_output(
                                 _cell_value(ckey, level, icell, ivar)
                                 for icell in range(8)
                             ]
-                            for ivar in range(NVAR)
+                            for ivar in range(nvar)
                         ],
                         dtype="<f4",
                     )
@@ -210,6 +219,7 @@ def test_load(ramses2_output):
     assert ds.dimensionality == 3
     assert ds.min_level == LEVELMIN - 1
     assert ds.max_level == LEVELMAX - LEVELMIN
+    assert ds.index.num_grids == sum(len(octs) for f in FILES for octs in f.values())
     np.testing.assert_equal(ds.domain_dimensions, 2**LEVELMIN)
     assert not ds.cosmological_simulation
     assert_allclose_units(ds.length_unit, ds.quan(2 * 3.0856776e21, "cm"))
@@ -324,3 +334,68 @@ def test_legacy_header_three_fields(tmp_path):
     ad = ds.all_data()
     np.testing.assert_equal(ad["trac", "particle_identity"].d, [1])
     np.testing.assert_equal(ad["trac", "particle_level"].d, [LEVELMIN])
+
+
+def test_mhd(tmp_path):
+    bfields = [f"magnetic_field_{ax}" for ax in "xyz"]
+    folder, _ = _make_output(tmp_path, hydro_fields=HYDRO_FIELDS + bfields)
+    ds = load(folder)
+    ad = ds.all_data()
+    b2 = sum(ad["ramses", f].to("code_magnetic").d ** 2 for f in bfields)
+    for f in bfields:
+        assert_allclose_units(ad["gas", f], ad["ramses", f])
+    np.testing.assert_allclose(
+        ad["gas", "magnetic_field_strength"].to("code_magnetic").d, np.sqrt(b2)
+    )
+    # B**2 / 2 in code units, with the RAMSES (Lorentz-Heaviside) convention
+    np.testing.assert_allclose(
+        ad["gas", "magnetic_pressure"].to("code_pressure").d, b2 / 2, rtol=1e-6
+    )
+    assert ("gas", "alfven_speed") in ds.derived_field_list
+
+
+def test_sink_fields(tmp_path):
+    folder, _ = _make_output(tmp_path)
+    _write_particles(folder, "sink", SINK_FIELDS, [[(1.0, 1.0, 1.0)], []])
+    ds = load(folder)
+    ad = ds.all_data()
+    # angmom is a specific angular momentum with lengths in unit_l, whereas
+    # code_length is unit_l * boxlen (boxlen = 2)
+    for i, ax in enumerate("xyz"):
+        jp = ad["sink", f"particle_specific_angular_momentum_{ax}"]
+        assert jp.units.dimensions == ds.quan(1, "cm**2/s").units.dimensions
+        np.testing.assert_allclose(
+            jp.to("code_length * code_velocity").d, 0.1 * (i + 1) / 2, rtol=1e-6
+        )
+    # The vector and total angular momentum fields derived by yt are
+    # consistent with the spin read from the file
+    jp = ad["sink", "particle_specific_angular_momentum"]
+    for i, ax in enumerate("xyz"):
+        assert_allclose_units(
+            jp[:, i], ad["sink", f"particle_specific_angular_momentum_{ax}"]
+        )
+        assert_allclose_units(
+            ad["sink", f"particle_angular_momentum_{ax}"],
+            ad["sink", "particle_mass"] * jp[:, i],
+        )
+    assert_allclose_units(
+        ad["sink", "particle_internal_energy"], ds.arr([0.25], "code_velocity**2")
+    )
+    np.testing.assert_equal(ad["sink", "particle_accretion_step"].d, [LEVELMIN])
+
+
+def test_legacy_header_id(tmp_path):
+    # Some old outputs name the particle ids "id" instead of "birth_id"
+    folder, _ = _make_output(tmp_path)
+    _write_particles(
+        folder,
+        "part",
+        "pos vel mass level id",
+        [[(0.2, 0.2, 0.2), (1.5, 0.5, 0.5)], [(1.8, 1.8, 1.8)]],
+        legacy_header=True,
+    )
+    ds = load(folder)
+    assert ds.particle_type_counts["part"] == 3
+    np.testing.assert_equal(
+        np.sort(ds.all_data()["part", "particle_identity"].d), [1, 2, 3]
+    )

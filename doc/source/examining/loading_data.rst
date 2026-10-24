@@ -3525,12 +3525,23 @@ loaded as a particle type named after its prefix: ``"part"`` (dark matter),
 ``"star"``, ``"sink"``, ``"tree"``, ``"trac"``, ``"dust"`` and ``"core"``.
 Particle fields are named ``particle_<name>`` after the
 ``<prefix>_header.txt`` file, except for ``pos``, ``vel``, ``accel``,
-``angmom``, ``birth_id``, ``level``, ``birth_date`` and ``merging_date``,
-which are loaded as ``particle_position_[xyz]``, ``particle_velocity_[xyz]``,
-``particle_acceleration_[xyz]``, ``particle_angular_momentum_[xyz]``,
+``angmom``, ``birth_id`` (or ``id`` in older outputs), ``level``,
+``birth_date`` and ``merging_date``, which are loaded as
+``particle_position_[xyz]``, ``particle_velocity_[xyz]``,
+``particle_acceleration_[xyz]``, ``particle_specific_angular_momentum_[xyz]``,
 ``particle_identity``, ``particle_level``, ``particle_birth_time`` and
 ``particle_merging_time``. These names follow the ``yt_ramses.py`` reader
-distributed in ``utils/py`` of the RAMSES II repository.
+distributed in ``utils/py`` of the RAMSES II repository, except for
+``angmom``, which is the specific angular momentum (spin) of sink particles.
+For particle types that store it, the ``particle_specific_angular_momentum``
+vector and the ``particle_angular_momentum_[xyz]`` fields are derived from
+this spin rather than from the position and velocity about a center.
+
+In MHD runs, the cell-centred magnetic field is loaded as
+``("ramses", "magnetic_field_[xyz]")`` and aliased to
+``("gas", "magnetic_field_[xyz]")``, so that derived fields such as
+``("gas", "magnetic_pressure")`` and ``("gas", "alfven_speed")`` are
+available.
 
 For cosmological simulations, ``current_time`` is the age of the universe at
 the redshift of the output, ``"particle_birth_time"`` contains the physical
@@ -3540,6 +3551,8 @@ particle at the time of the output.
 The frontend currently has the following limitations:
 
 * only 3D outputs are supported,
+* restart dumps (``backup_XXXXX`` folders), which store conservative
+  variables, are not supported,
 * ghost zones (and hence derived fields that require them, such as gradients)
   are not supported,
 * the mean molecular weight is not stored in the outputs, so the

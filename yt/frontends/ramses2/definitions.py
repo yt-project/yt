@@ -1,7 +1,7 @@
 import re
 
 # RAMSES II (and mini-ramses) outputs live in a folder named output_XXXXX
-# (or backup_XXXXX for restart dumps) containing
+# containing
 # - info.txt, params.bin, namelist.txt, compilation.txt, timer.txt
 # - amr.NNNNN                          the oct structure
 # - hydro.NNNNN, grav.NNNNN, rt.NNNNN, cr.NNNNN
@@ -11,6 +11,8 @@ import re
 # - <prefix>_header.txt                text descriptors of the binary files
 # where NNNNN is the file index, running from 1 to nfile.
 # The layouts follow utils/py/ramses_io.py in the RAMSES II repository.
+# Restart dumps (backup_XXXXX) are not supported: they store conservative
+# variables (momentum_x, total_energy, left_magnetic_field_x, ...).
 OUTPUT_DIR_RE = re.compile(r"output_(\d{5})")
 
 FLUID_PREFIXES = ("hydro", "grav", "rt", "cr")
@@ -37,9 +39,11 @@ PARTICLE_FIELD_NAMES = {
     "pos": "particle_position",
     "vel": "particle_velocity",
     "accel": "particle_acceleration",
-    "angmom": "particle_angular_momentum",
+    # angmom is the specific angular momentum (spin) of sink particles
+    "angmom": "particle_specific_angular_momentum",
     "mass": "particle_mass",
     "birth_id": "particle_identity",
+    "id": "particle_identity",
     "level": "particle_level",
     "birth_date": "particle_birth_time",
     "merging_date": "particle_merging_time",
@@ -62,6 +66,7 @@ LEGACY_PARTICLE_FIELDS = {
     "merging_date": ("f4", 1),
     "level": ("i4", 1),
     "birth_id": ("id", 1),
+    "id": ("id", 1),
     "merging_id": ("id", 1),
     "tracking_id": ("id", 1),
 }

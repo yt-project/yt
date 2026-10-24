@@ -123,6 +123,9 @@ class IOHandlerRAMSES2(BaseIOHandler):
                 # Positions are stored in [0, boxlen]. Wrap them periodically,
                 # as float32 positions can round to exactly boxlen.
                 data = np.mod(data / ds.parameters["boxlen"], 1.0)
+            elif name == "angmom":
+                # Lengths are in unit_l, whereas code_length is unit_l * boxlen
+                data /= ds.parameters["boxlen"]
             elif name in ("birth_date", "merging_date") and ds.cosmological_simulation:
                 # Times are stored as the proper time since today in units
                 # of 1/H0 = unit_t / aexp**2

@@ -3,6 +3,8 @@ import warnings
 from yt._typing import KnownFieldsT
 from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
+from yt.fields.magnetic_field import setup_magnetic_field_aliases
+from yt.units import ustack
 from yt.utilities.physical_constants import (
     boltzmann_constant_cgs,
     mass_hydrogen_cgs,
@@ -14,7 +16,7 @@ rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
 specific_ener_units = "code_velocity**2"
-ang_mom_units = "code_mass * code_velocity * code_length"
+spec_ang_mom_units = "code_length * code_velocity"
 
 
 class RAMSES2FieldInfo(FieldInfoContainer):
@@ -49,9 +51,9 @@ class RAMSES2FieldInfo(FieldInfoContainer):
         ("particle_acceleration_x", (accel_units, [], None)),
         ("particle_acceleration_y", (accel_units, [], None)),
         ("particle_acceleration_z", (accel_units, [], None)),
-        ("particle_angular_momentum_x", (ang_mom_units, [], None)),
-        ("particle_angular_momentum_y", (ang_mom_units, [], None)),
-        ("particle_angular_momentum_z", (ang_mom_units, [], None)),
+        ("particle_specific_angular_momentum_x", (spec_ang_mom_units, [], None)),
+        ("particle_specific_angular_momentum_y", (spec_ang_mom_units, [], None)),
+        ("particle_specific_angular_momentum_z", (spec_ang_mom_units, [], None)),
         ("particle_mass", ("code_mass", [], None)),
         ("particle_potential", (specific_ener_units, [], None)),
         ("particle_identity", ("", ["particle_index"], None)),
@@ -61,25 +63,51 @@ class RAMSES2FieldInfo(FieldInfoContainer):
         ("particle_birth_time", ("code_time", ["creation_time"], None)),
         ("particle_merging_time", ("code_time", [], None)),
         ("particle_metallicity", ("", [], None)),
+        ("particle_internal_energy", (specific_ener_units, [], None)),
+        ("particle_accretion_step", ("", [], None)),
     )
 
     def setup_particle_fields(self, ptype):
         super().setup_particle_fields(ptype)
 
-        if (ptype, "particle_birth_time") not in self.field_list:
-            return
+        if (ptype, "particle_specific_angular_momentum_x") in self.field_list:
+            # The components are read from the file (the spin of sinks):
+            # replace the vector field derived by yt, which is the angular
+            # momentum about the center, so that it matches them.
+            def _specific_angular_momentum(data):
+                return ustack(
+                    [
+                        data[ptype, f"particle_specific_angular_momentum_{ax}"]
+                        for ax in "xyz"
+                    ],
+                    axis=1,
+                )
 
-        def _age(data):
-            return data.ds.current_time - data[ptype, "particle_birth_time"]
+            self.add_field(
+                (ptype, "particle_specific_angular_momentum"),
+                sampling_type="particle",
+                function=_specific_angular_momentum,
+                units=self.ds.unit_system["specific_angular_momentum"],
+                force_override=True,
+            )
 
-        self.add_field(
-            (ptype, "age"),
-            sampling_type="particle",
-            function=_age,
-            units=self.ds.unit_system["time"],
-        )
+        if (ptype, "particle_birth_time") in self.field_list:
+
+            def _age(data):
+                return data.ds.current_time - data[ptype, "particle_birth_time"]
+
+            self.add_field(
+                (ptype, "age"),
+                sampling_type="particle",
+                function=_age,
+                units=self.ds.unit_system["time"],
+            )
 
     def setup_fluid_fields(self):
+        setup_magnetic_field_aliases(
+            self, "ramses", [f"magnetic_field_{ax}" for ax in "xyz"]
+        )
+
         def _temperature_over_mu(data):
             rv = data["gas", "pressure"] / data["gas", "density"]
             rv *= mass_hydrogen_cgs / boltzmann_constant_cgs
