@@ -39,8 +39,9 @@ PARTICLE_FIELD_NAMES = {
     "pos": "particle_position",
     "vel": "particle_velocity",
     "accel": "particle_acceleration",
-    # angmom is the specific angular momentum (spin) of sink particles
-    "angmom": "particle_specific_angular_momentum",
+    # angmom is the specific angular momentum of the gas accreted by sink
+    # particles, about the sink itself
+    "angmom": "particle_spin",
     "mass": "particle_mass",
     "birth_id": "particle_identity",
     "id": "particle_identity",

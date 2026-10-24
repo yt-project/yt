@@ -359,23 +359,31 @@ def test_sink_fields(tmp_path):
     _write_particles(folder, "sink", SINK_FIELDS, [[(1.0, 1.0, 1.0)], []])
     ds = load(folder)
     ad = ds.all_data()
-    # angmom is a specific angular momentum with lengths in unit_l, whereas
-    # code_length is unit_l * boxlen (boxlen = 2)
+    # angmom is the specific angular momentum of the accreted gas, about the
+    # sink, with lengths in unit_l, whereas code_length is unit_l * boxlen
+    # (boxlen = 2)
     for i, ax in enumerate("xyz"):
-        jp = ad["sink", f"particle_specific_angular_momentum_{ax}"]
-        assert jp.units.dimensions == ds.quan(1, "cm**2/s").units.dimensions
+        spin = ad["sink", f"particle_spin_{ax}"]
+        assert spin.units.dimensions == ds.quan(1, "cm**2/s").units.dimensions
         np.testing.assert_allclose(
-            jp.to("code_length * code_velocity").d, 0.1 * (i + 1) / 2, rtol=1e-6
+            spin.to("code_length * code_velocity").d, 0.1 * (i + 1) / 2, rtol=1e-6
         )
-    jp = ad["sink", "particle_specific_angular_momentum"]
-    for i, ax in enumerate("xyz"):
-        assert_allclose_units(
-            jp[:, i], ad["sink", f"particle_specific_angular_momentum_{ax}"]
-        )
-        assert_allclose_units(
-            ad["sink", f"particle_angular_momentum_{ax}"],
-            ad["sink", "particle_mass"] * jp[:, i],
-        )
+    # The spin does not replace the orbital angular momentum derived by yt
+    # about the center of the data object
+    sp = ds.sphere([0.25, 0.25, 0.25], (0.5, "code_length"))
+    sp.set_field_parameter("bulk_velocity", ds.arr([0, 0, 0], "code_velocity"))
+    r = (
+        sp["sink", "particle_position"].to("code_length").d
+        - sp.center.to("code_length").d
+    )
+    v = sp["sink", "particle_velocity"].to("code_velocity").d
+    np.testing.assert_allclose(
+        sp["sink", "particle_specific_angular_momentum"]
+        .to("code_length * code_velocity")
+        .d,
+        np.cross(r, v),
+        rtol=1e-6,
+    )
     assert_allclose_units(
         ad["sink", "particle_internal_energy"], ds.arr([0.25], "code_velocity**2")
     )

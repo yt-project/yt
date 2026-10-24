@@ -4,7 +4,6 @@ from yt._typing import KnownFieldsT
 from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
-from yt.units import ustack
 from yt.utilities.physical_constants import (
     boltzmann_constant_cgs,
     mass_hydrogen_cgs,
@@ -16,7 +15,7 @@ rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
 specific_ener_units = "code_velocity**2"
-spec_ang_mom_units = "code_length * code_velocity"
+spin_units = "code_length * code_velocity"
 
 
 class RAMSES2FieldInfo(FieldInfoContainer):
@@ -51,9 +50,9 @@ class RAMSES2FieldInfo(FieldInfoContainer):
         ("particle_acceleration_x", (accel_units, [], None)),
         ("particle_acceleration_y", (accel_units, [], None)),
         ("particle_acceleration_z", (accel_units, [], None)),
-        ("particle_specific_angular_momentum_x", (spec_ang_mom_units, [], None)),
-        ("particle_specific_angular_momentum_y", (spec_ang_mom_units, [], None)),
-        ("particle_specific_angular_momentum_z", (spec_ang_mom_units, [], None)),
+        ("particle_spin_x", (spin_units, [], None)),
+        ("particle_spin_y", (spin_units, [], None)),
+        ("particle_spin_z", (spin_units, [], None)),
         ("particle_mass", ("code_mass", [], None)),
         ("particle_potential", (specific_ener_units, [], None)),
         ("particle_identity", ("", ["particle_index"], None)),
@@ -69,27 +68,6 @@ class RAMSES2FieldInfo(FieldInfoContainer):
 
     def setup_particle_fields(self, ptype):
         super().setup_particle_fields(ptype)
-
-        if (ptype, "particle_specific_angular_momentum_x") in self.field_list:
-            # The components are read from the file (the spin of sinks):
-            # replace the vector field derived by yt, which is the angular
-            # momentum about the center, so that it matches them.
-            def _specific_angular_momentum(data):
-                return ustack(
-                    [
-                        data[ptype, f"particle_specific_angular_momentum_{ax}"]
-                        for ax in "xyz"
-                    ],
-                    axis=1,
-                )
-
-            self.add_field(
-                (ptype, "particle_specific_angular_momentum"),
-                sampling_type="particle",
-                function=_specific_angular_momentum,
-                units=self.ds.unit_system["specific_angular_momentum"],
-                force_override=True,
-            )
 
         if (ptype, "particle_birth_time") in self.field_list:
 

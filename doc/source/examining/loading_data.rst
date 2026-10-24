@@ -3528,14 +3528,15 @@ Particle fields are named ``particle_<name>`` after the
 ``angmom``, ``birth_id`` (or ``id`` in older outputs), ``level``,
 ``birth_date`` and ``merging_date``, which are loaded as
 ``particle_position_[xyz]``, ``particle_velocity_[xyz]``,
-``particle_acceleration_[xyz]``, ``particle_specific_angular_momentum_[xyz]``,
+``particle_acceleration_[xyz]``, ``particle_spin_[xyz]``,
 ``particle_identity``, ``particle_level``, ``particle_birth_time`` and
 ``particle_merging_time``. These names follow the ``yt_ramses.py`` reader
 distributed in ``utils/py`` of the RAMSES II repository, except for
-``angmom``, which is the specific angular momentum (spin) of sink particles.
-For particle types that store it, the ``particle_specific_angular_momentum``
-vector and the ``particle_angular_momentum_[xyz]`` fields are derived from
-this spin rather than from the position and velocity about a center.
+``angmom``. ``angmom`` is the specific angular momentum of the gas accreted
+by a sink particle, measured about the sink, and is loaded as
+``particle_spin_[xyz]``. yt's ``particle_angular_momentum_[xyz]`` fields
+remain the orbital angular momentum about the center of the data object, as
+for other particle types.
 
 In MHD runs, the cell-centred magnetic field is loaded as
 ``("ramses", "magnetic_field_[xyz]")`` and aliased to
