@@ -32,7 +32,7 @@ resolution-markers = [
 [options]
 
 [options.exclude-newer-package]
-markupsafe = { timestamp = "0001-01-01T00:00:00Z", span = "P4D" }
+certifi = false
 
 [manifest]
 constraints = [
