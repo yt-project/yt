@@ -367,8 +367,6 @@ def test_sink_fields(tmp_path):
         np.testing.assert_allclose(
             jp.to("code_length * code_velocity").d, 0.1 * (i + 1) / 2, rtol=1e-6
         )
-    # The vector and total angular momentum fields derived by yt are
-    # consistent with the spin read from the file
     jp = ad["sink", "particle_specific_angular_momentum"]
     for i, ax in enumerate("xyz"):
         assert_allclose_units(

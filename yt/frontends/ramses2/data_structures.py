@@ -317,8 +317,6 @@ class RAMSES2Index(OctreeIndex):
         self.domains = [
             RAMSES2DomainFile(self.dataset, i + 1) for i in range(self.dataset.nfile)
         ]
-        # num_grids is an instance attribute set by the base class, so it
-        # cannot be a cached_property
         self.num_grids = sum(int(dom.level_count.sum()) for dom in self.domains)
 
     @cached_property
