@@ -1,5 +1,5 @@
 import numpy as np
-from nose.tools import assert_raises
+import pytest
 from numpy.testing import assert_almost_equal, assert_equal
 
 from yt.testing import (
@@ -66,7 +66,7 @@ def test_region_from_d():
     assert_equal(reg1["gas", "density"], reg2["gas", "density"])
 
     # Test with bad boundary initialization
-    with assert_raises(RuntimeError):
+    with pytest.raises(RuntimeError):
         ds.r[0.3:0.1, 0.4:0.6, :]
 
     # Test region by creating an arbitrary grid
@@ -133,9 +133,9 @@ def test_point_from_r():
     assert_equal(pt1["gas", "density"], pt2["gas", "density"])
 
     # Test YTDimensionalityError
-    with assert_raises(YTDimensionalityError) as ex:
+    with pytest.raises(YTDimensionalityError) as ex:
         ds.r[0.5, 0.1]
-    assert_equal(str(ex.exception), "Dimensionality specified was 2 but we need 3")
+    assert_equal(str(ex.value), "Dimensionality specified was 2 but we need 3")
 
 
 def test_ray_from_r():
