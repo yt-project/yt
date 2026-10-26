@@ -1,7 +1,4 @@
-import warnings
-
 from yt._typing import KnownFieldsT
-from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.utilities.physical_constants import (
@@ -95,24 +92,5 @@ class RAMSES2FieldInfo(FieldInfoContainer):
             ("gas", "temperature_over_mu"),
             sampling_type="cell",
             function=_temperature_over_mu,
-            units=self.ds.unit_system["temperature"],
-        )
-
-        def _temperature(data):
-            if not isinstance(data, FieldDetector):
-                warnings.warn(
-                    "The mean molecular weight is not stored in RAMSES II outputs. "
-                    "yt will return T/µ instead of T — this is equivalent to "
-                    "assuming µ=1.0. To suppress this, derive the temperature "
-                    "from temperature_over_mu with some values for mu.",
-                    category=RuntimeWarning,
-                    stacklevel=1,
-                )
-            return data["gas", "temperature_over_mu"]
-
-        self.add_field(
-            ("gas", "temperature"),
-            sampling_type="cell",
-            function=_temperature,
             units=self.ds.unit_system["temperature"],
         )

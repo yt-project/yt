@@ -25,7 +25,17 @@ from .io import particle_field_list
 # Offsets (in units of the oct width) of the 8 cells of an oct, in the
 # RAMSES ordering (x varies fastest).
 _CELL_OFFSETS = np.array(
-    [[(i >> idim) & 1 for idim in range(3)] for i in range(8)], dtype="int64"
+    [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+        [1, 1, 0],
+        [0, 0, 1],
+        [1, 0, 1],
+        [0, 1, 1],
+        [1, 1, 1],
+    ],
+    dtype="int8",
 )
 
 
@@ -106,16 +116,16 @@ class RAMSES2DomainFile:
     def __init__(self, ds, domain_id):
         self.ds = ds
         self.domain_id = domain_id
-        self.amr_fn = os.path.join(ds.root_folder, f"amr.{domain_id:05d}")
+        self.amr_fn = Path(ds.root_folder) / f"amr.{domain_id:05d}"
 
     def __repr__(self):
         return f"RAMSES2DomainFile: {self.domain_id}"
 
     def fluid_fn(self, prefix):
-        return os.path.join(self.ds.root_folder, f"{prefix}.{self.domain_id:05d}")
+        return Path(self.ds.root_folder) / f"{prefix}.{self.domain_id:05d}"
 
     def particle_fn(self, prefix):
-        return os.path.join(self.ds.root_folder, f"{prefix}.{self.domain_id:05d}")
+        return Path(self.ds.root_folder) / f"{prefix}.{self.domain_id:05d}"
 
     @cached_property
     def level_count(self):
@@ -499,7 +509,7 @@ class RAMSES2Dataset(Dataset):
 
     def _detect_fluid_fields(self):
         for prefix, ftype in FLUID_TYPES.items():
-            header_fn = os.path.join(self.root_folder, f"{prefix}_header.txt")
+            header_fn = Path(self.root_folder) / f"{prefix}_header.txt"
             if not os.path.exists(header_fn):
                 continue
             with open(header_fn) as f:
@@ -516,7 +526,7 @@ class RAMSES2Dataset(Dataset):
         "name dtype ncomp"; older ones list the field names on one line.
         """
         for ptype in PARTICLE_PREFIXES:
-            header_fn = os.path.join(self.root_folder, f"{ptype}_header.txt")
+            header_fn = Path(self.root_folder) / f"{ptype}_header.txt"
             if not os.path.exists(header_fn):
                 continue
             with open(header_fn) as f:
