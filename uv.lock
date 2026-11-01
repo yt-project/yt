@@ -4834,9 +4834,9 @@ wheels = [
 
 [[package]]
 name = "pyx"
-version = "0.17"
+version = "0.18"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/dd/4f/eeae2b1e5d7463b0110724e53e45d79bdfba88c614e1390fb1a9648f3f4a/pyx-0.17.tar.gz", hash = "sha256:3bc8aa809131559f7a5c0e1f1129b42c71ade36df0332113f5c5779384a39af1", size = 628935, upload-time = "2025-11-02T13:54:13.144Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/20/3f/7857705e808c57e97fab4962e474a4785ad5f104fd78078d9aecac87047a/pyx-0.18.tar.gz", hash = "sha256:966da6b5186e06fd3849c210dae92c88e120279c0bbecfe03bda3f763e92d7cc", size = 671450, upload-time = "2026-10-18T12:14:35.83Z" }
 
 [[package]]
 name = "pyyaml"
