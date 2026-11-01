@@ -32,6 +32,7 @@ __all__ = [
     "http_stream",
     "moab",
     "nc4_cm1",
+    "nifti",
     "open_pmd",
     "owls",
     "owls_subfind",
