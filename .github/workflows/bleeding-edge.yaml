@@ -42,7 +42,7 @@ jobs:
       with:
         # this version should be upgraded as often as possible, typically once a year when
         # Cython, numpy and matplotlib are known to be compatible
-        python-version: '3.14'
+        python-version: '3.15'
         enable-cache: false
         activate-environment: true # allows using uv pip directly
 
