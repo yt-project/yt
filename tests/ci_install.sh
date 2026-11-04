@@ -1,7 +1,8 @@
 set -x   # Show which command is being run
 
 # Step 1: install system level dependencies for ratarmount
-if [[ ${sync_args} == *"full"* ]]; then
+# YT_CI_SKIP_SYSTEM_DEPS=1 is for self-hosted runners that preinstall them and have no sudo.
+if [[ ${sync_args} == *"full"* && ${YT_CI_SKIP_SYSTEM_DEPS:-} != "1" ]]; then
     case ${RUNNER_OS} in
     linux|Linux)
         sudo apt-get -qqy update

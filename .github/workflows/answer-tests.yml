@@ -1,0 +1,151 @@
+# Reference copy. Canonical location: yt/.github/workflows/answer-tests.yml
+name: answer-tests
+
+on:
+  # The comment trigger is gated: authorize checks the commenter's write permission before any
+  # untrusted code is checked out, and comment-triggered runs use this file from the default branch.
+  issue_comment: # zizmor: ignore[dangerous-triggers]
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number to test (its current head SHA)"
+        required: false
+      ref:
+        description: "Any ref or SHA to test (ignored if pr is set; blank = the ref this was dispatched from)"
+        required: false
+      groups:
+        description: "Comma-separated answer-test group keys from tests/tests.yaml (blank = all)"
+        required: false
+
+permissions: {}
+
+jobs:
+  authorize:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/run-answer-tests'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read        # commits/{ref} lookup
+      pull-requests: read   # pulls/{pr} head SHA
+      issues: write         # reaction on the triggering comment (PR comments are issue comments)
+    outputs:
+      sha: ${{ steps.pin.outputs.sha }}
+      groups: ${{ steps.pin.outputs.groups }}
+    steps:
+      - name: Check commenter has write access
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          USER: ${{ github.event.comment.user.login }}
+        run: |
+          perm=$(gh api "repos/${{ github.repository }}/collaborators/${USER}/permission" --jq .permission)
+          case "$perm" in
+            admin|maintain|write) echo "${USER}: ${perm}" ;;
+            *) echo "::error::${USER} has '${perm}' permission; need write or above"; exit 1 ;;
+          esac
+
+      - name: Pin the SHA to test
+        id: pin
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.issue.number || inputs.pr }}
+          REF: ${{ inputs.ref }}
+          ANSWER_GROUPS: ${{ inputs.groups }}
+        run: |
+          if [ -n "$PR" ]; then
+            sha=$(gh api "repos/${{ github.repository }}/pulls/${PR}" --jq .head.sha)
+          elif [ -n "$REF" ]; then
+            sha=$(gh api "repos/${{ github.repository }}/commits/${REF}" --jq .sha)
+          else
+            sha="${{ github.sha }}"
+          fi
+          echo "testing ${sha} (pr='${PR}' ref='${REF}' groups='${ANSWER_GROUPS}')"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "groups=${ANSWER_GROUPS}" >> "$GITHUB_OUTPUT"
+
+      - name: Acknowledge the comment
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh api "repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions"
+          -f content=rocket
+
+  answer-tests:
+    needs: authorize
+    runs-on: [self-hosted, jetstream]
+    timeout-minutes: 240
+    permissions:
+      contents: read        # checkout
+      statuses: write       # commit status on the tested SHA
+    env:
+      # Answer stores on the worker are py310_* prefixed; bump here and regenerate them
+      # together (see yt-ci-infra docs/operations.md, "Bumping the Python version").
+      PYTHON_VERSION: "3.10"
+      MPLCONFIGDIR: tests
+    steps:
+      - name: Mark pending on the commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.authorize.outputs.sha }}
+        run: >
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${SHA}"
+          -f state=pending -f context=answer-tests
+          -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      # pinned to the same hashes as build-test.yaml so dependabot bumps them together
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          submodules: true
+          persist-credentials: false
+
+      - name: Install dependencies and yt
+        shell: bash
+        env:
+          sync_args: --extra=full --group=nosetest
+          UV_PYTHON: ${{ env.PYTHON_VERSION }}
+          YT_CI_SKIP_SYSTEM_DEPS: "1"   # libfuse2 is provisioned on the worker; runner has no sudo
+        run: source ./tests/ci_install.sh
+
+      - name: Patch nosetest
+        # same as build-test.yaml: nose is unmaintained and still references collections.Callable
+        run: |
+          find .venv/lib/python${PYTHON_VERSION}/site-packages/nose -name '*.py' \
+            -exec sed -i -e 's/collections.Callable/collections.abc.Callable/g' '{}' ';'
+
+      # YT_TEST_DATA_DIR (the dataset mount) and uv's PATH entry come from the worker's runner
+      # .env/.path files, written by boot-runner.sh from /etc/yt-runner/env. Nothing here knows
+      # where the data lives; the config-set line fails loudly on a runner that is not ours.
+      - name: Run answer tests
+        env:
+          YT_TEST_GROUPS: ${{ needs.authorize.outputs.groups }}
+        run: |
+          uv run --no-sync yt config set --local yt test_data_dir "${YT_TEST_DATA_DIR:?not exported by the runner}"
+          rm -f ./*.xml
+          export NUM_WORKERS=$(( $(nproc) > 2 ? $(nproc) - 2 : 1 ))
+          echo "NUM_WORKERS=$NUM_WORKERS groups='${YT_TEST_GROUPS}'"
+          uv run --no-sync python tests/nose_runner.py
+
+      - name: Upload xunit results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: answer-tests-xunit-${{ needs.authorize.outputs.sha }}
+          path: "*.xml"
+          if-no-files-found: warn
+
+      - name: Report status on the commit
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.authorize.outputs.sha }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+        run: >
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${SHA}"
+          -f state="${STATE}"
+          -f context=answer-tests
+          -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
