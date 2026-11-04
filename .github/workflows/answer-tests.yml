@@ -25,7 +25,7 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.issue.pull_request &&
-       contains(github.event.comment.body, '/run-answer-tests'))
+       startsWith(github.event.comment.body, '/run-answer-tests'))
     runs-on: ubuntu-latest
     permissions:
       contents: read        # commits/{ref} lookup
@@ -46,6 +46,18 @@ jobs:
             admin|maintain|write) echo "${USER}: ${perm}" ;;
             *) echo "::error::${USER} has '${perm}' permission; need write or above"; exit 1 ;;
           esac
+
+      # startsWith above only filters cheaply; the comment must be the bare trigger so nothing
+      # else in it is ever interpreted. Anyone wanting a subset uses workflow_dispatch.
+      - name: Require the comment to be exactly the trigger
+        if: github.event_name == 'issue_comment'
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          if [ "$(printf '%s' "$BODY" | tr -d '[:space:]')" != "/run-answer-tests" ]; then
+            echo "::error::comment must be exactly '/run-answer-tests' with nothing else"
+            exit 1
+          fi
 
       - name: Pin the SHA to test
         id: pin

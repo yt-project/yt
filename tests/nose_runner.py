@@ -2,6 +2,7 @@ import argparse
 import glob
 import multiprocessing
 import os
+import shutil
 import sys
 
 import nose
@@ -45,30 +46,55 @@ class NoseTask:
         self.name = argv[0]
         self.exclusive = exclusive
 
-    def __call__(self):
-        test_dir = ytcfg.get("yt", "test_data_dir")
-        answers_dir = os.path.join(test_dir, "answers")
+    def _store_files(self):
         # The store lives at <answers_dir>/<name>/<name>[.db|.dat...] (shelve, backend-dependent
         # suffix). Test for the file, not the directory: the answer-testing plugin creates the
         # directory before any test runs, so a failed store run leaves an empty one behind.
-        stored = glob.glob(os.path.join(answers_dir, self.name, self.name + "*"))
-        if "--with-answer-testing" in self.argv and not stored:
-            print(
-                f"{self.name}: no stored answers under {answers_dir}; "
-                "generating them (--answer-store) before the comparison run",
-                flush=True,
-            )
-            nose.run(
-                argv=self.argv + ["--answer-store"],
-                addplugins=[AnswerTesting()],
-                exit=False,
-            )
+        return glob.glob(os.path.join(self.answers_dir, self.name, self.name + "*"))
+
+    def _store_answers(self):
+        """Generate the store for this group. Returns True when a usable store now exists.
+
+        A store pass that fails or writes nothing (the plugin skips the dump when a dataset is
+        missing) must not leave anything behind: the compare pass opens the store read-write and
+        would create an empty one, and every later run would then compare against it.
+        """
+        print(
+            f"{self.name}: no stored answers under {self.answers_dir}; "
+            "generating them (--answer-store) before the comparison run",
+            flush=True,
+        )
+        ok = nose.run(
+            argv=self.argv + ["--answer-store"],
+            addplugins=[AnswerTesting()],
+            exit=False,
+        )
+        if ok and self._store_files():
+            return True
+        why = (
+            "tests failed during the store pass"
+            if not ok
+            else "no store file was written"
+        )
+        print(f"{self.name}: {why}; discarding the partial store", flush=True)
+        shutil.rmtree(os.path.join(self.answers_dir, self.name), ignore_errors=True)
+        return False
+
+    def __call__(self):
+        test_dir = ytcfg.get("yt", "test_data_dir")
+        self.answers_dir = os.path.join(test_dir, "answers")
+        answer_test = "--with-answer-testing" in self.argv
+        stored = False
+        if answer_test and not self._store_files():
+            if not self._store_answers():
+                return (self.name, False, False)
+            stored = True
         if os.path.isfile(f"{self.name}.xml"):
             os.remove(f"{self.name}.xml")
-        if "--with-answer-testing" in self.argv:
+        if answer_test:
             print(f"{self.name}: comparing against stored answers", flush=True)
         success = nose.run(argv=self.argv, addplugins=[AnswerTesting()], exit=False)
-        return (self.name, success)
+        return (self.name, success, stored)
 
     def __str__(self):
         return f"WILL DO self.name = {self.name}"
@@ -185,13 +211,24 @@ if __name__ == "__main__":
 
     tasks.join()
 
-    failed = []
+    failed, stored = [], []
     while num_jobs:
-        name, success = results.get()
+        name, success, did_store = results.get()
         num_jobs -= 1
         if not success:
             failed.append(name)
+        if did_store:
+            stored.append(name)
 
+    if stored:
+        # Newly generated stores are the baseline from here on; make that visible to whoever
+        # dispatched the run, in the log and in the GitHub job summary when there is one.
+        line = f"STORED new answers ({len(stored)}): {' '.join(sorted(stored))}"
+        print(line)
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            with open(summary, "a") as f:
+                f.write(f"**{line}**\n")
     if failed:
         print(f"FAILED ({len(failed)}): {' '.join(sorted(failed))}")
         sys.exit(1)
