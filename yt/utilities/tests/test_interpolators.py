@@ -131,14 +131,14 @@ def test_ghost_zone_extrapolation():
         )
 
         as_length = partial(ds.arr, units="code_length")
-        lx, ly, lz = [
+        lx, ly, lz = (
             as_length(x)
             for x in np.mgrid[
                 g.LeftEdge[0] : g.RightEdge[0] : (g.ActiveDimensions[0] + 1) * 1j,
                 g.LeftEdge[1] : g.RightEdge[1] : (g.ActiveDimensions[1] + 1) * 1j,
                 g.LeftEdge[2] : g.RightEdge[2] : (g.ActiveDimensions[2] + 1) * 1j,
             ]
-        ]
+        )
         xi = tf({"x": lx, "y": ly, "z": lz})
 
         xz = np.zeros(g.ActiveDimensions + 1)
