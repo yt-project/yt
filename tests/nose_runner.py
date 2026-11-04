@@ -1,4 +1,5 @@
 import argparse
+import glob
 import multiprocessing
 import os
 import sys
@@ -47,9 +48,16 @@ class NoseTask:
     def __call__(self):
         test_dir = ytcfg.get("yt", "test_data_dir")
         answers_dir = os.path.join(test_dir, "answers")
-        if "--with-answer-testing" in self.argv and not os.path.isdir(
-            os.path.join(answers_dir, self.name)
-        ):
+        # The store lives at <answers_dir>/<name>/<name>[.db|.dat...] (shelve, backend-dependent
+        # suffix). Test for the file, not the directory: the answer-testing plugin creates the
+        # directory before any test runs, so a failed store run leaves an empty one behind.
+        stored = glob.glob(os.path.join(answers_dir, self.name, self.name + "*"))
+        if "--with-answer-testing" in self.argv and not stored:
+            print(
+                f"{self.name}: no stored answers under {answers_dir}; "
+                "generating them (--answer-store) before the comparison run",
+                flush=True,
+            )
             nose.run(
                 argv=self.argv + ["--answer-store"],
                 addplugins=[AnswerTesting()],
@@ -57,6 +65,8 @@ class NoseTask:
             )
         if os.path.isfile(f"{self.name}.xml"):
             os.remove(f"{self.name}.xml")
+        if "--with-answer-testing" in self.argv:
+            print(f"{self.name}: comparing against stored answers", flush=True)
         success = nose.run(argv=self.argv, addplugins=[AnswerTesting()], exit=False)
         return (self.name, success)
 
@@ -156,17 +166,19 @@ if __name__ == "__main__":
     tasks = multiprocessing.JoinableQueue()
     results = multiprocessing.Queue()
 
-    num_consumers = opts.num_workers
+    jobs = generate_tasks_input(opts.groups, opts.unittests)
+    num_jobs = len(jobs)
+    # no point spawning more workers than there are jobs
+    num_consumers = min(opts.num_workers, num_jobs)
+    print(f"{num_jobs} nose run(s) across {num_consumers} worker(s)", flush=True)
     consumers = [NoseWorker(tasks, results) for i in range(num_consumers)]
     for w in consumers:
         w.start()
 
-    num_jobs = 0
-    for job in generate_tasks_input(opts.groups, opts.unittests):
+    for job in jobs:
         if job[1]:
             num_consumers -= 1  # take into account exclusive jobs
         tasks.put(NoseTask(job))
-        num_jobs += 1
 
     for _i in range(num_consumers):
         tasks.put(None)
