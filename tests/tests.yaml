@@ -233,6 +233,7 @@ other_tests:
      - "--ignore-file=test_image_writer_pytestonly\\.py"
      - "--ignore-file=test_cf_radial_pytest\\.py"
      - "--ignore-file=test_fields_pytest\\.py"
+     - "--ignore-file=test_amr_kdtools\\.py"
      - "--ignore-file=test_perspective_matrix\\.py"
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
