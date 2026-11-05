@@ -40,11 +40,12 @@ class NoseWorker(multiprocessing.Process):
 
 
 class NoseTask:
-    def __init__(self, job):
+    def __init__(self, job, store_missing=False):
         argv, exclusive = job
         self.argv = argv
         self.name = argv[0]
         self.exclusive = exclusive
+        self.store_missing = store_missing
 
     def _store_files(self):
         # The store lives at <answers_dir>/<name>/<name>[.db|.dat...] (shelve, backend-dependent
@@ -53,15 +54,21 @@ class NoseTask:
         return glob.glob(os.path.join(self.answers_dir, self.name, self.name + "*"))
 
     def _store_answers(self):
-        """Generate the store for this group. Returns True when a usable store now exists.
+        """Run the store pass for a group that has no store. Returns one of:
 
-        A store pass that fails or writes nothing (the plugin skips the dump when a dataset is
-        missing) must not leave anything behind: the compare pass opens the store read-write and
-        would create an empty one, and every later run would then compare against it.
+        "stored"   a usable store now exists (only with store_missing)
+        "no-data"  the pass passed but wrote nothing: a dataset in the group is missing (the
+                   plugin marks the results tainted and skips the dump), so there is nothing
+                   to compare against until the data is seeded
+        "failed"   the pass failed, or it generated a store without store_missing
+
+        Anything but "stored" leaves nothing behind: the compare pass opens the store
+        read-write and would create an empty one, and every later run would then compare
+        against it.
         """
         print(
             f"{self.name}: no stored answers under {self.answers_dir}; "
-            "generating them (--answer-store) before the comparison run",
+            "running the store pass (--answer-store)",
             flush=True,
         )
         ok = nose.run(
@@ -69,16 +76,23 @@ class NoseTask:
             addplugins=[AnswerTesting()],
             exit=False,
         )
+        if ok and self._store_files() and self.store_missing:
+            return "stored"
         if ok and self._store_files():
-            return True
-        why = (
-            "tests failed during the store pass"
-            if not ok
-            else "no store file was written"
-        )
-        print(f"{self.name}: {why}; discarding the partial store", flush=True)
+            outcome = "failed"
+            why = (
+                "generated a store, but store_missing is off; discarding it. Dispatch with "
+                "store_missing=true to accept this ref's answers as the baseline"
+            )
+        elif ok:
+            outcome = "no-data"
+            why = "no store written: a dataset in the group is missing; skipping the group"
+        else:
+            outcome = "failed"
+            why = "tests failed during the store pass; discarding the partial store"
+        print(f"{self.name}: {why}", flush=True)
         shutil.rmtree(os.path.join(self.answers_dir, self.name), ignore_errors=True)
-        return False
+        return outcome
 
     def __call__(self):
         test_dir = ytcfg.get("yt", "test_data_dir")
@@ -86,15 +100,16 @@ class NoseTask:
         answer_test = "--with-answer-testing" in self.argv
         stored = False
         if answer_test and not self._store_files():
-            if not self._store_answers():
-                return (self.name, False, False)
+            outcome = self._store_answers()
+            if outcome != "stored":
+                return (self.name, outcome, False)
             stored = True
         if os.path.isfile(f"{self.name}.xml"):
             os.remove(f"{self.name}.xml")
         if answer_test:
             print(f"{self.name}: comparing against stored answers", flush=True)
         success = nose.run(argv=self.argv, addplugins=[AnswerTesting()], exit=False)
-        return (self.name, success, stored)
+        return (self.name, "passed" if success else "failed", stored)
 
     def __str__(self):
         return f"WILL DO self.name = {self.name}"
@@ -115,6 +130,14 @@ def parse_args(argv=None):
         action=argparse.BooleanOptionalAction,
         default=None,
         help="run other_tests (the unittests job); default is yes unless --groups is given",
+    )
+    parser.add_argument(
+        "--store-missing",
+        action=argparse.BooleanOptionalAction,
+        default=os.environ.get("YT_STORE_MISSING", "").lower() in ("1", "true", "yes"),
+        help="keep the answers generated for groups that have no store, making them the "
+        "baseline for later runs; default off (env fallback YT_STORE_MISSING), and such "
+        "groups then fail",
     )
     parser.add_argument(
         "--num-workers",
@@ -204,31 +227,45 @@ if __name__ == "__main__":
     for job in jobs:
         if job[1]:
             num_consumers -= 1  # take into account exclusive jobs
-        tasks.put(NoseTask(job))
+        tasks.put(NoseTask(job, opts.store_missing))
 
     for _i in range(num_consumers):
         tasks.put(None)
 
     tasks.join()
 
-    failed, stored = [], []
+    failed, stored, skipped = [], [], []
     while num_jobs:
-        name, success, did_store = results.get()
+        name, status, did_store = results.get()
         num_jobs -= 1
-        if not success:
+        if status == "failed":
             failed.append(name)
+        elif status == "no-data":
+            skipped.append(name)
         if did_store:
             stored.append(name)
 
+    # Newly generated stores are the baseline from here on, and a skipped group is one the run
+    # says nothing about; make both visible to whoever dispatched the run, in the log and in
+    # the GitHub job summary when there is one.
+    lines = []
     if stored:
-        # Newly generated stores are the baseline from here on; make that visible to whoever
-        # dispatched the run, in the log and in the GitHub job summary when there is one.
-        line = f"STORED new answers ({len(stored)}): {' '.join(sorted(stored))}"
+        lines.append(f"STORED new answers ({len(stored)}): {' '.join(sorted(stored))}")
+    if skipped:
+        lines.append(
+            f"SKIPPED, datasets missing ({len(skipped)}): {' '.join(sorted(skipped))}"
+        )
+    for line in lines:
         print(line)
-        summary = os.environ.get("GITHUB_STEP_SUMMARY")
-        if summary:
-            with open(summary, "a") as f:
-                f.write(f"**{line}**\n")
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary and lines:
+        with open(summary, "a") as f:
+            f.writelines(f"**{line}**\n" for line in lines)
+    if skipped and opts.groups:
+        # A skip in a full run is a known data gap. A skip in a group somebody asked for by
+        # name, typically a new group whose data is not seeded yet, is not a pass.
+        print("requested groups were skipped for missing datasets; failing the run")
+        failed.extend(skipped)
     if failed:
         print(f"FAILED ({len(failed)}): {' '.join(sorted(failed))}")
         sys.exit(1)

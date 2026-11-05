@@ -2,10 +2,6 @@
 name: answer-tests
 
 on:
-  # The comment trigger is gated: authorize checks the commenter's write permission before any
-  # untrusted code is checked out, and comment-triggered runs use this file from the default branch.
-  issue_comment: # zizmor: ignore[dangerous-triggers]
-    types: [created]
   workflow_dispatch:
     inputs:
       pr:
@@ -17,53 +13,30 @@ on:
       groups:
         description: "Comma-separated answer-test group keys from tests/tests.yaml (blank = all)"
         required: false
+      store_missing:
+        description: "Keep the answers generated for groups that have no store yet (they become the baseline). Off: such groups fail."
+        type: boolean
+        default: false
 
 permissions: {}
 
 jobs:
-  authorize:
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.issue.pull_request &&
-       startsWith(github.event.comment.body, '/run-answer-tests'))
+  # Resolves the inputs to a SHA on a free hosted runner before the worker is woken up, so a
+  # bad PR number or ref fails here and never queues a job for the self-hosted label.
+  resolve:
     runs-on: ubuntu-latest
     permissions:
       contents: read        # commits/{ref} lookup
       pull-requests: read   # pulls/{pr} head SHA
-      issues: write         # reaction on the triggering comment (PR comments are issue comments)
     outputs:
       sha: ${{ steps.pin.outputs.sha }}
       groups: ${{ steps.pin.outputs.groups }}
     steps:
-      - name: Check commenter has write access
-        if: github.event_name == 'issue_comment'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          USER: ${{ github.event.comment.user.login }}
-        run: |
-          perm=$(gh api "repos/${{ github.repository }}/collaborators/${USER}/permission" --jq .permission)
-          case "$perm" in
-            admin|maintain|write) echo "${USER}: ${perm}" ;;
-            *) echo "::error::${USER} has '${perm}' permission; need write or above"; exit 1 ;;
-          esac
-
-      # startsWith above only filters cheaply; the comment must be the bare trigger so nothing
-      # else in it is ever interpreted. Anyone wanting a subset uses workflow_dispatch.
-      - name: Require the comment to be exactly the trigger
-        if: github.event_name == 'issue_comment'
-        env:
-          BODY: ${{ github.event.comment.body }}
-        run: |
-          if [ "$(printf '%s' "$BODY" | tr -d '[:space:]')" != "/run-answer-tests" ]; then
-            echo "::error::comment must be exactly '/run-answer-tests' with nothing else"
-            exit 1
-          fi
-
       - name: Pin the SHA to test
         id: pin
         env:
           GH_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.issue.number || inputs.pr }}
+          PR: ${{ inputs.pr }}
           REF: ${{ inputs.ref }}
           ANSWER_GROUPS: ${{ inputs.groups }}
         run: |
@@ -78,16 +51,8 @@ jobs:
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           echo "groups=${ANSWER_GROUPS}" >> "$GITHUB_OUTPUT"
 
-      - name: Acknowledge the comment
-        if: github.event_name == 'issue_comment'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >
-          gh api "repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions"
-          -f content=rocket
-
   answer-tests:
-    needs: authorize
+    needs: resolve
     runs-on: [self-hosted, jetstream]
     timeout-minutes: 240
     permissions:
@@ -102,7 +67,7 @@ jobs:
       - name: Mark pending on the commit
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ needs.authorize.outputs.sha }}
+          SHA: ${{ needs.resolve.outputs.sha }}
         run: >
           gh api "repos/${GITHUB_REPOSITORY}/statuses/${SHA}"
           -f state=pending -f context=answer-tests
@@ -111,7 +76,7 @@ jobs:
       # pinned to the same hashes as build-test.yaml so dependabot bumps them together
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.authorize.outputs.sha }}
+          ref: ${{ needs.resolve.outputs.sha }}
           submodules: true
           persist-credentials: false
 
@@ -136,19 +101,20 @@ jobs:
       # where the data lives; the config-set line fails loudly on a runner that is not ours.
       - name: Run answer tests
         env:
-          YT_TEST_GROUPS: ${{ needs.authorize.outputs.groups }}
+          YT_TEST_GROUPS: ${{ needs.resolve.outputs.groups }}
+          YT_STORE_MISSING: ${{ inputs.store_missing }}
         run: |
           uv run --no-sync yt config set --local yt test_data_dir "${YT_TEST_DATA_DIR:?not exported by the runner}"
           rm -f ./*.xml
           export NUM_WORKERS=$(( $(nproc) > 2 ? $(nproc) - 2 : 1 ))
-          echo "NUM_WORKERS=$NUM_WORKERS groups='${YT_TEST_GROUPS}'"
+          echo "NUM_WORKERS=$NUM_WORKERS groups='${YT_TEST_GROUPS}' store_missing='${YT_STORE_MISSING}'"
           uv run --no-sync python tests/nose_runner.py
 
       - name: Upload xunit results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: answer-tests-xunit-${{ needs.authorize.outputs.sha }}
+          name: answer-tests-xunit-${{ needs.resolve.outputs.sha }}
           path: "*.xml"
           if-no-files-found: warn
 
@@ -156,7 +122,7 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ needs.authorize.outputs.sha }}
+          SHA: ${{ needs.resolve.outputs.sha }}
           STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
         run: >
           gh api "repos/${GITHUB_REPOSITORY}/statuses/${SHA}"
