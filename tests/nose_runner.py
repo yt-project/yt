@@ -56,11 +56,14 @@ class NoseTask:
     def _store_answers(self):
         """Run the store pass for a group that has no store. Returns one of:
 
+        "no-data"  the pass wrote nothing: a dataset in the group is missing. With
+                   strict_requires on (set in main) yt raises at collection instead of
+                   skipping, marks the results tainted and skips the dump, so no file is the
+                   signal, whatever nose's exit status. Without strict_requires a missing
+                   dataset is a silent skip and an empty or partial store gets written.
         "stored"   a usable store now exists (only with store_missing)
-        "no-data"  the pass passed but wrote nothing: a dataset in the group is missing (the
-                   plugin marks the results tainted and skips the dump), so there is nothing
-                   to compare against until the data is seeded
-        "failed"   the pass failed, or it generated a store without store_missing
+        "failed"   the pass wrote a store but tests failed, or it generated a store without
+                   store_missing
 
         Anything but "stored" leaves nothing behind: the compare pass opens the store
         read-write and would create an empty one, and every later run would then compare
@@ -76,17 +79,17 @@ class NoseTask:
             addplugins=[AnswerTesting()],
             exit=False,
         )
-        if ok and self._store_files() and self.store_missing:
+        if not self._store_files():
+            outcome = "no-data"
+            why = "no store written: a dataset in the group is missing; skipping the group"
+        elif ok and self.store_missing:
             return "stored"
-        if ok and self._store_files():
+        elif ok:
             outcome = "failed"
             why = (
                 "generated a store, but store_missing is off; discarding it. Dispatch with "
                 "store_missing=true to accept this ref's answers as the baseline"
             )
-        elif ok:
-            outcome = "no-data"
-            why = "no store written: a dataset in the group is missing; skipping the group"
         else:
             outcome = "failed"
             why = "tests failed during the store pass; discarding the partial store"
@@ -212,6 +215,10 @@ def generate_tasks_input(groups=(), unittests=True):
 if __name__ == "__main__":
     # multiprocessing.log_to_stderr(logging.DEBUG)
     opts = parse_args()
+    # A missing dataset must be an error, not a skip: only then does yt taint the results and
+    # refuse to write a store, which is how _store_answers tells "data missing" from "stored".
+    # Set here, before the fork, so every worker's in-process nose run inherits it.
+    ytcfg.set("yt", "internals", "strict_requires", True)
     tasks = multiprocessing.JoinableQueue()
     results = multiprocessing.Queue()
 
