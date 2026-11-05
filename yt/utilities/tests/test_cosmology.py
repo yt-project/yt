@@ -287,6 +287,8 @@ def test_comoving_volume_curved_and_shells():
 
         v1 = co.comoving_volume(0.0, 1.0)
         assert v1.v > 0
+        v_single = co._single_comoving_volume(1.0)
+        assert_almost_equal(v1.to("Mpc**3").v, v_single.to("Mpc**3").v, decimal=6)
 
         # Shell volume between z=0.5 and z=2.0
         v_shell = co.comoving_volume(0.5, 2.0)
