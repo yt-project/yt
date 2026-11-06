@@ -29,7 +29,7 @@ class NoseWorker(multiprocessing.Process):
                 print(f"{proc_name}: Exiting")
                 self.task_queue.task_done()
                 break
-            print(f"{proc_name}: {next_task}")
+            print(f"{proc_name}: {next_task}", flush=True)
             result = next_task()
             self.task_queue.task_done()
             self.result_queue.put(result)

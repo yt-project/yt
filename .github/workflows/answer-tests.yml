@@ -105,6 +105,7 @@ jobs:
           YT_STORE_MISSING: ${{ inputs.store_missing }}
         run: |
           uv run --no-sync yt config set --local yt test_data_dir "${YT_TEST_DATA_DIR:?not exported by the runner}"
+          uv run --no-sync yt config set --local yt supp_data_dir "${YT_TEST_DATA_DIR}/supp_data"
           rm -f ./*.xml
           export NUM_WORKERS=$(( $(nproc) > 2 ? $(nproc) - 2 : 1 ))
           echo "NUM_WORKERS=$NUM_WORKERS groups='${YT_TEST_GROUPS}' store_missing='${YT_STORE_MISSING}'"
