@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 
 from yt.funcs import mylog
@@ -33,12 +31,14 @@ class IOHandlerPasta(BaseIOHandler):
             ng,
         )
 
-        ind = {field: 0 for field in fields}
+        ind = dict.fromkeys(fields, 0)
         for chunk in chunks:
             data = self._read_chunk_data(chunk, fields)
             for g in chunk.objs:
                 for field in fields:
-                    ind[field] += g.select(selector, data[g.id][field], rv[field], ind[field])
+                    ind[field] += g.select(
+                        selector, data[g.id][field], rv[field], ind[field]
+                    )
         return rv
 
     def _read_chunk_data(self, chunk, fields):
@@ -48,40 +48,135 @@ class IOHandlerPasta(BaseIOHandler):
         if len(fields) == 0:
             return rv
 
-        head = self._head
+        field_sources = getattr(self.ds, "_field_sources", {})
+        files_to_fields = {}
+        for field in fields:
+            ftype, fname = field
+            if fname in field_sources:
+                src = field_sources[fname]
+                src_fn = src["filename"]
+                if src_fn not in files_to_fields:
+                    files_to_fields[src_fn] = []
+                files_to_fields[src_fn].append((field, src))
+            elif fname in self._var_map:
+                if self.filename not in files_to_fields:
+                    files_to_fields[self.filename] = []
+                files_to_fields[self.filename].append(
+                    (
+                        field,
+                        {
+                            "filename": self.filename,
+                            "head": self._head,
+                            "block_info": self._block_info,
+                            "v_idx": self._var_map[fname],
+                            "is_face": False,
+                            "is_edge": False,
+                            "data_start": self._head["data_start"],
+                            "coord_bytes": self.ds._coord_bytes,
+                            "var_bytes": self.ds._var_bytes,
+                            "block_bytes": self.ds._block_bytes,
+                            "dfmt": self._head["byte_order"]
+                            + ("f8" if self._head["data_size"] == 8 else "f4"),
+                            "dsz": self._head["data_size"],
+                        },
+                    )
+                )
+            elif (
+                fname.startswith("field_bf_")
+                and self._head.get("num_face_field", 0) > 0
+            ):
+                if self.filename not in files_to_fields:
+                    files_to_fields[self.filename] = []
+                files_to_fields[self.filename].append(
+                    (
+                        field,
+                        {
+                            "filename": self.filename,
+                            "head": self._head,
+                            "block_info": self._block_info,
+                            "v_idx": int(fname.split("_")[-1]) - 1,
+                            "is_face": True,
+                            "is_edge": False,
+                            "data_start": self._head["data_start"],
+                            "coord_bytes": self.ds._coord_bytes,
+                            "var_bytes": self.ds._var_bytes,
+                            "block_bytes": self.ds._block_bytes,
+                            "dfmt": self._head["byte_order"]
+                            + ("f8" if self._head["data_size"] == 8 else "f4"),
+                            "dsz": self._head["data_size"],
+                        },
+                    )
+                )
+
         info = self._block_info
-        bo = head["byte_order"]
-        dsz = head["data_size"]
-        dfmt = bo + ("f8" if dsz == 8 else "f4")
         nc1, nc2, nc3 = info["ncells1"], info["ncells2"], info["ncells3"]
         tot_cells = nc1 * nc2 * nc3
-        block_bytes = self.ds._block_bytes
-        coord_bytes = self.ds._coord_bytes
-        var_bytes = self.ds._var_bytes
 
-        with open(self.filename, "rb") as f:
-            for g in chunk.objs:
-                block_offset = head["data_start"] + g.id * block_bytes
-                for field in fields:
-                    ftype, fname = field
-                    if fname in self._var_map:
-                        v_idx = self._var_map[fname]
-                        var_offset = block_offset + coord_bytes + v_idx * var_bytes
-                        f.seek(var_offset)
-                        arr = np.fromfile(f, dtype=dfmt, count=tot_cells)
-                        # Pasta shape on disk is (nc3, nc2, nc1); transpose to yt (nc1, nc2, nc3)
-                        arr = arr.reshape((nc3, nc2, nc1)).T
-                        rv[g.id][field] = arr.astype("float64")
-                    else:
-                        # Check staggered face B if present
-                        if fname.startswith("field_bf_") and head["num_face_field"] > 0:
-                            arr = self._read_face_field(f, block_offset, fname, info, dsz, dfmt)
+        for src_fn, flist in files_to_fields.items():
+            first_meta = flist[0][1]
+            data_start = first_meta["data_start"]
+            block_bytes = first_meta["block_bytes"]
+            coord_bytes = first_meta["coord_bytes"]
+            var_bytes = first_meta["var_bytes"]
+            dfmt = first_meta["dfmt"]
+            dsz = first_meta["dsz"]
+
+            with open(src_fn, "rb") as f:
+                for g in chunk.objs:
+                    block_offset = data_start + g.id * block_bytes
+                    for field, meta in flist:
+                        if not meta["is_face"] and not meta["is_edge"]:
+                            v_idx = meta["v_idx"]
+                            var_offset = block_offset + coord_bytes + v_idx * var_bytes
+                            f.seek(var_offset)
+                            arr = np.fromfile(f, dtype=dfmt, count=tot_cells)
+                            # Pasta shape on disk is (nc3, nc2, nc1); transpose to yt (nc1, nc2, nc3)
+                            arr = arr.reshape((nc3, nc2, nc1)).T
                             rv[g.id][field] = arr.astype("float64")
+                        elif meta["is_face"]:
+                            arr = self._read_face_field(
+                                f,
+                                block_offset,
+                                field[1],
+                                meta["block_info"],
+                                dsz,
+                                dfmt,
+                                coord_bytes,
+                                var_bytes,
+                            )
+                            rv[g.id][field] = arr.astype("float64")
+                        elif meta["is_edge"]:
+                            arr = self._read_edge_field(
+                                f,
+                                block_offset,
+                                field[1],
+                                meta["block_info"],
+                                dsz,
+                                dfmt,
+                                coord_bytes,
+                                var_bytes,
+                            )
+                            rv[g.id][field] = arr.astype("float64")
+
         return rv
 
-    def _read_face_field(self, f, block_offset, fname, info, dsz, dfmt):
+    def _read_face_field(
+        self,
+        f,
+        block_offset,
+        fname,
+        info,
+        dsz,
+        dfmt,
+        coord_bytes=None,
+        var_bytes=None,
+    ):
+        if coord_bytes is None:
+            coord_bytes = self.ds._coord_bytes
+        if var_bytes is None:
+            var_bytes = self.ds._var_bytes
         nc1, nc2, nc3 = info["ncells1"], info["ncells2"], info["ncells3"]
-        face_start = block_offset + self.ds._coord_bytes + info["nvar"] * self.ds._var_bytes
+        face_start = block_offset + coord_bytes + info["nvar"] * var_bytes
         shapes = [
             ("field_bf_1", (nc3, nc2, nc1 + 1)),
             ("field_bf_2", (nc3, nc2 + 1, nc1)),
@@ -103,6 +198,50 @@ class IOHandlerPasta(BaseIOHandler):
                 return raw.T
             curr_offset += count * dsz
         raise KeyError(f"Face field {fname} not found")
+
+    def _read_edge_field(
+        self,
+        f,
+        block_offset,
+        fname,
+        info,
+        dsz,
+        dfmt,
+        coord_bytes=None,
+        var_bytes=None,
+    ):
+        if coord_bytes is None:
+            coord_bytes = self.ds._coord_bytes
+        if var_bytes is None:
+            var_bytes = self.ds._var_bytes
+        nc1, nc2, nc3 = info["ncells1"], info["ncells2"], info["ncells3"]
+        face_count = 0
+        if info.get("num_face_field", 0) > 0:
+            face_count = (
+                nc3 * nc2 * (nc1 + 1) + nc3 * (nc2 + 1) * nc1 + (nc3 + 1) * nc2 * nc1
+            )
+        face_bytes = face_count * dsz
+        edge_start = block_offset + coord_bytes + info["nvar"] * var_bytes + face_bytes
+        shapes = [
+            ("field_emf_1", (nc3 + 1, nc2 + 1, nc1)),
+            ("field_emf_2", (nc3 + 1, nc2, nc1 + 1)),
+            ("field_emf_3", (nc3, nc2 + 1, nc1 + 1)),
+        ]
+        curr_offset = edge_start
+        for name, shape in shapes:
+            count = shape[0] * shape[1] * shape[2]
+            if name == fname:
+                f.seek(curr_offset)
+                raw = np.fromfile(f, dtype=dfmt, count=count).reshape(shape)
+                for axis, ncell in ((0, nc3), (1, nc2), (2, nc1)):
+                    if raw.shape[axis] == ncell + 1:
+                        raw = 0.5 * (
+                            np.take(raw, np.arange(ncell), axis=axis)
+                            + np.take(raw, np.arange(1, ncell + 1), axis=axis)
+                        )
+                return raw.T
+            curr_offset += count * dsz
+        raise KeyError(f"Edge field {fname} not found")
 
     def _get_particle_prop(self, name):
         if name not in self._particle_cache:
@@ -140,7 +279,11 @@ class IOHandlerPasta(BaseIOHandler):
             return self._get_particle_prop("mass")[start:end]
 
         # Cartesian positions
-        if field in ("particle_position_x", "particle_position_y", "particle_position_z"):
+        if field in (
+            "particle_position_x",
+            "particle_position_y",
+            "particle_position_z",
+        ):
             x1, x2, x3 = self._get_particle_coords_raw()
             if geom == "cartesian":
                 if field == "particle_position_x":
@@ -179,7 +322,11 @@ class IOHandlerPasta(BaseIOHandler):
             return self._get_particle_prop("x3")[start:end]
 
         # Cartesian velocities
-        if field in ("particle_velocity_x", "particle_velocity_y", "particle_velocity_z"):
+        if field in (
+            "particle_velocity_x",
+            "particle_velocity_y",
+            "particle_velocity_z",
+        ):
             v1 = self._get_particle_prop("v1")[start:end]
             v2 = self._get_particle_prop("v2")[start:end]
             v3 = self._get_particle_prop("v3")[start:end]
@@ -202,9 +349,17 @@ class IOHandlerPasta(BaseIOHandler):
                 th = self._get_particle_prop("x2")[start:end]
                 ph = self._get_particle_prop("x3")[start:end]
                 if field == "particle_velocity_x":
-                    return v1 * np.sin(th) * np.cos(ph) + v2 * np.cos(th) * np.cos(ph) - v3 * np.sin(ph)
+                    return (
+                        v1 * np.sin(th) * np.cos(ph)
+                        + v2 * np.cos(th) * np.cos(ph)
+                        - v3 * np.sin(ph)
+                    )
                 elif field == "particle_velocity_y":
-                    return v1 * np.sin(th) * np.sin(ph) + v2 * np.cos(th) * np.sin(ph) + v3 * np.cos(ph)
+                    return (
+                        v1 * np.sin(th) * np.sin(ph)
+                        + v2 * np.cos(th) * np.sin(ph)
+                        + v3 * np.cos(ph)
+                    )
                 else:
                     return v1 * np.cos(th) - v2 * np.sin(th)
 
@@ -257,4 +412,3 @@ class IOHandlerPasta(BaseIOHandler):
                     for field in field_list:
                         data = self._get_particle_field_data(field, start, end)
                         yield (ptype, field), data[mask]
-
