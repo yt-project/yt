@@ -623,6 +623,8 @@ def simple_download_file(url, filename):
     try:
         fn, h = urllib.request.urlretrieve(url, filename)
     except urllib.error.HTTPError as err:
+        # the error holds the open response; close it so the socket isn't leaked
+        err.close()
         raise RuntimeError(
             f"Attempt to download file from {url} failed with error {err.code}: {err.msg}."
         ) from None

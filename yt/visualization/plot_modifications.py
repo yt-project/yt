@@ -1194,7 +1194,8 @@ class GridBoundaryCallback(PlotCallback):
                 edgecolors = colorConverter.to_rgba(self.edgecolors, alpha=self.alpha)
             else:  # use colormap if not explicitly overridden by edgecolors
                 if self.cmap is not None:
-                    color_bounds = [0, max_level]
+                    # avoid a 0/0 (NaN colors) when only level 0 is shown
+                    color_bounds = [0, max(max_level, 1)]
                     edgecolors = (
                         apply_colormap(
                             levels[visible] * 1.0,
