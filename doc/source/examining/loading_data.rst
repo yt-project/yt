@@ -3105,6 +3105,70 @@ Particle data is fully supported:
 * The frontend has hardcoded logic for renaming the openPMD ``position``
   of particles to ``positionCoarse``
 
+.. _loading-pasta-data:
+
+Pasta Data
+----------
+
+Pasta is an adaptive mesh refinement (AMR) code supporting hydrodynamics,
+magnetohydrodynamics, self-gravity, radiation transport, and particles across
+Cartesian, cylindrical, and spherical coordinates.
+
+Pasta outputs grid hierarchy and cell data in binary format (``*.binary``) and particle
+data in companion files (``*.par``).
+
+To load a Pasta grid dataset:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("zoom.fluid_prim.00000.binary")
+
+When multiple companion binary files exist for the same cycle and mesh (for example,
+``zoom.particle_rho.00000.binary`` or ``zoom.scalar_prim.00000.binary``), yt
+automatically discovers and combines them, exposing all variables in the ``('pasta', ...)``
+and ``('gas', ...)`` namespaces.
+
+To load a particle dataset directly:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("zoom_par.00000.par")
+
+Particles are accessible under the ``('io', ...)`` field type, including coordinates,
+velocities, mass, IDs, and custom properties (such as ``must_refine``). If a companion
+grid output exists at the same cycle, yt automatically links it to provide the spatial
+domain.
+
+Cosmological Datasets
+^^^^^^^^^^^^^^^^^^^^^
+
+For cosmological runs, Pasta records the current redshift and scale factor in file
+headers. yt marks the dataset with ``ds.cosmological_simulation = 1`` and attempts to
+discover cosmological parameters (such as comoving box size, :math:`\Omega_m`,
+:math:`\Omega_\Lambda`, and :math:`h`) from companion halo catalogs (``*.fof_halos.h5``),
+the run log (``pasta_logs.txt``), or configuration files (``*.conf``). In cosmological mode,
+``length_unit`` is set in comoving units (``Mpccm/h``).
+
+Thermodynamics and Chemical Species
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Both primitive (``fluid_density``, ``fluid_vel_*``, ``fluid_pressure``,
+``fluid_specific_internal_energy``) and conserved (``fluid_mom_*``, ``fluid_energy``)
+outputs are supported. Standard yt derived fields like ``("gas", "pressure")``,
+``("gas", "temperature")``, ``("gas", "sound_speed")``, and
+``("gas", "specific_thermal_energy")`` are automatically constructed.
+
+When primordial or chemistry network scalars are present (such as ``scalar_prim_0``
+through ``scalar_prim_5`` corresponding to :math:`\mathrm{H}`, :math:`\mathrm{H}^+`,
+:math:`\mathrm{He}`, :math:`\mathrm{He}^+`, :math:`\mathrm{He}^{++}`, and
+:math:`e^-`), yt populates the species registry so that chemical density and mass
+fields (e.g. ``("gas", "H_density")``) are immediately available.
+
+
 .. _loading-pyne-data:
 
 PyNE Data
