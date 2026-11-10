@@ -98,6 +98,7 @@ def pytest_configure(config):
         "ignore::pytest.PytestCollectionWarning",
         # matplotlib warnings related to the Agg backend which is used in CI, not much we can do about it
         "ignore:Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.:UserWarning",
+        "ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning",
         r"ignore:tight_layout.+falling back to Agg renderer:UserWarning",
         #
         # >>> warnings from wrong values passed to numpy
