@@ -10,13 +10,13 @@ functions:
       open: 0.21926450482675733}
     args: [1]
   angular_diameter_distance:
-    answers: {EdS: -47.63859400006291, LCDM: 74.71628440466395, omega_radiation: 74.61156201248941,
-      open: 114.42229537588507}
+    answers: {EdS: 370.44299338029055, LCDM: 625.2858791527276, omega_radiation: 625.1546958084152,
+      open: 489.4619186348423}
     args: [1, 2]
     units: Mpc
   angular_scale:
-    answers: {EdS: -47.63859400006291, LCDM: 74.71628440466395, omega_radiation: 74.61156201248941,
-      open: 114.42229537588507}
+    answers: {EdS: 370.44299338029055, LCDM: 625.2858791527276, omega_radiation: 625.1546958084152,
+      open: 489.4619186348423}
     args: [1, 2]
     units: Mpc/radian
   comoving_radial_distance:
@@ -62,8 +62,8 @@ functions:
     args: [1, 2]
     units: Myr
   luminosity_distance:
-    answers: {EdS: 5842.669112528931, LCDM: 8931.175468218224, omega_radiation: 8929.836295237686,
-      open: 8369.418267416617}
+    answers: {EdS: 833.4967351056538, LCDM: 1406.893228093637, omega_radiation: 1406.598065568934,
+      open: 1101.2893169283952}
     args: [1, 2]
     units: Mpc
   path_length:
