@@ -320,6 +320,7 @@ cdef class LoadOctree(OctVisitor):
                 o.children[ii + i].file_ind = -1
                 o.children[ii + i].domain = -1
                 o.children[ii + i].children = NULL
+                o.children[ii + i].parent = o
                 self.nocts[0] += 1
         else:
             print("SOMETHING IS AMISS", self.index)
