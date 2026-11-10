@@ -95,7 +95,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         )
         add_species_field_by_density(self, ptype, "H_p1")
 
-        def _nuclei_mass_density_field(data):
+        def _nuclei_mass_density_field(field, data):
             species = field.name[1][: field.name[1].find("_")]
             return data[ptype, "density"] * data[ptype, f"{species}_metallicity"]
 
