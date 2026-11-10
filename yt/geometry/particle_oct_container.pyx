@@ -13,9 +13,9 @@ Oct container tuned for Particles
 from ewah_bool_utils.ewah_bool_array cimport (
     bool_array,
     ewah_bool_array,
-    ewah_bool_iterator,
     ewah_word_type,
 )
+from ewah_bool_utils.capi cimport bool_array_collection as bac_api
 from libc.math cimport ceil, log2
 from libc.stdlib cimport free, malloc
 from libcpp.map cimport map as cmap
@@ -70,6 +70,13 @@ _bitmask_version = np.uint64(5)
 
 
 ctypedef cmap[np.uint64_t, bool_array] CoarseRefinedSets
+
+cdef np.ndarray[np.uint64_t, ndim=1] _get_selected_coarse_indices(object mask):
+    cdef np.uint64_t nmi = bac_api.count_total(mask)  # total hits
+    cdef np.ndarray[np.uint64_t, ndim=1] mis = np.empty(nmi, dtype="uint64")
+    bac_api.coarse_indices(mask, mis)  # fill the indices of the hits
+    return mis
+
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -372,22 +379,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         if mask is None:
             return super(ParticleOctreeContainer,self).domain_ind(selector, domain_id = domain_id)
         # Create mask for octs that are touched by the mask
-        cdef ewah_bool_array *ewah_slct = <ewah_bool_array *> mask.ewah_keys
-        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct[0].begin())
-        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct[0].end())
+        cdef np.ndarray[np.uint64_t, ndim=1] mis = _get_selected_coarse_indices(mask)
         cdef np.ndarray[np.uint8_t, ndim=1] oct_mask
         oct_mask = np.zeros(self.nocts, 'uint8')
         cdef Oct *o
-        cdef int coct, cmi
-        coct = cmi = 0
-        while iter_set[0] != iter_end[0]:
-            mi = dereference(iter_set[0])
-            o = self.get_from_index(mi, order = masklevel)
+        cdef np.uint64_t cmi
+        for cmi in range(mis.shape[0]):
+            o = self.get_from_index(mis[cmi], order = masklevel)
             if o != NULL:
                 _mask_children(oct_mask, o)
-                coct += 1
-            cmi += 1
-            preincrement(iter_set[0])
         # Get domain ind
         cdef np.ndarray[np.int64_t, ndim=1] ind
         ind = np.zeros(self.nocts, 'int64') - 1
@@ -477,7 +477,7 @@ cdef class ParticleBitmap:
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
         self.particle_counts = np.zeros(1 << (index_order1 * 3), dtype="uint64")
         self.bitmasks = FileBitmasks(self.nfiles)
-        self.collisions = BoolArrayCollection()
+        self.collisions = bac_api.new()
         hash_data = bytearray()
         hash_data.extend(self.file_hash.to_bytes(8, "little", signed=True))
         hash_data.extend(np.array(self.left_edge).tobytes())
@@ -671,7 +671,7 @@ cdef class ParticleBitmap:
                                  np.uint8_t mask_threshold = 2):
         self._used_mi2 = 1
         if in_collection is None:
-            in_collection = BoolArrayCollection()
+            in_collection = bac_api.new()
         cdef BoolArrayCollection _in_coll = in_collection
         out_collection = self.__refined_index_data_file(_in_coll, pos, hsml, mask,
                                               count_threshold, mask_threshold)
@@ -838,22 +838,24 @@ cdef class ParticleBitmap:
                                                                    dds1, xex, yex, zex,
                                                                    dds2,
                                                                    coarse_refined_map[miex1])
-        cdef np.uint64_t vec_i
+        cdef np.uint64_t vec_i, nwords
         cdef bool_array *buf = NULL
-        cdef ewah_word_type w
-        this_collection = BoolArrayCollection()
-        cdef ewah_bool_array *refined_arr = NULL
+        cdef np.ndarray[np.uint32_t, ndim=1] words
+        this_collection = bac_api.new()
         for it1 in coarse_refined_map:
-            mi1 = it1.first
-            refined_arr = &this_collection.ewah_coll[0][mi1]
-            this_collection.ewah_keys[0].set(mi1)
-            this_collection.ewah_refn[0].set(mi1)
-            buf = &it1.second
-            for vec_i in range(buf.sizeInBytes() / sizeof(ewah_word_type)):
-                w = buf.getWord(vec_i)
-                refined_arr.addWord(w)
-        out_collection = BoolArrayCollection()
-        in_collection._logicalor(this_collection, out_collection)
+            mi1 = it1.first  # current coarse cell
+            buf = &it1.second  # uncompressed refined cells within mi1
+            # copy the raw words for this coarse cell
+            nwords = buf.sizeInBytes() // sizeof(ewah_word_type)
+            words = np.empty(nwords, dtype="uint32")
+            for vec_i in range(nwords):
+                words[vec_i] = buf.getWord(vec_i)
+            # store the refined raw words for this cell in the collection
+            bac_api.set_refined_words(this_collection, mi1, words)
+            # also mark the coarse cell itself
+            bac_api.set_coarse(this_collection, mi1)
+        out_collection = bac_api.new()
+        bac_api.logicalor(in_collection, this_collection, out_collection)
         return out_collection
 
     @cython.boundscheck(False)
@@ -1019,7 +1021,7 @@ cdef class ParticleBitmap:
             for ifile in range(self.nfiles):
                 serial_BAC = self.bitmasks._dumps(ifile)
                 grp.create_dataset(f"nfile_{ifile:05}", data=np.void(serial_BAC))
-            serial_BAC = self.collisions._dumps()
+            serial_BAC = bac_api.dumps(self.collisions)
             grp.create_dataset("collisions", data=np.void(serial_BAC))
 
     def check_bitmasks(self):
@@ -1065,7 +1067,7 @@ cdef class ParticleBitmap:
                     read_flag = 0
             pb.finish()
             # Collisions
-            irflag = self.collisions._loads(grp["collisions"][...].tobytes())
+            irflag = bac_api.loads(self.collisions, grp["collisions"][...].tobytes())
             if irflag == 0:
                 read_flag = 0
 
@@ -1126,8 +1128,7 @@ cdef class ParticleBitmap:
         print("Total of %s / %s collisions (% 3.5f%%)" % (nc, nm, 100.0*float(nc)/nm))
 
     def primary_indices(self):
-        mi = (<ewah_bool_array*> self.collisions.ewah_keys)[0].toArray()
-        return np.array(mi,'uint64')
+        return _get_selected_coarse_indices(self.collisions)
 
     def file_ownership_mask(self, fid):
         cdef BoolArrayCollection out
@@ -1175,23 +1176,23 @@ cdef class ParticleBitmap:
         for i in range(3):
             periodicity[i] = periodic[i]
         if dmask is None:
-            dmask = BoolArrayCollection()
-            gmask2 = BoolArrayCollection()
+            dmask = bac_api.new()
+            gmask2 = bac_api.new()
             morton_selector = ParticleBitmapSelector(selector,self,ngz=0)
             morton_selector.fill_masks(dmask, gmask2)
-        gmask = BoolArrayCollection()
-        dmask._get_ghost_zones(ngz, self.index_order1, self.index_order2,
+        gmask = bac_api.new()
+        bac_api.get_ghost_zones(dmask, ngz, self.index_order1, self.index_order2,
                                periodicity, gmask, <bint>coarse_ghosts)
         _dfiles, gfiles = self.masks_to_files(dmask, gmask)
-        out = BoolArrayCollection()
-        gmask._logicalor(dmask, out)
+        out = bac_api.new()
+        bac_api.logicalor(gmask, dmask, out)
         return gfiles, out
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def selector2mask(self, SelectorObject selector):
-        cdef BoolArrayCollection cmask = BoolArrayCollection()
+        cdef BoolArrayCollection cmask = bac_api.new()
         cdef ParticleBitmapSelector morton_selector
         morton_selector = ParticleBitmapSelector(selector,self,ngz=0)
         morton_selector.fill_masks(cmask)
@@ -1213,7 +1214,7 @@ cdef class ParticleBitmap:
         cdef np.int32_t fid
         cdef np.ndarray[object, ndim=1] file_masks
         # Get bitmasks for parts of files touching the selector
-        file_masks = np.array([BoolArrayCollection() for _ in range(len(file_idx))],
+        file_masks = np.array([bac_api.new() for _ in range(len(file_idx))],
                               dtype="object")
         for fid, fmask in zip(file_idx,file_masks, strict=True):
             self.bitmasks._logicaland(<np.uint32_t> fid, cmask, fmask)
@@ -1233,7 +1234,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def identify_file_masks(self, SelectorObject selector):
-        cdef BoolArrayCollection cmask = BoolArrayCollection()
+        cdef BoolArrayCollection cmask = bac_api.new()
         cdef BoolArrayCollection fmask
         cdef np.int32_t fid
         cdef np.ndarray[object, ndim=1] file_masks
@@ -1245,7 +1246,7 @@ cdef class ParticleBitmap:
         morton_selector.fill_masks(cmask)
         # Get bitmasks for parts of files touching the selector
         file_idx = self.mask_to_files(cmask)
-        file_masks = np.array([BoolArrayCollection() for _ in range(len(file_idx))],
+        file_masks = np.array([bac_api.new() for _ in range(len(file_idx))],
                               dtype="object")
         addfile_idx = len(file_idx)*[None]
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
@@ -1257,8 +1258,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def identify_data_files(self, SelectorObject selector, int ngz = 0):
-        cdef BoolArrayCollection cmask_s = BoolArrayCollection()
-        cdef BoolArrayCollection cmask_g = BoolArrayCollection()
+        cdef BoolArrayCollection cmask_s = bac_api.new()
+        cdef BoolArrayCollection cmask_g = bac_api.new()
         # Find mask of selected morton indices
         cdef ParticleBitmapSelector morton_selector
         morton_selector = ParticleBitmapSelector(selector, self, ngz=ngz)
@@ -1327,7 +1328,7 @@ cdef class ParticleBitmap:
             DRE[i] = self.right_edge[i]
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
         # Determine cells that need to be added to the octree
-        cdef np.uint64_t nroot = selector_mask._count_total()
+        cdef np.uint64_t nroot = bac_api.count_total(selector_mask)
         # Now we can actually create a sparse octree.
         octree = ParticleBitmapOctreeContainer(
             (self.dims[0], self.dims[1], self.dims[2]),
@@ -1338,20 +1339,14 @@ cdef class ParticleBitmap:
         octree.level_offset = self.index_order1
         octree.allocate_domains()
         # Add roots based on the mask
-        cdef np.uint64_t croot = 0
-        cdef ewah_bool_array *ewah_slct = <ewah_bool_array *> selector_mask.ewah_keys
-        cdef ewah_bool_array *ewah_base
-        if base_mask is not None:
-            ewah_base = <ewah_bool_array *> base_mask.ewah_keys
-        else:
-            ewah_base = NULL
-        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct[0].begin())
-        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct[0].end())
+        cdef np.uint64_t croot
+        cdef np.ndarray[np.uint64_t, ndim=1] root_mis = _get_selected_coarse_indices(selector_mask)
+        assert(root_mis.shape[0] == nroot)
         cdef np.ndarray[np.uint8_t, ndim=1] slct_arr
         slct_arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
-        while iter_set[0] != iter_end[0]:
-            mi = dereference(iter_set[0])
-            if ewah_base != NULL and ewah_base[0].get(mi) == 0:
+        for croot in range(nroot):
+            mi = root_mis[croot]
+            if base_mask is not None and bac_api.get_coarse(base_mask, mi) == 0:
                 octree._index_base_roots[croot] = 0
                 slct_arr[mi] = 2
             else:
@@ -1360,11 +1355,8 @@ cdef class ParticleBitmap:
             for j in range(3):
                 ind[j] = ind64[j]
             octree.next_root(1, ind)
-            croot += 1
-            preincrement(iter_set[0])
-        assert(croot == nroot)
-        if ewah_base != NULL:
-            assert(np.sum(octree._index_base_roots) == ewah_base[0].numberOfOnes())
+        if base_mask is not None:
+            assert(np.sum(octree._index_base_roots) == bac_api.count_total(base_mask))
         # Get morton indices for all particles in this file and those
         # contaminating cells it has majority control of.
         files_touched = data_files #+ buffer_files  # datafile object from ID goes here
@@ -1502,7 +1494,7 @@ cdef class ParticleBitmapSelector:
             pos[i] = self.DLE[i]
             dds[i] = self.DRE[i] - self.DLE[i]
         if mm_g is None:
-            mm_g = BoolArrayCollection()
+            mm_g = bac_api.new()
         # Uncompressed version
         cdef BoolArrayColl mm_s0
         cdef BoolArrayColl mm_g0
@@ -1559,14 +1551,14 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef bint is_refined(self, np.uint64_t mi1):
-        return self.bitmap.collisions._isref(mi1)
+        return bac_api.isref(self.bitmap.collisions, mi1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef bint is_refined_files(self, np.uint64_t mi1):
         cdef np.uint64_t i
-        if self.bitmap.collisions._isref(mi1):
+        if self.is_refined(mi1):
             # Don't refine if files all selected already
             for i in range(self.nfiles):
                 if self.file_mask_p[i] == 0:
