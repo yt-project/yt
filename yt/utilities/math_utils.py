@@ -411,11 +411,13 @@ def modify_reference_frame(CoM, L, P=None, V=None):
         # is that formula is used in denominator
         # this just checks if we need to flip the z axis or not
         if L[2] < 0.0:
-            # this is just a simple flip in direction of the z axis
+            # making L point in the +z direction
+            # this is a 180 degree rotation about the x-axis
+            L = rotate_vector_3D(L, 0, np.pi)
             if P is not None:
-                P = -P
+                P = rotate_vector_3D(P, 0, np.pi)
             if V is not None:
-                V = -V
+                V = rotate_vector_3D(V, 0, np.pi)
 
         # return the values
         if V is None and P is not None:
