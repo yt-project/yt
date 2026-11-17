@@ -230,9 +230,11 @@ other_tests:
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
      - "--ignore-file=test_offaxisprojection_pytestonly\\.py"
      - "--ignore-file=test_sph_pixelization_pytestonly\\.py"
+     - "--ignore-file=test_image_writer_pytestonly\\.py"
      - "--ignore-file=test_cf_radial_pytest\\.py"
      - "--ignore-file=test_fields_pytest\\.py"
      - "--ignore-file=test_perspective_matrix\\.py"
      - "--ignore-file=test_ramses2\\.py"
+     - "--ignore-file=test_reference_frame_rotation\\.py"
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
