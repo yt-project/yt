@@ -1,3 +1,4 @@
+import ast
 import os
 from collections import UserDict
 from io import StringIO
@@ -52,7 +53,7 @@ def _get_type(vtype, tlen=None):
         else:
             t = np.dtype(t)
     except KeyError:
-        t = eval("np." + vtype)
+        t = ast.literal_eval("np." + vtype)
     return t
 
 
