@@ -3498,6 +3498,68 @@ stars might look like this:
 For a cosmological simulation, this filter will distinguish between stars and
 dark matter particles.
 
+.. _loading-ramses2-data:
+
+RAMSES II Data
+--------------
+
+`RAMSES II <https://github.com/ramses-organisation/ramses2>`_ (and its
+predecessor mini-ramses) write outputs in a different format than RAMSES.
+Each ``output_XXXXX`` folder contains an ``info.txt`` file and a set of
+``amr.NNNNN``, ``hydro.NNNNN``, ``grav.NNNNN``, ``part.NNNNN``,
+``star.NNNNN``, ``sink.NNNNN``, ... files, where ``NNNNN`` runs from 1 to
+the ``nfile`` parameter of the run. These outputs are loaded by passing the
+output folder (or any file in it) to ``yt.load``:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080")
+
+Grid variables keep the names given in the ``<prefix>_header.txt`` files
+(``density``, ``velocity_x``, ``thermal_pressure``, ``potential``,
+``accel_x``, ...) and are loaded into the ``"ramses"`` (hydro),
+``"gravity"``, ``"rt"`` and ``"cr"`` field types. Each particle file is
+loaded as a particle type named after its prefix: ``"part"`` (dark matter),
+``"star"``, ``"sink"``, ``"tree"``, ``"trac"``, ``"dust"`` and ``"core"``.
+Particle fields are named ``particle_<name>`` after the
+``<prefix>_header.txt`` file, except for ``pos``, ``vel``, ``accel``,
+``angmom``, ``birth_id`` (or ``id`` in older outputs), ``level``,
+``birth_date`` and ``merging_date``, which are loaded as
+``particle_position_[xyz]``, ``particle_velocity_[xyz]``,
+``particle_acceleration_[xyz]``, ``particle_spin_[xyz]``,
+``particle_identity``, ``particle_level``, ``particle_birth_time`` and
+``particle_merging_time``. These names follow the ``yt_ramses.py`` reader
+distributed in ``utils/py`` of the RAMSES II repository, except for
+``angmom``. ``angmom`` is the specific angular momentum of the gas accreted
+by a sink particle, measured about the sink, and is loaded as
+``particle_spin_[xyz]``. yt's ``particle_angular_momentum_[xyz]`` fields
+remain the orbital angular momentum about the center of the data object, as
+for other particle types.
+
+In MHD runs, the cell-centred magnetic field is loaded as
+``("ramses", "magnetic_field_[xyz]")`` and aliased to
+``("gas", "magnetic_field_[xyz]")``, so that derived fields such as
+``("gas", "magnetic_pressure")`` and ``("gas", "alfven_speed")`` are
+available.
+
+For cosmological simulations, ``current_time`` is the age of the universe at
+the redshift of the output, ``"particle_birth_time"`` contains the physical
+time at which the particle was born, and the ``"age"`` field the age of the
+particle at the time of the output.
+
+The frontend currently has the following limitations:
+
+* only 3D outputs are supported,
+* restart dumps (``backup_XXXXX`` folders), which store conservative
+  variables, are not supported,
+* ghost zones (and hence derived fields that require them, such as gradients)
+  are not supported,
+* the mean molecular weight is not stored in the outputs, so the
+  ``("gas", "temperature")`` field is the temperature over the mean molecular
+  weight.
+
 .. _loading-sph-data:
 
 SPH Particle Data

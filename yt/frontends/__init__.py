@@ -37,6 +37,7 @@ __all__ = [
     "owls_subfind",
     "parthenon",
     "ramses",
+    "ramses2",
     "rockstar",
     "sdf",
     "stream",
