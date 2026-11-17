@@ -147,20 +147,24 @@ class IOHandlerRAMSES2(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         pn = "particle_position_%s"
+        pos_fields = [pn % ax for ax in "xyz"]
         for chunk in chunks:
             for subset in chunk.objs:
                 for ptype, field_list in sorted(ptf.items()):
                     fn = subset.domain.particle_fn(ptype)
                     if self._particle_count(fn) == 0:
                         continue
-                    pos_fields = [pn % ax for ax in "xyz"]
-                    rv = self._read_particle_file(
-                        fn, ptype, set(field_list) | set(pos_fields)
-                    )
-                    mask = selector.select_points(
-                        rv[pn % "x"], rv[pn % "y"], rv[pn % "z"], 0.0
-                    )
-                    if mask is None:
-                        continue
+                    if selector is None or getattr(selector, "is_all_data", False):
+                        rv = self._read_particle_file(fn, ptype, set(field_list))
+                        mask = slice(None)
+                    else:
+                        rv = self._read_particle_file(
+                            fn, ptype, set(field_list) | set(pos_fields)
+                        )
+                        mask = selector.select_points(
+                            rv[pn % "x"], rv[pn % "y"], rv[pn % "z"], 0.0
+                        )
+                        if mask is None:
+                            continue
                     for fname in field_list:
                         yield (ptype, fname), rv[fname][mask]

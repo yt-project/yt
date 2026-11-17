@@ -71,13 +71,3 @@ LEGACY_PARTICLE_FIELDS = {
     "merging_id": ("id", 1),
     "tracking_id": ("id", 1),
 }
-
-field_aliases = {
-    "standard_five": (
-        "density",
-        "velocity_x",
-        "velocity_y",
-        "velocity_z",
-        "thermal_pressure",
-    ),
-}
