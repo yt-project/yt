@@ -1,3 +1,4 @@
+import ast
 import os
 import weakref
 from collections import defaultdict
@@ -52,7 +53,7 @@ class SavedDataset(Dataset):
                 v = parse_h5_attr(f, key)
                 if key == "con_args":
                     try:
-                        v = eval(v)
+                        v = ast.literal_eval(v)
                     except ValueError:
                         # support older ytdata outputs
                         v = v.astype("str")
