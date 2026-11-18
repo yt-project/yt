@@ -3,7 +3,7 @@ from itertools import chain
 
 import matplotlib as mpl
 import numpy as np
-import numpy.testing as npt
+import numpy.testing as nptesting
 import pytest
 from matplotlib.colors import SymLogNorm
 
@@ -38,7 +38,7 @@ def test_sliceplot_set_unit_and_zlim_order():
     im0 = p0.plots[field].image._A
     im1 = p1.plots[field].image._A
 
-    npt.assert_allclose(im0, im1)
+    nptesting.assert_allclose(im0, im1)
 
 
 def test_annotation_parse_h():
@@ -69,7 +69,7 @@ def test_annotation_parse_h():
     img2 = p2.plots["gas", "density"].figure.canvas.renderer.buffer_rgba()
 
     # This should be the same image
-    npt.assert_allclose(img1, img2)
+    nptesting.assert_allclose(img1, img2)
 
 
 @pytest.mark.mpl_image_compare
