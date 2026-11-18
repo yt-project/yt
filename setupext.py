@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from copy import deepcopy
 from textwrap import dedent
 from concurrent.futures import ThreadPoolExecutor
 from distutils import sysconfig
@@ -14,7 +15,9 @@ from distutils.ccompiler import CCompiler, new_compiler
 from distutils.sysconfig import customize_compiler
 from subprocess import PIPE, Popen
 from sys import platform as _platform
+import numpy
 import ewah_bool_utils
+from Cython.Build import cythonize
 from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
 from setuptools.errors import CompileError, LinkError
@@ -403,11 +406,17 @@ def get_python_include_dirs():
     return include_dirs
 
 
+include_dirs = [numpy.get_include(), ewah_bool_utils.get_include()]
+
 NUMPY_MACROS = [
     ("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION"),
     # keep in sync with runtime requirements (pyproject.toml)
     ("NPY_TARGET_VERSION", "NPY_1_21_API_VERSION"),
 ]
+
+define_macros = deepcopy(NUMPY_MACROS)
+if USE_PY_LIMITED_API:
+    define_macros.append(("Py_LIMITED_API", ABI3_TARGET_HEX))
 
 
 def create_build_ext(lib_exts, cythonize_aliases):
@@ -418,39 +427,25 @@ def create_build_ext(lib_exts, cythonize_aliases):
         # pyproject.toml was introduced in the project
 
         def finalize_options(self):
-            from Cython.Build import cythonize
-
             # Override the list of extension modules
-            self.distribution.ext_modules[:] = cythonize(
+            self.extensions = self.distribution.ext_modules = cythonize(
                 lib_exts,
                 aliases=cythonize_aliases,
                 compiler_directives={"language_level": 3},
                 nthreads=get_cpu_count(),
             )
-            _build_ext.finalize_options(self)
-            # Prevent numpy from thinking it is still in its setup process
-            # see http://stackoverflow.com/a/21621493/1382869
-            if isinstance(__builtins__, dict):
-                # sometimes this is a dict so we need to check for that
-                # https://docs.python.org/3/library/builtins.html
-                __builtins__["__NUMPY_SETUP__"] = False
+
+            if self.include_dirs is None:
+                self.include_dirs = include_dirs
             else:
-                __builtins__.__NUMPY_SETUP__ = False
-            import numpy
-
-            self.include_dirs.append(numpy.get_include())
-            self.include_dirs.append(ewah_bool_utils.get_include())
-
-            define_macros = NUMPY_MACROS
-            if USE_PY_LIMITED_API:
-                define_macros.append(("Py_LIMITED_API", ABI3_TARGET_HEX))
-                for ext in self.extensions:
-                    ext.py_limited_api = True
+                self.include_dirs.extend(include_dirs)
 
             if self.define is None:
                 self.define = define_macros
             else:
                 self.define.extend(define_macros)
+
+            super().finalize_options()
 
         def build_extensions(self):
             self.check_extensions_list(self.extensions)
