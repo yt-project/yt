@@ -204,11 +204,7 @@ cdef class GridTree:
         data.array = <void*>mask.buf
         self.visit_grids(&data, grid_visitors.mask_cells, selector)
         self.mask = mask
-        size = 0
-        self.setup_data(&data)
-        data.array = <void*>(&size)
-        self.visit_grids(&data,  grid_visitors.count_cells, selector)
-        return size
+        return mask.count()
 
     def select_icoords(self, SelectorObject selector, np.uint64_t size = -1):
         # Fill icoords with a selector
