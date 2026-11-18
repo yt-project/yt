@@ -402,18 +402,16 @@ environment can use readline, run the following command:
 How can I change yt's log level?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt's default log level is ``INFO``. However, you may want less voluminous logging,
-especially if you are in an IPython notebook or running a long or parallel script.
-On the other hand, you may want it to output a lot more, since you can't figure out
-exactly what's going wrong, and you want to output some debugging information.
-The default yt log level can be changed using the :ref:`configuration-file`,
-either by setting it in the ``$HOME/.config/yt/yt.toml`` file:
+yt's default log level is ``CRITICAL`` (50), which pratically is equivalent to "disabled".
+You may want to enable logging if you are developing or debugging yt itself.
+This can be done via the command line. For instance, one would enable error-level
+messages as
 
 .. code-block:: bash
 
-   $ yt config set yt log_level 10  # This sets the log level to "DEBUG"
+   $ yt config --local set yt log_level 40
 
-which would produce debug (as well as info, warning, and error) messages, or at runtime:
+Or, at runtime:
 
 .. code-block:: python
 
@@ -425,8 +423,7 @@ This is the same as doing:
 
    yt.set_log_level(40)
 
-which in this case would suppress everything below error messages. For reference,
-the numerical values corresponding to different log levels are:
+For reference, the numerical values corresponding to different log levels are:
 
 .. csv-table::
    :header: Level, Numeric Value

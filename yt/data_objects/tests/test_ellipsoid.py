@@ -7,7 +7,6 @@ from yt.testing import fake_random_ds
 def setup_module():
     from yt.config import ytcfg
 
-    ytcfg["yt", "log_level"] = 50
     ytcfg["yt", "internals", "within_testing"] = True
 
 
