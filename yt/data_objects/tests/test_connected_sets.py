@@ -10,4 +10,4 @@ def test_connected_sets():
     data_source.extract_connected_sets(
         field, 5, min_val, max_val, log_space=True, cumulative=True
     )
-    yield ExtractConnectedSetsTest(ds, data_source, field, 5, min_val, max_val)
+    ExtractConnectedSetsTest(ds, data_source, field, 5, min_val, max_val)()
