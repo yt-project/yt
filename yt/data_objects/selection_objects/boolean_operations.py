@@ -61,6 +61,8 @@ class YTBooleanContainer(YTSelectionContainer3D):
             return le1, re1
         else:
             le2, re2 = self.dobj2._get_bbox()
+            if self.op == "AND":
+                return np.maximum(le1, le2), np.minimum(re1, re2)
             return np.minimum(le1, le2), np.maximum(re1, re2)
 
 
@@ -102,17 +104,6 @@ class YTIntersectionContainer3D(YTSelectionContainer3D):
         validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, None, ds, field_parameters, data_source)
         self.data_objects = list(always_iterable(data_objects))
-
-    def get_bbox(self):
-        # Get the bounding box of the intersection
-        bbox = self.data_objects[0].get_bbox()
-        for obj in self.data_objects[1:]:
-            cur_bbox = obj._get_bbox()
-            bbox = (
-                np.maximum(bbox[0], cur_bbox[0]),
-                np.minimum(bbox[1], cur_bbox[1]),
-            )
-        return bbox
 
 
 class YTDataObjectUnion(YTSelectionContainer3D):
