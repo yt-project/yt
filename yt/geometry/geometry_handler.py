@@ -1,6 +1,7 @@
 import abc
 import os
 import weakref
+from typing import ClassVar
 
 import numpy as np
 
@@ -21,8 +22,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 class Index(ParallelAnalysisInterface, abc.ABC):
     """The base index class"""
 
-    _unsupported_objects: tuple[str, ...] = ()
-    _index_properties: tuple[str, ...] = ()
+    _unsupported_objects: ClassVar[tuple[str, ...]] = ()
 
     def __init__(self, ds, dataset_type):
         ParallelAnalysisInterface.__init__(self)
