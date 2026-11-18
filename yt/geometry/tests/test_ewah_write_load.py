@@ -1,12 +1,11 @@
+from numpy.testing import assert_array_equal
+
 from yt.loaders import load
-from yt.sample_data.api import _get_test_data_dir_path
-from yt.testing import assert_array_equal, requires_file
+from yt.testing import requires_file
 
 
 @requires_file("TNGHalo/halo_59.hdf5")
 def test_ewah_write_load(tmp_path):
-    mock_file = tmp_path / "halo_59.hdf5"
-    mock_file.symlink_to(_get_test_data_dir_path() / "TNGHalo" / "halo_59.hdf5")
 
     masses = []
     opts = [
@@ -17,7 +16,11 @@ def test_ewah_write_load(tmp_path):
     ]
 
     for opt in opts:
-        ds = load(mock_file, index_order=opt[0])
+        ds = load(
+            "TNGHalo/halo_59.hdf5",
+            index_order=opt[0],
+            index_filename=str(tmp_path / "halo_59.ewah"),
+        )
         _, c = ds.find_max(("gas", "density"))
         assert ds.index.pii.mutable_index is opt[1]
         assert ds.index.pii.order1 == opt[2][0]
