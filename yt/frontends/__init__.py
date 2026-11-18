@@ -36,6 +36,7 @@ __all__ = [
     "owls",
     "owls_subfind",
     "parthenon",
+    "pasta",
     "ramses",
     "rockstar",
     "sdf",

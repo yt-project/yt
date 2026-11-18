@@ -367,6 +367,17 @@ OpenPMD
    ~yt.frontends.open_pmd.misc.is_const_component
    ~yt.frontends.open_pmd.misc.get_component
 
+Pasta
+^^^^^
+
+.. autosummary::
+
+   ~yt.frontends.pasta.data_structures.PastaGrid
+   ~yt.frontends.pasta.data_structures.PastaHierarchy
+   ~yt.frontends.pasta.data_structures.PastaDataset
+   ~yt.frontends.pasta.fields.PastaFieldInfo
+   ~yt.frontends.pasta.io.IOHandlerPasta
+
 RAMSES
 ^^^^^^
 
