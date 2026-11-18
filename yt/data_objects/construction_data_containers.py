@@ -45,7 +45,11 @@ from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.utilities.lib.cyoctree import CyOctree
 from yt.utilities.lib.interpolators import ghost_zone_interpolate
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
-from yt.utilities.lib.misc_utilities import fill_region, fill_region_float
+from yt.utilities.lib.misc_utilities import (
+    fill_region,
+    fill_region_float,
+    get_box_grids_level,
+)
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
     interpolate_sph_positions_gather,
@@ -1400,10 +1404,14 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     single, specified resolution. (Identical to covering_grid,
     except that it interpolates.)
 
-    Smoothed covering grids start at level 0, interpolating to
-    fill the region to level 1, replacing any cells actually
-    covered by level 1 data, and then recursively repeating this
-    process until it reaches the specified `level`.
+    Smoothed covering grids start at the coarsest level that fully
+    covers the region, interpolating to fill the region to the next
+    level, replacing any cells actually covered by that level's data,
+    and then recursively repeating this process until it reaches the
+    specified `level`. In cases of properly-nested AMR, this *should*
+    only require going to level L-1.  But for other cases (including
+    periodicity and domains) it may require going all the way to the
+    root level.
 
     Parameters
     ----------
@@ -1441,62 +1449,126 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             super()._setup_data_source()
             return
         # We need a buffer region to allow for zones that contribute to the
-        # interpolation but are not directly inside our bounds
-        level_state.data_source = self.ds.region(
-            self.center,
-            level_state.left_edge - level_state.current_dx,
-            level_state.right_edge + level_state.current_dx,
+        # interpolation but are not directly inside our bounds.  There are no
+        # zones beyond a non-periodic edge, so there we clip the buffer (but
+        # not the box, whose edges lie on cell edges) to the domain.  If the
+        # box itself crosses such an edge, selecting it raises; supporting that
+        # would need values extrapolated into the box cells outside the domain
+        # after each level is filled, before interpolating to the next.
+        ds = self.ds
+        box_left = np.asarray(level_state.left_edge, dtype="float64")
+        box_right = np.asarray(level_state.right_edge, dtype="float64")
+        dx = np.asarray(level_state.current_dx, dtype="float64")
+        DLE = ds.domain_left_edge.d
+        DRE = ds.domain_right_edge.d
+        clip = ~np.array(ds.periodicity)
+        left = np.where(
+            clip & (box_left > DLE - dx / 2),
+            np.maximum(box_left - dx, DLE),
+            box_left - dx,
+        )
+        right = np.where(
+            clip & (box_right < DRE + dx / 2),
+            np.minimum(box_right + dx, DRE),
+            box_right + dx,
+        )
+        level_state.data_source = ds.region(
+            self.center, ds.arr(left, "code_length"), ds.arr(right, "code_length")
         )
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
-        self._pdata_source = self.ds.region(
-            self.center,
-            level_state.left_edge - level_state.current_dx,
-            level_state.right_edge + level_state.current_dx,
-        )
-        self._pdata_source.min_level = level_state.current_level
-        self._pdata_source.max_level = level_state.current_level
 
     def _compute_minimum_level(self):
-        # This attempts to determine the minimum level that we should be
-        # starting on for this box.  It does this by identifying the minimum
-        # level that could contribute to the minimum bounding box at that
-        # level; that means that all cells from coarser levels will be replaced.
+        # Start at the finest level whose box is entirely covered by that
+        # level's grids; every cell we fill will then be replaced by data at
+        # that level or finer, so nothing coarser can contribute.
         if self._min_level is not None:
             return self._min_level
-        ils = LevelState()
         min_level = 0
         for l in range(self.level, 0, -1):
             dx = self._base_dx / self.ds.relative_refinement(0, l)
             start_index, end_index, dims = self._minimal_box(dx)
-            ils.left_edge = start_index * dx + self.ds.domain_left_edge
-            ils.right_edge = ils.left_edge + dx * dims
-            ils.current_dx = dx
-            ils.current_level = l
-            self._setup_data_source(ils)
-            # Reset the max_level
-            ils.data_source.min_level = 0
-            ils.data_source.max_level = l
-            ils.data_source.loose_selection = False
-            min_level = self.level
-            for chunk in ils.data_source.piter():
-                # With our odd selection methods, we can sometimes get no-sized ires.
-                ir = chunk.ires
-                if ir.size == 0:
-                    continue
-                min_level = min(ir.min(), min_level)
-            min_level = self.comm.mpi_allreduce(min_level, op="min")
-            if min_level >= l:
+            covered = self._level_covers_region(l, start_index, dims)
+            if covered is None:
+                covered = self._selection_finds_only_level(l, dx, start_index, dims)
+            if covered:
+                min_level = l
                 break
         self._min_level = min_level
         return min_level
+
+    def _level_covers_region(self, level, start_index, dims):
+        # Whether the box at this level is entirely covered by grids at this
+        # level, using only the grid index.  Returns None if we cannot tell
+        # this way (the box reaches past the domain edge, or we cannot work in
+        # integer index space).
+        ds = self.ds
+        index = ds.index
+        if (
+            ds.dimensionality != 3
+            or is_sequence(ds.refine_by)
+            or int(ds.refine_by) != ds.refine_by
+            or not hasattr(index, "grids")
+        ):
+            return None
+        lo = start_index
+        hi = start_index + dims
+        level_dims = ds.domain_dimensions * int(ds.relative_refinement(0, level))
+        if np.any(lo < 0) or np.any(hi > level_dims):
+            return None
+        dx = ds.domain_width.d / level_dims
+        DLE = ds.domain_left_edge.d
+        mask = np.zeros(len(index.grids), dtype="int32")
+        get_box_grids_level(
+            DLE + lo * dx,
+            DLE + hi * dx,
+            level,
+            index.grid_left_edge.d,
+            index.grid_right_edge.d,
+            index.grid_levels,
+            mask,
+        )
+        covered = np.zeros(hi - lo, dtype="bool")
+        for grid in index.grids[mask.astype("bool")]:
+            gl = grid.get_global_startindex()
+            gr = gl + grid.ActiveDimensions
+            gl = np.maximum(gl, lo) - lo
+            gr = np.minimum(gr, hi) - lo
+            if np.all(gr > gl):
+                covered[gl[0] : gr[0], gl[1] : gr[1], gl[2] : gr[2]] = True
+        return bool(covered.all())
+
+    def _selection_finds_only_level(self, l, dx, start_index, dims):
+        # Select cells in the padded region from every level up to l; the
+        # region is covered if they are all at level l.  Selecting nothing
+        # means it is not covered.
+        ils = LevelState()
+        ils.left_edge = start_index * dx + self.ds.domain_left_edge
+        ils.right_edge = ils.left_edge + dx * dims
+        ils.current_dx = dx
+        ils.current_level = l
+        self._setup_data_source(ils)
+        ils.data_source.min_level = 0
+        ils.data_source.max_level = l
+        ils.data_source.loose_selection = False
+        found = l + 1
+        for chunk in ils.data_source.piter():
+            # With our odd selection methods, we can sometimes get no-sized ires.
+            ir = chunk.ires
+            if ir.size == 0:
+                continue
+            found = min(ir.min(), found)
+        found = self.comm.mpi_allreduce(found, op="min")
+        return found == l
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0:
             return
-        ls = self._initialize_level_state(fields)
+        # Start at the min level rather than root (see note in
+        # initialize_level_state)
         min_level = self._compute_minimum_level()
+        ls = self._initialize_level_state(fields, min_level)
         # NOTE: This usage of "refine_by" is actually *okay*, because it's
         # being used with respect to iref, which is *already* scaled!
         refine_by = self.ds.refine_by
@@ -1505,11 +1577,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         refine_by = np.array(refine_by, dtype="i8")
 
         runtime_errors_count = 0
-        for level in range(self.level + 1):
-            if level < min_level:
-                self._update_level_state(ls)
-                continue
-
+        for level in range(min_level, self.level + 1):
             mylog.debug("Filling level %d", level)
 
             nd = self.ds.dimensionality
@@ -1568,7 +1636,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(v, fi.units)
 
-    def _initialize_level_state(self, fields):
+    def _initialize_level_state(self, fields, level=0):
         ls = LevelState()
         ls.domain_width = self.ds.domain_width
         ls.domain_left_edge = self.ds.domain_left_edge
@@ -1587,8 +1655,17 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             "dds",
         ):
             setattr(ls, att, getattr(ls, att).in_units("code_length").d)
-        ls.current_dx = ls.base_dx
-        ls.current_level = 0
+        # We don't actually need to go to the root.  For a long time, we were
+        # doing this, because it was safest.  In general, we only have to
+        # necessarily start at any level more than 1 different in cases we
+        # can't predict of non-properly nested boxes.  But, we do have to
+        # address that, so we can't change too much.
+        nd = self.ds.dimensionality
+        refinement = np.zeros_like(ls.base_dx)
+        refinement += self.ds.relative_refinement(0, level)
+        refinement[nd:] = 1
+        ls.current_dx = ls.base_dx / refinement
+        ls.current_level = level
         ls.global_startindex, end_index, idims = self._minimal_box(ls.current_dx)
         ls.current_dims = idims.astype("int32")
         ls.left_edge = ls.global_startindex * ls.current_dx + self.ds.domain_left_edge.d
