@@ -1375,7 +1375,7 @@ class QuokkaDataset(AMReXDataset):
     # Match any plotfiles that have a metadata.yaml file in the root
     _index_class = QuokkaHierarchy
     _field_info_class = QuokkaFieldInfo
-    _subtype_keyword = ""
+    _subtype_keyword = "quokka"
     _default_cparam_filename = "metadata.yaml"
     _load_requirements = ["yaml"]
 

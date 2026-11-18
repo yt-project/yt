@@ -2157,13 +2157,25 @@ A standard QUOKKA dataset includes the following components:
     │   ├── Header
     │   └── Level_0/
 
-Loading QUOKKA data is straightforward with the ``load`` command:
+For QUOKKA versions 25.03 and later, loading QUOKKA data is straightforward
+with the ``load`` command:
 
 .. code-block:: python
 
     import yt
 
     ds = yt.load("sample/RadBeam/plt00007")
+
+
+Data from earlier QUOKKA versions can be loaded by directly creating a QUOKKA dataset object:
+
+.. code-block:: python
+
+    import yt
+    from yt.frontends.amrex.data_structures import QuokkaDataset
+
+    ds = QuokkaDataset("sample/RadBeam/plt00007")
+
 
 Boxlib Fields and Units
 ^^^^^^^^^^^^^^^^^^^^^^^
