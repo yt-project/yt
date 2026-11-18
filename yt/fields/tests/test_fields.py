@@ -504,6 +504,18 @@ def test_deposit_amr():
         assert_allclose_units(gpm, dpm)
 
 
+@requires_module("h5py")
+@requires_file(ISOGAL)
+def test_register_field():
+    field = ("enzo", "Phi_pField")
+    # this is made up
+    unit_string = "Msun*code_length/kg"
+    ds = load(ISOGAL)
+    ds.register_field(field, units=unit_string)
+    ds.field_list
+    assert ds.field_info[field].units == unit_string
+
+
 def test_ion_field_labels():
     fields = [
         "O_p1_number_density",
