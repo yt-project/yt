@@ -683,7 +683,9 @@ class GridValuesTest(AnswerTestingTest):
     def run(self):
         hashes = {}
         for g in self.ds.index.grids:
-            hashes[g.id] = hashlib.md5(g[self.field].tobytes()).hexdigest()
+            hashes[g.id] = hashlib.md5(
+                g[self.field].tobytes(), usedforsecurity=False
+            ).hexdigest()
             g.clear_data()
         return hashes
 
