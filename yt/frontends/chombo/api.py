@@ -9,6 +9,8 @@ from .data_structures import (
     Orion2Hierarchy,
     PlutoDataset,
     PlutoHierarchy,
+    AMReXHDF5Dataset,
+    AMReXHDF5Hierarchy
 )
 from .fields import (
     ChomboFieldInfo,
