@@ -973,7 +973,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     @cython.cdivision(True)
     def fill_sfc(self,
              np.ndarray[np.uint8_t, ndim=1] levels,
-             np.ndarray[np.uint8_t, ndim=1] cell_inds,
+             np.ndarray[np.uint32_t, ndim=1] cell_inds,
              np.ndarray[np.int64_t, ndim=1] file_inds,
              np.ndarray[np.int64_t, ndim=1] domain_counts,
              field_indices, dest_fields):
