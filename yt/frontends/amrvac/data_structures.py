@@ -347,7 +347,10 @@ class AMRVACDataset(Dataset):
 
         if parfiles is not None:
             namelist = read_amrvac_namelist(parfiles)
-            if "hd_list" in namelist:
+            if "eos_list" in namelist:
+                c_adiab = 1.0
+                namelist_gamma = namelist["eos_list"].get("gamma")
+            elif "hd_list" in namelist:
                 c_adiab = namelist["hd_list"].get("hd_adiab", 1.0)
                 namelist_gamma = namelist["hd_list"].get("hd_gamma")
             elif "mhd_list" in namelist:
@@ -494,7 +497,10 @@ class AMRVACDataset(Dataset):
         # get self.length_unit if overrides are supplied, otherwise use default
         length_unit = getattr(self, "length_unit", self.quan(1, "cm"))
         namelist = read_amrvac_namelist(self._parfiles)
-        He_abundance = namelist.get("mhd_list", {}).get("he_abundance", 0.1)
+        if namelist.get("eos_list", {}):
+            He_abundance = namelist.get("eos_list", {}).get("he_abundance", 0.1)
+        else:
+            He_abundance = namelist.get("mhd_list", {}).get("he_abundance", 0.1)
 
         # 1. calculations for mass, density, numberdensity
         if "mass_unit" in self.units_override:
