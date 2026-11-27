@@ -226,6 +226,7 @@ To inform yt that the data is represented on a stretched grid,
 define ``stretch_dim`` in a parfile in ``meshlist``
 
 .. code-block:: fortran
+
    &meshlist
       stretch_dim(1) = 'uni'
    /
@@ -236,13 +237,16 @@ and pass the parfile to yt when loading the data:
 
   ds = yt.load("output0010.dat", parfiles="amrvac.par")
 
-Both indexed statements (``stretch_dim(1)='uni'``) and array definitions
-(``stretch_dim='uni','',''``) are accepted in the parfile.
+Indexed statements (``stretch_dim(2)='uni'``), array definitions
+(``stretch_dim='uni','',''``) and scalars (``stretch_dim='uni'``, which, as in
+Fortran, only sets the first dimension) are accepted in the parfile. The same
+holds for ``qstretch_baselevel``. When it is not set for a stretched dimension,
+it defaults to ``(xprobmax/xprobmin)**(1/domain_nx)``, as in AMRVAC.
 
 * Only uniform stretching is supported at the moment, to be defined
-  as ``'uni'`` or ``'uniform'``.
-* At present, stretched grids are only supported on a
-  single level of refinement.
+  as ``'uni'`` or ``'uniform'``. Symmetric stretching (``'symm'``) is not.
+* Covering grids and ghost zones (and hence derived fields that require
+  them, such as gradients) are not supported on stretched grids.
 
 
 .. rubric:: Partially supported and unsupported features
