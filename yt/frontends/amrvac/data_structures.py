@@ -15,8 +15,9 @@ import numpy as np
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.stretched_grid import StretchedGrid
-from yt.data_objects.static_output import Dataset
+from yt.data_objects.static_output import Dataset, _unsupported_object
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -52,18 +53,97 @@ def _parse_geometry(geometry_tag: str) -> Geometry:
     return Geometry(geometry_str.lower())
 
 
-class AMRVACGrid(StretchedGrid):
+# Stretching types as written in AMRVAC parfiles (&meshlist:stretch_dim)
+_NO_STRETCH = ("", "none")
+_UNIFORM_STRETCH = ("uni", "uniform")
+_SYMMETRIC_STRETCH = ("symm", "symmetric")
+
+
+def _parse_stretch_dim(meshlist, ndim: int) -> list[str]:
+    """Return the stretching type ("none" or "uni") for each dimension.
+
+    Accepts a scalar (``stretch_dim = 'uni'``, i.e. first dimension only, following
+    Fortran semantics), an array definition (``stretch_dim = 'uni', '', ''``) or
+    indexed assignments (``stretch_dim(2) = 'uni'``, parsed as ``[None, 'uni']``).
+    """
+    stretch_dim = ["none"] * ndim
+    raw = meshlist.get("stretch_dim")
+    if raw is None:
+        return stretch_dim
+
+    for idim, value in enumerate(always_iterable(raw)):
+        if value is None:
+            continue
+        if not isinstance(value, str):
+            raise ValueError(
+                f"Expected a string for stretch_dim({idim + 1}), got {value!r}."
+            )
+        value = value.strip().lower()
+        if value in _NO_STRETCH:
+            continue
+        if idim >= ndim:
+            raise ValueError(
+                f"stretch_dim({idim + 1}) = {value!r} is set, "
+                f"but the dataset only has {ndim} dimension(s)."
+            )
+        if value in _UNIFORM_STRETCH:
+            stretch_dim[idim] = "uni"
+        elif value in _SYMMETRIC_STRETCH:
+            raise NotImplementedError(
+                "Symmetric stretching is not currently supported for AMRVAC data."
+            )
+        else:
+            raise ValueError(f"Unknown stretch_dim({idim + 1}) = {value!r}.")
+    return stretch_dim
+
+
+def _parse_qstretch_baselevel(meshlist, ndim: int) -> list[float | None]:
+    """Return the user-supplied qstretch_baselevel for each dimension (or None).
+
+    A scalar applies to the first dimension only, following Fortran semantics.
+    """
+    qstretch_baselevel: list[float | None] = [None] * ndim
+    raw = meshlist.get("qstretch_baselevel")
+    if raw is None:
+        return qstretch_baselevel
+
+    for idim, value in enumerate(always_iterable(raw)):
+        if idim >= ndim or value is None:
+            continue
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(
+                f"Expected a number for qstretch_baselevel({idim + 1}), got {value!r}."
+            )
+        qstretch_baselevel[idim] = float(value)
+    return qstretch_baselevel
+
+
+def _stretched_cell_edges(xmin, dxfirst, qstretch, k):
+    """Left edges of cells with integer indices ``k`` on a uniformly stretched axis.
+
+    Cell ``k`` has width ``dxfirst * qstretch**k``, so its left edge is the geometric
+    sum ``xmin + dxfirst * (1 - qstretch**k) / (1 - qstretch)``, as in AMRVAC.
+    All arguments may be arrays that broadcast together.
+    """
+    return xmin + dxfirst * (1.0 - qstretch**k) / (1.0 - qstretch)
+
+
+class AMRVACGrid(AMRGridPatch):
     """A class to populate AMRVACHierarchy.grids, setting parent/children relations."""
 
     _id_offset = 0
 
-    def __init__(self, id, cell_widths, filename, index, level, dims):
+    def __init__(self, id, index, level, morton_index=None):
         # <level> should use yt's convention (start from 0)
-        super().__init__(id=id, filename=filename, index=index, cell_widths=cell_widths)
+        super().__init__(id, filename=index.index_filename, index=index)
+        self._setup_amrvac_attributes(level, morton_index)
+
+    def _setup_amrvac_attributes(self, level, morton_index):
         self.Parent = None
         self.Children = []
         self.Level = level
-        self.ActiveDimensions = dims
+        # AMRVAC's (1-based) block index along each dimension, at this grid's level
+        self._morton_index = morton_index
 
     def get_global_startindex(self):
         """Refresh and retrieve the starting index for each dimension at current level.
@@ -72,8 +152,18 @@ class AMRVACGrid(StretchedGrid):
         -------
         self.start_index : int
         """
-        start_index = (self.LeftEdge - self.ds.domain_left_edge) / self.dds
-        self.start_index = np.rint(start_index).astype("int64").ravel()
+        if self._morton_index is None:
+            start_index = (self.LeftEdge - self.ds.domain_left_edge) / self.dds
+            self.start_index = np.rint(start_index).astype("int64").ravel()
+            return self.start_index
+
+        # exact, and independent of cell widths (valid for stretched grids)
+        ndim = self.ds.dimensionality
+        start_index = np.zeros(3, dtype="int64")
+        start_index[:ndim] = (np.asarray(self._morton_index) - 1) * np.asarray(
+            self.ActiveDimensions[:ndim]
+        )
+        self.start_index = start_index
         return self.start_index
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):
@@ -90,6 +180,22 @@ class AMRVACGrid(StretchedGrid):
         )
 
 
+class AMRVACStretchedGrid(AMRVACGrid, StretchedGrid):
+    """An AMRVAC grid with non-uniform cell widths along at least one dimension."""
+
+    def __init__(self, id, index, level, morton_index, cell_widths):
+        # skip AMRVACGrid.__init__: StretchedGrid needs the cell widths
+        StretchedGrid.__init__(
+            self, id, cell_widths, filename=index.index_filename, index=index
+        )
+        self._setup_amrvac_attributes(level, morton_index)
+
+    def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):
+        raise NotImplementedError(
+            "Ghost zones are not currently supported for stretched AMRVAC grids."
+        )
+
+
 class AMRVACHierarchy(GridIndex):
     grid = AMRVACGrid
 
@@ -101,17 +207,22 @@ class AMRVACHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
 
-        self.stretch_dim = ["none"] * self.dataset.dimensionality
+        ndim = self.dataset.dimensionality
+        meshlist = {}
         if self.dataset.namelist is not None:
-            meshlist = self.dataset.namelist["meshlist"]
-            if (stretch_dim := meshlist.get("stretch_dim")) is not None:
-                assert isinstance(stretch_dim, list)
-                assert len(stretch_dim) <= self.dataset.dimensionality
-                stretch_dim = ['none' if v is None else v for v in stretch_dim]
-                assert all(isinstance(x, str) for x in stretch_dim)
-                self.stretch_dim[:len(stretch_dim)] = stretch_dim
+            meshlist = self.dataset.namelist.get("meshlist", {})
+        self.stretch_dim = _parse_stretch_dim(meshlist, ndim)
+        self._qstretch_baselevel = _parse_qstretch_baselevel(meshlist, ndim)
+        self.is_stretched = any(s != "none" for s in self.stretch_dim)
+        if self.is_stretched:
+            self.grid = AMRVACStretchedGrid
 
         super().__init__(ds, dataset_type)
+
+        if self.is_stretched:
+            # these rely on uniform cell widths
+            for name in ("covering_grid", "smoothed_covering_grid"):
+                setattr(self.dataset, name, _unsupported_object(self.dataset, name))
 
     def _detect_output_fields(self):
         """Parse field names from the header, as stored in self.dataset.parameters"""
@@ -143,128 +254,129 @@ class AMRVACHierarchy(GridIndex):
         self.max_level = np.max(ytlevels)
         assert self.max_level == self.dataset.parameters["levmax"] - 1
 
-        # some aliases for left/right edges computation in the coming loop
-        domain_width = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
+        if self.is_stretched:
+            self._setup_stretching()
+
         block_nx = self.dataset.parameters["block_nx"]
-        xmin = self.dataset.parameters["xmin"]
-        dx0 = (
-            domain_width / self.dataset.parameters["domain_nx"]
-        )  # dx at coarsest grid level (YT level 0)
         ndim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype="object")
-        stretched_dims = [not (x == "none" or x == "") for x in self.stretch_dim]
-        base_stretch = np.ones(3, dtype="float64")
-        if np.any(stretched_dims):
-            meshlist = self.dataset.namelist["meshlist"]
-            stretch_baselevel = meshlist.get("qstretch_baselevel")
-            match stretch_baselevel:
-                case ():
-                    assert len(stretch_baselevel) >= ndim
-                    base_stretch[:ndim] = (
-                        float(b) for b in stretch_baselevel[:ndim]
-                    )
-                case float() | int():
-                    assert sum(stretched_dims) == 1  # exactly one stretched direction
-                    stretched_dim = stretched_dims.index(True)
-                    base_stretch[stretched_dim] = float(stretch_baselevel)
-                case None:
-                    # compute default values dynamically, just as done in AMRVAC
-                    assert sum(stretched_dims) == 1  # exactly one stretched direction
-                    stretched_dim = stretched_dims.index(True) + 1 # AMRVAC index (1 offset, Fortran convention)
-                    base_stretch[stretched_dim-1] = (
-                        meshlist[f"xprobmax{stretched_dim}"]
-                        / meshlist[f"xprobmin{stretched_dim}"]
-                    ) ** (1.0 / meshlist[f"domain_nx{stretched_dim}"])
-                case _:
-                    raise ValueError(
-                        f"Unknown type for qstretch_baselevel: {type(stretch_baselevel)}"
-                    )
-
-        qstretch = np.zeros((self.max_level + 2, ndim), dtype="float64")
-        dxfirst = np.zeros((self.max_level + 2, ndim), dtype="float64")
-        for dim in range(ndim):
-            match self.stretch_dim[dim]:
-                case "none" | "":
-                    continue
-                case "uni" | "uniform":
-                    qstretch[1, dim] = base_stretch[dim]
-                    dxfirst[1, dim] = (
-                        domain_width[dim] * (1.0 - qstretch[1, dim])
-                        / (1.0 - qstretch[1, dim] ** meshlist[f"domain_nx{dim + 1}"])
-                    )
-                    qstretch[0, dim] = qstretch[1, dim] ** 2
-                    dxfirst[0, dim] = dxfirst[1, dim] * (1.0 + qstretch[1, dim])
-                    if self.max_level > 0:
-                        for ilev in range(2, self.max_level + 2):
-                            qstretch[ilev, dim] = np.sqrt(qstretch[ilev - 1, dim])
-                            dxfirst[ilev, dim] = dxfirst[ilev - 1, dim] / (
-                                1.0 + np.sqrt(qstretch[ilev - 1, dim])
-                            )
-                case "symm" | "symmetric":
-                    raise ValueError(
-                        "Symmetric stretching is not currently supported for AMRVAC data."
-                    )
-                case _:
-                    raise ValueError(
-                        f"Unknown stretch_dim {self.stretch_dim[dim]!r} for dimension {dim}."
-                    )
-
         for igrid, (ytlevel, morton_index) in enumerate(
             zip(ytlevels, morton_indices, strict=True)
         ):
-            left_edge = np.zeros(ndim, dtype="float64")
-            right_edge = np.zeros(ndim, dtype="float64")
-            cell_widths = []
-
-            for dim in range(ndim):
-                match self.stretch_dim[dim]:
-                    case "none" | "":
-                        dx = dx0[dim] / self.dataset.refine_by**ytlevel
-                        left_edge[dim] = xmin[dim] + (morton_index[dim] - 1) * block_nx[dim] * dx
-                        right_edge[dim] = left_edge[dim] + block_nx[dim] * dx
-                        cell_widths.append([dx] * block_nx[dim])
-                    case "uni" | "uniform":
-                        amrvac_level = ytlevel + 1  # AMRVAC uses 1-based indexing for levels
-                        q = qstretch[amrvac_level, dim]
-
-                        base = xmin[dim] + 0.5 * dxfirst[amrvac_level, dim]
-                        correction = (q - 1.0) / (q + 1.0)
-
-                        # left edge
-                        left_edge[dim] = (
-                            base * q ** ((morton_index[dim] - 1) * block_nx[dim])
-                            * (1.0 - correction)
-                        )
-                        # right edge
-                        right_edge[dim] = (
-                            base * q ** (morton_index[dim] * block_nx[dim] - 1)
-                            * (1.0 + correction)
-                        )
-                        # cell widths
-                        cell_widths.append([
-                            (
-                                base * q ** ((morton_index[dim] - 1) * block_nx[dim] + i)
-                                * 2.0 * correction
-                            ) for i in range(block_nx[dim])
-                        ])
-            cell_widths.extend([[1.0]] * (3 - ndim))
-            cell_widths = np.stack(
-                np.meshgrid(*cell_widths[::-1], indexing="ij")
-            )[::-1].reshape(3, -1)
-
             # edges and dimensions are filled in a dimensionality-agnostic way
-            self.grid_left_edge[igrid, :ndim] = left_edge
-            self.grid_right_edge[igrid, :ndim] = right_edge
+            cell_widths = []
+            for idim in range(ndim):
+                k = (morton_index[idim] - 1) * block_nx[idim] + np.arange(
+                    block_nx[idim] + 1
+                )
+                edges = self._cell_edges(idim, ytlevel, k)
+                # neighbouring grids compute their shared edge identically
+                self.grid_left_edge[igrid, idim] = edges[0]
+                self.grid_right_edge[igrid, idim] = edges[-1]
+                cell_widths.append(np.diff(edges))
             self.grid_dimensions[igrid, :ndim] = block_nx
+
+            if not self.is_stretched:
+                self.grids[igrid] = self.grid(igrid, self, ytlevel, morton_index)
+                continue
+
+            for idim in range(ndim, 3):
+                # unused dimensions: a single cell spanning the domain
+                width = (
+                    self.grid_right_edge[igrid, idim].d
+                    - self.grid_left_edge[igrid, idim].d
+                )
+                cell_widths.append(np.array([width]))
             self.grids[igrid] = self.grid(
-                id=igrid,
-                index=self,
-                level=ytlevels[igrid],
-                filename=self.index_filename,
-                cell_widths=cell_widths,
-                dims=self.grid_dimensions[igrid],
+                igrid, self, ytlevel, morton_index, cell_widths=cell_widths
             )
+
+    def _setup_stretching(self):
+        """Compute AMRVAC's qstretch and dxfirst for every level and dimension.
+
+        This mirrors AMRVAC's own setup: arrays are indexed by AMRVAC level
+        (1 = coarsest), and only stretched dimensions get non-zero values.
+        """
+        ndim = self.dataset.dimensionality
+        xmin = self.dataset.parameters["xmin"]
+        xmax = self.dataset.parameters["xmax"]
+        domain_nx = self.dataset.parameters["domain_nx"]
+        nlevels = self.max_level + 2  # AMRVAC levels 0 to levmax
+
+        self._qstretch = np.zeros((nlevels, ndim), dtype="float64")
+        self._dxfirst = np.zeros((nlevels, ndim), dtype="float64")
+        for idim in range(ndim):
+            if self.stretch_dim[idim] == "none":
+                continue
+            q = self._qstretch_baselevel[idim]
+            if q is None or q < 1.0:
+                # same fallback as AMRVAC
+                if xmin[idim] <= 0.0:
+                    raise ValueError(
+                        f"qstretch_baselevel({idim + 1}) must be set (> 1) in the "
+                        "parfile when the stretched dimension has xprobmin <= 0."
+                    )
+                q = (xmax[idim] / xmin[idim]) ** (1.0 / domain_nx[idim])
+            if q == 1.0:
+                raise ValueError(
+                    f"qstretch_baselevel({idim + 1}) = 1 means no stretching; "
+                    f"use stretch_dim({idim + 1}) = 'none' instead."
+                )
+            q_lev = self._qstretch[:, idim]
+            dx_lev = self._dxfirst[:, idim]
+            q_lev[1] = q
+            dx_lev[1] = (
+                (xmax[idim] - xmin[idim]) * (1.0 - q) / (1.0 - q ** domain_nx[idim])
+            )
+            q_lev[0] = q**2
+            dx_lev[0] = dx_lev[1] * (1.0 + q)
+            for ilev in range(2, nlevels):
+                q_lev[ilev] = np.sqrt(q_lev[ilev - 1])
+                dx_lev[ilev] = dx_lev[ilev - 1] / (1.0 + q_lev[ilev])
+
+    def _cell_edges(self, idim, ytlevel, k):
+        """Left edge of cells with global integer index ``k`` at yt level ``ytlevel``.
+
+        ``ytlevel`` and ``k`` may be arrays that broadcast together. Cell widths are
+        differences of consecutive edges.
+        """
+        xmin = self.dataset.parameters["xmin"][idim]
+        if self.stretch_dim[idim] == "none":
+            dx0 = (
+                self.dataset.parameters["xmax"][idim] - xmin
+            ) / self.dataset.parameters["domain_nx"][idim]
+            return xmin + k * (dx0 / self.dataset.refine_by ** np.asarray(ytlevel))
+        amrvac_level = np.asarray(ytlevel) + 1
+        return _stretched_cell_edges(
+            xmin,
+            self._dxfirst[amrvac_level, idim],
+            self._qstretch[amrvac_level, idim],
+            k,
+        )
+
+    def _icoords_to_fcoords(self, icoords, ires, axes=None):
+        """Cell centers and widths from integer coordinates, for stretched grids."""
+        if not self.is_stretched:
+            return super()._icoords_to_fcoords(icoords, ires, axes)
+        if axes is None:
+            axes = (0, 1, 2)
+        coords = np.empty(icoords.shape, dtype="float64")
+        widths = np.empty(icoords.shape, dtype="float64")
+        ires = np.asarray(ires).ravel()
+        for i, ax in enumerate(axes):
+            if ax >= self.dataset.dimensionality:
+                # unused dimension: a single cell spanning the domain
+                le = self.dataset.domain_left_edge.d[ax]
+                re = self.dataset.domain_right_edge.d[ax]
+                coords[:, i] = 0.5 * (le + re)
+                widths[:, i] = re - le
+                continue
+            left = self._cell_edges(ax, ires, icoords[:, i])
+            right = self._cell_edges(ax, ires, icoords[:, i] + 1)
+            coords[:, i] = 0.5 * (left + right)
+            widths[:, i] = right - left
+        return coords, widths
 
     def _populate_grid_objects(self):
         # required method
