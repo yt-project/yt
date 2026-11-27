@@ -459,15 +459,15 @@ class AMRVACDataset(Dataset):
 
         if parfiles is not None:
             namelist = read_amrvac_namelist(parfiles)
-            if "eos_list" in namelist:
-                c_adiab = 1.0
-                namelist_gamma = namelist["eos_list"].get("gamma")
-            elif "hd_list" in namelist:
+            if "hd_list" in namelist:
                 c_adiab = namelist["hd_list"].get("hd_adiab", 1.0)
                 namelist_gamma = namelist["hd_list"].get("hd_gamma")
             elif "mhd_list" in namelist:
                 c_adiab = namelist["mhd_list"].get("mhd_adiab", 1.0)
                 namelist_gamma = namelist["mhd_list"].get("mhd_gamma")
+            
+            if "eos_list" in namelist:
+                namelist_gamma = namelist["eos_list"].get("gamma")
 
             if namelist_gamma is not None and self.gamma != namelist_gamma:
                 mylog.error(
