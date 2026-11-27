@@ -465,7 +465,7 @@ class AMRVACDataset(Dataset):
             elif "mhd_list" in namelist:
                 c_adiab = namelist["mhd_list"].get("mhd_adiab", 1.0)
                 namelist_gamma = namelist["mhd_list"].get("mhd_gamma")
-            
+
             if "eos_list" in namelist:
                 namelist_gamma = namelist["eos_list"].get("gamma")
 

@@ -7,7 +7,6 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 import yt
 from yt.config import ytcfg
-
 from yt.frontends.amrvac.data_structures import (
     AMRVACHierarchy,
     AMRVACStretchedGrid,
