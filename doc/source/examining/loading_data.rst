@@ -220,6 +220,35 @@ overriding a maximum of three units. Allowed unit combinations at the moment are
 Appropriate errors are thrown for other combinations.
 
 
+.. rubric:: Stretched grids
+
+To inform yt that the data is represented on a stretched grid,
+define ``stretch_dim`` in a parfile in ``meshlist``
+
+.. code-block:: fortran
+
+   &meshlist
+      stretch_dim(1) = 'uni'
+   /
+
+and pass the parfile to yt when loading the data:
+
+.. code-block:: python
+
+  ds = yt.load("output0010.dat", parfiles="amrvac.par")
+
+Indexed statements (``stretch_dim(2)='uni'``), array definitions
+(``stretch_dim='uni','',''``) and scalars (``stretch_dim='uni'``, which, as in
+Fortran, only sets the first dimension) are accepted in the parfile. The same
+holds for ``qstretch_baselevel``. When it is not set for a stretched dimension,
+it defaults to ``(xprobmax/xprobmin)**(1/domain_nx)``, as in AMRVAC.
+
+* Only uniform stretching is supported at the moment, to be defined
+  as ``'uni'`` or ``'uniform'``. Symmetric stretching (``'symm'``) is not.
+* Covering grids and ghost zones (and hence derived fields that require
+  them, such as gradients) are not supported on stretched grids.
+
+
 .. rubric:: Partially supported and unsupported features
 
 * a maximum of 100 dust species can be read by yt at the moment.
@@ -228,11 +257,6 @@ Appropriate errors are thrown for other combinations.
 * particle data: currently not supported (but might come later)
 * staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
   staggered datasets, but the flag is currently ignored.
-* "stretched grids" are being implemented in yt, but are not yet
-  fully-supported.  (Previous versions of this file suggested they would
-  "never" be supported, which we hope to prove incorrect once we finish
-  implementing stretched grids in AMR.  At present, stretched grids are
-  only supported on a single level of refinement.)
 
 .. note::
 
